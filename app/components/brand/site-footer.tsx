@@ -30,7 +30,7 @@ export function SiteFooter() {
       <Container>
         <div className="grid gap-6 border-b border-paper/20 pb-7 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr_1fr]">
           <div className="sm:col-span-2 lg:col-span-1">
-            <Logo variant="plain" height={64} themed="on-ink" />
+            <Logo variant="plain" height={44} tight themed="on-ink" />
             <p className="mt-4 max-w-sm font-serif text-base leading-snug opacity-80">
               Practise the Model Town Board and memorise Kenyan road signs for
               the NTSA test.

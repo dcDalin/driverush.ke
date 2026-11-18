@@ -1,54 +1,32 @@
 #!/usr/bin/env node
 /**
- * Make the pictures the installed app needs, into `public/pwa/`:
+ * Take the installed app's install screenshots, into `public/pwa/`. Chrome on
+ * Android shows them in a richer install sheet ("app store" style) instead of
+ * the one-line prompt. The app's icons are drawn by `build-brand-assets.mjs`.
  *
- *  - Maskable icons. Android cuts an app icon to its own shape (circle,
- *    squircle, …) and keeps only the middle 80% for sure. Our logo PNG is
- *    see-through, so Android would put it on white in a small circle; these
- *    give it a full white square with the logo inside the safe middle.
- *  - Install screenshots. Chrome on Android shows them in a richer install
- *    sheet ("app store" style) instead of the one-line prompt.
- *
- * Headless Chrome takes the pictures, the same way `build-og-images.mjs`
- * captures the social cards. The icons come from a small page written on the
- * fly; the screenshots from the running app.
+ * Headless Chrome takes the pictures from the running app, the same way
+ * `build-og-images.mjs` captures the social cards.
  *
  * Usage:
- *   npm run dev                 # terminal 1 (only the screenshots need it)
- *   npm run build:pwa           # terminal 2: icons and screenshots
- *   npm run build:pwa -- icons  # just the icons, no app needed
+ *   npm run dev                 # terminal 1
+ *   npm run build:pwa           # terminal 2
  *   DEV_URL=http://localhost:5180 npm run build:pwa
  *
  * Requires Google Chrome. Keep the names in step with
  * `public/manifest.webmanifest`.
  */
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OUT_DIR = path.join(ROOT, "public", "pwa");
-const LOGO = path.join(ROOT, "public", "android-chrome-512x512.png");
 const DEV_URL = process.env.DEV_URL ?? "http://localhost:5173";
-
-/** The light theme's `--surface`, the same white as the status bar. */
-const ICON_FILL = "#ffffff";
-/**
- * Size of the logo PNG against the icon. Above 1 because the PNG has its own
- * see-through margin: at 1.1 the letters reach about 38% from the middle,
- * just inside the 40% circle Android keeps.
- */
-const LOGO_SHARE = 1.1;
-
-const ICONS = [
-  { file: "icon-maskable-512.png", size: 512 },
-  { file: "icon-maskable-192.png", size: 192 },
-];
 
 /**
  * `width`×`height` are CSS pixels, `scale` the device pixel ratio: a phone
@@ -142,32 +120,6 @@ async function shoot(chrome, { url, out, width, height, scale, settleMs }) {
   return (await stat(out)).size;
 }
 
-async function buildIcons(chrome) {
-  const dir = await mkdtemp(path.join(os.tmpdir(), "dr-icon-"));
-  try {
-    for (const icon of ICONS) {
-      const page = path.join(dir, `${icon.size}.html`);
-      const logo = Math.round(icon.size * LOGO_SHARE);
-      await writeFile(
-        page,
-        `<!doctype html><html><body style="margin:0;width:${icon.size}px;height:${icon.size}px;position:relative;overflow:hidden;background:${ICON_FILL}"><img src="${pathToFileURL(LOGO).href}" width="${logo}" height="${logo}" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)"></body></html>`,
-      );
-      const out = path.join(OUT_DIR, icon.file);
-      const size = await shoot(chrome, {
-        url: pathToFileURL(page).href,
-        out,
-        width: icon.size,
-        height: icon.size,
-        scale: 1,
-        settleMs: 500,
-      });
-      console.log(`  ${icon.file.padEnd(24)} ${(size / 1024).toFixed(0)} kB`);
-    }
-  } finally {
-    await rm(dir, { recursive: true, force: true });
-  }
-}
-
 async function buildShots(chrome) {
   try {
     const res = await fetch(`${DEV_URL}/model-town-board`);
@@ -220,11 +172,9 @@ async function buildShots(chrome) {
 }
 
 async function main() {
-  const only = process.argv.slice(2).filter((a) => !a.startsWith("-"));
   const chrome = await findChrome();
   await mkdir(OUT_DIR, { recursive: true });
-  if (!only.length || only.includes("icons")) await buildIcons(chrome);
-  if (!only.length || only.includes("screens")) await buildShots(chrome);
+  await buildShots(chrome);
 }
 
 main().catch((err) => {

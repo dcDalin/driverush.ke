@@ -121,15 +121,25 @@ function FlagRule() {
   );
 }
 
+/** The DR mark and the name. `paper` sits on the dark cards. */
 function Wordmark({ tone = "ink" }: { tone?: "ink" | "paper" }) {
   return (
     <span
       className={cn(
-        "font-display text-[26px] font-extrabold uppercase tracking-tight",
+        "inline-flex items-center gap-3 font-display text-[26px] font-extrabold uppercase tracking-tight",
         tone === "paper" ? "text-paper" : "text-ink",
       )}
     >
-      DriveRush<span className="text-rush">.ke</span>
+      <img
+        src={tone === "paper" ? "/logo-dark.svg" : "/logo.svg"}
+        alt=""
+        width={64}
+        height={35}
+        className="block h-[35px] w-auto"
+      />
+      <span>
+        DriveRush<span className="text-rush">.ke</span>
+      </span>
     </span>
   );
 }

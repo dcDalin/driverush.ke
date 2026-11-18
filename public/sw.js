@@ -35,8 +35,9 @@ const OFFLINE = "/offline.html";
 const SHELL = [
   OFFLINE,
   "/manifest.webmanifest",
-  "/android-chrome-192x192.png",
-  "/favicon-32x32.png",
+  "/favicon.svg",
+  "/logo.svg",
+  "/logo-dark.svg",
 ];
 /** The board's cars and still, from `app/lib/board/cars.ts` and `board-thumb.tsx`. */
 const BOARD_FILES = [

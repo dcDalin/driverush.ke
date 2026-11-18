@@ -48,6 +48,9 @@ export const links: Route.LinksFunction = () => [
   // Favicons. Explicit links so browsers and crawlers pick the right size
   // instead of guessing from /favicon.ico alone.
   { rel: "icon", href: "/favicon.ico", sizes: "any" },
+  // Sharp at any size and any screen density; browsers that read SVG
+  // favicons prefer it to the PNGs below. All drawn by `npm run build:brand`.
+  { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
   {
     rel: "icon",
     type: "image/png",

@@ -12,7 +12,8 @@
     "build:og": "node scripts/build-og-images.mjs",
     "build:sign-images": "node scripts/build-sign-images.mjs",
     "build:board-pdf": "node scripts/build-board-pdf.mjs",
-    "build:pwa": "node scripts/build-pwa-assets.mjs"
+    "build:pwa": "node scripts/build-pwa-assets.mjs",
+    "build:brand": "node scripts/build-brand-assets.mjs"
   },
   "dependencies": {
     "@posthog/react": "^1.10.3",
@@ -57,6 +58,7 @@
     "remark-frontmatter": "^5.0.0",
     "remark-gfm": "^4.0.1",
     "remark-mdx-frontmatter": "^5.2.0",
+    "sharp": "^0.35.5",
     "tailwindcss": "^4.2.2",
     "typescript": "^5.9.3",
     "vite": "^8.0.3",

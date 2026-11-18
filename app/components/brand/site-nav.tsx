@@ -24,7 +24,7 @@ export function SiteNav() {
     <AppBar
       brand={
         <Link to="/" aria-label="DriveRush home" className="outline-none">
-          <Logo variant="plain" height={40} themed priority />
+          <Logo variant="plain" height={30} tight themed priority />
         </Link>
       }
       nav={
