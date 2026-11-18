@@ -13,3 +13,6 @@
 /marketing/social/node_modules/
 /marketing/social/out/
 /marketing/social/.work/
+# Mixkit audio: licensed for the videos, not to be passed on as files
+/marketing/social/music/mk-*
+/marketing/social/sfx/
