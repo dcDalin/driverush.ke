@@ -91,7 +91,7 @@ export function initPostHog(): PostHog | undefined {
       return event;
     },
     loaded: (ph) => {
-      ph.register({ app_env: APP_ENV });
+      ph.register({ app_env: APP_ENV, display_mode: displayMode() });
     },
   });
 
@@ -102,4 +102,15 @@ export function initPostHog(): PostHog | undefined {
 /** The initialised client, or `undefined` when PostHog isn't configured. */
 export function getPostHog(): PostHog | undefined {
   return client;
+}
+
+/**
+ * Opened from the home screen (`standalone`) or in a browser tab (`browser`),
+ * stamped on every event so installed learners can be compared with the rest.
+ */
+function displayMode(): "standalone" | "browser" {
+  const standalone =
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (navigator as Navigator & { standalone?: boolean }).standalone === true;
+  return standalone ? "standalone" : "browser";
 }

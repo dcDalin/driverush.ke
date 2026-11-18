@@ -14,15 +14,23 @@ import * as React from "react";
 import type { Route } from "./+types/root";
 import "./app.css";
 import "./motion.css";
+import "./pwa.css";
 import { Toaster } from "~/components/ui/sonner";
 import { Button } from "~/components/ui/button";
 import { NavigationProgressBar } from "~/components/brand/navigation-progress-bar";
 import { RoadClosedScene, ScenePlate } from "~/components/brand/art/scenes";
-import { THEME_INIT_SCRIPT, useThemeSync } from "~/lib/theme";
-import { SITE, absUrl } from "~/lib/site";
+import {
+  THEME_COLOR_SCRIPT,
+  THEME_INIT_SCRIPT,
+  useThemeColorSync,
+  useThemeSync,
+} from "~/lib/theme";
+import { SITE, absUrl, appMeta } from "~/lib/site";
 import { getPostHog, initAnalytics, usePageviews } from "~/lib/analytics";
 import { useLearnerAnalytics } from "~/lib/use-learner-analytics";
 import { useUtmCapture } from "~/lib/utm";
+// Catches the browser's install prompt from the first load.
+import "~/lib/install";
 
 const BOARD_INIT_SCRIPT = `try{var s=JSON.parse(localStorage.getItem("driverush:board")||"{}").state;if(s&&((s.learned&&s.learned.length)||(s.bestStars&&Object.keys(s.bestStars).length)))document.documentElement.dataset.board="started"}catch(e){}`;
 
@@ -64,7 +72,7 @@ export const links: Route.LinksFunction = () => [
 export function meta() {
   const ogImage = absUrl(SITE.ogImage);
   return [
-    { name: "theme-color", content: SITE.themeColor },
+    ...appMeta(),
     { name: "robots", content: "index, follow" },
     { name: "format-detection", content: "telephone=no" },
     { property: "og:site_name", content: SITE.name },
@@ -85,18 +93,46 @@ export function Layout({ children }: { children: React.ReactNode }) {
   // main nav (see <AppBar>) — it used to float over every page, which got in
   // the way of the games on mobile.
   useThemeSync();
+  useThemeColorSync();
   // The service worker (`public/sw.js`) keeps opened pages and the board's
   // files for when there is no connection. Not in development, where it would
   // serve stale files.
   React.useEffect(() => {
     if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return;
+    let registration: ServiceWorkerRegistration | undefined;
+    let checked = Date.now();
     const register = () => {
-      navigator.serviceWorker.register("/sw.js").catch(() => {
-        // No worker only means no offline copy.
-      });
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then((r) => {
+          registration = r;
+          // After a deploy: the worker saves the new game files if the build
+          // changed them (see `refresh` in `public/sw.js`).
+          r.active?.postMessage("refresh");
+        })
+        .catch(() => {
+          // No worker only means no offline copy.
+        });
+    };
+    // Opened from the home screen, the app can stay open for days and moves
+    // between pages without loading a new document, so the browser seldom
+    // asks for a new worker. Ask when it comes back to the front, at most
+    // hourly. The worker takes over by itself, and pages are always fetched
+    // fresh, so no "new version" notice is needed.
+    const onVisible = () => {
+      if (document.visibilityState !== "visible" || !registration) return;
+      if (Date.now() - checked < 60 * 60 * 1000) return;
+      checked = Date.now();
+      registration.update().catch(() => {});
+      registration.active?.postMessage("refresh");
     };
     if (document.readyState === "complete") register();
     else window.addEventListener("load", register, { once: true });
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("load", register);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
   return (
     // The theme init script writes `style="color-scheme: …"` on <html> before
@@ -105,9 +141,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <html lang={SITE.lang} suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        {/* `viewport-fit=cover` lets the page run under the notch and the
+            home bar, so the `env(safe-area-inset-*)` padding on the tab bar,
+            the top bar and the game's controls takes effect. */}
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, viewport-fit=cover"
+        />
         {/* Settle light/dark before first paint — no flash. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        {/* The status bar's colour, by the same theme. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_COLOR_SCRIPT }} />
         {/* A learner who has started the board course: marked before first
             paint, so the page opens as theirs (`course-label.css`). */}
         <script dangerouslySetInnerHTML={{ __html: BOARD_INIT_SCRIPT }} />
@@ -182,7 +226,9 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         <h1 className="m-0 font-display text-[clamp(30px,7vw,48px)] font-extrabold uppercase leading-[0.95] tracking-tighter">
           {message}
         </h1>
-        <p className="m-0 font-serif text-lg leading-snug text-ink-2">{details}</p>
+        <p className="m-0 font-serif text-lg leading-snug text-ink-2">
+          {details}
+        </p>
         <Button variant="rush" size="lg" asChild className="mt-2 w-fit">
           <Link to="/model-town-board">Go to the Model Town Board</Link>
         </Button>

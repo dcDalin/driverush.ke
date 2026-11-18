@@ -16,7 +16,8 @@ import { BOARD_PATH } from "~/lib/board-guides";
 import { challengeById } from "~/lib/board/challenges";
 import { useBoardStore } from "~/lib/board-store";
 import { ogCardAlt, ogCardPath } from "~/lib/og-cards";
-import { BOARD_KEYWORDS, pageMeta } from "~/lib/site";
+import { BOARD_KEYWORDS, pageMeta, SITE } from "~/lib/site";
+import { useThemeColor } from "~/lib/theme";
 
 import { BoardGame } from "~/components/board/board-player";
 import { LoadingPanel } from "~/components/brand/traffic-loader";
@@ -42,6 +43,8 @@ export function meta(_: Route.MetaArgs) {
 export default function BoardPlay() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  // The board runs to the top edge: the status bar takes its dark.
+  useThemeColor(SITE.themeColors.game);
   const learn = params.get("learn") === "1";
   const task = params.get("task");
   const level = params.get("level");
@@ -70,7 +73,8 @@ export default function BoardPlay() {
   React.useEffect(
     () =>
       useBoardStore.subscribe((state, before) => {
-        if (!before.overlayOpen || state.overlayOpen || swapping.current) return;
+        if (!before.overlayOpen || state.overlayOpen || swapping.current)
+          return;
         // The router numbers the pages visited on the site. Above 0 there is
         // one to go back to. At 0 the game was opened cold (a typed address,
         // a shared link), and back would leave the site. Moving from level to
@@ -83,7 +87,10 @@ export default function BoardPlay() {
   );
 
   return (
-    <main className="fixed inset-0 flex flex-col items-center justify-center gap-6 bg-[#101114] text-white">
+    <main
+      data-board-play
+      className="fixed inset-0 flex flex-col items-center justify-center gap-6 bg-[#101114] text-white"
+    >
       <LoadingPanel label="Loading the board" size="lg" onDark />
       <Link
         to={BOARD_PATH}

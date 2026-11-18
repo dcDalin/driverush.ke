@@ -1,0 +1,36 @@
+/*
+ * App feel. Small touches so DriveRush behaves like an app on a phone, most of
+ * all once it is opened from the home screen.
+ */
+
+/* No grey flash over whatever is tapped: buttons have their own pressed look. */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* A tap is a tap: no wait to see if it was the start of a double-tap zoom. */
+a,
+button,
+[role="button"],
+input,
+label,
+select,
+summary,
+textarea {
+  touch-action: manipulation;
+}
+
+@media (display-mode: standalone) {
+  /* The game fills the screen: a drag on it never bounces or pulls the page. */
+  html:has([data-board-play]),
+  html:has([data-board-play]) body {
+    overscroll-behavior: none;
+  }
+
+  /* A long press on a tab opens the tab, not a text selection. */
+  nav[aria-label="Main"] {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+}

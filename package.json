@@ -11,7 +11,8 @@
     "ping-indexnow": "node scripts/ping-indexnow.mjs",
     "build:og": "node scripts/build-og-images.mjs",
     "build:sign-images": "node scripts/build-sign-images.mjs",
-    "build:board-pdf": "node scripts/build-board-pdf.mjs"
+    "build:board-pdf": "node scripts/build-board-pdf.mjs",
+    "build:pwa": "node scripts/build-pwa-assets.mjs"
   },
   "dependencies": {
     "@posthog/react": "^1.10.3",

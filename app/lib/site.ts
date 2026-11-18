@@ -48,7 +48,13 @@ export const SITE = {
   ogImageHeight: 630,
   ogImageAlt:
     "DriveRush: practise the Model Town Board and memorise Kenyan road signs",
-  themeColor: "#E11D2E", // rush red
+  /**
+   * The phone's status bar, matched to what sits under it: the top bar's
+   * `--surface` in each theme (`app/app.css`), and the game's own dark. The
+   * page keeps it in step with the theme toggle and the game, see
+   * `useThemeColorSync` in `app/lib/theme.ts`.
+   */
+  themeColors: { light: "#ffffff", dark: "#1b1e25", game: "#101114" },
   /** Tagline used in title templates and as the default description suffix. */
   tagline: "Model Town Board and road signs practice for the NTSA test",
   description:
@@ -458,13 +464,49 @@ export function pageMeta(opts: {
 }
 
 /**
+ * Two `theme-color` tags, one per colour scheme, so the status bar is right
+ * with no script at all. Once the page runs, `THEME_COLOR_SCRIPT` and
+ * `useThemeColorSync` (`app/lib/theme.ts`) put a tag first that follows the
+ * theme toggle and the game.
+ */
+export function themeColorMeta() {
+  return [
+    {
+      name: "theme-color",
+      media: "(prefers-color-scheme: light)",
+      content: SITE.themeColors.light,
+    },
+    {
+      name: "theme-color",
+      media: "(prefers-color-scheme: dark)",
+      content: SITE.themeColors.dark,
+    },
+  ];
+}
+
+/**
+ * Status bar colour, plus the tags that make the site an app once it is opened
+ * from the home screen: full screen, its own name under the icon, the page
+ * colour behind the iPhone status bar.
+ */
+export function appMeta() {
+  return [
+    ...themeColorMeta(),
+    { name: "mobile-web-app-capable", content: "yes" },
+    { name: "apple-mobile-web-app-capable", content: "yes" },
+    { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+    { name: "apple-mobile-web-app-title", content: SITE.name },
+  ];
+}
+
+/**
  * The tags every page carries. A route's meta replaces the root's, so each
  * route has to restate them: `pageMeta` does, and routes that build their
  * meta by hand (the blog) spread this in.
  */
 export function siteWideMeta() {
   return [
-    { name: "theme-color", content: SITE.themeColor },
+    ...appMeta(),
     { property: "og:site_name", content: SITE.name },
     { property: "og:locale", content: SITE.locale },
     { name: "twitter:card", content: "summary_large_image" },

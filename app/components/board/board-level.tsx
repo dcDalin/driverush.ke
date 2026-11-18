@@ -52,6 +52,7 @@ import { LevelCheer } from "~/components/board/board-cheer";
 import { useOpenLevels } from "~/components/board/levels-sheet-context";
 import { BoardSpotPicks } from "~/components/board/board-spot-picks";
 import { Icon } from "~/components/brand/icon";
+import { InstallNudge } from "~/components/brand/install-nudge";
 import {
   ArrowRightIcon,
   CheckIcon,
@@ -111,6 +112,7 @@ export function LevelNext({
           All levels
         </Link>
       )}
+      <InstallNudge surface="level_done" tone="game" />
     </div>
   );
 }

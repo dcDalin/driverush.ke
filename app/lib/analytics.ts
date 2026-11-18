@@ -153,14 +153,16 @@ export const analytics = {
   // ----- sign trainers -----
 
   /** Pelican chart run kicked off. */
-  pelicanStarted: (args: RunStarted) => emit("pelican_started", startedProps(args)),
+  pelicanStarted: (args: RunStarted) =>
+    emit("pelican_started", startedProps(args)),
 
   /** Pelican chart run finished. Hands-free runs have no grades to report. */
   pelicanCompleted: (args: RunCompleted) =>
     emit("pelican_completed", completedProps(args)),
 
   /** 3D signs run kicked off. */
-  signs3dStarted: (args: RunStarted) => emit("signs3d_started", startedProps(args)),
+  signs3dStarted: (args: RunStarted) =>
+    emit("signs3d_started", startedProps(args)),
 
   /** 3D signs run finished. Hands-free runs have no grades to report. */
   signs3dCompleted: (args: RunCompleted) =>
@@ -319,4 +321,22 @@ export const analytics = {
   /** Someone opened a shared link. `valid: false` means the payload was junk. */
   shareLandingViewed: (args: { kind: string; valid: boolean }) =>
     emit("share_landing_viewed", args),
+
+  // ----- installing the app -----
+  // shown → answered → installed. On iPhone there is no prompt to answer, so
+  // only `shown` and a `closed` answer are ever seen there.
+
+  /** The "add to home screen" card appeared. */
+  installPromptShown: (args: { platform: "prompt" | "ios"; surface: string }) =>
+    emit("install_prompt_shown", args),
+
+  /** The learner answered it: the browser's own prompt, or Not now. */
+  installPromptAnswered: (args: {
+    platform: "prompt" | "ios";
+    surface: string;
+    outcome: "accepted" | "dismissed" | "closed";
+  }) => emit("install_prompt_answered", args),
+
+  /** The browser reports the app was installed, from our card or its menu. */
+  appInstalled: () => emit("app_installed", {}),
 };

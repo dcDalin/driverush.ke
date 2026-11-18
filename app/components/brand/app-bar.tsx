@@ -42,7 +42,8 @@ function AppBar({
     <header
       data-slot="app-bar"
       className={cn(
-        "sticky top-0 z-40 w-full border-b-2 border-ink bg-surface",
+        // Clear of a notch when the page runs under it (`viewport-fit=cover`).
+        "sticky top-0 z-40 w-full border-b-2 border-ink bg-surface pt-[env(safe-area-inset-top)]",
         className,
       )}
       {...props}

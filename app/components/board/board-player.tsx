@@ -90,6 +90,7 @@ import { BoardSettingsSheet } from "~/components/board/board-settings-sheet";
 import { BoardSheet } from "~/components/board/board-sheet";
 import { BoardSignCue } from "~/components/board/board-sign-cue";
 import { BoardViewer } from "~/components/board/board-viewer";
+import { InstallNudge } from "~/components/brand/install-nudge";
 
 // Only needed at the end of a round, and it brings framer-motion with it, so
 // people who land here to read the guide never download it.
@@ -1461,6 +1462,10 @@ export function BoardGame() {
                 Next: level {nextUp.n}, {nextUp.title}
               </Link>
             </Button>
+          )}
+          {/* Not after the first drive: that is only push to go. */}
+          {level && !warmup && (
+            <InstallNudge surface="level_passed" tone="game" />
           )}
           <div className="flex gap-2">
             {level ? (

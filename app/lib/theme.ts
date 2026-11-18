@@ -1,5 +1,7 @@
 import * as React from "react";
 
+import { SITE } from "~/lib/site";
+
 /**
  * Light/dark theme — a deliberately tiny system. There's no provider and no
  * library: the active theme is just a `dark` class on <html>, stamped before
@@ -121,4 +123,73 @@ export function useThemeSync() {
       window.removeEventListener("storage", onStorage);
     };
   }, []);
+}
+
+/*
+ * The status bar. A phone colours it from the first `<meta name="theme-color">`
+ * that applies. The server sends two, one per OS colour scheme (see
+ * `themeColorMeta` in `app/lib/site.ts`), but the theme toggle can disagree
+ * with the OS and the game wants its own dark. So the page puts one more tag of
+ * its own first in <head>, with no `media`, and keeps that one right. React's
+ * tags are never edited: a changed tag no longer matches at hydration, and
+ * React adds a second copy.
+ */
+
+/** Set on <html> while something (the game) wants its own status bar colour. */
+const COLOR_OVERRIDE = "themeColor";
+const LIVE_ID = "dr-theme-color";
+
+/**
+ * Inline script for <head>, after {@link THEME_INIT_SCRIPT}: adds the page's
+ * own tag before first paint, for a learner whose saved theme differs from
+ * their OS.
+ */
+export const THEME_COLOR_SCRIPT = `try{var m=document.createElement('meta');m.name='theme-color';m.id='${LIVE_ID}';m.content=document.documentElement.classList.contains('dark')?'${SITE.themeColors.dark}':'${SITE.themeColors.light}';document.head.prepend(m)}catch(e){}`;
+
+function writeThemeColor() {
+  const el = document.documentElement;
+  const color =
+    el.dataset[COLOR_OVERRIDE] ||
+    (el.classList.contains("dark")
+      ? SITE.themeColors.dark
+      : SITE.themeColors.light);
+  let meta = document.getElementById(LIVE_ID) as HTMLMetaElement | null;
+  if (!meta) {
+    meta = document.createElement("meta");
+    meta.name = "theme-color";
+    meta.id = LIVE_ID;
+  }
+  // First in <head>, so it is the tag the browser reads.
+  if (document.head.firstElementChild !== meta) document.head.prepend(meta);
+  if (meta.content !== color) meta.content = color;
+}
+
+/**
+ * Keep the status bar colour right while the page is open: on a theme change
+ * and when a page asks for its own colour. Mount once.
+ */
+export function useThemeColorSync() {
+  React.useEffect(() => {
+    writeThemeColor();
+    const obs = new MutationObserver(writeThemeColor);
+    obs.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class", "data-theme-color"],
+    });
+    return () => obs.disconnect();
+  }, []);
+}
+
+/**
+ * Give the status bar this colour while the calling component is mounted (the
+ * game: its dark board runs to the top edge). Back to the theme's on unmount.
+ */
+export function useThemeColor(color: string) {
+  React.useEffect(() => {
+    const el = document.documentElement;
+    el.dataset[COLOR_OVERRIDE] = color;
+    return () => {
+      delete el.dataset[COLOR_OVERRIDE];
+    };
+  }, [color]);
 }

@@ -1,14 +1,95 @@
 {
+  "id": "/",
   "name": "DriveRush: Model Town Board and road signs",
   "short_name": "DriveRush",
   "description": "Practise the Model Town Board and memorise Kenyan road signs for the NTSA test.",
-  "start_url": "/model-town-board",
+  "lang": "en-KE",
+  "dir": "ltr",
+  "start_url": "/model-town-board?source=pwa",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#101114",
-  "theme_color": "#E11D2E",
+  "display_override": [
+    "standalone"
+  ],
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "categories": [
+    "education"
+  ],
   "icons": [
-    { "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png" }
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/pwa/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/pwa/screen-board.jpg",
+      "sizes": "1080x1920",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "The Model Town Board course: 52 levels, start with level 1"
+    },
+    {
+      "src": "/pwa/screen-drive.jpg",
+      "sizes": "1080x1920",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Drive each car on the 3D board to its place"
+    },
+    {
+      "src": "/pwa/screen-drive-wide.jpg",
+      "sizes": "1920x1080",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "The board's lanes and roundabout, with what each lane may do"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "All levels",
+      "short_name": "Levels",
+      "url": "/model-town-board/levels?source=pwa",
+      "icons": [
+        {
+          "src": "/android-chrome-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Signs",
+      "short_name": "Signs",
+      "url": "/road-signs?source=pwa",
+      "icons": [
+        {
+          "src": "/android-chrome-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }

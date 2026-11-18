@@ -160,8 +160,9 @@ export function BoardLevels({ className }: { className?: string }) {
         </div>
       </div>
 
-      {/* After a few levels, not before: a first visit is not asked for anything. */}
-      {done >= 3 && <InstallNudge />}
+      {/* After a finished level, not before: a first visit is not asked for
+          anything. */}
+      {done >= 1 && <InstallNudge surface="levels_page" />}
 
       <div className="grid gap-2">
         <div className="flex items-baseline justify-between gap-3">
