@@ -60,6 +60,25 @@ process.env.VITE_APP_VERSION ??= (
 ).slice(0, 7);
 
 /**
+ * `build.txt`: the release above, so an app that stays open can see that a
+ * newer deploy is live and load it on its next move (`app/lib/fresh-build.ts`).
+ */
+function buildStamp(): Plugin {
+  return {
+    name: "driverush:build-stamp",
+    apply: "build",
+    generateBundle() {
+      if (this.environment?.name !== "client") return;
+      this.emitFile({
+        type: "asset",
+        fileName: "build.txt",
+        source: `${process.env.VITE_APP_VERSION}\n`,
+      });
+    },
+  };
+}
+
+/**
  * Source maps are only built when they will be sent to PostHog error tracking
  * (`scripts/upload-sourcemaps.mjs` uploads them, then deletes them so they are
  * never served).
@@ -88,6 +107,7 @@ export default defineConfig({
     tailwindcss(),
     reactRouter(),
     boardOfflineList(),
+    buildStamp(),
   ],
   resolve: {
     tsconfigPaths: true,

@@ -34,6 +34,7 @@ import {
   usePageviews,
 } from "~/lib/analytics";
 import { shouldMeasure } from "~/lib/bot-traffic";
+import { useFreshBuild } from "~/lib/fresh-build";
 import { GA_MEASUREMENT_ID, gaHeadScript } from "~/lib/ga";
 import { useLearnerAnalytics } from "~/lib/use-learner-analytics";
 // Catches the browser's install prompt from the first load.
@@ -126,6 +127,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
   // Missing on the error page when the root itself failed: measure then.
   const measure = useRouteLoaderData<typeof loader>("root")?.measure ?? true;
   usePageviews();
+  // An app left open loads a newer deploy on its next move to another page.
+  useFreshBuild();
   // The service worker (`public/sw.js`) keeps opened pages and the board's
   // files for when there is no connection. Not in development, where it would
   // serve stale files.
