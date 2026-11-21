@@ -176,7 +176,7 @@ describe("lane assist gives way to a lane change", () => {
       steer: 0,
     };
   }
-  /** Hold the knob this far right of the lane for a while; the lane it holds. */
+  /** Hold the knob this far right of the lane for a while; the lane it then follows. */
   function lean(
     from: CarState,
     angle: number,
@@ -197,44 +197,36 @@ describe("lane assist gives way to a lane change", () => {
         state,
       );
     }
-    return state.change?.to ?? null;
+    return state.lane;
   }
 
   it("moves over a lane when the knob leans toward it", () => {
-    expect(lean(onApproach(56), 20 * DEG, 0.4)).toBe(3);
-    expect(lean(onApproach(56), -20 * DEG, 0.4)).toBe(1);
+    expect(lean(onApproach(56), 20 * DEG, 0.6)).toBe(3);
+    expect(lean(onApproach(56), -20 * DEG, 0.6)).toBe(1);
   });
 
   it("ignores a wobble and a slight lean", () => {
-    expect(lean(onApproach(56), 20 * DEG, 0.15)).toBeNull();
-    expect(lean(onApproach(56), 10 * DEG, 2)).toBeNull();
+    expect(lean(onApproach(56), 20 * DEG, 0.15)).toBe(2);
+    expect(lean(onApproach(56), 10 * DEG, 2)).toBe(2);
   });
 
   it("never steers into a lane with a car alongside or just ahead", () => {
     const beside = lanePoint("S", "approach", 3, 56);
     const ahead = lanePoint("S", "approach", 3, 48);
     const far = lanePoint("S", "approach", 3, 30);
-    expect(
-      lean(onApproach(56), 20 * DEG, 0.4, createAssist(), [beside]),
-    ).toBeNull();
-    expect(
-      lean(onApproach(56), 20 * DEG, 0.4, createAssist(), [ahead]),
-    ).toBeNull();
+    expect(lean(onApproach(56), 20 * DEG, 0.6, createAssist(), [beside])).toBe(
+      2,
+    );
+    expect(lean(onApproach(56), 20 * DEG, 0.6, createAssist(), [ahead])).toBe(
+      2,
+    );
     // a car well up the road is no reason not to
-    expect(lean(onApproach(56), 20 * DEG, 0.4, createAssist(), [far])).toBe(3);
+    expect(lean(onApproach(56), 20 * DEG, 0.6, createAssist(), [far])).toBe(3);
   });
 
   it("never helps a car across the continuous lines", () => {
     const close = onApproach(SOLID_ZONE + 3);
     expect(locate(close.x, close.z)).toMatchObject({ kind: "arm", lane: 2 });
-    expect(lean(close, 20 * DEG, 2)).toBeNull();
-  });
-
-  it("gives an Easy level its kind judging from the first try", () => {
-    useBoardStore.getState().startLevel("drive-straight");
-    expect(drive.exitHold).toBe(true);
-    useBoardStore.getState().exit();
-    useBoardStore.getState().startLevel("drive-three-lane-back");
-    expect(drive.exitHold).toBe(false);
+    expect(lean(close, 20 * DEG, 2)).toBe(2);
   });
 });

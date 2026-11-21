@@ -113,6 +113,11 @@ let routeRef: RouteRefState = createRouteRef();
 let taskRoute: Route | null = null;
 let taskParking = false;
 let assist: AssistState = createAssist();
+
+/** What lane assist is doing, for tests and the bench to look at. Read only. */
+export function assistState(): Readonly<AssistState> {
+  return assist;
+}
 let callbacks: Callbacks | null = null;
 let driving = false;
 /** A sheet or a question is over the table: the drive holds still. */

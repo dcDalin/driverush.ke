@@ -1,8 +1,10 @@
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { useBoardStore } from "../board-store";
-import { bearingOf, locate, type ArmId } from "./geometry";
-import { createAssist, exitAhead } from "./joystick";
+import type { CarState } from "./car";
+import { bearingOf, locate, wrapPi, type ArmId } from "./geometry";
+import { network } from "./network";
+import { createRails, rails } from "./rails";
 import { queueCars, queueGoal } from "./lane-queue";
 import { car, drive, loadPhysics, stick, tick } from "./runtime";
 
@@ -101,16 +103,6 @@ beforeEach(() => {
 });
 
 describe("lane assist out of the roundabout", () => {
-  it("is on for a lesson car and off for a hard level", () => {
-    useBoardStore.getState().startLevel("drive-three-lane-back");
-    expect(drive.exitHold).toBe(false);
-    useBoardStore.getState().exit();
-    useBoardStore.getState().startLevel("four-lane");
-    const left = queueCars("S").find((one) => one.lane === 1)!;
-    useBoardStore.getState().pickCar(left.id);
-    expect(drive.exitHold).toBe(true);
-  });
-
   it("takes the lane 1 car left into lane 1 with a plain up, then left", () => {
     useBoardStore.getState().startLevel("four-lane");
     const cars = queueCars("S");
@@ -234,13 +226,13 @@ describe("lane assist out of the roundabout", () => {
 
   it("leaves in the lane it is joining, not one it crosses on the way", () => {
     // Lane 3 of the three-lane road turning left: its exit comes up while the
-    // car is still crossing ring lane 2 on its way in to lane 3, level with
-    // the line of exit lane 2. It must wait for lane 3, not turn off into 2.
-    const state = { ...createAssist(), entryLane: 3, entryArm: "W" as const };
-    const at = { x: -13.2, z: -2.6, heading: 1.1, speed: 6, steer: 0 };
-    expect(locate(at.x, at.z)).toMatchObject({ kind: "ring", lane: 2 });
-    // pointing up the north road, a little out from the way the ring runs
-    expect(exitAhead(at, (-5 * Math.PI) / 180, state)).toBe("wait");
+    // car is still crossing the outer ring lanes on its way in. It leaves
+    // into its own exit lane, not one of those it crosses.
+    const { fault, home, goal } = driveHome("three-lane", "W", "rb:W3:left");
+    expect(fault).toBeNull();
+    expect(home).toBe(true);
+    const at = locate(car.x, car.z);
+    expect(at.kind === "arm" && at.arm === "N" && at.lane).toBe(goal.lane);
   });
 
   it("goes into lane 4 when the rule allows lane 3 or lane 4", () => {
@@ -280,32 +272,86 @@ describe("lane assist out of the roundabout", () => {
     expect(fault).toBeNull();
     expect(home).toBe(true);
   });
+});
 
-  it("is not asked for an exit it has already passed", () => {
-    // on the ring south-east of the island, going clockwise toward the south
-    // exit: the knob swung toward the east road, which is behind the car
-    const state = { ...createAssist(), entryArm: "W" as const };
-    const at = { x: 5.1, z: 11.1, heading: 3.5, speed: 4, steer: 0 };
-    expect(locate(at.x, at.z)).toMatchObject({ kind: "ring" });
-    expect(exitAhead(at, (127 * Math.PI) / 180, state)).toBeNull();
+/**
+ * A car on one of the network's own ways round, `along` metres from its start
+ * (from its end, if negative), facing the way it runs there.
+ */
+function onWay(id: string, from: number): CarState {
+  const edge = network().edges.find((e) => e.id.startsWith(id))!;
+  const along = from >= 0 ? from : edge.length + from;
+  let gone = 0;
+  for (let i = 1; i < edge.points.length; i += 1) {
+    const a = edge.points[i - 1];
+    const b = edge.points[i];
+    gone += Math.hypot(b.x - a.x, b.z - a.z);
+    if (gone >= along) {
+      return {
+        x: b.x,
+        z: b.z,
+        heading: bearingOf(b.x - a.x, b.z - a.z),
+        speed: 4,
+        steer: 0,
+      };
+    }
+  }
+  throw new Error(`${id} is shorter than ${along} m`);
+}
+
+/** Hold the knob at `knob` (degrees) for half a second; the path it follows. */
+function choose(
+  at: CarState,
+  knob: number,
+  entry: { arm: ArmId; lane: number },
+): { plan: string; free: boolean } {
+  const state = createRails();
+  state.entry = entry;
+  for (let i = 0; i < 30; i += 1) rails(at, (knob * Math.PI) / 180, state);
+  return { plan: state.plan.join(" "), free: state.free };
+}
+
+describe("which way out of the roundabout", () => {
+  const DEG = 180 / Math.PI;
+
+  it("takes the exit the knob points down, into its option's lane", () => {
+    // lane 1 from the south, on the ring with the west road coming up
+    const at = onWay("rb:S1:left:on>", 4);
+    expect(choose(at, -90, { arm: "S", lane: 1 }).plan).toMatch(/>W:out:1@/);
   });
 
-  it("is not asked for an exit by a knob held along the ring", () => {
-    // in ring lane 2, north-west of the island, driving clockwise: the ring
-    // runs north-east here, 45 degrees off the north road's way out
-    const state = { ...createAssist(), entryArm: "W" as const };
-    const at = { x: -12, z: -11.6, heading: 0.3, speed: 4, steer: 0 };
-    expect(locate(at.x, at.z)).toMatchObject({ kind: "ring", lane: 2 });
-    expect(exitAhead(at, (47 * Math.PI) / 180, state)).toBeNull();
-    // pointing up the north road is asking for it
-    expect(exitAhead(at, 0, state)).not.toBeNull();
+  it("keeps round the ring for a knob held along it", () => {
+    const at = onWay("rb:S1:left:on>", 4);
+    // along the ring, a little in toward the island: going on round
+    const along = at.heading * DEG + 10;
+    const { plan, free } = choose(at, along, { arm: "S", lane: 1 });
+    expect(free).toBe(false);
+    expect(plan).not.toMatch(/>W:out:/);
   });
 
-  it("asks for nothing while the knob lies along the ring", () => {
-    // on the ring due south of the island, driving clockwise (west)
-    const at = { x: 0, z: 14, heading: -Math.PI / 2, speed: 3, steer: 0 };
+  it("never steers out of an exit it has already passed", () => {
+    // due west of the island, past the west road's mouth, pointing down it
+    const at = onWay("rb:S1:straight:on>", 14);
     expect(locate(at.x, at.z).kind).toBe("ring");
-    // pointing east, back the way it came: no exit is ahead that way
-    expect(exitAhead(at, Math.PI / 2)).toBeNull();
+    expect(
+      Math.abs(wrapPi(bearingOf(at.x, at.z) + Math.PI / 2)) * DEG,
+    ).toBeLessThan(20);
+    expect(choose(at, -95, { arm: "S", lane: 1 }).plan).not.toMatch(/>W:out:/);
+  });
+
+  it("leaves from an inner lane into its own exit lane", () => {
+    // lane 3 of the three-lane road turning left, the north road just ahead,
+    // pointing up it: out into the lane its option leaves in
+    const ring = network().edges.find((e) =>
+      e.id.startsWith("rb:W3:left:on>"),
+    )!;
+    const out = network()
+      .out.get(ring.to)!
+      .find((e) => e.maneuver === "exit")!;
+    const lane = /N:out:(\d)@/.exec(out.to)![1];
+    const at = onWay("rb:W3:left:on>", -6);
+    expect(choose(at, 0, { arm: "W", lane: 3 }).plan).toMatch(
+      new RegExp(`>N:out:${lane}@`),
+    );
   });
 });

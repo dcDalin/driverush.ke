@@ -1418,8 +1418,12 @@ describe("leaving the route breaks no rule, but it is not a pass", () => {
   });
 
   it("a route task is held to the roundabout's lanes like any other", () => {
-    // a lane out all the way: round the roundabout and out of it in the wrong lane
+    // A lane out all the way: round the roundabout and out of it in the wrong
+    // lane. With lane assist off, so the car goes exactly where the thumb
+    // points (with it on, a thumb a lane off all the way is held in its lane).
+    drive.assist = false;
     const s = roam("long-way-round", { aside: 3.6 });
+    drive.assist = true;
     expect(s.phase).toBe("fault");
     expect(s.missed).toBe(false);
     // The car goes where the thumb points, so the first rule it breaks may

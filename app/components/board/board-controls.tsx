@@ -111,6 +111,7 @@ export function BoardControls({
       gentle.current = false;
       keys.left = keys.right = keys.up = keys.down = false;
       drive.follow = drive.keyExit = false;
+      drive.keyChange = 0;
       if (knob.current) knob.current.dataset.held = "false";
       if (base.current) base.current.dataset.held = "false";
       place(0, 0);
@@ -129,6 +130,7 @@ export function BoardControls({
     const follow = () => {
       frame = 0;
       drive.follow = drive.keyExit = false;
+      drive.keyChange = 0;
       if (dragging.current) return;
       const at = keyStick(
         keys,
@@ -140,6 +142,7 @@ export function BoardControls({
       place(at.x, at.y);
       drive.follow = at.follow;
       drive.keyExit = at.exit;
+      drive.keyChange = at.change;
       if (keys.up || keys.down || keys.left || keys.right) {
         frame = requestAnimationFrame(follow);
       }
@@ -219,6 +222,7 @@ export function BoardControls({
         dragging.current = true;
         // the thumb takes over from any key held
         drive.follow = drive.keyExit = false;
+        drive.keyChange = 0;
         held(true);
       });
       pad.on("move", (e) => {

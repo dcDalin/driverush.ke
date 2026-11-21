@@ -205,10 +205,12 @@ describe("every roundabout task, with the keys alone", () => {
         stick.y = at.y;
         drive.follow = at.follow;
         drive.keyExit = at.exit;
+        drive.keyChange = at.change;
         tick(STEP);
       }
       stopDriving();
       drive.follow = drive.keyExit = false;
+      drive.keyChange = 0;
       stick.x = stick.y = 0;
       expect(faults).toEqual([]);
       expect(goal).toBe(true);

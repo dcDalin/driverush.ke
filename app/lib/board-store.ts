@@ -604,9 +604,6 @@ export const useBoardStore = create<BoardState>()(
           shuffleParkingLayout();
         }
         beginChallenge(challenge, { onFault, onSmall, onDeviation, onGoal });
-        // Judged kindly, the car is also carried out of the roundabout.
-        // (`beginChallenge` sets the lane it steers out into.)
-        drive.exitHold = gentle() !== null;
         judging.forgiveLanes = gentle() === "free";
         // A car from a line-up is told its option: its line is on the table.
         const run = get().lanes;
