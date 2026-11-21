@@ -19,10 +19,19 @@ to date when an asset or an agreement changes. No personal contact details here.
 ## Model Town Board
 - **Made by:** the DriveRush team's own code, except the cars (below).
 - **The board** (roads, markings, kerbs, the parking zone, the stopping box) is drawn by `app/lib/board/full-board.ts`. Its layout follows the boards Kenyan driving schools paint, and its proportions were measured off a reference drawing of one. No artwork was copied from either.
-- **The cars** (saloon, SUV, pickup) come from the "LowPoly_Cars_01" model pack, added on 2026-11-11. The owner states the pack is free for commercial use.
-  - **Source and licence:** _to fill in: where the pack was downloaded and where its licence terms are kept_
-  - **In the repository:** only the three converted models in `public/assets/board/cars/`, cut from the pack and recoloured by `scripts/build-board-cars.mjs`. The pack's own files (OBJ, FBX, Blender file, textures) are not in the repository.
+- **The cars** (since 2026-11-21) are five free models from Sketchfab, downloaded on 2026-11-21 with the owner's account. Each one's licence was read on its page that day.
+  - **Saloon:** "2014 Toyota Corolla E180 EU (with interior)" by Armored Wave, CC BY 4.0. https://sketchfab.com/3d-models/2014-toyota-corolla-e180-eu-with-interior-36f95efb0585464cae43a25a3b3392e8. The author says it is free to use in any project. In a comment, they ask users to remove Toyota's logos and lettering; the model's own pictures carry none, and anything modelled in its bodywork is covered by our paint.
+  - **Hatchback:** "2016 Nissan Note" by snowcappedandescrash (also shown as franco/billowous), Sketchfab Free Standard. https://sketchfab.com/3d-models/2016-nissan-note-3929336debbf45a8a2e4096f1fdf5baa. The author says it was "modeled by me" in Blender and is free to use as long as nobody else takes credit. It carries a NoAI tag: not for AI training or datasets. Its materials suggest it was also used in a Roblox game. It has no wheels, so it wears the saloon's.
+  - **Wagon:** "Toyota Probox" by tnikita (Ford mondeo; the file credits "mamont nikita"), CC BY 4.0. https://sketchfab.com/3d-models/toyota-probox-1b48dd220c69495e8f278376fb7a3add. It has no description. It is a SketchUp model built partly from 3D Warehouse parts, so the uploader may not be the original author of every part.
+  - **Pickup:** "Toyota Hilux" by David_Holiday, CC BY 4.0. https://sketchfab.com/3d-models/toyota-hilux-417915f419f945c8a424b2a7943eb25a. Its original file is a SketchUp .kmz, which may come from 3D Warehouse.
+  - **SUV:** "Urban '10 - Low poly model" by Daniel Zhabotinsky, CC BY 4.0. https://sketchfab.com/3d-models/urban-10-low-poly-model-2866efdfa943484391ef8313768e074d. A generic design by its author, who gives "unconditional permission" to use and change it.
+  - **Turned down:** a "2007 Toyota Yaris Hatchback" and a "2017 Toyota RAV4" (both Free Standard). Their files carry game-mod and ripping-tool part names, so they are probably taken from games. Kept out of the repository and out of the app.
+  - **What we changed** (`scripts/build-real-cars.mjs`): the cabin insides, engines and number plates removed; a dark block in the cabin; fewer triangles; smaller pictures; the bodywork made plain white for the board's paint and schools' wraps. Badges a model has are kept.
+  - **Credit:** CC BY 4.0 asks for the author's name, a link to the model and the licence, and a note that it was changed. The board's settings sheet does this under "Your car" (`ModelCredit`), from the `model` entries in `app/lib/board/cars.ts`.
+  - **Free Standard:** commercial use is allowed. The files must not be passed on on their own. Inside the app is fine.
+  - **In the repository:** only the five built models in `public/assets/board/cars/`. The downloads stay outside it, in `~/Downloads/board-cars/<car>/` on the owner's machine.
   - **Fallback:** if a model can't be fetched, the board draws the saloon modelled in our own code in `app/components/board/car-model.ts`.
+- **Retired on 2026-11-21:** the "LowPoly_Cars_01" pack's saloon, SUV and pickup (added on 2026-11-11, `scripts/build-board-cars.mjs`). The owner states the pack is free for commercial use; where it came from was never recorded.
 - The table, its wood and the floor are drawn in code in `app/components/board/board-table.tsx`.
 - **Removed on 2026-11-11:** the cars and trees from Kenney's "Racing Pack" (CC0), used by the earlier 2D game. They are no longer in the repository.
 

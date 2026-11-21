@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build:cars": "node scripts/build-real-cars.mjs && node scripts/build-car-wrap.mjs",
     "build:car-wrap": "node scripts/build-car-wrap.mjs",
     "build:sponsors": "node scripts/build-sponsor-art.mjs",
     "render:sponsor": "node scripts/render-sponsor-car.mjs",

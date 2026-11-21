@@ -42,7 +42,9 @@ import {
   drive,
   elapsedSeconds,
   hasMoved,
+  isShowing,
   setPaused,
+  subscribeShowing,
 } from "~/lib/board/runtime";
 import type { Fault } from "~/lib/board/referee";
 import { SCORE_MAX } from "~/lib/board/score";
@@ -731,6 +733,13 @@ export function BoardGame() {
   const [moreOpen, setMoreOpen] = React.useState(false);
   const [coachStep, setCoachStep] = React.useState(0);
   const coaching = !s.settings.coached;
+  // The opening turn round the car (showcase.ts): the tips wait for it, and
+  // the school whose paint the car wears is named while it plays.
+  const showing = React.useSyncExternalStore(
+    subscribeShowing,
+    isShowing,
+    () => false,
+  );
   const setSetting = useBoardStore((st) => st.setSetting);
   const endCoach = () => setSetting({ coached: true });
   const navigate = useNavigate();
@@ -970,11 +979,11 @@ export function BoardGame() {
           extraCars={standingCars}
           learning={offClock}
           focus={s.phase === "fault"}
-          // The first go at a drive opens with a close-up round the car (so
-          // the learner sees its paint), then, on a phone, on where it ends.
-          // A retry does not, nor does a lesson car, whose line is already
-          // on the table.
-          sweep={s.tries === 1 && !pickedCar && s.mode === "drive"}
+          // Every go at a drive, retries too, opens with a full turn round
+          // the car, so the learner sees its paint and the school whose paint
+          // it is (owner, 2026-11-21), then, on a phone, a look at where it
+          // ends. Not a lesson's line-up car: it wears its own colour.
+          sweep={!pickedCar && s.mode === "drive"}
           onUnsupported={() => setUnsupported(true)}
           onPainted={() => setPainted(true)}
           className="absolute inset-0"
@@ -1211,6 +1220,20 @@ export function BoardGame() {
         </div>
       )}
 
+      {/* During the turn round the car: whose car it is. */}
+      {!unsupported &&
+        showing &&
+        !pickedCar &&
+        s.mode === "drive" &&
+        sponsor?.livery?.cars[boardCar] && (
+          <SponsorCredit
+            sponsor={sponsor}
+            lead="Car by"
+            place="showcase"
+            className="dr-rise pointer-events-auto absolute inset-x-0 bottom-[calc(13.5rem+env(safe-area-inset-bottom))] z-30 mx-auto w-fit max-w-[calc(100%-2rem)] gap-2.5 rounded-md border border-white/15 bg-black/55 px-4 py-2.5 text-[15px] text-white backdrop-blur-sm"
+          />
+        )}
+
       {/* First drive only: three short tips, one at a time. */}
       {!unsupported &&
         painted &&
@@ -1218,6 +1241,7 @@ export function BoardGame() {
         !warmup &&
         s.mode === "drive" &&
         s.phase === "driving" &&
+        !showing &&
         !held && (
           <div
             role="status"

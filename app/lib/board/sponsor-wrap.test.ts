@@ -7,10 +7,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { NodeIO } from "@gltf-transform/core";
-import {
-  EXTMeshoptCompression,
-  KHRMeshQuantization,
-} from "@gltf-transform/extensions";
+import { ALL_EXTENSIONS } from "@gltf-transform/extensions";
 import { dequantize } from "@gltf-transform/functions";
 import { MeshoptDecoder } from "meshoptimizer";
 import { describe, expect, it } from "vitest";
@@ -42,7 +39,7 @@ const layoutOf = (car: string): Layout =>
 async function paintOf(car: string) {
   await MeshoptDecoder.ready;
   const io = new NodeIO()
-    .registerExtensions([EXTMeshoptCompression, KHRMeshQuantization])
+    .registerExtensions(ALL_EXTENSIONS)
     .registerDependencies({ "meshopt.decoder": MeshoptDecoder });
   const doc = await io.read(
     path.join(ROOT, `public/assets/board/cars/${car}.glb`),

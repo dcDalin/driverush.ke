@@ -57,8 +57,9 @@ export type Sponsor = {
 
 const HELTZ_DIR = "/assets/board/sponsors/heltz";
 const paintOf = (dir: string, car: BoardCarId): CarPaint => ({
-  hi: `${dir}/${car}-wrap-hi.webp`,
-  lo: `${dir}/${car}-wrap-lo.webp`,
+  // "wrap4" goes with the cars' `?v=4` UVs (see build-sponsor-art).
+  hi: `${dir}/${car}-wrap4-hi.webp`,
+  lo: `${dir}/${car}-wrap4-lo.webp`,
 });
 
 export const SPONSORS: readonly Sponsor[] = [
@@ -75,8 +76,10 @@ export const SPONSORS: readonly Sponsor[] = [
       base: "#f6f6f3",
       cars: {
         saloon: paintOf(HELTZ_DIR, "saloon"),
-        suv: paintOf(HELTZ_DIR, "suv"),
+        hatchback: paintOf(HELTZ_DIR, "hatchback"),
+        wagon: paintOf(HELTZ_DIR, "wagon"),
         pickup: paintOf(HELTZ_DIR, "pickup"),
+        suv: paintOf(HELTZ_DIR, "suv"),
       },
     },
     room: {
@@ -174,4 +177,6 @@ export type SponsorPlace =
   | "board"
   | "loader"
   | "ready_card"
-  | "credit";
+  | "credit"
+  /** Named on screen during the opening turn round the car. */
+  | "showcase";

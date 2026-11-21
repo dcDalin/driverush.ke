@@ -4,15 +4,17 @@
  * A school is a brand file, scripts/sponsor-art/<id>.json: its colours, its
  * wordmark and tagline, and a style (scripts/sponsor-art/styles/<style>.mjs).
  * The style draws the paint for each car from that car's measured landmarks
- * (public/assets/board/sponsors/<car>-wrap.json), so it fits a saloon, an SUV
- * and a pickup alike.
+ * (public/assets/board/sponsors/<car>-wrap.json), so it fits a saloon, a
+ * hatchback, a wagon, a pickup and an SUV alike.
  *
  * A school's own designer can paint a car by hand instead, on that car's
  * template (public/assets/board/sponsors/<car>-template.svg), saved as
  * scripts/sponsor-art/<id>/<car>.png or .svg: it replaces the style for that car.
  *
  * Writes public/assets/board/sponsors/<id>/:
- *   <car>-wrap-hi.webp, -wrap-lo.webp  the paint, for strong and weak phones (near-lossless)
+ *   <car>-wrap4-hi.webp, -wrap4-lo.webp  the paint, for strong and weak phones (near-lossless).
+ *                                    "wrap4" goes with the cars' `?v=4` UVs: a new layout
+ *                                    means new names, so no cache pairs old art with new UVs.
  *   logo.png                           the lockup in colour, transparent
  *   logo-mono.png                      the lockup in white, for brass and board paint
  *
@@ -37,7 +39,7 @@ const ROOT = process.cwd();
 const SRC = path.join(ROOT, "scripts/sponsor-art");
 const FONTS = path.join(SRC, "fonts");
 const ASSETS = path.join(ROOT, "public/assets/board/sponsors");
-export const CARS = ["saloon", "suv", "pickup"];
+export const CARS = ["saloon", "hatchback", "wagon", "pickup", "suv"];
 
 function option(name) {
   const i = process.argv.indexOf(`--${name}`);
@@ -186,11 +188,11 @@ for (const id of schools) {
     // ones. See CRISP: a school's edges and colours stay its own.
     await sharp(full)
       .webp(CRISP)
-      .toFile(path.join(dir, `${car}-wrap-hi.webp`));
+      .toFile(path.join(dir, `${car}-wrap4-hi.webp`));
     await sharp(full)
       .resize(width / 2, height / 2, { kernel: "lanczos3" })
       .webp(CRISP)
-      .toFile(path.join(dir, `${car}-wrap-lo.webp`));
+      .toFile(path.join(dir, `${car}-wrap4-lo.webp`));
   }
 
   // The classroom's walls (app/lib/board/room.ts): a banner and posters, when

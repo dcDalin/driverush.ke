@@ -6,6 +6,7 @@ import * as React from "react";
 
 import {
   BOARD_CARS,
+  CC_BY,
   type BoardCarId,
   type BoardCarSetting,
 } from "~/lib/board/cars";
@@ -176,6 +177,7 @@ export function BoardSettingsSheet({
             {open && sponsor?.livery?.cars[car] && (
               <SponsorCredit sponsor={sponsor} lead="Car by" place="credit" />
             )}
+            <ModelCredit />
           </SettingSection>
 
           <SettingSection title="Picture">
@@ -232,5 +234,37 @@ export function BoardSettingsSheet({
         </SheetFooter>
       </SheetContent>
     </Sheet>
+  );
+}
+
+/** Who made the car models, as their licences ask (docs/asset-rights.md). */
+function ModelCredit() {
+  return (
+    <p className="m-0 text-[11.5px] leading-snug text-ink-3">
+      Car models from Sketchfab by{" "}
+      {BOARD_CARS.map((entry, i) => (
+        <React.Fragment key={entry.id}>
+          {i > 0 && (i === BOARD_CARS.length - 1 ? " and " : ", ")}
+          <a
+            href={entry.model.page}
+            target="_blank"
+            rel="noreferrer"
+            className="underline underline-offset-2"
+          >
+            {entry.model.by}
+          </a>
+        </React.Fragment>
+      ))}
+      , changed for the board. Shared under{" "}
+      <a
+        href={CC_BY}
+        target="_blank"
+        rel="noreferrer"
+        className="underline underline-offset-2"
+      >
+        CC BY 4.0
+      </a>{" "}
+      or Sketchfab's free licence.
+    </p>
   );
 }

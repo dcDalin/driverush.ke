@@ -23,10 +23,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { NodeIO } from "@gltf-transform/core";
-import {
-  EXTMeshoptCompression,
-  KHRMeshQuantization,
-} from "@gltf-transform/extensions";
+import { ALL_EXTENSIONS } from "@gltf-transform/extensions";
 import {
   dequantize,
   meshopt,
@@ -40,7 +37,7 @@ const ROOT = process.cwd();
 const OUT = path.join(ROOT, "public/assets/board/sponsors");
 const CARS = process.argv.slice(2).length
   ? process.argv.slice(2)
-  : ["saloon", "suv", "pickup"];
+  : ["saloon", "hatchback", "wagon", "pickup", "suv"];
 
 /** The template picture, in pixels. Schools draw at this size. */
 const ATLAS = { width: 2048, height: 2048 };
@@ -50,7 +47,8 @@ const PAD = 24;
 await MeshoptDecoder.ready;
 await MeshoptEncoder.ready;
 const io = new NodeIO()
-  .registerExtensions([EXTMeshoptCompression, KHRMeshQuantization])
+  // All of them: the realistic cars carry WebP pictures as well as meshopt.
+  .registerExtensions(ALL_EXTENSIONS)
   .registerDependencies({
     "meshopt.decoder": MeshoptDecoder,
     "meshopt.encoder": MeshoptEncoder,
@@ -83,34 +81,44 @@ function viewOf(tri) {
 const facesSide = (tri) => ["left", "right"].includes(viewOf(tri));
 const facesUp = (tri) => viewOf(tri) === "top";
 
-/** A node's triangles in the car's frame (metres, nose down -z), with colours. */
+/**
+ * A node's triangles in the car's frame (metres, nose down -z), each with a
+ * `colour` key: its vertex colour on the low-poly cars, its material's name on
+ * the realistic ones (scripts/build-real-cars.mjs), where each material is
+ * one part of the body.
+ */
 function trianglesOf(n) {
-  const prim = n.getMesh().listPrimitives()[0];
-  const pos = prim.getAttribute("POSITION");
-  const col = prim.getAttribute("COLOR_0");
   const t = n.getTranslation();
   const s = n.getScale();
-  const at = (i) => {
-    const p = pos.getElement(i, []);
-    return [t[0] + p[0] * s[0], t[1] + p[1] * s[1], t[2] + p[2] * s[2]];
-  };
-  const idx = prim.getIndices();
-  const corner = (i) => (idx ? idx.getScalar(i) : i);
-  const corners = idx ? idx.getCount() : pos.getCount();
   const tris = [];
-  for (let i = 0; i < corners; i += 3) {
-    const tri = [at(corner(i)), at(corner(i + 1)), at(corner(i + 2))];
-    if (col) {
+  for (const prim of n.getMesh().listPrimitives()) {
+    const pos = prim.getAttribute("POSITION");
+    const col = prim.getAttribute("COLOR_0");
+    const material = `material:${prim.getMaterial()?.getName() ?? ""}`;
+    const at = (i) => {
+      const p = pos.getElement(i, []);
+      return [t[0] + p[0] * s[0], t[1] + p[1] * s[1], t[2] + p[2] * s[2]];
+    };
+    const idx = prim.getIndices();
+    const corner = (i) => (idx ? idx.getScalar(i) : i);
+    const corners = idx ? idx.getCount() : pos.getCount();
+    for (let i = 0; i < corners; i += 3) {
+      const tri = [at(corner(i)), at(corner(i + 1)), at(corner(i + 2))];
       tri.colour = col
-        .getElement(corner(i), [])
-        .slice(0, 3)
-        .map((c) => Math.round(Math.pow(c, 1 / 2.2) * 255))
-        .join(",");
+        ? col
+            .getElement(corner(i), [])
+            .slice(0, 3)
+            .map((c) => Math.round(Math.pow(c, 1 / 2.2) * 255))
+            .join(",")
+        : material;
+      tris.push(tri);
     }
-    tris.push(tri);
   }
   return tris;
 }
+
+/** What the glass is called among the body's triangles when it has its own node. */
+const GLASS = "glass";
 
 function boxOf(tris) {
   const min = [Infinity, Infinity, Infinity];
@@ -149,14 +157,17 @@ function landmarks(doc, paintTris, bodyTris) {
   const sideTris = paintTris.filter(facesSide);
   const sill = Math.min(...sideTris.flatMap((t) => t.map((p) => p[1])));
 
-  // Glass: the colour covering most of the body's sides high up.
+  // Glass: its own node on the realistic cars; on the low-poly ones, the
+  // colour covering most of the body's sides high up.
   const high = wheelR * 2 + 0.25;
   const byColour = new Map();
   for (const tri of bodyTris) {
     if (!facesSide(tri) || centroid(tri)[1] < high) continue;
     byColour.set(tri.colour, (byColour.get(tri.colour) ?? 0) + areaOf(tri));
   }
-  const glassColour = [...byColour.entries()].sort((a, b) => b[1] - a[1])[0][0];
+  const glassColour = bodyTris.some((t) => t.colour === GLASS)
+    ? GLASS
+    : [...byColour.entries()].sort((a, b) => b[1] - a[1])[0][0];
   const glass = bodyTris.filter((t) => t.colour === glassColour);
   const glassSides = glass.filter(
     (t) => facesSide(t) && centroid(t)[1] >= high,
@@ -346,6 +357,13 @@ async function wrapCar(id) {
   await doc.transform(unweld());
   const paintTris = trianglesOf(paintNode);
   const bodyTris = trianglesOf(node("body"));
+  const glassNode = nodes.find((n) => n.getName() === "glass");
+  if (glassNode) {
+    for (const tri of trianglesOf(glassNode)) {
+      tri.colour = GLASS;
+      bodyTris.push(tri);
+    }
+  }
 
   const box = boxOf(paintTris);
   const [xmin, , zmin] = box.min;

@@ -1,21 +1,23 @@
 /**
- * The opening close-up: on the first try of a drive the camera closes in on
- * the learner's car, circles it once, and settles back on the learner's own
- * side of the table, so they see the car's paint (and the school whose paint
- * it is) up close before they drive.
+ * The opening turn: on every try of a drive the camera closes in on the
+ * learner's car, goes once all the way round it, and settles back on the
+ * learner's own side of the table, so they see the car's paint, and the
+ * school whose paint it is, up close before they drive. The car waits for it:
+ * the stick does nothing until it ends (owner, 2026-11-21: "every instance
+ * before user plays", "users must really know the driving school").
  *
- * This is the one time the board's camera turns (owner, 2026-11-21). The turn
- * starts and ends on the learner's own side, so going in and coming out are
- * a straight pull along their line of sight. A push of the stick, or taking
- * the view with a drag or pinch, glides out at once.
+ * This is the one time the board's camera turns. The turn starts and ends on
+ * the learner's own side, so going in and coming out are a straight pull
+ * along their line of sight. Taking the view with a drag or pinch glides out;
+ * with reduced motion asked for, there is no turn.
  *
  * Pure numbers, so it can be tested; `board-table.tsx` places the camera.
  */
 
 /** Closing in from the seat's view, in seconds. */
-export const SHOW_IN = 0.7;
-/** One full turn round the car. */
-export const SHOW_SPIN = 3.2;
+export const SHOW_IN = 0.8;
+/** One full turn round the car: slow enough to read the school's name. */
+export const SHOW_SPIN = 5.5;
 /** Back out to the seat's view. */
 export const SHOW_OUT = 0.9;
 export const SHOW_TOTAL = SHOW_IN + SHOW_SPIN + SHOW_OUT;
@@ -25,18 +27,22 @@ export const SHOW_TOTAL = SHOW_IN + SHOW_SPIN + SHOW_OUT;
  * classroom's walls with the school's banner at the table's height.
  */
 const TILT = (7 * Math.PI) / 180;
-/** What the close-up frames, in metres: the car and a little road round it. */
-const FRAME_ACROSS = 6;
-const FRAME_DEEP = 4.5;
+/**
+ * How much higher the camera stands halfway round, so the turn shows the
+ * bonnet and roof as well as the sides.
+ */
+const RISE = (11 * Math.PI) / 180;
+/** What the close-up frames, in metres: the car, filling most of the screen. */
+const FRAME_ACROSS = 5.4;
+const FRAME_DEEP = 3.9;
 /** The camera looks at the car's middle, not the road under it. */
 const TARGET_Y = 0.6;
 
 const clamp = (v: number, lo: number, hi: number) =>
   Math.min(hi, Math.max(lo, v));
 const smooth = (t: number) => t * t * (3 - 2 * t);
-/** Slow at both ends, for the turn. */
-const easeInOut = (t: number) =>
-  t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+/** Slow at both ends and even in the middle, for the turn. */
+const easeInOut = (t: number) => (1 - Math.cos(Math.PI * t)) / 2;
 
 export type ShowcasePose = {
   /** How much of the camera is the close-up's: 0 the seat's view, 1 all close-up. */
@@ -82,14 +88,15 @@ export function showcasePose({
       : left < SHOW_OUT
         ? smooth(left / SHOW_OUT)
         : 1;
-  const spun = easeInOut(clamp((t - SHOW_IN) / SHOW_SPIN, 0, 1));
+  const round = clamp((t - SHOW_IN) / SHOW_SPIN, 0, 1);
+  const spun = easeInOut(round);
   // Far enough that the car fits both ways: a tall phone screen is narrow, so
   // there the width decides.
   const tanV = Math.tan(halfV);
   const tanH = tanV * Math.max(0.1, aspect);
   let dist = Math.max(FRAME_DEEP / (2 * tanV), FRAME_ACROSS / (2 * tanH));
   const angle = seatAngle + spun * 2 * Math.PI;
-  let tilt = TILT;
+  let tilt = TILT + RISE * Math.sin(Math.PI * round);
   if (frame) {
     const lift = overFrame(car, angle, dist * Math.cos(tilt), frame);
     if (lift > dist * Math.sin(tilt)) {

@@ -6,8 +6,13 @@
  * wheels to roll and the front hubs to steer. The scene drives either kind the
  * same way.
  *
- * The model's shapes are shared by every car made from it; each car gets its
- * own materials, so each has its own paint and its own brake lamps.
+ * Two kinds of model come in. The realistic cars (`extras.smooth`, from
+ * `scripts/build-real-cars.mjs`) keep their own materials, shade smoothly and
+ * have their windows in a `glass` node. The older low-poly cars are coloured
+ * by vertex and shaded flat.
+ *
+ * The model's shapes, and a realistic car's own materials, are shared by every
+ * car made from it; each car gets its own paint and its own brake lamps.
  */
 import * as THREE from "three";
 
@@ -19,8 +24,13 @@ export type GlbCarOptions = {
   simple?: boolean;
 };
 
-/** Geometry marked this way belongs to the loader's cache: never dispose it. */
+/**
+ * Geometry or a material marked this way belongs to the loader's cache, shared
+ * by every car made from the model: never dispose it.
+ */
 export const SHARED = "sharedGeometry";
+
+const WHEEL = /^wheel_(f|r)(l|r)$/;
 
 export function carFromGltf(
   source: THREE.Object3D,
@@ -30,6 +40,31 @@ export function carFromGltf(
   const copy = source.clone(true);
   car.add(copy);
 
+  let smooth = false;
+  let wheelRadius = 0.32;
+  copy.traverse((node) => {
+    if (node.userData.smooth === true) smooth = true;
+    const radius = node.userData.wheelRadius;
+    if (typeof radius === "number") wheelRadius = radius;
+  });
+
+  const paintwork = simple
+    ? new THREE.MeshStandardMaterial({
+        color: paint,
+        flatShading: !smooth,
+        roughness: 0.45,
+      })
+    : new THREE.MeshPhysicalMaterial({
+        color: paint,
+        flatShading: !smooth,
+        roughness: smooth ? 0.32 : 0.38,
+        metalness: 0.1,
+        clearcoat: smooth ? 0.9 : 0.7,
+        clearcoatRoughness: smooth ? 0.1 : 0.18,
+        envMapIntensity: 0.7,
+      });
+
+  // Flat-shaded low-poly cars: one vertex-coloured body and a plain red lamp.
   const body = new THREE.MeshStandardMaterial({
     vertexColors: true,
     flatShading: true,
@@ -37,59 +72,86 @@ export function carFromGltf(
     metalness: 0.05,
     envMapIntensity: 0.6,
   });
-  const paintwork = simple
-    ? new THREE.MeshStandardMaterial({
-        color: paint,
-        flatShading: true,
-        roughness: 0.45,
-      })
-    : new THREE.MeshPhysicalMaterial({
-        color: paint,
-        flatShading: true,
-        roughness: 0.38,
-        metalness: 0.1,
-        clearcoat: 0.7,
-        clearcoatRoughness: 0.18,
-        envMapIntensity: 0.7,
-      });
-  const tail = new THREE.MeshStandardMaterial({
+  let tail: THREE.MeshStandardMaterial = new THREE.MeshStandardMaterial({
     color: 0xa30f12,
     emissive: 0x900000,
     emissiveIntensity: 0.5,
     flatShading: true,
     roughness: 0.3,
   });
+  // Dark tinted windows, both faces drawn, so the empty cabin never shows
+  // through: you look through two tinted panes. Opaque on phones that struggle.
+  const glass = simple
+    ? new THREE.MeshStandardMaterial({
+        color: 0x161b20,
+        roughness: 0.2,
+        side: THREE.DoubleSide,
+      })
+    : new THREE.MeshPhysicalMaterial({
+        color: 0x161b20,
+        roughness: 0.06,
+        metalness: 0.2,
+        transparent: true,
+        opacity: 0.86,
+        envMapIntensity: 1.2,
+        side: THREE.DoubleSide,
+      });
+  let tailTaken = false;
 
-  let wheelRadius = 0.32;
-  const wheelMeshes: THREE.Mesh[] = [];
   copy.traverse((node) => {
-    const radius = node.userData.wheelRadius;
-    if (typeof radius === "number") wheelRadius = radius;
     const mesh = node as THREE.Mesh;
     if (!mesh.isMesh) return;
     mesh.geometry.userData[SHARED] = true;
     mesh.castShadow = true;
     mesh.receiveShadow = true;
-    mesh.material =
-      mesh.name === "paint" ? paintwork : mesh.name === "tail" ? tail : body;
-    if (mesh.name.startsWith("wheel_")) wheelMeshes.push(mesh);
+    if (mesh.name === "paint") {
+      mesh.material = paintwork;
+    } else if (mesh.name === "glass") {
+      mesh.material = glass;
+      mesh.castShadow = false;
+    } else if (mesh.name === "tail") {
+      if (smooth && !tailTaken) {
+        // The model's own lamp, made able to glow for this car alone.
+        const own = (mesh.material as THREE.MeshStandardMaterial).clone();
+        own.emissive.set(0x900000);
+        own.emissiveIntensity = 0.5;
+        tail = own;
+        tailTaken = true;
+      }
+      mesh.material = tail;
+    } else if (smooth) {
+      // The model's own materials, shared with every car made from it.
+      const list = Array.isArray(mesh.material)
+        ? mesh.material
+        : [mesh.material];
+      for (const material of list) material.userData[SHARED] = true;
+    } else {
+      mesh.material = body;
+    }
   });
 
   // Each wheel goes inside a hub that stays on the axle: the hub turns to
-  // steer, the group inside it turns to roll.
+  // steer, the group inside it turns to roll. A wheel made of several
+  // materials loads as a group, so wheels are found by name.
+  const wheelObjects: THREE.Object3D[] = [];
+  copy.traverse((node) => {
+    if (WHEEL.test(node.name) && !WHEEL.test(node.parent?.name ?? "")) {
+      wheelObjects.push(node);
+    }
+  });
   const wheels: THREE.Group[] = [];
   const steering: THREE.Group[] = [];
-  for (const mesh of wheelMeshes) {
-    const parent = mesh.parent!;
+  for (const wheel of wheelObjects) {
+    const parent = wheel.parent!;
     const hub = new THREE.Group();
-    hub.position.copy(mesh.position);
+    hub.position.copy(wheel.position);
     const spin = new THREE.Group();
-    mesh.position.set(0, 0, 0);
+    wheel.position.set(0, 0, 0);
     hub.add(spin);
-    spin.add(mesh);
+    spin.add(wheel);
     parent.add(hub);
     wheels.push(spin);
-    if (mesh.name.startsWith("wheel_f")) steering.push(hub);
+    if (wheel.name.startsWith("wheel_f")) steering.push(hub);
   }
 
   car.userData = { tail, wheels, steering, wheelRadius, paintwork };

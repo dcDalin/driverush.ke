@@ -122,6 +122,11 @@ let callbacks: Callbacks | null = null;
 let driving = false;
 /** A sheet or a question is over the table: the drive holds still. */
 let paused = false;
+/**
+ * The opening turn round the car is playing (showcase.ts): the car waits on
+ * its start line, stick or no stick, and the clock has not started.
+ */
+let showing = false;
 /** The learner has pushed the stick. The clock starts then, not before. */
 let moved = false;
 let carry = 0;
@@ -304,6 +309,25 @@ export function setPaused(value: boolean): void {
   if (value) resetInput();
 }
 
+const showingListeners = new Set<() => void>();
+
+/** Hold the car still while the opening turn round it plays. */
+export function setShowing(value: boolean): void {
+  if (value === showing) return;
+  showing = value;
+  for (const listener of showingListeners) listener();
+}
+
+/** Is the opening turn playing? For the screen's own parts to make way. */
+export function isShowing(): boolean {
+  return showing;
+}
+
+export function subscribeShowing(listener: () => void): () => void {
+  showingListeners.add(listener);
+  return () => showingListeners.delete(listener);
+}
+
 /** Has the learner set off yet? */
 export function hasMoved(): boolean {
   return moved;
@@ -368,7 +392,15 @@ function reverseLine(at: CarState): { heading: number; along: number } | null {
 
 /** Advance the drive by one rendered frame. */
 export function tick(frameSeconds: number): void {
-  if (!driving || paused || !challenge || !callbacks || !physics || !engine) {
+  if (
+    !driving ||
+    paused ||
+    showing ||
+    !challenge ||
+    !callbacks ||
+    !physics ||
+    !engine
+  ) {
     return;
   }
   const { physicsStep } = engine;

@@ -24,6 +24,6 @@ describe("board cars", () => {
   });
 
   it("lists the cars beside the one driven", () => {
-    expect(carsBeside("suv")).toEqual(["saloon", "pickup"]);
+    expect(carsBeside("suv")).toEqual(["saloon", "hatchback", "wagon", "pickup"]);
   });
 });

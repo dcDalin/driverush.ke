@@ -35,7 +35,15 @@ import { dirOf } from "~/lib/board/geometry";
 import { STICK_DEADZONE, type Seat } from "~/lib/board/joystick";
 import { taskGoalBox } from "~/lib/board/lessons";
 import { parkedCars } from "~/lib/board/parking-layouts";
-import { car, hasMoved, shown, stick, tick, view } from "~/lib/board/runtime";
+import {
+  car,
+  hasMoved,
+  setShowing,
+  shown,
+  stick,
+  tick,
+  view,
+} from "~/lib/board/runtime";
 import {
   advance,
   asDriveSpan,
@@ -731,6 +739,8 @@ function dispose(root: THREE.Object3D) {
       ? mesh.material
       : [mesh.material];
     for (const material of materials) {
+      // A realistic car's own materials are shared by every car made from it.
+      if (material.userData[SHARED]) continue;
       const map = (material as THREE.MeshStandardMaterial).map;
       map?.dispose();
       material.dispose();
@@ -745,7 +755,6 @@ let blob: THREE.CanvasTexture | null = null;
 /** The downloaded car models, by id. `null` when they could not be fetched. */
 type CarSources = Record<BoardCarId, THREE.Object3D> | null;
 
-const CAR_URLS = BOARD_CARS.map((entry) => entry.src);
 const withMeshopt = (loader: GLTFLoader) => {
   loader.setMeshoptDecoder(MeshoptDecoder);
 };
@@ -1169,15 +1178,13 @@ function Scene({
     };
   }, [wrapUrl, tier]);
 
+  // Only the driven car's own model: the other models arrive later, and
+  // their coming must not rebuild this car.
+  const drivenModel = models?.[driven];
   const player = React.useMemo(
     () =>
-      carOnTable(
-        paint ?? CAR_COLORS.player,
-        "KDR 254U",
-        tier,
-        models?.[driven],
-      ),
-    [tier, models, driven, paint],
+      carOnTable(paint ?? CAR_COLORS.player, "KDR 254U", tier, drivenModel),
+    [tier, drivenModel, paint],
   );
   React.useEffect(() => () => dispose(player), [player]);
   // The school's paint goes on the car already on the table, never by
@@ -1349,6 +1356,8 @@ function Scene({
     () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     [],
   );
+  // The turn round the car never outlives the table.
+  React.useEffect(() => () => setShowing(false), []);
   const holdStrip = React.useRef<THREE.Group>(null);
   const holdMaterial = React.useRef<THREE.MeshBasicMaterial>(null);
 
@@ -1374,6 +1383,13 @@ function Scene({
   useFrame((state, delta) => {
     const dt = Math.min(delta, 0.1);
     if (driving) {
+      // The car waits while the opening turn round it plays, from the first
+      // frame of a try (the turn is set up further down this frame).
+      const showRig = rig.current;
+      setShowing(
+        showRig.show > 0 ||
+          (sweep && !calm && showRig.snappedFor !== attempt),
+      );
       tick(dt);
       // A drive that stays under about 26 frames a second goes down a step:
       // shadows first, sharpness last. Smooth driving matters more than either.
@@ -1381,6 +1397,8 @@ function Scene({
       if (rig.current.show <= 0 && paceFrame(pace.current, delta)) {
         slow.current();
       }
+    } else {
+      setShowing(false);
     }
 
     // A route being played back moves the car itself, so the minimap and the
@@ -1562,12 +1580,13 @@ function Scene({
     // With a way blocked, the upside-down car is the thing to see first.
     const blockAt = challenge?.otherCars.find((other) => other.flipped);
     const look = blockAt ?? goal;
-    // First, the close-up round the car (showcase.ts): a push of the stick,
-    // or taking the view, glides out of it at once.
+    // First, the turn round the car (showcase.ts). The stick does not cut it
+    // short: the car waits for it (owner, 2026-11-21). Taking the view with a
+    // drag or a pinch still glides out of it.
     if (fresh) {
       r.show = sweep && !calm ? SHOW_TOTAL : 0;
     } else {
-      if (busy || focus || cam.free) r.show = skipTo(r.show);
+      if (focus || cam.free) r.show = skipTo(r.show);
       if (driving) r.show = Math.max(0, r.show - dt);
     }
     if (fresh) {
@@ -1915,18 +1934,49 @@ function Scene({
 
 type SceneProps = BoardTableProps & { shadow: number; onSlow: () => void };
 
-/** Fetches the car models, then draws the scene with them. */
+/**
+ * Fetches the driven car's model, then draws the scene with it. The other
+ * models (about 1 MB in all) follow in the background; until each arrives,
+ * the cars that need it wear the driven car's shape in their own colours.
+ */
 function SceneWithCars(props: SceneProps) {
-  const loaded = useLoader(GLTFLoader, CAR_URLS, withMeshopt);
+  const drivenUrl = srcOf(props.car);
+  const [driven] = useLoader(GLTFLoader, [drivenUrl], withMeshopt);
+  const [others, setOthers] = React.useState<
+    Partial<Record<BoardCarId, THREE.Object3D>>
+  >({});
+  React.useEffect(() => {
+    let alive = true;
+    const loader = new GLTFLoader();
+    withMeshopt(loader);
+    for (const entry of BOARD_CARS) {
+      if (entry.src === drivenUrl) continue;
+      loader
+        .loadAsync(entry.src)
+        .then((gltf) => {
+          if (alive) setOthers((had) => ({ ...had, [entry.id]: gltf.scene }));
+        })
+        .catch(() => {
+          // That car keeps wearing the driven car's shape.
+        });
+    }
+    return () => {
+      alive = false;
+    };
+  }, [drivenUrl]);
   const models = React.useMemo(() => {
     const byId = {} as Record<BoardCarId, THREE.Object3D>;
-    BOARD_CARS.forEach((entry, i) => {
-      byId[entry.id] = loaded[i].scene;
-    });
+    for (const entry of BOARD_CARS) {
+      byId[entry.id] =
+        entry.src === drivenUrl ? driven.scene : (others[entry.id] ?? driven.scene);
+    }
     return byId;
-  }, [loaded]);
+  }, [driven, others, drivenUrl]);
   return <Scene {...props} models={models} />;
 }
+
+const srcOf = (id: BoardCarId) =>
+  (BOARD_CARS.find((entry) => entry.id === id) ?? BOARD_CARS[0]).src;
 
 /** If the models can't be fetched, the board carries on with the built car. */
 class CarsFallback extends React.Component<
