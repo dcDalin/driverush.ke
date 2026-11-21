@@ -139,7 +139,11 @@ export function BlogPostLayout({
 
           <TryItNowPanel />
 
-          <article className="pt-8 pb-12">{children}</article>
+          {/* Buttons a post puts in its text never wrap on their own, and a
+              long label is wider than a phone: there they wrap and fit. */}
+          <article className="pt-8 pb-12 max-sm:[&_[data-slot=button]]:h-auto max-sm:[&_[data-slot=button]]:min-h-14 max-sm:[&_[data-slot=button]]:max-w-full max-sm:[&_[data-slot=button]]:whitespace-normal max-sm:[&_[data-slot=button]]:px-4 max-sm:[&_[data-slot=button]]:py-3 max-sm:[&_[data-slot=button]]:text-center">
+            {children}
+          </article>
 
           {/* CTA tail — keep nudging readers toward the live product. */}
           <section className="border-t-2 border-ink bg-paper-2 px-5 py-8 sm:px-7">
