@@ -1151,7 +1151,9 @@ function Scene({
     if (!wrapUrl) return;
     let alive = true;
     let loaded: THREE.Texture | null = null;
-    loadWrap(wrapUrl, tier === "low" ? 2 : 8)
+    // Filtered as hard as the phone can: the car's sides are nearly always
+    // seen at a slant, and that is where a school's lettering is.
+    loadWrap(wrapUrl, tier === "low" ? 4 : 16)
       .then((texture) => {
         if (!alive) return texture.dispose();
         loaded = texture;

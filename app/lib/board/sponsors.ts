@@ -57,8 +57,8 @@ export type Sponsor = {
 
 const HELTZ_DIR = "/assets/board/sponsors/heltz";
 const paintOf = (dir: string, car: BoardCarId): CarPaint => ({
-  hi: `${dir}/${car}-2048.webp`,
-  lo: `${dir}/${car}-1024.webp`,
+  hi: `${dir}/${car}-wrap-hi.webp`,
+  lo: `${dir}/${car}-wrap-lo.webp`,
 });
 
 export const SPONSORS: readonly Sponsor[] = [
@@ -81,8 +81,8 @@ export const SPONSORS: readonly Sponsor[] = [
     },
     room: {
       banner: {
-        hi: `${HELTZ_DIR}/banner-2048.webp`,
-        lo: `${HELTZ_DIR}/banner-1024.webp`,
+        hi: `${HELTZ_DIR}/banner-hi.webp`,
+        lo: `${HELTZ_DIR}/banner-lo.webp`,
       },
       posters: {
         logo: `${HELTZ_DIR}/poster-logo.webp`,

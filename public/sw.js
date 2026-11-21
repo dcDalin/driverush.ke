@@ -41,9 +41,9 @@ const SHELL = [
 ];
 /** The board's cars and still, from `app/lib/board/cars.ts` and `board-thumb.tsx`. */
 const BOARD_FILES = [
-  "/assets/board/cars/saloon.glb?v=2",
-  "/assets/board/cars/suv.glb?v=2",
-  "/assets/board/cars/pickup.glb?v=2",
+  "/assets/board/cars/saloon.glb?v=3",
+  "/assets/board/cars/suv.glb?v=3",
+  "/assets/board/cars/pickup.glb?v=3",
   "/assets/board/poster.jpg",
 ];
 /** Every built file the game needs, lazy ones too. Written by `vite.config.ts`. */

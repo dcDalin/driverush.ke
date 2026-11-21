@@ -23,6 +23,7 @@ export async function loadWrap(
   const texture = await loader.loadAsync(url);
   texture.flipY = false;
   texture.colorSpace = THREE.SRGBColorSpace;
+  // three caps this at what the graphics card can do.
   texture.anisotropy = anisotropy;
   return texture;
 }
@@ -85,7 +86,7 @@ function brass(ctx: CanvasRenderingContext2D, w: number, h: number) {
  * in colour, so it reads as part of the table.
  */
 export function sponsoredPlate(logo: HTMLImageElement): THREE.CanvasTexture {
-  const h = 160;
+  const h = 320;
   const w = Math.round((h * PLATE.sponsoredWidth) / PLATE.depth);
   const canvas = document.createElement("canvas");
   canvas.width = w;
@@ -93,7 +94,7 @@ export function sponsoredPlate(logo: HTMLImageElement): THREE.CanvasTexture {
   const ctx = canvas.getContext("2d");
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = 4;
+  texture.anisotropy = 16;
   if (!ctx) return texture;
 
   brass(ctx, w, h);
@@ -150,7 +151,7 @@ export function boardLogo(logo: HTMLImageElement): THREE.Mesh {
   const k = Math.min(w / logo.width, h / logo.height);
   const texture = new THREE.Texture(logo);
   texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = 4;
+  texture.anisotropy = 16;
   texture.needsUpdate = true;
   const mesh = new THREE.Mesh(
     new THREE.PlaneGeometry(logo.width * k, logo.height * k),

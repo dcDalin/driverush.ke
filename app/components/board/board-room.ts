@@ -414,7 +414,9 @@ export async function hangSchool(
   const load = async (url: string) => {
     const t = await loader.loadAsync(url);
     t.colorSpace = THREE.SRGBColorSpace;
-    t.anisotropy = 4;
+    // The walls are seen at a slant as the close-up turns: filter as hard
+    // as the phone can (three caps it).
+    t.anisotropy = 16;
     return t;
   };
   const jobs: [WallItemKind, string][] = [

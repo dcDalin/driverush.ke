@@ -12,8 +12,7 @@
  * scripts/sponsor-art/<id>/<car>.png or .svg: it replaces the style for that car.
  *
  * Writes public/assets/board/sponsors/<id>/:
- *   <car>-2048.webp, <car>-1024.webp   the paint, for strong and weak phones
- *   <car>.png                          full size, for the review tool and Blender
+ *   <car>-wrap-hi.webp, -wrap-lo.webp  the paint, for strong and weak phones (near-lossless)
  *   logo.png                           the lockup in colour, transparent
  *   logo-mono.png                      the lockup in white, for brass and board paint
  *
@@ -56,6 +55,14 @@ const schools = ids.length
 const out = path.resolve(option("out") ?? ASSETS);
 const cars = option("cars")?.split(",") ?? CARS;
 
+/**
+ * How a school's pictures are saved: near-lossless WebP. Ordinary lossy WebP
+ * halves the colour detail, which smears exactly what a school pays for: red
+ * on white, blue lettering, the hard edge of a stripe. Near-lossless keeps
+ * every edge and colour, at about half the size of true lossless.
+ */
+const CRISP = { nearLossless: true, quality: 40, effort: 6 };
+
 const fontCache = new Map();
 function fontsFor(brand) {
   const names = [
@@ -87,31 +94,36 @@ async function paintFor(id, brand, fonts, car, styleName) {
   const style = await import(pathToFileURL(designFile(brand, styleName)).href);
   const k = kit(layout, fonts);
   const { defs, body } = style.default({ k, brand, fonts });
-  return k.svg(defs, body);
+  return k.svg(defs, body, {
+    shade: designFile(brand, styleName).includes("/styles/"),
+  });
 }
 
 /**
- * A school's pictures for the classroom walls: `banner-2048.webp` and
- * `banner-1024.webp` (3.2 x 0.6 m on the wall), and `poster-<id>.webp`.
+ * A school's pictures for the classroom walls: `banner-hi.webp` and
+ * `banner-lo.webp` (3.2 x 0.6 m on the wall), and `poster-<id>.webp`.
  */
 async function roomArt(brand, fonts, dir) {
   if (!brand.design || option("style")) return;
   const design = await import(pathToFileURL(path.join(SRC, brand.design)).href);
   if (design.banner) {
     const svg = Buffer.from(design.banner({ fonts }));
-    for (const size of [2048, 1024]) {
-      await sharp(svg, { density: 72 })
+    for (const [name, size] of [
+      ["hi", 4096],
+      ["lo", 2048],
+    ]) {
+      await sharp(svg, { density: 144 })
         .resize(size, Math.round((size * 384) / 2048), { fit: "fill" })
         .flatten({ background: "#ffffff" })
-        .webp({ quality: 88, effort: 6 })
-        .toFile(path.join(dir, `banner-${size}.webp`));
+        .webp(CRISP)
+        .toFile(path.join(dir, `banner-${name}.webp`));
     }
   }
   for (const poster of design.posters?.({ fonts }) ?? []) {
     await sharp(Buffer.from(poster.svg), { density: 72 })
-      .resize({ width: 640 })
+      .resize({ width: 1024 })
       .flatten({ background: "#ffffff" })
-      .webp({ quality: 88, effort: 6 })
+      .webp(CRISP)
       .toFile(path.join(dir, `poster-${poster.id}.webp`));
   }
 }
@@ -127,6 +139,10 @@ function designFile(brand, styleName) {
 }
 
 async function logoOf(brand, fonts, on) {
+  // The white logo is painted large on the board and engraved on the plates,
+  // so it is kept at twice the size of the colour one.
+  const size =
+    on === "mono" ? { width: 2048, height: 888 } : { width: 1024, height: 444 };
   if (brand.design) {
     const design = await import(
       pathToFileURL(path.join(SRC, brand.design)).href
@@ -135,7 +151,7 @@ async function logoOf(brand, fonts, on) {
       return sharp(Buffer.from(design.logo({ fonts, mono: on === "mono" })), {
         density: 144,
       })
-        .resize({ width: 1024, height: 444, fit: "inside" })
+        .resize({ ...size, fit: "inside" })
         .png()
         .toBuffer();
     }
@@ -144,7 +160,7 @@ async function logoOf(brand, fonts, on) {
   const h = 520;
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${lockup(brand, fonts, { x: 30, y: 30, w: w - 60, h: h - 60 }, { on })}</svg>`;
   return sharp(Buffer.from(svg), { density: 144 })
-    .resize({ width: 1024, height: 444, fit: "inside" })
+    .resize({ ...size, fit: "inside" })
     .png()
     .toBuffer();
 }
@@ -158,18 +174,23 @@ for (const id of schools) {
 
   for (const car of cars) {
     const art = await paintFor(id, brand, fonts, car, styleName);
+    const { width, height } = JSON.parse(
+      readFileSync(path.join(ASSETS, `${car}-wrap.json`), "utf8"),
+    ).atlas;
     const full = await sharp(input(art), { density: 72 })
-      .resize(2048, 1024, { fit: "fill" })
+      .resize(width, height, { fit: "fill" })
       .flatten({ background: brand.colors.base })
       .png()
       .toBuffer();
-    writeFileSync(path.join(dir, `${car}.png`), full);
-    for (const size of [2048, 1024]) {
-      await sharp(full)
-        .resize(size, size / 2, { kernel: "lanczos3" })
-        .webp({ quality: 90, effort: 6 })
-        .toFile(path.join(dir, `${car}-${size}.webp`));
-    }
+    // The board's copies: the full picture for strong phones, half for weak
+    // ones. See CRISP: a school's edges and colours stay its own.
+    await sharp(full)
+      .webp(CRISP)
+      .toFile(path.join(dir, `${car}-wrap-hi.webp`));
+    await sharp(full)
+      .resize(width / 2, height / 2, { kernel: "lanczos3" })
+      .webp(CRISP)
+      .toFile(path.join(dir, `${car}-wrap-lo.webp`));
   }
 
   // The classroom's walls (app/lib/board/room.ts): a banner and posters, when

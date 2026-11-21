@@ -72,7 +72,7 @@ function render(wrapDir, car, dir) {
       path.join(ROOT, "scripts/blender/turntable.py"),
       "--",
       path.join(scratch, `${car}.glb`),
-      path.join(wrapDir, `${car}.png`),
+      path.join(wrapDir, `${car}-wrap-hi.webp`),
       dir,
     ],
     { stdio: ["ignore", "ignore", "ignore"] },
@@ -140,7 +140,7 @@ if (compare) {
   const wrapDir = path.join(ROOT, "public/assets/board/sponsors", id);
   const rows = [];
   for (const car of CARS) {
-    if (!existsSync(path.join(wrapDir, `${car}.png`))) continue;
+    if (!existsSync(path.join(wrapDir, `${car}-wrap-hi.webp`))) continue;
     const dir = path.join(out, car);
     render(wrapDir, car, dir);
     rows.push({

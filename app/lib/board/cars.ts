@@ -5,16 +5,17 @@
  * The models are built by `scripts/build-board-cars.mjs`.
  */
 export const BOARD_CARS = [
-  // `?v=2`: every car gained its wrap template (scripts/build-car-wrap.mjs).
+  // `?v=3`: every car's wrap template, laid out for crisp paint
+  // (scripts/build-car-wrap.mjs).
   // A new address, so no cache hands out the old one. Keep public/sw.js's
   // BOARD_FILES in step.
   {
     id: "saloon",
     label: "Saloon",
-    src: "/assets/board/cars/saloon.glb?v=2",
+    src: "/assets/board/cars/saloon.glb?v=3",
   },
-  { id: "suv", label: "SUV", src: "/assets/board/cars/suv.glb?v=2" },
-  { id: "pickup", label: "Pickup", src: "/assets/board/cars/pickup.glb?v=2" },
+  { id: "suv", label: "SUV", src: "/assets/board/cars/suv.glb?v=3" },
+  { id: "pickup", label: "Pickup", src: "/assets/board/cars/pickup.glb?v=3" },
 ] as const;
 
 export type BoardCarId = (typeof BOARD_CARS)[number]["id"];

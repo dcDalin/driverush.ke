@@ -159,37 +159,68 @@ export function lockup(
  * helpers that carry drawings in metres into the template's views.
  */
 export function kit(layout, fonts) {
-  const { scale: s, views, pad } = layout;
+  const { views, pad } = layout;
   const [xmin, ymin, zmin] = layout.box.min;
   const [xmax, ymax, zmax] = layout.box.max;
+  // Each view has its own scale (pixels per metre): the sides and top are
+  // drawn larger than the ends.
+  const sc = (v) => views[v].scale;
 
   // SVG matrices from the car's spaces to template pixels, per view.
   const m = (a, d, e, f) => `matrix(${a} 0 0 ${d} ${f1(e)} ${f1(f)})`;
   const matrix = {
-    left: m(s, -s, views.left.x - zmin * s, views.left.y + ymax * s),
-    right: m(-s, -s, views.right.x + zmax * s, views.right.y + ymax * s),
-    top: m(-s, s, views.top.x + zmax * s, views.top.y - xmin * s),
-    front: m(-s, -s, views.front.x + xmax * s, views.front.y + ymax * s),
-    back: m(s, -s, views.back.x - xmin * s, views.back.y + ymax * s),
+    left: m(
+      sc("left"),
+      -sc("left"),
+      views.left.x - zmin * sc("left"),
+      views.left.y + ymax * sc("left"),
+    ),
+    right: m(
+      -sc("right"),
+      -sc("right"),
+      views.right.x + zmax * sc("right"),
+      views.right.y + ymax * sc("right"),
+    ),
+    top: m(
+      -sc("top"),
+      sc("top"),
+      views.top.x + zmax * sc("top"),
+      views.top.y - xmin * sc("top"),
+    ),
+    front: m(
+      -sc("front"),
+      -sc("front"),
+      views.front.x + xmax * sc("front"),
+      views.front.y + ymax * sc("front"),
+    ),
+    back: m(
+      sc("back"),
+      -sc("back"),
+      views.back.x - xmin * sc("back"),
+      views.back.y + ymax * sc("back"),
+    ),
   };
   /** A point of a space, in a view's pixels. */
   const pt = {
     left: (z, y) => [
-      views.left.x + (z - zmin) * s,
-      views.left.y + (ymax - y) * s,
+      views.left.x + (z - zmin) * sc("left"),
+      views.left.y + (ymax - y) * sc("left"),
     ],
     right: (z, y) => [
-      views.right.x + (zmax - z) * s,
-      views.right.y + (ymax - y) * s,
+      views.right.x + (zmax - z) * sc("right"),
+      views.right.y + (ymax - y) * sc("right"),
     ],
-    top: (z, x) => [views.top.x + (zmax - z) * s, views.top.y + (x - xmin) * s],
+    top: (z, x) => [
+      views.top.x + (zmax - z) * sc("top"),
+      views.top.y + (x - xmin) * sc("top"),
+    ],
     front: (x, y) => [
-      views.front.x + (xmax - x) * s,
-      views.front.y + (ymax - y) * s,
+      views.front.x + (xmax - x) * sc("front"),
+      views.front.y + (ymax - y) * sc("front"),
     ],
     back: (x, y) => [
-      views.back.x + (x - xmin) * s,
-      views.back.y + (ymax - y) * s,
+      views.back.x + (x - xmin) * sc("back"),
+      views.back.y + (ymax - y) * sc("back"),
     ],
   };
 
@@ -315,14 +346,18 @@ export function kit(layout, fonts) {
     return { defs, body };
   }
 
-  /** The whole picture: a style's body, shaded, at the template's size. */
-  function svg(defs, body) {
-    const shade = shading();
+  /**
+   * The whole picture at the template's size. `shade` bakes soft light into
+   * it (for our own styles); a copy of a school's real car leaves it off, so
+   * its colours stay exactly its own and the scene's light does the shading.
+   */
+  function svg(defs, body, { shade = true } = {}) {
+    const light = shade ? shading() : { defs: "", body: "" };
     return [
       `<svg xmlns="http://www.w3.org/2000/svg" width="${layout.atlas.width}" height="${layout.atlas.height}" viewBox="0 0 ${layout.atlas.width} ${layout.atlas.height}">`,
-      `<defs>${clips}${shade.defs}${defs}</defs>`,
+      `<defs>${clips}${light.defs}${defs}</defs>`,
       body,
-      shade.body,
+      light.body,
       `</svg>`,
     ].join("\n");
   }

@@ -113,8 +113,7 @@ export default function SponsorTool() {
 
   if (!sponsor) return <p>No schools in `app/lib/board/sponsors.ts` yet.</p>;
   const paint = sponsor.livery?.cars[car];
-  // The full-size picture beside the board's copies, for checking.
-  const wrapFull = paint?.hi.replace(/-\d+\.webp$/, ".png");
+  const wrapFull = paint?.hi;
   const template = `/assets/board/sponsors/${car}-template.svg`;
 
   return (
@@ -197,7 +196,7 @@ export default function SponsorTool() {
               <a href={template} download className="underline">
                 {car}-template.svg
               </a>{" "}
-              (2048 by 1024 pixels).
+              (2048 by 2048 pixels).
             </p>
           </Section>
 

@@ -6,10 +6,11 @@
  *
  * Car-wrap shops work from a flat "vehicle template": the car's left side,
  * right side, top, front and back, all at one scale. This does the same. Each
- * triangle of a car's `paint` node is laid onto the view it faces most, every
- * view at SCALE pixels per metre on every car, so nothing is stretched and a
- * school's name is the same real size on each. Both sides are drawn the way
- * you see them standing beside the car, so lettering reads normally on each.
+ * triangle of a car's `paint` node is laid onto the view it faces most, at one
+ * scale within a view, so nothing is stretched. The sides and the top fill
+ * the picture's width (about 410 to 470 pixels per metre), so a school's
+ * lettering stays crisp when the camera closes in. Both sides are drawn the
+ * way you see them standing beside the car, so lettering reads normally.
  *
  * Writes, for each car:
  *   public/assets/board/cars/<car>.glb                 the same car, with UVs
@@ -42,9 +43,7 @@ const CARS = process.argv.slice(2).length
   : ["saloon", "suv", "pickup"];
 
 /** The template picture, in pixels. Schools draw at this size. */
-const ATLAS = { width: 2048, height: 1024 };
-/** Pixels per metre in every view, on every car. */
-const SCALE = 230;
+const ATLAS = { width: 2048, height: 2048 };
 /** Room between views; art is drawn half of it past each edge (bleed). */
 const PAD = 24;
 
@@ -355,28 +354,54 @@ async function wrapCar(id) {
   const W = xmax - xmin;
   const H = ymax - box.min[1];
 
-  const px = (m) => Math.round(m * SCALE);
+  // The sides and the top are what a learner reads, so they get every pixel
+  // the picture can give them: stacked full width, at the largest scale that
+  // fits this car. The ends go below at half that, and the underside (never
+  // seen) in what is left.
+  const SCALE =
+    Math.floor(
+      Math.min(
+        (ATLAS.width - 2 * PAD) / L,
+        (ATLAS.height - 5 * PAD) / (2.5 * H + W),
+      ) / 10,
+    ) * 10;
+  const ENDS = SCALE / 2;
+  const row1 = PAD;
+  const row2 = row1 + Math.round(H * SCALE) + PAD;
+  const row3 = row2 + Math.round(H * SCALE) + PAD;
+  const row4 = row3 + Math.round(W * SCALE) + PAD;
+  const endW = Math.round(W * ENDS);
+  const endH = Math.round(H * ENDS);
+  const underX = 3 * PAD + 2 * endW;
+  const UNDER = Math.min(ENDS, (ATLAS.width - underX - PAD) / L, endH / W);
+  const view = (x, y, w, h, scale) => ({
+    x,
+    y,
+    w: Math.round(w * scale),
+    h: Math.round(h * scale),
+    scale,
+  });
   const views = {
-    left: { x: PAD, y: PAD, w: px(L), h: px(H) },
-    right: { x: PAD, y: 2 * PAD + px(H), w: px(L), h: px(H) },
-    front: { x: PAD, y: 3 * PAD + 2 * px(H), w: px(W), h: px(H) },
-    back: { x: 2 * PAD + px(W), y: 3 * PAD + 2 * px(H), w: px(W), h: px(H) },
-    top: { x: 2 * PAD + px(L), y: PAD, w: px(L), h: px(W) },
-    bottom: { x: 2 * PAD + px(L), y: 2 * PAD + px(W), w: px(L), h: px(W) },
+    left: view(PAD, row1, L, H, SCALE),
+    right: view(PAD, row2, L, H, SCALE),
+    top: view(PAD, row3, L, W, SCALE),
+    front: view(PAD, row4, W, H, ENDS),
+    back: view(2 * PAD + endW, row4, W, H, ENDS),
+    bottom: view(underX, row4, L, W, UNDER),
   };
   for (const [name, v] of Object.entries(views)) {
     if (
       v.x + v.w > ATLAS.width - PAD / 2 ||
       v.y + v.h > ATLAS.height - PAD / 2
     ) {
-      throw new Error(`${id}: the ${name} view does not fit; lower SCALE`);
+      throw new Error(`${id}: the ${name} view does not fit the template`);
     }
   }
 
   /** Where a point of the car lands in a view. The driver's right is +x. */
   function place(view, [x, y, z]) {
     const v = views[view];
-    const s = SCALE;
+    const s = v.scale;
     switch (view) {
       // Standing at the car's left, the nose is on your left.
       case "left":
@@ -494,7 +519,7 @@ async function wrapCar(id) {
   };
   const svg = [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${ATLAS.width}" height="${ATLAS.height}" viewBox="0 0 ${ATLAS.width} ${ATLAS.height}" font-family="Helvetica, Arial, sans-serif">`,
-    `<!-- DriveRush.ke ${id} wrap template. Draw the school's paint in each view at this size, then save a PNG or SVG of the same size. White = paintwork; blue-grey = glass, lamps and trim (not painted). Keep lettering inside the green boxes. Every board car is drawn at ${SCALE} px per metre. -->`,
+    `<!-- DriveRush.ke ${id} wrap template. Draw the school's paint in each view at this size, then save a PNG or SVG of the same size. White = paintwork; blue-grey = glass, lamps and trim (not painted). Keep lettering inside the green boxes. The sides and top are drawn at ${SCALE} px per metre, the ends at half that. -->`,
     `<rect width="100%" height="100%" fill="#eeeeee"/>`,
     ...Object.entries(views).map(([view, v]) =>
       [
