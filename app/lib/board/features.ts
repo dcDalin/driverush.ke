@@ -47,7 +47,7 @@ export const BOARD_FEATURES: readonly BoardFeature[] = [
   {
     id: "roundabout",
     name: "Roundabout",
-    note: "Go round it clockwise, keeping left. Give way to traffic already on it, coming from your right. No stopping, waiting, parking, overtaking or changing lanes on it. Choose your lane before you reach it. The yellow cross marks the middle of each road: leave before you reach the line of the road you want. You drive over the cross; it is not a line you must keep off.",
+    note: "Go round it clockwise, keeping left. Give way to traffic already on it, coming from your right. No stopping, waiting, parking, overtaking or changing lanes on it. Choose your lane before you reach it. The pale yellow cross marks the middle of each road: leave before you reach the line of the road you want. You drive over the cross; it is not a line you must keep off.",
     box: around(0, 0, RING_R + 6),
     // on the lanes going round, not on the island in the middle
     pin: { x: RING_R - 4.5, z: 0 },
