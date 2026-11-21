@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { resolveCar } from "~/lib/board/cars";
-import { inPeriod, pickSponsor, type Sponsor } from "~/lib/board/sponsors";
+import {
+  askedSchool,
+  inPeriod,
+  pickSponsor,
+  type Sponsor,
+} from "~/lib/board/sponsors";
 
 const school = (id: string, extra: Partial<Sponsor> = {}): Sponsor => ({
   id,
@@ -13,6 +18,35 @@ const school = (id: string, extra: Partial<Sponsor> = {}): Sponsor => ({
 });
 
 const now = new Date("2026-12-01T09:00:00Z");
+
+describe("the school asked for in the address (?school=)", () => {
+  const list = [
+    school("a"),
+    school("hidden", { live: false }),
+    school("gone", { until: "2026-11-30" }),
+  ];
+
+  it("is that school when it is live", () => {
+    expect(askedSchool("a", { now, list })?.id).toBe("a");
+  });
+
+  it("is nothing for a wrong id, or none at all", () => {
+    expect(askedSchool("nope", { now, list })).toBeNull();
+    expect(askedSchool("", { now, list })).toBeNull();
+    expect(askedSchool(null, { now, list })).toBeNull();
+  });
+
+  it("is nothing for a school that is not live or has left", () => {
+    expect(askedSchool("hidden", { now, list })).toBeNull();
+    expect(askedSchool("gone", { now, list })).toBeNull();
+  });
+
+  it("knows every school on the board today", () => {
+    for (const id of ["heltz", "topgear", "blixen", "aa", "petanns"]) {
+      expect(askedSchool(id, { now })?.id).toBe(id);
+    }
+  });
+});
 
 describe("pickSponsor", () => {
   const list = [school("a"), school("b"), school("c")];

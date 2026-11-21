@@ -2,8 +2,9 @@
  * `/model-town-board/play`: the board game and nothing else. `?level=<id>`
  * opens one level of the course, `?task=<id>` starts one task, `?learn=1`
  * opens the board to explore, and with none of them it is a round of mixed
- * tasks. Closing the game goes back to the page it was opened from, or to the
- * Model Town Board page when it was opened cold.
+ * tasks. `?school=<id>` names the driving school on the board, and follows it
+ * as it changes. Closing the game goes back to the page it was opened from,
+ * or to the Model Town Board page when it was opened cold.
  *
  * Search engines are pointed at that page, not this one: there is nothing here
  * to read.
@@ -15,6 +16,11 @@ import type { Route } from "./+types/board-play";
 import { BOARD_PATH } from "~/lib/board-guides";
 import { challengeById } from "~/lib/board/challenges";
 import { useBoardStore } from "~/lib/board-store";
+import {
+  enterPlay,
+  schoolHeld,
+  useVisitSponsor,
+} from "~/lib/board/sponsor-visit";
 import { ogCardAlt, ogCardPath } from "~/lib/og-cards";
 import { BOARD_KEYWORDS, pageMeta, SITE } from "~/lib/site";
 import { useThemeColor } from "~/lib/theme";
@@ -40,9 +46,44 @@ export function meta(_: Route.MetaArgs) {
   ];
 }
 
+/**
+ * Keeps `?school=<id>` in the address in step with the school on the board
+ * (`~/lib/board/sponsor-visit`), which changes with every new task. A link
+ * with a live school in it starts on that school; a wrong one is written
+ * over with the school actually shown. Replaces the address, so it adds
+ * nothing to go back through, and the game below does not notice.
+ */
+function useSchoolInAddress(): void {
+  const [params, setParams] = useSearchParams();
+  const sponsor = useVisitSponsor();
+  const asked = params.get("school");
+  // Once, as the page opens: before the game's first task starts.
+  const opened = React.useRef(false);
+  React.useEffect(() => {
+    if (opened.current) return;
+    opened.current = true;
+    enterPlay(asked);
+  }, [asked]);
+  React.useEffect(() => {
+    // A school held with `?sponsor=` keeps the address as it was given.
+    if (!sponsor || schoolHeld() || asked === sponsor.id) return;
+    setParams(
+      (before) => {
+        const next = new URLSearchParams(before);
+        next.set("school", sponsor.id);
+        return next;
+      },
+      { replace: true, preventScrollReset: true },
+    );
+  }, [sponsor, asked, setParams]);
+}
+
 export default function BoardPlay() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  // Before the effect that starts the game, so a school asked for in the
+  // address is on the board for the first task.
+  useSchoolInAddress();
   // The board runs to the top edge: the status bar takes its dark.
   useThemeColor(SITE.themeColors.game);
   const learn = params.get("learn") === "1";

@@ -10,7 +10,7 @@ import { Link, useNavigate } from "react-router";
 import { useShallow } from "zustand/react/shallow";
 
 import { BOARD_CARS, resolveCar, type BoardCarId } from "~/lib/board/cars";
-import { useVisitSponsor } from "~/lib/board/sponsor-visit";
+import { startRound, useVisitSponsor } from "~/lib/board/sponsor-visit";
 import {
   SponsorCredit,
   SponsorReadyCard,
@@ -824,6 +824,13 @@ export function BoardGame() {
   }, [seat, assist]);
 
   const challenge = s.queue[s.pos] ?? null;
+  // Each new task or level puts the next school on the board (owner,
+  // 2026-11-22). A new round or level makes a new queue and the next task
+  // moves along it; a retry or a restart changes neither, so it keeps its
+  // school.
+  React.useEffect(() => {
+    if (s.queue[s.pos]) startRound(s.queue, s.pos);
+  }, [s.queue, s.pos]);
   // A lane options level: every car of one road is out, and one is driven at
   // a time. The one being driven is the learner's car for now.
   const lineUp = React.useMemo(

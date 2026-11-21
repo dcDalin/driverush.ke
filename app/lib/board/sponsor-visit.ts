@@ -1,27 +1,37 @@
 /**
- * The school sponsoring this visit, picked once per visit in the browser and
- * shared by everything that shows it (car, plates, board, loader, cards).
+ * The school on the board right now, picked in the browser and shared by
+ * everything that shows it (car, roof board, plates, board, room, loader,
+ * cards).
  *
- * A visit is a tab's session: a reload keeps the same school, so the car does
- * not change paint mid-visit. The schools take turns from one visit to the
- * next (`pickSponsor`), remembered on the device.
+ * The schools are shuffled so a learner sees them all (owner, 2026-11-22):
+ * every new task or level moves to the next live school (`startRound`). A
+ * retry of the same task keeps its school. The school a learner saw last is
+ * remembered on the device, so the next visit carries on from there.
  *
- * `?sponsor=<id>` on any page picks that school and is kept for the rest of
- * the tab's session, so a link to the lobby still shows the school once the
- * learner presses Start. It does not count as a turn.
+ * Two things in the address pick a school:
+ *   `?school=<id>`   the school to start on, if it is a live one. The play
+ *                    page keeps this in step with the school on screen
+ *                    (`app/routes/board-play.tsx`), so a reload shows the
+ *                    same one. A wrong id is ignored.
+ *   `?sponsor=<id>`  holds that school, live or not, for the rest of the
+ *                    tab's session, with no shuffling: for showing a school
+ *                    its own car, checking one before it goes live, and
+ *                    recording promo videos.
  */
 import * as React from "react";
 
 import { analytics, getPostHog } from "~/lib/analytics";
 import {
+  askedSchool,
   pickSponsor,
+  sponsorById,
   type Sponsor,
   type SponsorPlace,
 } from "~/lib/board/sponsors";
 
+/** A held school (`?sponsor=`), for the tab's session. */
 const KEY = "driverush:sponsor";
-/** This visit's school (session), and the last visit's (kept on the device). */
-const VISIT_KEY = "driverush:sponsor-visit";
+/** The school this learner saw last, kept on the device. */
 const LAST_KEY = "driverush:sponsor-last";
 
 function read(store: "sessionStorage" | "localStorage", key: string) {
@@ -42,62 +52,157 @@ function write(
     // Private windows: the school is still picked, only not remembered.
   }
 }
-
-let visit: Sponsor | null | undefined;
-
-function readOverride(): string | null {
+const inAddress = (name: string) => {
   try {
-    const asked = new URLSearchParams(window.location.search).get("sponsor");
-    if (asked) {
-      sessionStorage.setItem(KEY, asked);
-      return asked;
-    }
-    return sessionStorage.getItem(KEY);
+    return new URLSearchParams(window.location.search).get(name);
   } catch {
     return null;
   }
+};
+
+/** The school on the board. `undefined` until one has been picked. */
+let current: Sponsor | null | undefined;
+/** Held by `?sponsor=`: it never changes. */
+let held = false;
+/**
+ * The school on the board has not had its task yet: it was just picked, or
+ * just asked for in the address. The next task to start keeps it.
+ */
+let waiting = false;
+/** How many tasks have started: schools are counted as seen once in each. */
+let round = 0;
+/** The task that started last. */
+let task: { queue: readonly unknown[] | null; pos: number } = {
+  queue: null,
+  pos: -1,
+};
+
+const listeners = new Set<() => void>();
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
 }
 
-/** The visit's school. Browser only; on the server it is always none. */
+function show(next: Sponsor | null, { remember }: { remember: boolean }) {
+  const changed = current === undefined || current?.id !== next?.id;
+  current = next;
+  if (next && remember) write("localStorage", LAST_KEY, next.id);
+  if (!changed) return;
+  // Every event after this carries the school, so drives can be counted per
+  // school. PostHog keeps registered properties across visits, so no school
+  // clears the last one.
+  const ph = getPostHog();
+  if (next) ph?.register({ sponsor: next.id });
+  else ph?.unregister("sponsor");
+  for (const listener of listeners) listener();
+}
+
+function heldId(): string | null {
+  const asked = inAddress("sponsor");
+  if (asked) {
+    write("sessionStorage", KEY, asked);
+    return asked;
+  }
+  return read("sessionStorage", KEY);
+}
+
+/** The school on the board. Browser only; on the server it is always none. */
 export function visitSponsor(): Sponsor | null {
   if (typeof window === "undefined") return null;
-  if (visit === undefined) {
-    const override = readOverride();
-    // The same school for the whole visit; the next one on the next visit.
-    const sameVisit = read("sessionStorage", VISIT_KEY);
-    visit = pickSponsor({
-      roll: Math.random(),
-      now: new Date(),
-      override: override ?? sameVisit,
-      last: read("localStorage", LAST_KEY),
-    });
-    if (visit && !override) {
-      write("sessionStorage", VISIT_KEY, visit.id);
-      write("localStorage", LAST_KEY, visit.id);
-    }
-    // Every event after this carries the school, so drives can be counted
-    // per school. PostHog keeps registered properties across visits, so a
-    // visit with no school clears the last one.
-    const ph = getPostHog();
-    if (visit) ph?.register({ sponsor: visit.id });
-    else ph?.unregister("sponsor");
+  if (current === undefined) {
+    const now = new Date();
+    // A held school that does not exist (an old link) holds nothing.
+    const pinned = sponsorById(heldId());
+    held = pinned !== null;
+    waiting = true;
+    show(
+      pinned ??
+        askedSchool(inAddress("school"), { now }) ??
+        pickSponsor({
+          roll: Math.random(),
+          now,
+          last: read("localStorage", LAST_KEY),
+        }),
+      // A held school is not a turn: the shuffle carries on from before it.
+      { remember: !held },
+    );
   }
-  return visit;
+  return current ?? null;
 }
 
-/** The visit's school, after hydration (none on the first paint). */
+/**
+ * The play page has opened with this `?school=` in its address. On a first
+ * load the school is picked from it anyway; arriving from another page of
+ * the site, a live school asked for here takes over.
+ */
+export function enterPlay(asked: string | null): void {
+  if (typeof window === "undefined") return;
+  const had = visitSponsor();
+  if (held) return;
+  const school = askedSchool(asked, { now: new Date() });
+  if (school && school.id !== had?.id) {
+    waiting = true;
+    show(school, { remember: true });
+  }
+}
+
+/**
+ * A new task or level is starting: the next live school takes the board. The
+ * first task after a school was picked or asked for keeps it.
+ *
+ * `queue` and `pos` say which task it is (the game's list of tasks, and the
+ * place in it): told twice about the same task, it does nothing the second
+ * time.
+ */
+export function startRound(queue: readonly unknown[], pos: number): void {
+  if (typeof window === "undefined") return;
+  if (task.queue === queue && task.pos === pos) return;
+  task = { queue, pos };
+  const had = visitSponsor();
+  round += 1;
+  if (waiting) {
+    waiting = false;
+    return;
+  }
+  if (held) return;
+  show(pickSponsor({ roll: Math.random(), now: new Date(), last: had?.id }), {
+    remember: true,
+  });
+}
+
+/** The school the next task will show, when it is another one. */
+export function nextSchool(): Sponsor | null {
+  if (typeof window === "undefined" || held || !current) return null;
+  const next = pickSponsor({ roll: 0, now: new Date(), last: current.id });
+  return next && next.id !== current.id ? next : null;
+}
+
+/** A school is held by `?sponsor=`: the address is not ours to write. */
+export function schoolHeld(): boolean {
+  return held;
+}
+
+const none = () => null;
+const snapshot = () => current ?? null;
+
+/** The school on the board, after hydration (none on the first paint). */
 export function useVisitSponsor(): Sponsor | null {
-  const [sponsor, setSponsor] = React.useState<Sponsor | null>(null);
-  React.useEffect(() => setSponsor(visitSponsor()), []);
+  const sponsor = React.useSyncExternalStore(subscribe, snapshot, none);
+  // Picked after the first paint, never during a render.
+  React.useEffect(() => {
+    visitSponsor();
+  }, []);
   return sponsor;
 }
 
 const shown = new Set<string>();
 
-/** Counts a school as seen in a place, once per place per visit. */
+/** Counts a school as seen in a place, once per place per task. */
 export function sponsorShown(sponsor: Sponsor | null, place: SponsorPlace) {
   if (!sponsor) return;
-  const key = `${sponsor.id}:${place}`;
+  const key = `${round}:${sponsor.id}:${place}`;
   if (shown.has(key)) return;
   shown.add(key);
   analytics.sponsorShown({ school: sponsor.id, place });

@@ -11,7 +11,9 @@
 import * as THREE from "three";
 
 import type { CarModel } from "~/components/board/car-model";
+import type { BoardCarId } from "~/lib/board/cars";
 import { SPONSOR_PAINT, sponsorSpot } from "~/lib/board/full-board";
+import type { Sponsor } from "~/lib/board/sponsors";
 
 const loader = new THREE.TextureLoader();
 
@@ -37,6 +39,40 @@ export async function loadPicture(
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = anisotropy;
   return texture;
+}
+
+/**
+ * Fetches a school's pictures for one car ahead of need, into the browser's
+ * own cache: the school changes with every new task, and its paint should be
+ * there when it does. Not on a connection the learner has asked to save.
+ */
+export function warmSchool(
+  sponsor: Sponsor,
+  car: BoardCarId,
+  small: boolean,
+): void {
+  const saving = (
+    navigator as Navigator & { connection?: { saveData?: boolean } }
+  ).connection?.saveData;
+  if (saving) return;
+  const paint = sponsor.livery?.cars[car];
+  const room = sponsor.room;
+  const textures = [
+    paint && (small ? paint.lo : paint.hi),
+    sponsor.topBoard?.src,
+    room && (small ? room.banner.lo : room.banner.hi),
+    room?.posters.logo,
+    room?.posters.lessons,
+  ];
+  for (const url of textures) {
+    if (!url) continue;
+    const image = new Image();
+    // Asked for the way three's loader asks, so it is the same cache entry.
+    image.crossOrigin = "anonymous";
+    image.src = url;
+  }
+  // The logo for the plates and the board is loaded plainly (`loadImage`).
+  new Image().src = sponsor.logo.mono;
 }
 
 export function loadImage(url: string): Promise<HTMLImageElement> {

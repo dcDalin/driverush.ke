@@ -1,11 +1,13 @@
 /**
  * Driving schools that sponsor the Model Town Board.
  *
- * One school is picked per visit and owns every place a school shows in that
- * visit: the learner's car wears its paint, the table's brass plates and one
- * green corner of the board carry its logo, and the loader and the "ready for
- * the real test" card name it. One school everywhere sells better than a mix,
- * and is simpler to count.
+ * One school at a time owns every place a school shows: the learner's car
+ * wears its paint and roof board, the table's brass plates and one green
+ * corner of the board carry its logo, the classroom's walls its pictures, and
+ * the loader and the "ready for the real test" card name it. One school
+ * everywhere sells better than a mix, and is simpler to count. The schools
+ * are shuffled: each new task or level shows the next live one
+ * (`~/lib/board/sponsor-visit`).
  *
  * Adding a school: give it a brand file in `scripts/sponsor-art/` (its own
  * design copied from its real car, or one of our styles; or its designer's
@@ -275,6 +277,21 @@ export function sponsorById(id: string | null | undefined): Sponsor | null {
   return SPONSORS.find((s) => s.id === id) ?? null;
 }
 
+/**
+ * The school asked for by `?school=<id>` in the address, if it is one a
+ * learner may be shown: live, and inside its paid period. Anything else (a
+ * typo, a school that has left or is not live yet) is nothing, and the
+ * shuffle carries on.
+ */
+export function askedSchool(
+  id: string | null | undefined,
+  { now, list = SPONSORS }: { now: Date; list?: readonly Sponsor[] },
+): Sponsor | null {
+  if (!id) return null;
+  const school = list.find((s) => s.id === id);
+  return school && school.live && inPeriod(school, now) ? school : null;
+}
+
 /** Whether the school's paid period covers this moment. */
 export function inPeriod(sponsor: Sponsor, now: Date): boolean {
   const t = now.getTime();
@@ -298,10 +315,10 @@ function matchesEmail(sponsor: Sponsor, email: string): boolean {
  * 1. `override` (from `?sponsor=`), whether live or not, so a school can be
  *    shown its own car and promo videos can be recorded;
  * 2. a live school matching the learner's email;
- * 3. the live schools take turns (owner, 2026-11-21): a learner who saw one
- *    on their last visit (`last`) gets the next in the list, so everyone who
- *    comes back sees every school; a first visit is drawn by `roll` (0 up
- *    to, not including, 1);
+ * 3. the live schools take turns (owner, 2026-11-21; every task since
+ *    2026-11-22): after the school a learner saw last (`last`) comes the next
+ *    in the list, so everyone sees every school; with none seen yet, one is
+ *    drawn by `roll` (0 up to, not including, 1);
  * 4. the default school.
  */
 export function pickSponsor({
@@ -317,7 +334,7 @@ export function pickSponsor({
   now: Date;
   override?: string | null;
   email?: string | null;
-  /** The school this learner saw on their last visit, if any. */
+  /** The school this learner saw last, if any. */
   last?: string | null;
   list?: readonly Sponsor[];
   fallback?: string | null;

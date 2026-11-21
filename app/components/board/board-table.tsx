@@ -92,11 +92,17 @@ import {
   boardLogo,
   loadImage,
   loadPicture,
+  warmSchool,
   loadWrap,
   sponsoredPlate,
   wearWrap,
 } from "~/components/board/board-sponsor";
-import { sponsorShown, useVisitSponsor } from "~/lib/board/sponsor-visit";
+import {
+  nextSchool,
+  sponsorShown,
+  useVisitSponsor,
+} from "~/lib/board/sponsor-visit";
+import type { TopBoard } from "~/lib/board/sponsors";
 import {
   SHOW_TOTAL,
   showcaseCamera,
@@ -1178,35 +1184,52 @@ function Scene({
       ? carPaint.lo
       : carPaint.hi
     : null;
+  // The school changes with every new task (sponsor-visit.ts). The car keeps
+  // the paint it has until the next school's has arrived, so it never shows
+  // plain between the two.
   const [wrap, setWrap] = React.useState<THREE.Texture | null>(null);
+  const worn = React.useRef<THREE.Texture | null>(null);
   React.useEffect(() => {
-    if (!wrapUrl) return;
+    const put = (texture: THREE.Texture | null) => {
+      const before = worn.current;
+      worn.current = texture;
+      setWrap(texture);
+      // Freed once the car has taken the new one.
+      if (before) window.setTimeout(() => before.dispose(), 400);
+    };
+    if (!wrapUrl) {
+      put(null);
+      return;
+    }
     let alive = true;
-    let loaded: THREE.Texture | null = null;
     // Filtered as hard as the phone can: the car's sides are nearly always
     // seen at a slant, and that is where a school's lettering is.
     loadWrap(wrapUrl, tier === "low" ? 4 : 16)
       .then((texture) => {
         if (!alive) return texture.dispose();
-        loaded = texture;
-        setWrap(texture);
+        put(texture);
       })
       .catch(() => {
-        // The car keeps the school's plain body colour.
+        // The car wears the school's plain body colour.
+        if (alive) put(null);
       });
     return () => {
       alive = false;
-      setWrap(null);
-      loaded?.dispose();
     };
   }, [wrapUrl, tier]);
+  React.useEffect(
+    () => () => {
+      worn.current?.dispose();
+      worn.current = null;
+    },
+    [],
+  );
 
   // Only the driven car's own model: the other models arrive later, and
   // their coming must not rebuild this car.
   const drivenModel = models?.[driven];
   const player = React.useMemo(
-    () =>
-      carOnTable(paint ?? CAR_COLORS.player, "KDR 254U", tier, drivenModel),
+    () => carOnTable(paint ?? CAR_COLORS.player, "KDR 254U", tier, drivenModel),
     [tier, drivenModel, paint],
   );
   React.useEffect(() => () => dispose(player), [player]);
@@ -1220,34 +1243,62 @@ function Scene({
 
   // With its paint, the school's name board on the roof (top-board.ts).
   const topBoard = (livery && sponsor?.topBoard) || null;
-  const [boardArt, setBoardArt] = React.useState<THREE.Texture | null>(null);
+  // Like the paint, the board on the roof stays until the next school's is
+  // ready: its shape and its picture change together.
+  type RoofBoard = { spec: TopBoard; art: THREE.Texture };
+  const [roofBoard, setRoofBoard] = React.useState<RoofBoard | null>(null);
+  const roofWorn = React.useRef<RoofBoard | null>(null);
   React.useEffect(() => {
-    if (!topBoard) return;
+    const put = (next: RoofBoard | null) => {
+      const before = roofWorn.current;
+      roofWorn.current = next;
+      setRoofBoard(next);
+      if (before) window.setTimeout(() => before.art.dispose(), 400);
+    };
+    if (!topBoard) {
+      put(null);
+      return;
+    }
     let alive = true;
-    let loaded: THREE.Texture | null = null;
     loadPicture(topBoard.src, tier === "low" ? 4 : 16)
-      .then((texture) => {
-        if (!alive) return texture.dispose();
-        loaded = texture;
-        setBoardArt(texture);
+      .then((art) => {
+        if (!alive) return art.dispose();
+        put({ spec: topBoard, art });
       })
       .catch(() => {
         // The car goes without its board.
+        if (alive) put(null);
       });
     return () => {
       alive = false;
-      setBoardArt(null);
-      loaded?.dispose();
     };
   }, [topBoard, tier]);
+  React.useEffect(
+    () => () => {
+      roofWorn.current?.art.dispose();
+      roofWorn.current = null;
+    },
+    [],
+  );
   React.useEffect(() => {
-    if (!topBoard) return;
-    wearTopBoard(player, topBoard, boardArt, tier === "low");
+    if (!roofBoard) return;
+    wearTopBoard(player, roofBoard.spec, roofBoard.art, tier === "low");
     invalidate();
     return () => {
       wearTopBoard(player, null, null);
     };
-  }, [player, topBoard, boardArt, tier, invalidate]);
+  }, [player, roofBoard, tier, invalidate]);
+
+  // The school the next task will show: its pictures are fetched quietly
+  // once this drive is under way, so the change does not wait for them.
+  React.useEffect(() => {
+    if (!sponsor || paint) return;
+    const timer = window.setTimeout(() => {
+      const next = nextSchool();
+      if (next) warmSchool(next, driven, tier === "low");
+    }, 5000);
+    return () => window.clearTimeout(timer);
+  }, [sponsor, driven, tier, paint]);
 
   const others = React.useMemo(
     () =>
@@ -1441,8 +1492,7 @@ function Scene({
       // frame of a try (the turn is set up further down this frame).
       const showRig = rig.current;
       setShowing(
-        showRig.show > 0 ||
-          (sweep && !calm && showRig.snappedFor !== attempt),
+        showRig.show > 0 || (sweep && !calm && showRig.snappedFor !== attempt),
       );
       tick(dt);
       // A drive that stays under about 26 frames a second goes down a step:
@@ -2022,7 +2072,9 @@ function SceneWithCars(props: SceneProps) {
     const byId = {} as Record<BoardCarId, THREE.Object3D>;
     for (const entry of BOARD_CARS) {
       byId[entry.id] =
-        entry.src === drivenUrl ? driven.scene : (others[entry.id] ?? driven.scene);
+        entry.src === drivenUrl
+          ? driven.scene
+          : (others[entry.id] ?? driven.scene);
     }
     return byId;
   }, [driven, others, drivenUrl]);
