@@ -96,7 +96,7 @@ export const SIGN_CATEGORIES: SignCategory[] = [
       {
         name: "Roundabout ahead",
         meaning:
-          "A roundabout is coming. Give way to traffic already on it, usually from the right.",
+          "A roundabout is coming. Give way to traffic already on it, which comes from your right.",
       },
       {
         name: "Crossroads, T-junction or side road",
@@ -106,7 +106,7 @@ export const SIGN_CATEGORIES: SignCategory[] = [
       {
         name: "Pedestrian crossing ahead",
         meaning:
-          "A marked crossing is coming. Be ready to stop for people stepping out.",
+          "A marked crossing is coming, where pedestrians have right of way. Slow down, and stop to let them cross.",
       },
       {
         name: "Children or school ahead",
@@ -337,7 +337,7 @@ export const SIGN_CATEGORIES: SignCategory[] = [
       {
         name: "Pedestrian (zebra) crossing",
         meaning:
-          "A marked crossing where people on foot have priority once they have stepped on.",
+          "A marked crossing where pedestrians have right of way. Slow down, and stop to let them cross.",
       },
       {
         name: "Bus stop or matatu stage",
@@ -441,22 +441,31 @@ export const SIGN_CATEGORIES: SignCategory[] = [
     tone: "ink",
     icon: RoadIcon,
     summary:
-      "Road markings are Class D, and they carry as much authority as a metal sign, sometimes more. White lines organise the lanes and tell you when you may cross. Yellow lines and kerb marks tell you where you may stop or wait. The shorter the gaps in a line, the harder it is warning you.",
+      "Road markings are Class D, and they carry as much authority as a metal sign, sometimes more. White lines organise the lanes and tell you when you may cross. A yellow centre line tells you whether you may overtake on a two-way road, and yellow kerb marks tell you where you may not stop or wait. The shorter the gaps in a line, the harder it is warning you.",
     signs: [
       {
         name: "Broken white centre line",
         meaning:
-          "Lane divider. You may cross it to overtake when the road ahead is clear.",
+          "Lane divider. You may change lanes or overtake if the road ahead is clear.",
       },
       {
         name: "Continuous (solid) white line",
         meaning:
-          "Do not cross or straddle it. Stay your side until it becomes broken again.",
+          "No changing lanes and no overtaking. Do not cross or straddle it until it becomes broken again.",
       },
       {
         name: "Double white lines",
         meaning:
           "Cross only the one nearest you if it is broken, never if the one your side is solid.",
+      },
+      {
+        name: "Continuous yellow centre line",
+        meaning: "On a two-way road: stick to your side, no overtaking.",
+      },
+      {
+        name: "Broken yellow centre line",
+        meaning:
+          "On a two-way road: you may overtake if the road is clear. Otherwise keep left.",
       },
       {
         name: "Hatched markings or chevrons",
@@ -491,7 +500,7 @@ export const SIGN_CATEGORIES: SignCategory[] = [
       {
         name: "Yellow kerb or edge lines",
         meaning:
-          "Waiting and loading restrictions apply along the kerb. A plate gives the times.",
+          "No stopping, no waiting and no parking beside it, unless a plate limits it to certain times.",
       },
       {
         name: "Bus or matatu lane marking",
@@ -524,7 +533,7 @@ export const SIGN_FAQ: SignFaq[] = [
   },
   {
     q: "What does the STOP sign look like in Kenya?",
-    a: "A red octagon with STOP in white letters, the one road sign that is not a triangle, circle or rectangle. The shape is deliberate: you can recognise it even when it is faded, dirty or seen from behind. It means a full stop at the line every time, then move off only when the way is clear, never a roll-through.",
+    a: "A red octagon with STOP in white letters, the one road sign that is not a triangle, circle or rectangle. The shape is deliberate: you can recognise it even when it is faded, dirty or seen from behind. It means a full stop at the line every time, then look right, left and right again, and move off only when the road is clear, never a roll-through.",
   },
   {
     q: "Are Kenyan road signs the same as the Highway Code signs?",
