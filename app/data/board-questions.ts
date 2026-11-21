@@ -130,10 +130,9 @@ export const BOARD_QUESTIONS: readonly BoardQuestion[] = [
   },
   {
     topic: "board",
-    q: "What divides the three-lane road and the streets?",
-    a: "A double yellow line, which splits the road into equal parts. Vehicles in a street move in one direction.",
+    q: "What divides the three-lane road?",
+    a: "A double yellow line, which splits it into two equal parts, three lanes each way. Never cross it to turn or overtake.",
     source: unit3(10),
-    confirm: true,
   },
   {
     topic: "board",

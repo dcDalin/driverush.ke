@@ -109,7 +109,7 @@ export const BOARD_FEATURES: readonly BoardFeature[] = [
   {
     id: "three-lane-road",
     name: "Three-lane road",
-    note: "Three lanes each way with a continuous yellow line down the middle. A continuous yellow centre line means stay on your side: no crossing it to turn or overtake. Its option code at the roundabout is 215.",
+    note: "Three lanes each way, with a double yellow line down the middle dividing it into two equal parts. A double yellow line means stay on your side: no crossing it to turn or overtake. Its option code at the roundabout is 215.",
     box: { x0: -58, x1: -RING_R + 2, z0: -NARROW - 8, z1: NARROW + 8 },
   },
   {

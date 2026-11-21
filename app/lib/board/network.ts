@@ -188,7 +188,7 @@ const FOLLOW: Record<Road, (lane?: number) => { title: string; why: string }> =
     }),
     three_lane: (lane) => ({
       title: `Stay in lane ${lane} on the three-lane road`,
-      why: "Keep to your lane, left of the continuous yellow centre line.",
+      why: "Keep to your lane, left of the double yellow centre line.",
     }),
     two_way: () => ({ title: "Drive along the two-way road", why: KEEP_LEFT }),
     street: () => ({ title: "Drive along the street", why: KEEP_LEFT }),

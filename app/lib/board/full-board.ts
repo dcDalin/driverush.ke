@@ -465,6 +465,8 @@ export function laneBearing(id: ArmId, side: "approach" | "exit"): number {
 // ---- drawing -------------------------------------------------------------------
 
 const LINE = 0.3;
+/** How far each line of the three-lane road's double yellow sits from its middle. */
+const DOUBLE_YELLOW = 0.45;
 /**
  * One broken-line pattern for the whole board: lane lines, broken centre lines
  * and give way lines all use it. The roundabout's lane rings use a shorter one,
@@ -1043,7 +1045,7 @@ export function fullBoardSvg(options: FullBoardOptions = {}): string {
   ].join("");
 
   const white = `fill="none" stroke="${C.white}" stroke-width="${LINE}"`;
-  const yellow = `fill="none" stroke="${C.yellow}" stroke-width="0.4"`;
+  const yellow = `fill="none" stroke="${C.yellow}" stroke-width="0.3"`;
   const stop = `fill="none" stroke="${C.white}" stroke-width="0.6"`;
   const giveWay = `fill="none" stroke="${C.white}" stroke-width="0.5"`;
   const arms = ARM_LIST.map((arm) =>
@@ -1136,9 +1138,13 @@ export function fullBoardSvg(options: FullBoardOptions = {}): string {
     `<path d="${roundaboutCross()
       .map((s) => `M${n(s.ax)} ${n(s.az)} L${n(s.bx)} ${n(s.bz)}`)
       .join(" ")}" fill="none" stroke="${C.cross}" stroke-width="0.4"/>`,
-    // the three-lane road's continuous yellow centre line, from the roundabout
-    // to the frame on one side and to the stop line on the other
-    `<path d="M${x0} 0 H${-RING_R} M${RING_R} 0 H${SIDE.x0 - R_BLOCK}" ${yellow}/>`,
+    // the three-lane road's double yellow centre line, from the roundabout to
+    // the frame on one side and to the stop line on the other. It is judged as
+    // one line down the middle (`continuousLines`).
+    ...[-DOUBLE_YELLOW, DOUBLE_YELLOW].map(
+      (z) =>
+        `<path d="M${x0} ${z} H${-RING_R} M${RING_R} ${z} H${SIDE.x0 - R_BLOCK}" ${yellow}/>`,
+    ),
     strips,
     // across the gaps in the central reserve
     gaps,

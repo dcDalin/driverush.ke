@@ -15,7 +15,10 @@ const LEGEND: { at: keyof typeof BOARD_LANDMARKS; text: string }[] = [
   { at: "dualCarriageway", text: "Dual carriageway, four lanes each way" },
   { at: "uTurnGap", text: "Central reserve, with a gap for U-turns" },
   { at: "roundabout", text: "Roundabout, four lanes round the island" },
-  { at: "threeLaneRoad", text: "Three-lane road with a yellow centre line" },
+  {
+    at: "threeLaneRoad",
+    text: "Three-lane road with a double yellow centre line",
+  },
   { at: "parking", text: "Controlled parking zone, with angle bays" },
   { at: "street", text: "Street joining the two bigger roads" },
   { at: "twoWayRoad", text: "Two-way road" },
