@@ -139,7 +139,7 @@ export const BOARD_QUESTIONS: readonly BoardQuestion[] = [
   {
     topic: "board",
     q: "What is a pedestrian crossing, and what do you do at one?",
-    a: "A safe, marked place for people to cross the road. Slow down, and stop to let pedestrians cross.",
+    a: "A safe, marked area where pedestrians have right of way. Slow down, and stop so pedestrians can cross from one side of the road to the other.",
     source: unit3(10),
   },
 
@@ -171,7 +171,7 @@ export const BOARD_QUESTIONS: readonly BoardQuestion[] = [
   {
     topic: "lanes",
     q: "You want to turn right from the four-lane road. Which lanes, and which lane do you leave in?",
-    a: "Lane 3 or lane 4, at 90°. From lane 3 you go round in the roundabout's third lane and leave in the middle lane of the minor road. From lane 4 you go round in the innermost lane and leave in the minor road's third lane.",
+    a: "Lane 3 or lane 4, at 90°. Maintain your lane round the roundabout. By the minus 1 rule, lane 3 leaves in lane 2, the middle lane of the minor road, and lane 4 leaves in its lane 3.",
     source: TUTORIAL,
   },
   {
@@ -224,6 +224,18 @@ export const BOARD_QUESTIONS: readonly BoardQuestion[] = [
   },
   {
     topic: "lanes",
+    q: "What is the minus 1 rule?",
+    a: "Coming off the four-lane (major) road onto the three-lane (minor) road from lane 3 or 4, you leave one lane further out, because the minor road has one lane less: exit lane = entry lane minus 1. Lane 3 leaves in lane 2 and lane 4 in lane 3. Lane 1 turning left keeps lane 1.",
+    source: TUTORIAL,
+  },
+  {
+    topic: "lanes",
+    q: "What is a Q-turn?",
+    a: "The innermost lane's 270° option: go once all the way round the island, then out at the left exit. Lane 4 makes it from the four-lane road, and lane 3 makes it from the three-lane road by shifting to the roundabout's fourth lane.",
+    source: TUTORIAL,
+  },
+  {
+    topic: "lanes",
     q: "How many degrees is each turn at the roundabout?",
     a: "Straight on is 0°, left and right are 90°, coming back is 180°, once round and then left is 270°, and once round and then straight on is 360°.",
     source: unit3(13),
@@ -251,7 +263,7 @@ export const BOARD_QUESTIONS: readonly BoardQuestion[] = [
   {
     topic: "roundabout",
     q: "What is a roundabout for?",
-    a: "To let vehicles move in different directions without blocking or hitting each other.",
+    a: "To let vehicles move in different directions without any obstruction or collision.",
     source: unit3(11),
   },
   {
@@ -282,7 +294,7 @@ export const BOARD_QUESTIONS: readonly BoardQuestion[] = [
   {
     topic: "roundabout",
     q: "Name the five things you must not do on the roundabout.",
-    a: "Stop, change lanes, park, overtake or wait.",
+    a: "No stopping, no changing lanes, no parking, no overtaking and no waiting.",
     source: unit3(11),
   },
   {
@@ -300,7 +312,7 @@ export const BOARD_QUESTIONS: readonly BoardQuestion[] = [
   {
     topic: "roundabout",
     q: "Which lane do you leave the roundabout in?",
-    a: "The lane your option leaves in. Mostly that is the number you went round in. Onto the three-lane road from the roundabout's fourth lane you leave in its third lane, and turning right from lane 3 of the four-lane road you leave in its middle lane. Leaving in the wrong lane is one of the common mistakes.",
+    a: "Maintain your lane to exit. From lane 3 or 4 of the four-lane (major) road onto the three-lane (minor) road, use the minus 1 rule: lane 3 leaves in lane 2 and lane 4 in lane 3. Leaving in the wrong lane is one of the common mistakes.",
     source: TUTORIAL,
   },
   {
@@ -314,7 +326,7 @@ export const BOARD_QUESTIONS: readonly BoardQuestion[] = [
   {
     topic: "routes",
     q: "What are the three route rules?",
-    a: "Take the shortest correct route without using the parking. If you can't, take the longest correct route without using the parking. Use the parking zone as a route only as a last option.",
+    a: "Use the shortest correct route without parking. Use the longest correct route if needed. Parking is only a last option.",
     source: unit3(12),
   },
   {
@@ -326,7 +338,7 @@ export const BOARD_QUESTIONS: readonly BoardQuestion[] = [
   {
     topic: "routes",
     q: "The only short route cuts through the parking area, but a longer route avoids it. Which do you take?",
-    a: "The longer route. The parking area is a last resort.",
+    a: "The longer route. Parking is only a last option.",
     source: unit3(12),
   },
   {

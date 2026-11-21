@@ -37,10 +37,11 @@ export function BoardQuestionsPrint() {
           Model Town Board questions and answers
         </h1>
         <p className="m-0 mt-1 text-[11px]">
-          {BOARD_QUESTIONS.length} questions from the Kenya Learner Driver
-          Handbook (NTSA, 2016). These are not questions from any test centre.
-          Ask your driving school about the board you will be tested on. Free at{" "}
-          {PAGE_URL}, where you can drive the board in 3D.
+          {BOARD_QUESTIONS.length} questions on the Kenya Learner Driver
+          Handbook (NTSA, 2016) and the lane options driving schools teach.
+          These are not questions from any test centre. Ask your driving school
+          about the board you will be tested on. Free at {PAGE_URL}, where you
+          can drive the board in 3D.
         </p>
       </header>
 
