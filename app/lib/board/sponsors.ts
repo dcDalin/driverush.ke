@@ -76,8 +76,11 @@ export const SPONSORS: readonly Sponsor[] = [
   },
 ];
 
-/** The school everyone sees when no other is picked. None chosen yet. */
-export const DEFAULT_SPONSOR: string | null = null;
+/**
+ * The school everyone sees when no other is picked: Heltz, the board's only
+ * school for now (owner, 2026-11-21).
+ */
+export const DEFAULT_SPONSOR: string | null = "heltz";
 
 export function sponsorById(id: string | null | undefined): Sponsor | null {
   if (!id) return null;
