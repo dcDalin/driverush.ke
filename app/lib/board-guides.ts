@@ -81,7 +81,7 @@ export const BOARD_GUIDES: readonly BoardGuide[] = [
     name: "Lane options",
     title: "Model Town Board lane options: 2124 and 215",
     description:
-      "Model Town Board lane options for both roads: what 2124 and 215 mean, which lane turns left, goes straight, turns right or comes back, with diagrams.",
+      "Model Town Board lane options for both roads: 2124 and 215, which lane turns left, right or goes straight, the U-turn, the Q-turn and the minus 1 rule.",
     lede: "Each lane into the roundabout has its own options. Here is every one, on both roads, with the line each car takes.",
     blurb: "2124 and 215: which lane may take which turn.",
     published: "2026-11-11",

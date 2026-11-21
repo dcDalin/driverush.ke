@@ -72,35 +72,44 @@ export function BoardLaneOptions({ arm }: { arm: Road }) {
           line is the way that car goes.
         </figcaption>
       </figure>
-      <MDX.table>
-        <thead>
-          <tr>
-            <MDX.th>Lane</MDX.th>
-            <MDX.th>Options</MDX.th>
-            <MDX.th>What it may do</MDX.th>
-          </tr>
-        </thead>
-        <tbody>
-          {lanes.map((lane) => {
-            const options = laneOptions(arm, lane);
-            return (
-              <tr key={lane}>
-                <MDX.td>{lane}</MDX.td>
-                <MDX.td>{options.length}</MDX.td>
-                <MDX.td>
-                  {options.map((option, i) => (
-                    <span key={option.id}>
-                      {i > 0 ? "; " : ""}
-                      {option.label} ({option.degrees})
-                      {option.confirmed ? "" : "*"}
+      {/* Two columns that wrap, so unlike the house table it needs no minimum
+          width and reads on a phone without scrolling sideways. */}
+      <div className="my-6">
+        <table className="w-full border-collapse border-2 border-ink font-sans text-[14.5px] leading-snug">
+          <thead>
+            <tr>
+              <MDX.th>Lane</MDX.th>
+              <MDX.th>Its options, and how each goes</MDX.th>
+            </tr>
+          </thead>
+          <tbody>
+            {lanes.map((lane) => {
+              const options = laneOptions(arm, lane);
+              return (
+                <tr key={lane}>
+                  <MDX.td>
+                    {lane}
+                    <span className="block text-[13px] text-ink-3">
+                      {options.length}{" "}
+                      {options.length === 1 ? "option" : "options"}
                     </span>
-                  ))}
-                </MDX.td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </MDX.table>
+                  </MDX.td>
+                  <MDX.td>
+                    {options.map((option) => (
+                      <span key={option.id} className="block py-0.5">
+                        <strong>
+                          {option.label} ({option.degrees})
+                        </strong>
+                        {option.confirmed ? "" : "*"}: {option.how}
+                      </span>
+                    ))}
+                  </MDX.td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
       {lanes.some((lane) =>
         laneOptions(arm, lane).some((option) => !option.confirmed),
       ) ? (

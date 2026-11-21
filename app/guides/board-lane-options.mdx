@@ -13,11 +13,26 @@ Count the options in each lane, starting at the kerb:
 
 Lanes are numbered from the outermost lane, by the kerb, to the innermost. Lane 2 is the easy one on both roads: it goes straight on, nothing else.
 
+## Which lane for which turn
+
+- **Straight on (0°):** lane 1, 2 or 3 on either road. On the four-lane road, lane 4 too, but only after a full loop (360°).
+- **Left (90°):** lane 1 on either road. The innermost lane (lane 4 on the four-lane road, lane 3 on the three-lane road) gets there only by the Q-turn (270°), once round first.
+- **Right (90°):** lane 3 or lane 4 on the four-lane road. Lane 3 on the three-lane road: maintain lane 3 to exit into lane 3, or shift to lane 4 to exit into lane 4.
+- **Back the way you came (U-turn, 180°):** lane 4 on the four-lane road. Lane 3 on the three-lane road, shifting to lane 4.
+
+## The minus 1 rule
+
+Maintain your lane all the way round and out. The one exception is coming off the four-lane (major) road onto the three-lane (minor) road from lane 3 or 4: the minor road has one lane less, so you move one lane to your left. Exit lane = entry lane minus 1.
+
+- **Lane 3 turning right** exits into lane 2.
+- **Lane 4 turning right, or making the Q-turn,** exits into lane 3.
+- **Lane 1 turning left** keeps lane 1.
+
 ## The four-lane road: 2124
 
 <BoardLaneOptions arm="S" />
 
-Read the other way, turn by turn:
+Lane by lane:
 
 - **Lane 1:** go straight (0°) or turn left (90°). Maintain lane 1 to exit.
 - **Lane 2:** go straight (0°). Maintain lane 2 to exit.
@@ -54,7 +69,7 @@ The rules once you are on the roundabout, such as going clockwise and never chan
 
 ## Practise it
 
-The two lane options levels of the <Link to="/model-town-board">Model Town Board simulator</Link> teach lane options the way instructors do on a real board: every car is set out at once, one for each option, and you drive one car at a time to its place. Each car is told its option and shown where to stop. Take the wrong exit and that car goes back to wait its turn. It is free, with no signup.
+The two lane options levels of the <Link to="/model-town-board">Model Town Board simulator</Link> teach lane options the way instructors do on a real board: every car is set out at once, one for each option, and you drive one car at a time to its place. Each car is told its option and how it goes, such as "Maintain lane 3 to exit, into lane 2 of the minor road (minus 1)", and shown where to stop. Take the wrong exit and that car goes back to wait its turn. It is free, with no signup.
 
 ## More on the Model Town Board
 
