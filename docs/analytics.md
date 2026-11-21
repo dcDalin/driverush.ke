@@ -113,6 +113,7 @@ get wrong" report.
 | ------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | `board_level_started`     | A course level opens, from the list or Continue            | `level`, `number`, `kind`, `unit`                                                  |
 | `board_level_completed`   | A level is read, watched or passed for the first time      | `level`, `number`, `kind`, `unit`                                                  |
+| `board_skip_ahead`        | A locked level is opened after the "Skip ahead?" ask       | `to_level`, `next_level` (where Continue would go), `surface` (`levels_page`, `levels_sheet`) |
 | `board_started`           | A round or drill starts. A round is the mock test          | `challenges`, `scope`, `mock`                                                      |
 | `board_faulted`           | The referee calls a mistake                                | `challenge_id`, `rule`, `severity`, `fault_number`                                 |
 | `board_challenge_passed`  | A task is passed                                           | `challenge_id`, `clean`, `faults`, `stars`, `seconds`, `tries`, `score`, `best`    |
@@ -126,6 +127,24 @@ get wrong" report.
 | `board_load_failed`       | The board can't be shown as it should                      | `reason` (`no_webgl`, `download`, `models`), `tier`                                |
 | `board_quality_dropped`   | A slow phone gives up a rung of picture (PostHog only)     | `tier`, `from`, `to`                                                               |
 | `board_setting_changed`   | A setting is changed in the board's sheet (PostHog only)   | `setting` (`assist`, `seat`, `quality`, `sound`, `car`), `value`                   |
+
+### Driving schools
+
+Five schools take turns on the board (Heltz, Top Gear, Blixen, AA, Petanns).
+Since 22 Nov 2026 the school changes with every new task, and the game's
+address carries it (`/model-town-board/play?…&school=<id>`), so break pages
+down by `$pathname`, not `$current_url`.
+
+| Event                  | Fires when                                                   | Key properties    |
+| ---------------------- | ------------------------------------------------------------ | ----------------- |
+| `sponsor_shown`        | A school is on screen in one place, once per place per visit (PostHog only) | `school`, `place` |
+| `sponsor_link_clicked` | A learner taps through to a school's site                    | `school`, `place` |
+
+`place` is one of `car`, `room`, `plate`, `board`, `loader`, `ready_card`,
+`credit`, `showcase` (the opening turn round the car). While a school is
+shown, every event also carries the super property `sponsor` (the school's
+id), so drives, mistakes and passes can be counted per school. Events from
+before 21 Nov 2026 13:20 UTC have no `sponsor`.
 
 ### The NTSA test
 
@@ -228,6 +247,7 @@ built-in Internal / Test users (744655).
 | Learners             | 2391147 | Stages, devices, retention on the board, sources, installs, sharing, bottom bar                           |
 | Road signs           | 2391150 | Sign trainer runs, chart vs 3D, most-missed signs                                                         |
 | Site health          | 2391155 | Errors, rage and dead clicks, web vitals                                                                  |
+| Driving schools      | 2394142 | Learners who saw each school (also on Weekly health), tap-through rate, by day, drives in each school's car, site taps, where each school was seen and tapped |
 
 **Surveys** (popover, any `driverush.ke` page, 30 days between surveys)
 
@@ -240,7 +260,18 @@ built-in Internal / Test users (744655).
   extras and a monthly KES price. `committed` learners only.
 
 The weekly Discord summary (`scripts/weekly-summary.mjs`) reports active
-learners, activation and NTSA passes alongside the older numbers.
+learners, activation and NTSA passes alongside the older numbers, and each
+school's learners reached and site taps.
+
+**Annotations** (project-wide, on every chart): each release that moves the
+numbers is marked at its commit time, from the NTSA card and board load events
+(21 Nov 2026 05:12 UTC) through the schools changing with every task (23:09
+UTC). Add one with `annotation-create` when a release changes how the board
+plays, what it measures or which events fire.
+
+**Errors:** a page move that ends on "No route matches" for a real page now
+reloads the page instead of showing Road closed (`shouldLoadWhole` in
+`app/lib/fresh-build.ts`), so those are no longer reported.
 
 ## Bot filtering
 

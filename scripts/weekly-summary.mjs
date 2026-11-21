@@ -26,6 +26,7 @@ const DASHBOARDS = [
   ["Learners", 2391147],
   ["Road signs", 2391150],
   ["Site health", 2391155],
+  ["Driving schools", 2394142],
 ];
 const RUSH = 0xe11d2e;
 const PRINT = process.argv.includes("--print");
@@ -148,20 +149,40 @@ const sources = sql(`
   WHERE ${PROD} AND ${THIS_WEEK} AND event = '$pageview'
   GROUP BY k ORDER BY n DESC LIMIT 3`);
 
-const [rows, abandoned, faults, missed, errorPages, stopRows, sourceRows] =
-  await Promise.all([
-    totals,
-    top("board_abandoned", "properties.challenge_id"),
-    top("board_faulted", "properties.rule"),
-    top(
-      "sign_graded",
-      "properties.sign_code",
-      "AND properties.result = 'missed'",
-    ),
-    top("$exception", "properties.$pathname"),
-    stops,
-    sources,
-  ]);
+// Each sponsoring school this week: learners who saw it, and taps to its site.
+const schools = sql(`
+  SELECT toString(properties.school) AS k,
+    uniqIf(person_id, event = 'sponsor_shown') AS seen,
+    countIf(event = 'sponsor_link_clicked') AS taps
+  FROM events
+  WHERE ${PROD} AND ${THIS_WEEK}
+    AND event IN ('sponsor_shown', 'sponsor_link_clicked')
+    AND properties.school IS NOT NULL
+  GROUP BY k ORDER BY seen DESC`);
+
+const [
+  rows,
+  abandoned,
+  faults,
+  missed,
+  errorPages,
+  stopRows,
+  sourceRows,
+  schoolRows,
+] = await Promise.all([
+  totals,
+  top("board_abandoned", "properties.challenge_id"),
+  top("board_faulted", "properties.rule"),
+  top(
+    "sign_graded",
+    "properties.sign_code",
+    "AND properties.result = 'missed'",
+  ),
+  top("$exception", "properties.$pathname"),
+  stops,
+  sources,
+  schools,
+]);
 
 // ----- the message -----
 
@@ -266,6 +287,18 @@ const embed = {
       name: "Top sources",
       value: list(sourceRows, (k) => (!k || k === "$direct" ? "direct" : k)),
       inline: true,
+    },
+    {
+      name: "Driving schools (learners who saw it · site taps)",
+      value: schoolRows.length
+        ? schoolRows
+            .map(
+              (r) =>
+                `${r.k}: ${num(r.seen).toLocaleString("en-KE")} · ${num(r.taps).toLocaleString("en-KE")}`,
+            )
+            .join("\n")
+        : "Nothing this week",
+      inline: false,
     },
     {
       name: "Site health",
