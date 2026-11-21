@@ -33,9 +33,10 @@ beforeEach(() => {
 
 /**
  * Drive the level's task along its own route: point about 6 m on along it
- * (2.5 m when reversing), stop at each stop line, let go at the end.
+ * (2.5 m when reversing), stop at each stop line, let go at the end. A thumb
+ * that is a little off can be given a steady `bias`, in degrees.
  */
-function driveLevel(id: string): string {
+function driveLevel(id: string, bias = 0): string {
   useBoardStore.getState().startLevel(id);
   const first = useBoardStore.getState();
   const route = challengeRoute(first.queue[first.pos]);
@@ -101,7 +102,8 @@ function driveLevel(id: string): string {
         if (Math.abs(car.speed) < 0.05) stopped.add(line);
       }
     }
-    const knob = bearingOf(points[aim].x - car.x, points[aim].z - car.z);
+    const knob =
+      bearingOf(points[aim].x - car.x, points[aim].z - car.z) + bias * DEG;
     // seated south, up on the knob is north
     stick.x = rest ? 0 : Math.sin(knob);
     stick.y = rest ? 0 : -Math.cos(knob);
@@ -119,6 +121,18 @@ describe("lane assist on every driving level", () => {
     "%s can be driven the right way",
     (id) => {
       expect(driveLevel(id)).toBe("passed");
+    },
+  );
+});
+
+describe("lane assist lets go for a tight first exit", () => {
+  // From lane 1 into the first exit, the turn is tight. Holding the ring until
+  // the knob pointed well outward, the car turned off late and came out wide,
+  // in lane 2, for a thumb only a little off.
+  it.each([["drive-from-two-way"], ["drive-blocked-street"]])(
+    "%s with a thumb 8 degrees off",
+    (id) => {
+      expect(driveLevel(id, 8)).toBe("passed");
     },
   );
 });

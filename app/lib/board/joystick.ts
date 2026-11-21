@@ -157,6 +157,12 @@ export const ROAD_CONE = (30 * Math.PI) / 180;
  */
 export const RING_CONE_IN = (55 * Math.PI) / 180;
 export const RING_CONE_OUT = (38 * Math.PI) / 180;
+/**
+ * In the outer lane with the knob pointing down an exit close by, the car is
+ * leaving: the ring lets go sooner. Holding on, a tight first exit is taken
+ * late and wide. Leaving the outer lane crosses no other lane of the ring.
+ */
+const RING_CONE_LEAVE = (15 * Math.PI) / 180;
 /** The cone's edge is soft, so the assist fades rather than snaps. */
 const CONE_EDGE = (8 * Math.PI) / 180;
 /** Sideways grip the assist drives within on the roundabout, m/s². */
@@ -339,6 +345,17 @@ export function exitAhead(
   return null;
 }
 
+/** Is the knob pointing down an exit road whose mouth is close? */
+function exitNear(car: CarState, knob: number): boolean {
+  return ARM_ORDER.some((id) => {
+    if (Math.abs(wrapPi(knob - laneBearing(id, "exit"))) > EXIT_CONE) {
+      return false;
+    }
+    const mouth = lanePoint(id, "exit", 1, RING_OUTER_R);
+    return Math.hypot(car.x - mouth.x, car.z - mouth.z) <= EXIT_NEAR;
+  });
+}
+
 /** The world direction the knob is pointing, for a learner at `seat`. */
 export function stickBearing(stick: Stick, seat: Seat): number {
   return wrapPi(Math.atan2(stick.x, -stick.y) + AWAY[seat]);
@@ -397,6 +414,7 @@ function laneAhead(
       }
     }
     const r = ringRadius(lane);
+    const leaving = lane === 1 && knob != null && exitNear(car, knob);
     // Aim a short way round the lane: short enough on the tight inner lanes
     // that the car doesn't cut the corner on its way in.
     const dir = dirOf(loc.bearing + Math.min(reach, r * RING_REACH) / r);
@@ -404,7 +422,7 @@ function laneAhead(
       heading: bearingOf(dir.x * r - car.x, dir.z * r - car.z),
       // Clockwise: the lane runs a quarter turn on from the car's bearing.
       along: loc.bearing + Math.PI / 2,
-      left: RING_CONE_OUT,
+      left: leaving ? RING_CONE_LEAVE : RING_CONE_OUT,
       right: RING_CONE_IN,
       cap: Math.sqrt(BEND_GRIP * r),
       aim: { x: dir.x * r, z: dir.z * r },
