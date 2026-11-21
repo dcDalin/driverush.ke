@@ -37,7 +37,7 @@ export const levelPictureHref = (id: string) =>
 export const BOARD_QUESTIONS_PDF = "/downloads/model-town-board-questions.pdf";
 
 /** The date the board pages were last checked against their sources. */
-export const BOARD_CHECKED = "2026-11-11";
+export const BOARD_CHECKED = "2026-11-21";
 
 export type BoardGuideId =
   | "diagram"
@@ -103,8 +103,8 @@ export const BOARD_GUIDES: readonly BoardGuide[] = [
     name: "Roundabout rules",
     title: "Model Town Board roundabout rules",
     description:
-      "The Model Town Board roundabout rules: go round clockwise, the five things you must not do on it, who may go all the way round, and how to leave.",
-    lede: "Pick your lane before the roundabout, stay in it all the way round, and leave in it at your exit. These are the rules once you are on it.",
+      "Model Town Board roundabout rules: keep left and go clockwise, the five things you must not do on it, who may go all the way round, and the minus 1 rule.",
+    lede: "Pick your lane before the roundabout and maintain it all the way round to your exit, with one lane less off the four-lane road onto the three-lane road. These are the rules once you are on it.",
     blurb: "Clockwise, no stopping or changing lanes, and leaving right.",
     published: "2026-11-11",
   },
