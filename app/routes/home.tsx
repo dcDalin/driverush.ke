@@ -25,7 +25,7 @@ export function meta(_: Route.MetaArgs) {
   return [
     ...pageMeta({
       title: "Model Town Board practice and Kenya road signs",
-      description: `Practise the Model Town Board online and memorise ${SIGN_COUNT} Kenyan road signs for your NTSA test. Free, no signup.`,
+      description: `Practise the Model Town Board online, from lanes and the roundabout to routes and parking, and memorise ${SIGN_COUNT} Kenyan road signs for your NTSA test. Free.`,
       path: "/",
       extraKeywords: [...BOARD_KEYWORDS, ...ROAD_SIGN_KEYWORDS],
       ogImage: ogCardPath("board"),
