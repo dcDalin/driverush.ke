@@ -22,12 +22,33 @@ import { cn } from "~/lib/utils";
 import { LoadingPanel } from "~/components/brand/traffic-loader";
 import type { ExtraCar } from "~/components/board/board-table";
 
-const loadTable = () => import("~/components/board/board-table");
+/**
+ * The scene, and the joystick's library with it: loaded together, a download
+ * that fails after a deploy fails here, where the learner is told, and never
+ * leaves a board with a dead joystick.
+ */
+const loadTable = () =>
+  Promise.all([
+    import("~/components/board/board-table"),
+    import("nipplejs"),
+  ]).then(([table]) => table);
 
 /**
- * The scene is a big download. On a weak connection it can fail part-way, and
- * without this the whole page would fall over. Here it says so and offers
- * another go.
+ * Try again, after the board failed to load. Online, the page is loaded
+ * afresh: after a deploy the files this page asks for are gone (each build
+ * names them anew), so asking for them again can never work, and a fresh page
+ * asks for the new build's. Offline, it asks again in place, without leaving
+ * the page.
+ */
+function loadAfresh(retry: () => void) {
+  if (navigator.onLine === false) retry();
+  else window.location.reload();
+}
+
+/**
+ * The scene is a big download. On a weak connection it can fail part-way, or
+ * a deploy can remove the files this page was built to ask for, and without
+ * this the whole page would fall over. Here it says so and offers another go.
  */
 class LoadGuard extends React.Component<
   { onRetry: () => void; onFail: () => void; children: React.ReactNode },
@@ -176,9 +197,14 @@ export function BoardViewer({
         <LoadGuard
           key={load.n}
           onFail={() => analytics.boardLoadFailed({ reason: "download", tier })}
-          onRetry={() => {
-            setLoad((was) => ({ n: was.n + 1, Table: React.lazy(loadTable) }));
-          }}
+          onRetry={() =>
+            loadAfresh(() =>
+              setLoad((was) => ({
+                n: was.n + 1,
+                Table: React.lazy(loadTable),
+              })),
+            )
+          }
         >
           <React.Suspense fallback={loader}>
             <BoardTable
