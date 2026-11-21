@@ -24,7 +24,7 @@ function routeIds(entries: RouteEntry[]): { id: string; file: string }[] {
 }
 
 /** Routes with no page: redirects, files, layouts. */
-const NOT_PAGES = /legacy-redirects|sitemap-xml|board-level-picture|layouts\//;
+const NOT_PAGES = /legacy-redirects|sitemap-xml|layouts\//;
 
 describe("pageMeta", () => {
   const pages = routeIds(routes as RouteEntry[]).filter(

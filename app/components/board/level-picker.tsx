@@ -1,9 +1,9 @@
 /**
- * Every level as a picture to pick from, unit by unit, with a strip on top to
+ * Every level as a card to pick from, unit by unit, with a strip on top to
  * jump to a unit. It is the levels page, and the same thing opens over the
- * game so a learner can move to any level without leaving it. Each picture is
- * the flat board zoomed to what the level uses (`routes/board-level-picture.ts`),
- * fetched only as it scrolls into view.
+ * game so a learner can move to any level without leaving it. The cards carry
+ * no picture of the board: a picture showed the route to drive, which is the
+ * answer the level asks for.
  *
  * All of it is in the server's HTML. What is done, and which level is next, is
  * filled in from this browser's saved progress once the page is running.
@@ -11,11 +11,7 @@
 import * as React from "react";
 import { Link } from "react-router";
 
-import {
-  BOARD_PLAY_PATH,
-  levelHref,
-  levelPictureHref,
-} from "~/lib/board-guides";
+import { BOARD_PLAY_PATH, levelHref } from "~/lib/board-guides";
 import {
   KIND_LABEL,
   UNITS,
@@ -36,6 +32,7 @@ import { Icon } from "~/components/brand/icon";
 import { useSkipAhead } from "~/components/board/skip-ahead";
 import {
   CheckIcon,
+  ChevronRightIcon,
   LockIcon,
   PlayIcon,
   StarIcon,
@@ -50,19 +47,6 @@ const KIND_BADGE: Record<LevelKind, BadgeProps["variant"]> = {
   watch: "cyan",
   drive: "rush",
   mock: "rush",
-};
-
-/** The board's grass: what shows round the board, and before a picture arrives. */
-const GRASS = "#177a2e";
-
-/** What a picture shows, for a screen reader, by the kind of level. */
-const PICTURE: Record<LevelKind, string> = {
-  warmup: "The road you drive along",
-  slides: "The part of the board this level teaches",
-  lanes: "The cars waiting in each lane",
-  watch: "The route this level shows",
-  drive: "The route to drive, from the car to the green box",
-  mock: "The whole board",
 };
 
 const EMPTY: CourseProgress = { learned: [], bestStars: {} };
@@ -106,6 +90,7 @@ function LevelCard({
   const done = state === "done";
   const next = state === "next";
   const locked = state === "locked";
+  // No picture of the board: it gave the route away before the level began.
   return (
     <li className={cn(mock && "col-span-full")}>
       <Link
@@ -128,91 +113,66 @@ function LevelCard({
           onPick?.(level);
         }}
         className={cn(
-          "group relative flex h-full overflow-hidden rounded-soft border text-ink no-underline outline-none transition-colors",
-          mock ? "flex-row items-stretch" : "flex-col",
+          "group relative flex h-full min-h-[76px] items-center gap-3 rounded-soft border p-3 text-ink no-underline outline-none transition-[background-color,border-color,transform] active:scale-[0.99] motion-reduce:transition-none",
           next
             ? "border-2 border-ink bg-state-next text-state-next-foreground"
             : done
               ? "border-success-line bg-state-done-soft hover:brightness-[0.98] focus-visible:brightness-[0.98]"
               : locked
                 ? "border-dashed border-neutral-line bg-state-locked-soft hover:bg-paper-2 focus-visible:bg-paper-2"
-                : "border-neutral-line bg-surface hover:bg-paper-2 focus-visible:bg-paper-2",
+                : "border-neutral-line bg-surface hover:border-ink/40 hover:bg-paper-2 focus-visible:bg-paper-2",
           now &&
             "ring-[3px] ring-state-now ring-offset-2 ring-offset-background",
           "focus-visible:ring-2 focus-visible:ring-ink",
         )}
       >
+        {/* The level's number, with its state on it. */}
         <span
+          aria-hidden
           className={cn(
-            "relative block shrink-0 overflow-hidden",
-            mock ? "w-24 sm:w-32" : "aspect-square w-full",
-            locked && "bg-state-locked-soft",
+            "flex size-11 shrink-0 items-center justify-center rounded-soft font-mono text-[16px] font-bold tabular-nums",
+            mock
+              ? "bg-rush text-white"
+              : done
+                ? "bg-state-done text-state-done-foreground"
+                : next
+                  ? "bg-ink text-paper"
+                  : locked
+                    ? "bg-state-locked text-state-locked-foreground"
+                    : "border border-neutral-line bg-paper-2 text-ink",
           )}
-          // A locked level's picture is grey all through, grass included.
-          style={{ backgroundColor: locked ? undefined : GRASS }}
         >
-          <img
-            src={levelPictureHref(level.id)}
-            alt={PICTURE[level.kind]}
-            width={320}
-            height={320}
-            loading="lazy"
-            decoding="async"
-            className={cn(
-              "absolute inset-0 size-full object-cover transition-[transform,filter,opacity] duration-300 group-hover:scale-[1.04] group-focus-visible:scale-[1.04] motion-reduce:transition-none",
-              locked && "opacity-45 grayscale group-hover:opacity-70",
-            )}
-          />
-          {!mock && (
-            <span
-              aria-hidden
-              className={cn(
-                "absolute left-1.5 top-1.5 flex h-7 min-w-7 items-center justify-center gap-1 rounded-soft px-1.5 font-mono text-[12.5px] font-bold tabular-nums",
-                done
-                  ? "bg-state-done text-state-done-foreground"
-                  : next
-                    ? "bg-state-next text-state-next-foreground ring-1 ring-ink"
-                    : locked
-                      ? "bg-state-locked text-state-locked-foreground"
-                      : "bg-[#101114]/85 text-white",
-              )}
-            >
-              {done && <Icon icon={CheckIcon} size={14} />}
-              {locked && <Icon icon={LockIcon} size={13} />}
-              {level.n}
-            </span>
-          )}
-          {(next || now) && (
-            <span
-              aria-hidden
-              className={cn(
-                "absolute right-1.5 top-1.5 rounded-soft px-1.5 py-1 font-mono text-[10px] font-bold uppercase leading-none tracking-widest",
-                now
-                  ? "bg-state-now text-state-now-foreground"
-                  : "bg-state-next text-state-next-foreground ring-1 ring-ink",
-              )}
-            >
-              {now ? "Playing" : "Next"}
-            </span>
-          )}
-          {done && !mock && (
-            <span
-              aria-hidden
-              className="absolute inset-x-0 bottom-0 h-1 bg-state-done"
-            />
+          {mock ? (
+            <Icon icon={PlayIcon} size={18} />
+          ) : done ? (
+            <Icon icon={CheckIcon} size={20} />
+          ) : locked ? (
+            <Icon icon={LockIcon} size={17} />
+          ) : (
+            level.n
           )}
         </span>
-        <span className="flex min-w-0 flex-1 flex-col gap-1.5 p-2.5">
-          <span
-            className={cn(
-              "block font-bold leading-snug",
-              mock
-                ? "font-display text-[16px] font-extrabold uppercase tracking-tight"
-                : "text-[13.5px]",
-              locked && "text-neutral-strong",
+        <span className="flex min-w-0 flex-1 flex-col gap-1">
+          <span className="flex items-center gap-1.5">
+            {!mock && (done || locked) && (
+              <span
+                aria-hidden
+                className="font-mono text-[10.5px] font-bold tabular-nums text-ink-3"
+              >
+                {level.n}
+              </span>
             )}
-          >
-            {mock ? "Mock test" : level.title}
+            <span
+              className={cn(
+                "block min-w-0 font-bold leading-snug",
+                mock
+                  ? "font-display text-[16px] font-extrabold uppercase tracking-tight"
+                  : "text-[14px]",
+                locked && "text-neutral-strong",
+              )}
+            >
+              {mock ? "Mock test" : level.title}
+            </span>
           </span>
           {mock && (
             <span className="block text-[13px] leading-snug opacity-80">
@@ -220,28 +180,29 @@ function LevelCard({
               time.
             </span>
           )}
-          <span className="mt-auto flex flex-wrap items-center gap-x-1.5 gap-y-1">
-            {next && !now ? (
-              <span className="inline-flex items-center gap-1 rounded-soft bg-ink px-2 py-1 font-mono text-[10.5px] font-bold uppercase leading-none tracking-widest text-paper">
-                <Icon icon={PlayIcon} size={11} />
-                Start
-              </span>
-            ) : (
-              !mock && (
-                <span
-                  aria-hidden
-                  className={cn(
-                    "font-mono text-[10px] font-bold uppercase tracking-widest",
-                    done
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <Badge
+              variant={KIND_BADGE[level.kind]}
+              className={cn("border px-1.5", locked && "opacity-60")}
+            >
+              {KIND_LABEL[level.kind]}
+            </Badge>
+            {!mock && (
+              <span
+                aria-hidden
+                className={cn(
+                  "font-mono text-[10px] font-bold uppercase tracking-widest",
+                  now
+                    ? "text-state-now"
+                    : done
                       ? "text-success-strong"
                       : next
                         ? "text-state-next-foreground"
                         : "text-neutral-strong",
-                  )}
-                >
-                  {now ? "Playing" : STATE_WORD[state]}
-                </span>
-              )
+                )}
+              >
+                {now ? "Playing" : STATE_WORD[state]}
+              </span>
             )}
             {level.kind === "drive" && stars > 0 && (
               <span
@@ -259,16 +220,16 @@ function LevelCard({
                 ))}
               </span>
             )}
-            <span className="ml-auto inline-flex items-center gap-1.5">
-              <Badge
-                variant={KIND_BADGE[level.kind]}
-                className={cn("border px-1.5", locked && "opacity-60")}
-              >
-                {KIND_LABEL[level.kind]}
-              </Badge>
-            </span>
           </span>
         </span>
+        {next && !now && (
+          <Icon
+            icon={ChevronRightIcon}
+            size={20}
+            aria-hidden
+            className="shrink-0 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
+          />
+        )}
       </Link>
     </li>
   );
@@ -472,7 +433,7 @@ export function LevelPicker({
                 Mock test
               </h2>
             )}
-            <ol className="m-0 grid list-none grid-cols-2 gap-2.5 p-0 sm:grid-cols-3 lg:grid-cols-4">
+            <ol className="m-0 grid list-none grid-cols-1 gap-2 p-0 sm:grid-cols-2 lg:grid-cols-3">
               {unit.levels.map((level) => (
                 <LevelCard
                   key={level.id}
