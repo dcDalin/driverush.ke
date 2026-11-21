@@ -33,7 +33,7 @@ export const SIGN_CLASS_PAGES: SignClassPage[] = [
       "All 34 Kenyan warning signs in five groups, with the mirror-image pairs people mix up and how far ahead of a hazard each sign stands.",
     lede: "The red triangles, in five groups, with the pairs people read backwards and what to do when you see one.",
     published: "2026-11-10",
-    checked: "2026-11-10",
+    checked: "2026-11-21",
   },
   {
     category: "mandatory",
