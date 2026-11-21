@@ -499,12 +499,27 @@ function brokenLine(
   return `<path d="M${n(ax)} ${n(az)} L${n(bx)} ${n(bz)}" ${attrs} stroke-dasharray="${fitDashes(length)}"/>`;
 }
 
-/** A dashed circle whose dashes go round a whole number of times, with no odd one at the join. */
+/**
+ * A dashed lane ring, laid out a quarter at a time between the arms of the
+ * roundabout cross. Every quarter holds the same whole number of dashes with a
+ * half gap at each end, so the cross runs through a clean gap on every ring
+ * and all four quarters look alike. Each dash is its own arc.
+ */
 function dashedRing(r: number, attrs: string): string {
-  const round = Math.PI * 2 * r;
-  const count = Math.round(round / (RING_ON + RING_OFF));
-  const k = round / (count * (RING_ON + RING_OFF));
-  return `<circle r="${n(r)}" ${attrs} stroke-dasharray="${fine(RING_ON * k)} ${fine(RING_OFF * k)}"/>`;
+  const quarter = Math.PI / 2;
+  const count = Math.max(1, Math.round((quarter * r) / (RING_ON + RING_OFF)));
+  const unit = quarter / count;
+  const on = unit * (RING_ON / (RING_ON + RING_OFF));
+  const point = (angle: number) =>
+    `${n(Math.cos(angle) * r)} ${n(Math.sin(angle) * r)}`;
+  const arcs: string[] = [];
+  for (let q = 0; q < 4; q += 1) {
+    for (let i = 0; i < count; i += 1) {
+      const from = q * quarter + unit * i + (unit - on) / 2;
+      arcs.push(`M${point(from)} A${n(r)} ${n(r)} 0 0 1 ${point(from + on)}`);
+    }
+  }
+  return `<path d="${arcs.join(" ")}" ${attrs}/>`;
 }
 const KERB = 0.5;
 
