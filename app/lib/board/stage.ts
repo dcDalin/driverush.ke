@@ -9,7 +9,7 @@
  */
 import { create } from "zustand";
 
-import { BOUNDS, type Box } from "./full-board";
+import { BOUNDS, RING_R, type Box } from "./full-board";
 import type { Vec } from "./geometry";
 import { poseAt, type Pose, type Route } from "./network";
 
@@ -141,6 +141,31 @@ export function panBy(dx: number, dz: number): void {
  */
 export function widestDriveSpan(): number {
   return Math.max(cam.min, cam.outSpan * 0.7);
+}
+
+/**
+ * Metres across the screen that show the whole roundabout and the mouths of
+ * its roads. On a phone the drive's close view is about 23 m, under half the
+ * ring, so the exits are off screen just when the learner needs them.
+ */
+export const RING_VIEW = 2 * RING_R + 6;
+/** The view starts backing off this far from the roundabout's centre... */
+const RING_PULL_FROM = RING_R + 10;
+/** ...and shows the whole of it this close in. */
+const RING_PULL_TO = RING_R + 2;
+
+/**
+ * How far the drive's view is drawn out to show the whole roundabout, 0 to 1,
+ * for a car this far from its centre: all the way on the ring, easing off up
+ * each road so it is already wide coming in and settles back going out.
+ */
+export function ringPull(fromCentre: number): number {
+  const t = clamp(
+    (RING_PULL_FROM - fromCentre) / (RING_PULL_FROM - RING_PULL_TO),
+    0,
+    1,
+  );
+  return t * t * (3 - 2 * t);
 }
 
 /** The learner's zoom, as the drive can keep it. */

@@ -29,7 +29,9 @@ export type BoardFeature = {
 
 /** Where a pin for this feature stands on the table. */
 export function featurePin(f: BoardFeature): { x: number; z: number } {
-  return f.pin ?? { x: (f.box.x0 + f.box.x1) / 2, z: (f.box.z0 + f.box.z1) / 2 };
+  return (
+    f.pin ?? { x: (f.box.x0 + f.box.x1) / 2, z: (f.box.z0 + f.box.z1) / 2 }
+  );
 }
 
 const { SIDE, STREET, AISLE, PARK, FLUSH, CROSSINGS, WIDE, NARROW } = ROADS;
@@ -45,7 +47,7 @@ export const BOARD_FEATURES: readonly BoardFeature[] = [
   {
     id: "roundabout",
     name: "Roundabout",
-    note: "Go round it clockwise, keeping left. Give way to traffic already on it, coming from your right. No stopping, waiting, parking, overtaking or changing lanes on it. Choose your lane before you reach it.",
+    note: "Go round it clockwise, keeping left. Give way to traffic already on it, coming from your right. No stopping, waiting, parking, overtaking or changing lanes on it. Choose your lane before you reach it. The yellow cross marks the middle of each road: leave before you reach the line of the road you want. You drive over the cross; it is not a line you must keep off.",
     box: around(0, 0, RING_R + 6),
     // on the lanes going round, not on the island in the middle
     pin: { x: RING_R - 4.5, z: 0 },
@@ -140,7 +142,12 @@ export const BOARD_FEATURES: readonly BoardFeature[] = [
     id: "street",
     name: "The street",
     note: "A short two-way road joining the dual carriageway to the two-way road. It has a give way line at one end and a stop line at the other.",
-    box: { x0: WIDE - 6, x1: SIDE.x0 + 6, z0: STREET.z0 - 8, z1: STREET.z1 + 8 },
+    box: {
+      x0: WIDE - 6,
+      x1: SIDE.x0 + 6,
+      z0: STREET.z0 - 8,
+      z1: STREET.z1 + 8,
+    },
   },
   {
     id: "stop-line",
@@ -171,7 +178,12 @@ export const BOARD_FEATURES: readonly BoardFeature[] = [
     id: "parking-aisle",
     name: "Parking aisle",
     note: "The road through the parking zone. It is two-way, with a give way line at each end. Drive slowly: a car may pull out of a bay on either side.",
-    box: { x0: AISLE.x0 - 8, x1: AISLE.x1 + 8, z0: -NARROW - 22, z1: -NARROW + 6 },
+    box: {
+      x0: AISLE.x0 - 8,
+      x1: AISLE.x1 + 8,
+      z0: -NARROW - 22,
+      z1: -NARROW + 6,
+    },
   },
   {
     id: "flush-parking",

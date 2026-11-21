@@ -178,6 +178,8 @@ export const COLORS = {
   asphalt: "#17181a",
   white: "#f4f4ee",
   yellow: "#e6b01c",
+  /** The roundabout's cross: a paler yellow, only there to find the exits by. */
+  cross: "#f3e3a2",
   kerbBlack: "#1c1c1f",
   island: "#126b27",
   goal: "#5fe08a",
@@ -623,7 +625,11 @@ export function continuousLines(): ContinuousLine[] {
       for (let k = 1; k < arm.lanes; k += 1) {
         const offset = side * (arm.reserve + k * LANE);
         const from = Math.sqrt(RING_R ** 2 - offset ** 2);
-        add(armPoint(arm, offset, from), armPoint(arm, offset, solidTo), "white");
+        add(
+          armPoint(arm, offset, from),
+          armPoint(arm, offset, solidTo),
+          "white",
+        );
       }
     }
   }
@@ -636,9 +642,37 @@ export function continuousLines(): ContinuousLine[] {
   add({ x: SIDE.mid, z: STREET.z1 }, { x: SIDE.mid, z: -NARROW }, "yellow");
   add({ x: SIDE.mid, z: NARROW }, { x: SIDE.mid, z: z1 }, "yellow");
   // the street, broken opposite the parking aisle
-  add({ x: WIDE + R_BLOCK, z: STREET.mid }, { x: AISLE.x0, z: STREET.mid }, "yellow");
-  add({ x: AISLE.x1, z: STREET.mid }, { x: SIDE.x0 - R_BLOCK, z: STREET.mid }, "yellow");
+  add(
+    { x: WIDE + R_BLOCK, z: STREET.mid },
+    { x: AISLE.x0, z: STREET.mid },
+    "yellow",
+  );
+  add(
+    { x: AISLE.x1, z: STREET.mid },
+    { x: SIDE.x0 - R_BLOCK, z: STREET.mid },
+    "yellow",
+  );
+  // The yellow cross on the roundabout is left out on purpose: cars drive
+  // over it going round. See `roundaboutCross`.
   return lines;
+}
+
+/**
+ * The yellow cross on the roundabout, as schools paint it: each road's middle
+ * carried in across the ring to the island. Going round, a car passes a
+ * road's exit lanes and then its line, so "leave before the line of the road
+ * you want" finds the exit on a screen that shows only part of the ring.
+ *
+ * It is only paint. Cars cross it all the way round, so it is never in
+ * `continuousLines` and never judged.
+ */
+export function roundaboutCross(): Segment[] {
+  return ARM_LIST.map((arm) => ({
+    ax: arm.out.x * RING_R,
+    az: arm.out.z * RING_R,
+    bx: arm.out.x * ISLAND_R,
+    bz: arm.out.z * ISLAND_R,
+  }));
 }
 
 /**
@@ -746,7 +780,12 @@ export const LANE_NUMBER = {
 } as const;
 
 /** A lane number painted on a road: where, and which way up. */
-export type LaneNumber = { x: number; z: number; bearing: number; lane: number };
+export type LaneNumber = {
+  x: number;
+  z: number;
+  bearing: number;
+  lane: number;
+};
 
 /**
  * Every painted lane number, exactly where the drawing letters it. The table
@@ -1077,6 +1116,11 @@ export function fullBoardSvg(options: FullBoardOptions = {}): string {
     // the roundabout's lanes, and a mark on its edge wherever a line meets it
     ring,
     `<path d="${arms.map((a) => a.ticks).join(" ")}" ${white}/>`,
+    // the cross, a paler yellow than the lines that may not be crossed, over
+    // the ring's lanes and in under the island
+    `<path d="${roundaboutCross()
+      .map((s) => `M${n(s.ax)} ${n(s.az)} L${n(s.bx)} ${n(s.bz)}`)
+      .join(" ")}" fill="none" stroke="${C.cross}" stroke-width="0.4"/>`,
     // the three-lane road's continuous yellow centre line, from the roundabout
     // to the frame on one side and to the stop line on the other
     `<path d="M${x0} 0 H${-RING_R} M${RING_R} 0 H${SIDE.x0 - R_BLOCK}" ${yellow}/>`,

@@ -45,6 +45,8 @@ import {
   finish,
   marks,
   picks,
+  RING_VIEW,
+  ringPull,
   setWake,
   useStage,
 } from "~/lib/board/stage";
@@ -885,6 +887,8 @@ type Rig = {
   look: number;
   /** 0 to 1 as the view closes in further for reversing. */
   tight: number;
+  /** 0 to 1 as the view draws out to show the whole roundabout. */
+  ring: number;
   /** The lane strip's brightness, eased so it fades rather than blinks. */
   hold: number;
   /** Coming back from the learner's own view: ease, don't jump. */
@@ -1180,6 +1184,7 @@ function Scene({
     seat: null,
     look: 1,
     tight: 0,
+    ring: 0,
     hold: 0,
     returning: false,
     near: 0,
@@ -1303,6 +1308,7 @@ function Scene({
       r.zoom = waiting;
       r.look = 1;
       r.tight = 0;
+      r.ring = 0;
       r.hold = 0;
     } else {
       const rate = wantIn > r.zoom ? 2.4 : 1.3;
@@ -1347,6 +1353,11 @@ function Scene({
     const turnRate = 1 - Math.exp(-dt * 3);
     r.look += ((backing ? -1 : 1) - r.look) * turnRate;
     r.tight += ((backing ? 1 : 0) - r.tight) * turnRate;
+    // On and near the roundabout the view draws out to show all of it, so
+    // the exits and the yellow cross stay on screen. Only where the close
+    // view is narrower than that: a wide screen already shows it.
+    const pull = driving && !backing ? ringPull(Math.hypot(at.x, at.z)) : 0;
+    r.ring = fresh ? pull : r.ring + (pull - r.ring) * (1 - Math.exp(-dt * 2));
     // How close is the learner's to choose. How far it backs off is not, so
     // pushing the stick always closes in.
     const spanOf = (d: number) => 2 * d * Math.tan(halfH);
@@ -1355,8 +1366,12 @@ function Scene({
     cam.outSpan = spanOf(farOut);
     const inSpan =
       cam.driveSpan === null ? cam.inSpan : asDriveSpan(cam.driveSpan);
-    const nearIn =
+    const carIn =
       (inSpan / 2 / Math.tan(halfH)) * lerp(1, REVERSE_CLOSER, r.tight);
+    // The whole roundabout, never further than the backed-off view, and
+    // never closer than the learner's own zoom: it only ever draws out.
+    const ringIn = Math.min(farOut, RING_VIEW / 2 / Math.tan(halfH));
+    const nearIn = lerp(carIn, Math.max(carIn, ringIn), r.ring);
     const depthIn = (2 * nearIn * Math.tan(halfV)) / Math.sin(TILT_IN);
     const nose = dirOf(at.heading);
     const ahead = { x: nose.x * r.look, z: nose.z * r.look };
@@ -1373,8 +1388,11 @@ function Scene({
       0.03,
       0.3,
     );
-    const inX = at.x + ahead.x * 4 - away.x * lift * depthIn;
-    const inZ = at.z + ahead.z * 4 - away.z * lift * depthIn;
+    // Drawn out, it looks at the roundabout's middle instead of the car, so
+    // the whole ring sits in the clear part of the screen.
+    const ringAim = ringIn > carIn ? r.ring : 0;
+    const inX = lerp(at.x + ahead.x * 4, 0, ringAim) - away.x * lift * depthIn;
+    const inZ = lerp(at.z + ahead.z * 4, 0, ringAim) - away.z * lift * depthIn;
 
     let distance = lerp(farOut, nearIn, close);
     let goalX = lerp(outX, inX, close);
