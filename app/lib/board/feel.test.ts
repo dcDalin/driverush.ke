@@ -56,9 +56,9 @@ describe("the engine", () => {
     const state: CarState = { x: 0, z: 0, heading: 0, speed: 3, steer: 0 };
     const input: CarInput = { steer: 0, throttle: 0, brake: 0 };
     const options = { seat: "south" as const, assist: false };
-    // Under two thirds of a push asks for about half speed (3.5 m/s): the
-    // speed is eased, so slow speeds get more of the knob.
-    const half = { x: 0, y: -0.64 };
+    // A little over half a push asks for half speed (3.5 m/s): the speed
+    // is in proportion to the push past the dead zone.
+    const half = { x: 0, y: -0.56 };
     stickToInput(half, state, input, options, createAssist());
     const far = input.throttle;
     state.speed = 3.4;
@@ -126,12 +126,12 @@ describe("a gentle thumb", () => {
     const input: CarInput = { steer: 0, throttle: 0, brake: 0 };
     const options = { seat: "south" as const, assist: false };
     // Two thirds of the way out, where full speed used to come: well short.
-    state.speed = 4;
+    state.speed = 5;
     stickToInput({ x: 0, y: -48 * PX }, state, input, options, createAssist());
     expect(input.throttle).toBe(0);
     stickToInput({ x: 0, y: -1 }, state, input, options, createAssist());
     expect(input.throttle).toBeGreaterThan(0);
-    expect(CAR.maxSpeed).toBeGreaterThan(4);
+    expect(CAR.maxSpeed).toBeGreaterThan(5);
   });
 });
 

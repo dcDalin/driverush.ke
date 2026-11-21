@@ -31,6 +31,7 @@ import {
   RING_OUTER_R,
   SOLID_ZONE,
   bearingOf,
+  dirOf,
   laneBearing,
   lanePoint,
   locate,
@@ -112,6 +113,12 @@ const SETTLED = 0.9;
 const SQUARE = 25 * DEG;
 /** Sideways grip the assist drives within on a bend, m/s². */
 const BEND_GRIP = 3.2;
+/**
+ * Moving over a lane, the car keeps to this, metres a second: as a driver is
+ * taught, and so a second change, or the turn the change was for, is not
+ * already gone by the time it is over.
+ */
+const CHANGE_SPEED = 4.5;
 /** The slow speed down the parking aisle, metres a second. */
 export const AISLE_SPEED = 4;
 /**
@@ -129,10 +136,25 @@ const NOT_THE_TASK = 12 * DEG;
  * less likely than a way the lane may go, so it is only taken on purpose.
  */
 const ROUND_AGAIN = 10 * DEG;
+/**
+ * Coming up to the roundabout, a thumb pointing well off every path, toward
+ * the side one of this lane's options turns to, is pointing at where it wants
+ * to go: down that option's exit road. It is kept to that option (within
+ * this of the way to the road), not handed the car to drive into the kerb.
+ */
+const AIMED_AT = 75 * DEG;
+/** Where an option leads: this far down its exit road, metres. */
+const AIM_DOWN = 10;
+/**
+ * Toward a lane beside, a firm push (40 or 50 degrees) is the thumb taking
+ * the car across: only this far round or more is it pointing at the exit
+ * road instead. With no lane that side, only kerb, any push past the paths is.
+ */
+const AIM_FROM = 60 * DEG;
 /** Pointing in across the island, up to this far in: a thumb following the bend. */
 const INWARD = 100 * DEG;
 /** On a tight bend the car aims no further ahead than this share of its radius. */
-const BEND_REACH = 0.33;
+const BEND_REACH = 0.28;
 
 /** How the learner is asking, besides the knob. */
 export type Ask =
@@ -848,7 +870,20 @@ export function rails(
       ? Math.min(...scored.map((one) => one.now))
       : Infinity;
     const limit = freeLimit(car, knob);
-    if (state.free) {
+    // Coming up to the roundabout, pointing well off every path toward the
+    // road one of this lane's options leads to: on to the roundabout and out
+    // that way, not into the kerb.
+    const aimed =
+      fits > limit && edge && approaching(edge)
+        ? aimedAt(paths, car, knob, runs, edge)
+        : null;
+    if (aimed) {
+      state.free = false;
+      state.misfit = 0;
+      state.rival = null;
+      state.rivalFor = 0;
+      pick = aimed;
+    } else if (state.free) {
       if (fits < BACK_AT && limit !== Infinity) {
         state.free = false;
         state.misfit = 0;
@@ -862,7 +897,7 @@ export function rails(
     } else {
       state.misfit = 0;
     }
-    if (state.free || !scored.length) {
+    if (!aimed && (state.free || !scored.length)) {
       state.rival = null;
       state.rivalFor = 0;
       if (plan) {
@@ -874,12 +909,15 @@ export function rails(
     }
     const best = scored[0];
     // another path has to fit better for a moment before it is taken
-    pick = plan ?? best.path;
-    if (!plan) {
+    if (aimed) {
+      // taken at once: the thumb is already well off every other way
+      pick = aimed;
+    } else if (!plan) {
       pick = best.path.change
         ? (paths.find((p) => !p.change) ?? best.path)
         : best.path;
     } else if (best.path !== plan) {
+      pick = plan;
       if (state.rival === best.path.key) state.rivalFor += step;
       else {
         state.rival = best.path.key;
@@ -888,6 +926,7 @@ export function rails(
       const wait = best.path.change ? CHANGE_TIME : SWITCH_TIME;
       if (state.rivalFor >= wait) pick = best.path;
     } else {
+      pick = plan;
       state.rival = null;
       state.rivalFor = 0;
     }
@@ -908,7 +947,9 @@ export function rails(
     state.rivalFor = 0;
   }
   state.plan = pick.edges.map((e) => e.id);
-  return steerAlong(pick, car);
+  const steer = steerAlong(pick, car);
+  if (state.changing) steer.cap = Math.min(steer.cap, CHANGE_SPEED);
+  return steer;
 }
 
 /**
@@ -935,6 +976,98 @@ function fitsTask(
     return !out || out.arm !== task.arm || out.lane === task.lane;
   }
   return true;
+}
+
+/** Is there a lane beside this one, on that side (-1 left, 1 right)? */
+function laneBeside(edge: NetEdge, side: number): boolean {
+  const key =
+    laneKey(edge) ??
+    (() => {
+      const m = /^([NSEW]):in:(\d)@/.exec(edge.id);
+      return m ? `${m[1]}:in:${m[2]}` : null;
+    })();
+  if (!key) return false;
+  const { arm, lane } = parseLane(key);
+  // lane 1 is at the kerb, on the left of the way in
+  const to = lane + side;
+  return to >= 1 && to <= ARMS[arm].lanes;
+}
+
+/** On a road coming up to the roundabout, or on the last stretch onto it. */
+function approaching(edge: NetEdge): boolean {
+  if (edge.maneuver === "hold_lane") return true;
+  const key = laneKey(edge);
+  return key != null && parseLane(key).side === "in";
+}
+
+const leads = new Map<string, { at: Vec; side: number } | null>();
+
+/**
+ * Where a path's roundabout option leads: a point down its exit road, and
+ * which way it turns off, -1 left or 1 right (and back). Null for straight on.
+ */
+function leadsTo(path: Path): { at: Vec; side: number } | null {
+  for (const edge of path.edges) {
+    const option = /rb:[NSEW]\d:(left|straight|right|back)[:\d]/.exec(edge.id);
+    if (!option) continue;
+    if (!leads.has(edge.id)) leads.set(edge.id, turnOff(edge, option[1]));
+    return leads.get(edge.id) ?? null;
+  }
+  return null;
+}
+
+function turnOff(
+  edge: NetEdge,
+  option: string,
+): { at: Vec; side: number } | null {
+  if (option === "straight") return null;
+  let here: NetEdge | undefined = edge;
+  for (let hops = 0; here && hops < 3; hops += 1) {
+    const out = /^([NSEW]):out:\d@/.exec(here.to);
+    const node = network().nodes.get(here.to);
+    if (here.maneuver === "exit" && out && node) {
+      const dir = dirOf(laneBearing(out[1] as ArmId, "exit"));
+      return {
+        at: { x: node.x + dir.x * AIM_DOWN, z: node.z + dir.z * AIM_DOWN },
+        side: option === "left" ? -1 : 1,
+      };
+    }
+    here = successors(here)[0];
+  }
+  return null;
+}
+
+/**
+ * The option a thumb pointing well off every path is aiming at, coming up to
+ * the roundabout: one of this lane's that turns the way the thumb points,
+ * whose exit road lies nearest the knob. Null when none does.
+ */
+function aimedAt(
+  paths: Path[],
+  car: CarState,
+  knob: number,
+  runs: number | null,
+  edge: NetEdge,
+): Path | null {
+  if (runs == null) return null;
+  const turned = wrapPi(knob - runs);
+  const side = Math.sign(turned);
+  if (Math.abs(turned) < AIM_FROM && laneBeside(edge, side)) return null;
+  let best: Path | null = null;
+  let nearest = AIMED_AT;
+  for (const path of paths) {
+    if (path.change) continue;
+    const to = leadsTo(path);
+    if (!to || to.side !== side) continue;
+    const off = Math.abs(
+      wrapPi(bearingOf(to.at.x - car.x, to.at.z - car.z) - knob),
+    );
+    if (off < nearest) {
+      nearest = off;
+      best = path;
+    }
+  }
+  return best;
 }
 
 /** Where a way round the ring (or the stretch onto it) comes out: road and lane. */

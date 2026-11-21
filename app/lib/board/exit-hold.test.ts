@@ -6,7 +6,17 @@ import { bearingOf, locate, wrapPi, type ArmId } from "./geometry";
 import { network } from "./network";
 import { createRails, rails } from "./rails";
 import { queueCars, queueGoal } from "./lane-queue";
-import { car, drive, loadPhysics, stick, tick } from "./runtime";
+import type { TurnChallenge } from "./challenges";
+import {
+  beginChallenge,
+  car,
+  drive,
+  loadPhysics,
+  stick,
+  stopDriving,
+  tick,
+  view,
+} from "./runtime";
 
 function hold(x: number, y: number, until: () => boolean, most = 30) {
   for (let i = 0; i < most * 60 && !until(); i += 1) {
@@ -209,20 +219,25 @@ describe("lane assist out of the roundabout", () => {
     expect(reachedTop || after.fault?.id === "wrong_exit").toBe(true);
   });
 
-  it("takes every car of both line-ups home along its line", () => {
-    for (const [level, arm] of [
-      ["four-lane", "S"],
-      ["three-lane", "W"],
-    ] as const) {
-      for (const one of queueCars(arm)) {
-        const { fault, home, goal } = driveHome(level, arm, one.id);
-        expect(fault, one.id).toBeNull();
-        expect(home, one.id).toBe(true);
-        const at = locate(car.x, car.z);
-        expect(at.kind === "arm" && at.lane, one.id).toBe(goal.lane);
+  // every car of both line-ups, driven in turn: longer than one drive
+  it(
+    "takes every car of both line-ups home along its line",
+    { timeout: 30_000 },
+    () => {
+      for (const [level, arm] of [
+        ["four-lane", "S"],
+        ["three-lane", "W"],
+      ] as const) {
+        for (const one of queueCars(arm)) {
+          const { fault, home, goal } = driveHome(level, arm, one.id);
+          expect(fault, one.id).toBeNull();
+          expect(home, one.id).toBe(true);
+          const at = locate(car.x, car.z);
+          expect(at.kind === "arm" && at.lane, one.id).toBe(goal.lane);
+        }
       }
-    }
-  });
+    },
+  );
 
   it("leaves in the lane it is joining, not one it crosses on the way", () => {
     // Lane 3 of the three-lane road turning left: its exit comes up while the
@@ -353,5 +368,63 @@ describe("which way out of the roundabout", () => {
     expect(choose(at, 0, { arm: "W", lane: 3 }).plan).toMatch(
       new RegExp(`>N:out:${lane}@`),
     );
+  });
+});
+
+describe("pointing early at the road a turn leads to", () => {
+  /**
+   * Up `lane` of the road from the south with the knob held toward `knob`
+   * (degrees) from the start, until the car is down the west road or the
+   * time is up. Seated south, so up is north and left is west.
+   */
+  function early(lane: number, knob: number) {
+    const task: TurnChallenge = {
+      id: "early",
+      title: "Test",
+      prompt: "Test",
+      start: { arm: "S", lane, along: 56 },
+      turn: lane === 1 ? "left" : "straight",
+      goal: { arm: lane === 1 ? "W" : "N", alongMin: 33, alongMax: 44 },
+      otherCars: [],
+    };
+    drive.seat = "south";
+    drive.assist = true;
+    const small: string[] = [];
+    let fault: string | null = null;
+    let handed = false;
+    beginChallenge(task, {
+      onFault: (f) => {
+        fault = f.id;
+      },
+      onSmall: (f) => small.push(f.id),
+      onGoal: () => {},
+    });
+    const k = (knob * Math.PI) / 180;
+    for (let i = 0; i < 25 * 60 && !fault; i += 1) {
+      const at = locate(car.x, car.z);
+      if (at.kind === "arm" && at.arm === "W" && at.along > 30) break;
+      stick.x = Math.sin(k) * 0.7;
+      stick.y = -Math.cos(k) * 0.7;
+      tick(1 / 60);
+      if (view.hold === 0) handed = true;
+    }
+    stopDriving();
+    stick.x = stick.y = 0;
+    return { fault, small, handed, at: locate(car.x, car.z) };
+  }
+
+  it("takes lane 1 round to the west road, not into the kerb", () => {
+    // pointing west from the start, as the finish badge's arrow does
+    const { fault, small, handed, at } = early(1, -90);
+    expect(fault).toBeNull();
+    expect(small).toEqual([]);
+    expect(handed).toBe(false);
+    expect(at.kind === "arm" && at.arm === "W" && at.lane).toBe(1);
+  });
+
+  it("still hands the car over from a lane with no turn that way", () => {
+    // lane 2 only goes straight on: pointing west there is the thumb's
+    const { handed } = early(2, -90);
+    expect(handed).toBe(true);
   });
 });

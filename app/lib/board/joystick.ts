@@ -215,11 +215,11 @@ function nextExit(x: number, z: number): ArmId | null {
 /** Inside this the knob counts as let go: about 9 px of the 72 px stick. */
 export const STICK_DEADZONE = 0.12;
 /**
- * Speed grows as the push to this power: slow speeds get most of the knob's
- * travel, for creeping up to a line or into a bay, and a full push is still
- * full speed.
+ * Speed grows as the push to this power. 1, straight in proportion: tried on
+ * a phone at 1.3, a comfortable thumb (30 to 45 px of the 72) only crept
+ * along, and clean drives took twice the par time.
  */
-const SPEED_CURVE = 1.3;
+const SPEED_CURVE = 1;
 /** On a gentle push, a sideways slip this big (of a full push, so 9 px) is ignored. */
 const SLIP = 0.12;
 /** Up to this push the whole slip is ignored; less of it after. */

@@ -42,11 +42,8 @@ const KEYS: Record<string, Dir> = {
   S: "down",
 };
 
-/**
- * How far the keys push the knob with Shift held: a crawl, for a parking bay.
- * About 2 m/s, with the speed eased toward a full push.
- */
-const GENTLE = 0.5;
+/** How far the keys push the knob with Shift held: a crawl, about 2 m/s, for a parking bay. */
+const GENTLE = 0.4;
 
 /**
  * Across the stick's base, pixels: the same as the one drawn at rest. A full
