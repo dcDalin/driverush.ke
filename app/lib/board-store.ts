@@ -202,7 +202,8 @@ type BoardState = {
   runStreak: number;
   runBestStreak: number;
   // ---- actions ----
-  start: (ids?: readonly string[]) => void;
+  /** Start a round, or the given tasks; `level` when they are a course level's. */
+  start: (ids?: readonly string[], level?: string) => void;
   /** After a fault: same challenge, from its start line. */
   retry: () => void;
   /** The learner's own restart while driving. Not a fault. */
@@ -673,7 +674,7 @@ export const useBoardStore = create<BoardState>()(
         attempt: 0,
         ...FRESH_RUN,
 
-        start: (ids) => {
+        start: (ids, level) => {
           const wanted = ids ? new Set(ids) : null;
           const queue = wanted
             ? BOARD_CHALLENGES.filter((c) => wanted.has(c.id))
@@ -685,7 +686,8 @@ export const useBoardStore = create<BoardState>()(
             queue,
             overlayOpen: true,
             mode: "drive",
-            level: null,
+            // set before the drive begins: how kindly it is judged hangs on it
+            level: level ?? null,
             hinted: false,
             round: !wanted,
           });
@@ -807,8 +809,7 @@ export const useBoardStore = create<BoardState>()(
             unit: unitOf(level).id,
           });
           if (level.kind === "drive") {
-            get().start([level.challenge]);
-            set({ level: level.id });
+            get().start([level.challenge], level.id);
             return;
           }
           if (level.kind === "warmup") {

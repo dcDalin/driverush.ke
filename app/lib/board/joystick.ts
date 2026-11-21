@@ -8,9 +8,11 @@
  *
  * Lane assist: holding a curved lane with a thumb is the hard part, so while
  * the knob points roughly along the lane the car is in, the car steers for the
- * middle of that lane. Point clearly somewhere else (the next lane, an exit)
- * and the knob is obeyed as it is. The learner still decides everything; the
- * assist only irons out the wobble.
+ * middle of that lane. Lean the knob toward the next lane for a moment, on a
+ * road where the lane lines are broken, and it steers into that lane instead.
+ * Point clearly somewhere else (an exit, a gap) and the knob is obeyed as it
+ * is. The learner still decides everything; the assist only irons out the
+ * wobble.
  *
  * Pure, and run once per physics step so the steering tracks the car as it
  * turns.
@@ -28,6 +30,7 @@ import {
   lanePoint,
   locate,
   ringRadius,
+  SOLID_ZONE,
   turnBetween,
   wrapPi,
   type ArmId,
@@ -86,6 +89,15 @@ export type AssistState = {
   along: number;
   /** Reverse gear coming in: 0 to 1 while the knob is held back at rest. */
   backing: number;
+  /**
+   * A lane change on a straight road: which road side it is on and the lane
+   * it is moving into. Null while the car simply holds its lane.
+   */
+  change?: { road: string; to: number; dir: number } | null;
+  /** How long the knob has leaned one way off the lane, seconds; signed, right positive. */
+  lean?: number;
+  /** Just changed lane, and the knob still leans on: the next change waits longer. */
+  again?: boolean;
   /** The exit road the car has begun to turn off onto, with `exitHold`. */
   leaving?: string | null;
   /**
@@ -153,6 +165,91 @@ const BEND_GRIP = 3.2;
 const RING_REACH = 0.5;
 /** Joined the ring once this close to the middle of its lane, metres. */
 const JOINED = 0.9;
+
+/** Leaning the knob this far past the middle of its lane asks for the next lane. */
+const LANE_ASK = (15 * Math.PI) / 180;
+/** For this long, seconds: a wobble is not a request. */
+const LANE_DWELL = 0.25;
+/** Leaning on after one change, this long again asks for the lane after. */
+const LANE_DWELL_AGAIN = 0.5;
+/** Only once the car runs this close to the way of its lane: not mid-turn. */
+const LANE_SQUARE = (25 * Math.PI) / 180;
+/** A lane change is over once the car is this close to the new lane's middle. */
+const LANE_IN = 0.5;
+/**
+ * Room a change needs before the continuous lines at the roundabout, metres.
+ * A change crosses the lane line about halfway over; starting later than
+ * this, the car would cross a continuous line. The task routes cross 6 m out.
+ */
+const CHANGE_ROOM = 5;
+
+/**
+ * The lane to hold on a straight road, given the knob. Leaning the knob past
+ * the middle of the lane, toward a neighbouring lane, for a moment, where the
+ * lines are broken, asks for that lane; the change is held to until the car is
+ * in it.
+ */
+function laneToHold(
+  car: CarState,
+  loc: { arm: ArmId; side: "approach" | "exit"; lane: number; along: number },
+  runs: number,
+  ahead: number,
+  knob: number | null,
+  state: AssistState,
+): number {
+  const road = `${loc.arm}:${loc.side}`;
+  if (state.change && state.change.road !== road) state.change = null;
+  // Measured from the way to the middle of its own lane, so steering back to
+  // the middle (out of a turn, say) is not a lean.
+  const mid = lanePoint(loc.arm, loc.side, loc.lane, ahead);
+  const off =
+    knob == null ? 0 : wrapPi(knob - bearingOf(mid.x - car.x, mid.z - car.z));
+  const square = Math.abs(wrapPi(car.heading - runs)) < LANE_SQUARE;
+  const leaning =
+    square &&
+    Math.abs(off) >= LANE_ASK &&
+    Math.abs(wrapPi((knob ?? runs) - runs)) <= ROAD_CONE + CONE_EDGE
+      ? Math.sign(off)
+      : 0;
+  state.lean =
+    leaning !== 0 && Math.sign(state.lean ?? 0) === leaning
+      ? (state.lean ?? 0) + leaning * STEP
+      : leaning * STEP;
+  if (leaning === 0) state.again = false;
+
+  const change = state.change;
+  if (change) {
+    const into = lanePoint(loc.arm, loc.side, change.to, loc.along);
+    if (leaning === -change.dir) {
+      // leaned back the other way: stay in the lane it is in now
+      state.change = null;
+      return loc.lane;
+    }
+    if (Math.hypot(into.x - car.x, into.z - car.z) >= LANE_IN) return change.to;
+    // in: leaning on will take it to the next lane, after a moment more
+    state.change = null;
+    state.lean = 0;
+    state.again = true;
+    return loc.lane;
+  }
+
+  const to = loc.lane + leaning;
+  const room =
+    loc.side === "approach"
+      ? loc.along - CHANGE_ROOM > SOLID_ZONE
+      : loc.along > SOLID_ZONE + 1;
+  if (
+    leaning !== 0 &&
+    Math.abs(state.lean) >= (state.again ? LANE_DWELL_AGAIN : LANE_DWELL) &&
+    to >= 1 &&
+    to <= ARMS[loc.arm].lanes &&
+    room
+  ) {
+    state.change = { road, to, dir: leaning };
+    return to;
+  }
+  return loc.lane;
+}
 
 /** An exit is being asked for when its mouth is within this of the car, metres. */
 const EXIT_NEAR = 24;
@@ -251,6 +348,7 @@ export function stickBearing(stick: Stick, seat: Seat): number {
 function laneAhead(
   car: CarState,
   state: AssistState,
+  knob: number | null,
 ): {
   /** Where to steer to hold the lane. */
   heading: number;
@@ -270,15 +368,16 @@ function laneAhead(
     state.entryLane = loc.side === "approach" ? loc.lane : null;
     state.entryArm = loc.side === "approach" ? loc.arm : null;
     const toward = loc.side === "approach" ? -1 : 1;
+    const runs = laneBearing(loc.arm, loc.side);
     const aim = lanePoint(
       loc.arm,
       loc.side,
-      loc.lane,
+      laneToHold(car, loc, runs, loc.along + toward * reach, knob, state),
       loc.along + toward * reach,
     );
     return {
       heading: bearingOf(aim.x - car.x, aim.z - car.z),
-      along: laneBearing(loc.arm, loc.side),
+      along: runs,
       left: ROAD_CONE,
       right: ROAD_CONE,
       cap: CAR.maxSpeed,
@@ -349,7 +448,13 @@ export function stickToInput(
 ): void {
   const push = Math.min(1, Math.hypot(stick.x, stick.y));
   // Keep the assist's memory of the approach lane fresh even when coasting.
-  const lane = options.assist ? laneAhead(car, state) : null;
+  const lane = options.assist
+    ? laneAhead(
+        car,
+        state,
+        push < STICK_DEADZONE ? null : stickBearing(stick, options.seat),
+      )
+    : null;
   state.hold = 0;
   state.backing = 0;
 

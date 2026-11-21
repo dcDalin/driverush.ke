@@ -934,6 +934,8 @@ type RouteFollow = {
   runStopLines?: boolean;
   /** Metres to hold to the side of the route, to be in the wrong lane. */
   aside?: number;
+  /** Hold to the side only from this far along the route, metres. */
+  asideFrom?: number;
   /**
    * Reversing, hold the knob this many degrees off the line the whole way,
    * the way a thumb does, instead of steering along it.
@@ -1002,7 +1004,7 @@ function routeFollower(
     const here = poseAt(route, progress);
     const aim = poseAt(route, Math.min(route.length, progress + (here.reversing ? 3 : 4.5)));
     let bearing = bearingOf(aim.x - car.x, aim.z - car.z);
-    if (options.aside) {
+    if (options.aside && progress >= (options.asideFrom ?? 0)) {
       const side = poseAt(route, Math.min(route.length, progress + 6));
       const left = side.heading - Math.PI / 2;
       bearing = bearingOf(
@@ -1297,7 +1299,10 @@ describe("leaving the route breaks no rule, but it is not a pass", () => {
   });
 
   it("off the route, a continuous line still ends the attempt", () => {
-    const s = roam("to-two-way", { stray: 7.4 });
+    // Straying from the start, lane assist takes the car over lane by lane
+    // while the lines are broken. Straying just before the continuous lines,
+    // it is off its route as it reaches them, and crosses one.
+    const s = roam("to-two-way", { stray: 7.4, asideFrom: 12 });
     expect(s.offRoute).toMatchObject({ id: "off_route" });
     expect(s.phase).toBe("fault");
     expect(s.missed).toBe(false);

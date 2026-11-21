@@ -1,0 +1,178 @@
+/**
+ * Lane assist across the whole board: every driving level can be driven the
+ * right way with lane assist on, by a thumb that simply points a little way
+ * on along the route, and the assist gives way to a lane change asked for
+ * where the lines are broken.
+ */
+import { beforeAll, beforeEach, describe, expect, it } from "vitest";
+
+import { useBoardStore } from "../board-store";
+import type { CarInput, CarState } from "./car";
+import { ALL_LEVELS } from "./curriculum";
+import {
+  SOLID_ZONE,
+  bearingOf,
+  lanePoint,
+  laneBearing,
+  locate,
+} from "./geometry";
+import { createAssist, stickToInput, type AssistState } from "./joystick";
+import { challengeRoute } from "./lessons";
+import { car, drive, loadPhysics, stick, tick } from "./runtime";
+
+const STEP = 1 / 60;
+const DEG = Math.PI / 180;
+
+beforeAll(() => loadPhysics());
+beforeEach(() => {
+  useBoardStore.getState().exit();
+  useBoardStore.getState().resetProgress();
+  drive.seat = "south";
+  drive.assist = true;
+});
+
+/**
+ * Drive the level's task along its own route: point about 6 m on along it
+ * (2.5 m when reversing), stop at each stop line, let go at the end.
+ */
+function driveLevel(id: string): string {
+  useBoardStore.getState().startLevel(id);
+  const first = useBoardStore.getState();
+  const route = challengeRoute(first.queue[first.pos]);
+  if (!route) return "no route";
+  const reverse = (d: number) =>
+    route.steps.some((s) => s.gear === "reverse" && d >= s.from && d < s.to);
+  const stops = route.steps
+    .filter((s) => s.control === "stop")
+    .map((s) => s.from);
+  // the route, a point every half metre
+  const points: { x: number; z: number; d: number; back: boolean }[] = [
+    { ...route.points[0], d: 0, back: reverse(0) },
+  ];
+  for (let k = 1; k < route.points.length; k += 1) {
+    const a = route.points[k - 1];
+    const b = route.points[k];
+    const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / 0.5));
+    for (let j = 1; j <= n; j += 1) {
+      const d = route.at[k - 1] + ((route.at[k] - route.at[k - 1]) * j) / n;
+      points.push({
+        x: a.x + ((b.x - a.x) * j) / n,
+        z: a.z + ((b.z - a.z) * j) / n,
+        d,
+        back: reverse(d),
+      });
+    }
+  }
+  const stopped = new Set<number>();
+  let at = 0;
+  for (let i = 0; i < 120 * 60; i += 1) {
+    if (useBoardStore.getState().phase !== "driving") break;
+    // where along the route the car is, never jumping back or far ahead
+    let gap = Infinity;
+    for (let k = at; k < Math.min(points.length, at + 60); k += 1) {
+      const d = Math.hypot(points[k].x - car.x, points[k].z - car.z);
+      if (d < gap) {
+        gap = d;
+        at = k;
+      }
+    }
+    const back = points[at].back;
+    let aim = at;
+    let run = 0;
+    while (
+      aim < points.length - 1 &&
+      run < (back ? 2.5 : 6) &&
+      points[aim + 1].back === back
+    ) {
+      run += Math.hypot(
+        points[aim + 1].x - points[aim].x,
+        points[aim + 1].z - points[aim].z,
+      );
+      aim += 1;
+    }
+    // at a change of gear, look across it
+    if (aim === at) aim = Math.min(points.length - 1, at + 4);
+    let rest = at >= points.length - 2 && gap < 1.2;
+    for (const line of stops) {
+      if (stopped.has(line)) continue;
+      const ahead = line - points[at].d;
+      if (ahead < 2.2 && ahead > -1) {
+        rest = true;
+        if (Math.abs(car.speed) < 0.05) stopped.add(line);
+      }
+    }
+    const knob = bearingOf(points[aim].x - car.x, points[aim].z - car.z);
+    // seated south, up on the knob is north
+    stick.x = rest ? 0 : Math.sin(knob);
+    stick.y = rest ? 0 : -Math.cos(knob);
+    tick(STEP);
+  }
+  const after = useBoardStore.getState();
+  return after.phase === "fault" ? (after.fault?.id ?? "fault") : after.phase;
+}
+
+describe("lane assist on every driving level", () => {
+  const levels = ALL_LEVELS.filter(
+    (level) => level.kind === "drive" || level.kind === "warmup",
+  );
+  it.each(levels.map((level) => [level.id]))(
+    "%s can be driven the right way",
+    (id) => {
+      expect(driveLevel(id)).toBe("passed");
+    },
+  );
+});
+
+describe("lane assist gives way to a lane change", () => {
+  // up the four-lane road in lane 2, well before the continuous lines
+  function onApproach(along: number): CarState {
+    const at = lanePoint("S", "approach", 2, along);
+    return {
+      x: at.x,
+      z: at.z,
+      heading: laneBearing("S", "approach"),
+      speed: 5,
+      steer: 0,
+    };
+  }
+  /** Hold the knob this far right of the lane for a while; the lane it holds. */
+  function lean(
+    from: CarState,
+    angle: number,
+    seconds: number,
+    state: AssistState = createAssist(),
+  ): number | null {
+    const input: CarInput = { steer: 0, throttle: 0, brake: 0 };
+    const heading = laneBearing("S", "approach") + angle;
+    // seated south, up on the knob is north
+    const knob = { x: Math.sin(heading), y: -Math.cos(heading) };
+    for (let t = 0; t < seconds; t += STEP) {
+      stickToInput(knob, from, input, { seat: "south", assist: true }, state);
+    }
+    return state.change?.to ?? null;
+  }
+
+  it("moves over a lane when the knob leans toward it", () => {
+    expect(lean(onApproach(56), 20 * DEG, 0.4)).toBe(3);
+    expect(lean(onApproach(56), -20 * DEG, 0.4)).toBe(1);
+  });
+
+  it("ignores a wobble and a slight lean", () => {
+    expect(lean(onApproach(56), 20 * DEG, 0.15)).toBeNull();
+    expect(lean(onApproach(56), 10 * DEG, 2)).toBeNull();
+  });
+
+  it("never helps a car across the continuous lines", () => {
+    const close = onApproach(SOLID_ZONE + 3);
+    expect(locate(close.x, close.z)).toMatchObject({ kind: "arm", lane: 2 });
+    expect(lean(close, 20 * DEG, 2)).toBeNull();
+  });
+
+  it("gives an Easy level its kind judging from the first try", () => {
+    useBoardStore.getState().startLevel("drive-straight");
+    expect(drive.exitHold).toBe(true);
+    useBoardStore.getState().exit();
+    useBoardStore.getState().startLevel("drive-three-lane-back");
+    expect(drive.exitHold).toBe(false);
+  });
+});
