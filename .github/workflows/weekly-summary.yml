@@ -1,0 +1,31 @@
+# Posts last week's PostHog numbers to the DriveRush Discord channel.
+# See scripts/weekly-summary.mjs. Needs two repository secrets:
+#   POSTHOG_API_KEY      personal API key, scope "query: read", DriveRush project
+#   DISCORD_WEBHOOK_URL  the alerts channel's webhook
+name: Weekly summary
+
+on:
+  schedule:
+    # Mondays 05:17 UTC = 08:17 in Nairobi. Off the hour so GitHub's busy
+    # top-of-hour queue doesn't delay it.
+    - cron: "17 5 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/weekly-summary.mjs
+        env:
+          POSTHOG_API_KEY: ${{ secrets.POSTHOG_API_KEY }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
