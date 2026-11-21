@@ -378,6 +378,88 @@ const MORE_QUESTIONS: PracticeQuestion[] = [
     source: handbook(3, 10),
   },
 
+  // From the handbook's Model Town unit: the same rules hold on the road
+  {
+    topic: "signs",
+    prompt:
+      "You have stopped at a Stop sign. What do you do before moving off?",
+    choices: [
+      "Look right, left and right again, and go only if the road is clear",
+      "Go as soon as the car behind hoots",
+      "Look left only, since traffic keeps left",
+      "Count to three, then go",
+    ],
+    answer: 0,
+    why: "A Stop sign stands where you join a two-way traffic road. Stop, look right, left and right again, and only proceed if the road is clear.",
+    source: handbook(3, 12),
+  },
+  {
+    topic: "signs",
+    prompt: "What must you do at a pedestrian crossing?",
+    choices: [
+      "Hoot so pedestrians wait for you",
+      "Speed up to clear it quickly",
+      "Slow down, and stop so pedestrians can cross",
+      "Stop on the crossing until it is clear",
+    ],
+    answer: 2,
+    why: "A pedestrian crossing is a safe, marked area where you slow down and stop so pedestrians can cross from one side of the road to the other.",
+    source: handbook(3, 10),
+  },
+  {
+    topic: "signs",
+    prompt:
+      "A two-way road has a continuous yellow line along its centre. What does it mean?",
+    choices: [
+      "Overtake only if the road is clear",
+      "Stick to your side: no overtaking",
+      "No parking on either side",
+      "The road is one-way",
+    ],
+    answer: 1,
+    why: "A continuous yellow centre line means stick to your side, no overtaking. A broken yellow line means you may overtake if the road is clear.",
+    source: handbook(3, 10),
+  },
+  {
+    topic: "rules",
+    prompt: "On a single carriageway, which side of the road do you keep to?",
+    choices: [
+      "The left, unless you are overtaking",
+      "The right, unless you are turning",
+      "The middle, to avoid the kerb",
+      "Whichever side is clearer",
+    ],
+    answer: 0,
+    why: "On a single carriageway, keep left unless overtaking, as the rules of the road in Kenya require.",
+    source: handbook(3, 10),
+  },
+  {
+    topic: "rules",
+    prompt: "Which way do you go round a roundabout?",
+    choices: [
+      "Anticlockwise, keeping right",
+      "Whichever way is shorter",
+      "Straight across the island",
+      "Clockwise, keeping left",
+    ],
+    answer: 3,
+    why: "You keep left and move in a clockwise direction on the roundabout.",
+    source: handbook(3, 11),
+  },
+  {
+    topic: "rules",
+    prompt: "Which of these is allowed on a roundabout?",
+    choices: [
+      "Changing lanes",
+      "Stopping to wait for a gap",
+      "Keeping to your lane until you leave",
+      "Overtaking",
+    ],
+    answer: 2,
+    why: "The roundabout's rules: no stopping, no changing lanes, no parking, no overtaking and no waiting. Keep your lane until you leave it.",
+    source: handbook(3, 11),
+  },
+
   // Safety, alcohol and fatigue
   {
     topic: "safety",
