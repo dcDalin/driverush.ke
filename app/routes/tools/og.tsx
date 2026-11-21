@@ -427,10 +427,11 @@ const STILL_CARS = [
 const STILL = {
   // The moment the game is about: four numbered lanes and the roundabout
   // ahead, and a lane to choose. Seen from behind the car, as on a phone.
+  // Wide enough for the whole roundabout and its cross (2026-11-21).
   seat: "south",
-  x: -5,
-  z: 31,
-  span: 40,
+  x: -3,
+  z: 24,
+  span: 76,
   car: { x: -8.4, z: 38, heading: 8 },
   steer: 0.25,
   // on the roundabout instead, with `?at=<degrees>`
