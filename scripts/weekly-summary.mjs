@@ -33,8 +33,13 @@ const mid = new Date(end.getTime() - 7 * DAY);
 const start = new Date(end.getTime() - 14 * DAY);
 const ts = (d) => d.toISOString().slice(0, 19).replace("T", " ");
 
-/** Production only: dev traffic is tagged `app_env = development`. */
-const PROD = "properties.app_env = 'production'";
+/**
+ * Production humans only: dev traffic is tagged `app_env = development`, and
+ * `$virt_is_bot` drops bots, including the project's custom bot rules (cloud
+ * browsers from DigitalOcean and Tencent Cloud that pose as normal Chrome).
+ */
+const PROD =
+  "properties.app_env = 'production' AND NOT properties.$virt_is_bot";
 const THIS_WEEK = `timestamp >= toDateTime('${ts(mid)}') AND timestamp < toDateTime('${ts(end)}')`;
 
 // ----- running a query -----
@@ -193,7 +198,7 @@ const firstDriveRate =
 
 const embed = {
   title: "DriveRush weekly summary",
-  description: `${day(mid)} to ${day(end)}, production only. Changes compare with the 7 days before.`,
+  description: `${day(mid)} to ${day(end)}, live site, bots removed. Changes compare with the 7 days before.`,
   color: RUSH,
   fields: [
     { name: "Visitors", value: stat("visitors"), inline: true },
