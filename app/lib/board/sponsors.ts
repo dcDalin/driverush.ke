@@ -19,6 +19,19 @@ import type { BoardCarId } from "~/lib/board/cars";
 /** A school's paint for one car, at two sizes (phones that struggle get `lo`). */
 export type CarPaint = { hi: string; lo: string };
 
+/**
+ * The name board on the roof of a school's car (`top-board.ts`): its picture,
+ * its size in metres (about a third bigger than a real one, so the name
+ * reads), how much of each corner is cut off, and its edge's colour.
+ */
+export type TopBoard = {
+  src: string;
+  width: number;
+  height: number;
+  cut: number;
+  edge: string;
+};
+
 export type Sponsor = {
   id: string;
   /** The school's full name, as it should be written. */
@@ -33,6 +46,8 @@ export type Sponsor = {
    * if it fails.
    */
   livery?: { base: string; cars: Partial<Record<BoardCarId, CarPaint>> };
+  /** The name board on the learner's car's roof. */
+  topBoard?: TopBoard;
   /**
    * The school's pictures for the classroom walls (`~/lib/board/room`): a
    * banner (3.2 x 0.6 m, two sizes) and framed posters.
@@ -56,6 +71,20 @@ export type Sponsor = {
 };
 
 const HELTZ_DIR = "/assets/board/sponsors/heltz";
+const TOPGEAR_DIR = "/assets/board/sponsors/topgear";
+const ALL_CARS: readonly BoardCarId[] = [
+  "saloon",
+  "hatchback",
+  "wagon",
+  "pickup",
+  "suv",
+];
+/** A school with paint for every board car. */
+const everyCar = (dir: string) =>
+  Object.fromEntries(ALL_CARS.map((car) => [car, paintOf(dir, car)])) as Record<
+    BoardCarId,
+    CarPaint
+  >;
 const paintOf = (dir: string, car: BoardCarId): CarPaint => ({
   // "wrap4" goes with the cars' `?v=4` UVs (see build-sponsor-art).
   hi: `${dir}/${car}-wrap4-hi.webp`,
@@ -74,13 +103,16 @@ export const SPONSORS: readonly Sponsor[] = [
     // Their own car, copied from a photo of it (scripts/sponsor-art/heltz).
     livery: {
       base: "#f6f6f3",
-      cars: {
-        saloon: paintOf(HELTZ_DIR, "saloon"),
-        hatchback: paintOf(HELTZ_DIR, "hatchback"),
-        wagon: paintOf(HELTZ_DIR, "wagon"),
-        pickup: paintOf(HELTZ_DIR, "pickup"),
-        suv: paintOf(HELTZ_DIR, "suv"),
-      },
+      cars: everyCar(HELTZ_DIR),
+    },
+    // Their real car has no roof board: every school's board car carries one
+    // (owner, 2026-11-21), so this one is ours, in their look.
+    topBoard: {
+      src: `${HELTZ_DIR}/topboard.webp`,
+      width: 1.35,
+      height: 0.45,
+      cut: 0.04,
+      edge: "#e3271b",
     },
     room: {
       banner: {
@@ -95,11 +127,43 @@ export const SPONSORS: readonly Sponsor[] = [
     // Live for everyone since 2026-11-21 (owner's call).
     live: true,
   },
+  {
+    id: "topgear",
+    school: "Top Gear Driving School",
+    colors: { paint: "#c2201c", ink: "#1b34c8" },
+    logo: {
+      full: `${TOPGEAR_DIR}/logo.png`,
+      mono: `${TOPGEAR_DIR}/logo-mono.png`,
+    },
+    // Their own red car, copied from photos of it (scripts/sponsor-art/topgear).
+    livery: { base: "#c2201c", cars: everyCar(TOPGEAR_DIR) },
+    // As on their car: yellow, corners cut, a red edge.
+    topBoard: {
+      src: `${TOPGEAR_DIR}/topboard.webp`,
+      width: 1.35,
+      height: 0.45,
+      cut: 0.13,
+      edge: "#d81f1c",
+    },
+    room: {
+      banner: {
+        hi: `${TOPGEAR_DIR}/banner-hi.webp`,
+        lo: `${TOPGEAR_DIR}/banner-lo.webp`,
+      },
+      posters: {
+        logo: `${TOPGEAR_DIR}/poster-logo.webp`,
+        lessons: `${TOPGEAR_DIR}/poster-lessons.webp`,
+      },
+    },
+    // Live since 2026-11-22: the owner approved its pictures. It takes turns
+    // with the other live schools (`pickSponsor`).
+    live: true,
+  },
 ];
 
 /**
- * The school everyone sees when no other is picked: Heltz, the board's only
- * school for now (owner, 2026-11-21).
+ * The school shown when no live school can be picked, and on the site's still
+ * pictures: Heltz, the board's first school (owner, 2026-11-21).
  */
 export const DEFAULT_SPONSOR: string | null = "heltz";
 
@@ -131,7 +195,10 @@ function matchesEmail(sponsor: Sponsor, email: string): boolean {
  * 1. `override` (from `?sponsor=`), whether live or not, so a school can be
  *    shown its own car and promo videos can be recorded;
  * 2. a live school matching the learner's email;
- * 3. a live school drawn by `roll` (0 up to, not including, 1, once a visit);
+ * 3. the live schools take turns (owner, 2026-11-21): a learner who saw one
+ *    on their last visit (`last`) gets the next in the list, so everyone who
+ *    comes back sees every school; a first visit is drawn by `roll` (0 up
+ *    to, not including, 1);
  * 4. the default school.
  */
 export function pickSponsor({
@@ -139,6 +206,7 @@ export function pickSponsor({
   now,
   override,
   email,
+  last,
   list = SPONSORS,
   fallback = DEFAULT_SPONSOR,
 }: {
@@ -146,6 +214,8 @@ export function pickSponsor({
   now: Date;
   override?: string | null;
   email?: string | null;
+  /** The school this learner saw on their last visit, if any. */
+  last?: string | null;
   list?: readonly Sponsor[];
   fallback?: string | null;
 }): Sponsor | null {
@@ -159,6 +229,8 @@ export function pickSponsor({
     if (matched) return matched;
   }
   if (active.length) {
+    const before = last ? active.findIndex((s) => s.id === last) : -1;
+    if (before >= 0) return active[(before + 1) % active.length];
     const at = Math.min(
       active.length - 1,
       Math.max(0, Math.floor(roll * active.length)),

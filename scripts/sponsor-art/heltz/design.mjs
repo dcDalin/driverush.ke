@@ -394,6 +394,27 @@ export function logo({ fonts, mono }) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${lettering(fonts, { x: 40, y: 30, w: w - 80, h: h - 60 }, { mono, id: "logo" })}</svg>`;
 }
 
+// ---- the roof board (app/components/board/top-board.ts) --------------------------------
+
+/** The roof board's size on the board cars, in metres, and its corner cut. */
+export const TOP_BOARD = { width: 1.35, height: 0.45, cut: 0.04 };
+
+/**
+ * A roof board for Heltz. Their real car has none: every school's board car
+ * carries one (owner, 2026-11-21), so this is ours, in their look: white
+ * with a red edge and their door lettering.
+ */
+export function topBoard({ fonts }) {
+  const c = COLORS;
+  const w = 1200;
+  const h = (w * TOP_BOARD.height) / TOP_BOARD.width;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <rect width="${w}" height="${h}" fill="${c.red}"/>
+    <rect x="16" y="16" width="${w - 32}" height="${h - 32}" rx="18" fill="${c.white}"/>
+    ${lettering(fonts, { x: 70, y: 44, w: w - 140, h: h - 88 }, { id: "board" })}
+  </svg>`;
+}
+
 // ---- the classroom's walls (app/lib/board/room.ts) ---------------------------------
 
 /** The splash, as traced, placed with its middle at (cx, cy), `w` wide. */

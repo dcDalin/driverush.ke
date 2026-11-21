@@ -291,6 +291,8 @@ export type CarModel = THREE.Group & {
     steering: THREE.Group[];
     /** The wheels' radius in metres, when it is not `WHEEL_RADIUS`. */
     wheelRadius?: number;
+    /** Where a school's name board stands on the roof (`top-board.ts`). */
+    roof?: { y: number; z: number };
     /**
      * The bodywork's material, on a downloaded model whose bodywork can take
      * a school's paint (see `~/lib/board/sponsors`).

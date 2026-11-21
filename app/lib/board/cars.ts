@@ -10,13 +10,13 @@
 export const BOARD_CARS = [
   // `model`: who made it, and its page. A CC BY model must be credited where
   // the cars are chosen (board-settings-sheet); the others are credited too.
-  // `?v=4`: the realistic cars, replacing the low-poly pack.
+  // `?v=5`: the realistic cars, each with the place of its roof board.
   // A new address, so no cache hands out an old one. Keep public/sw.js's
   // BOARD_FILES in step.
   {
     id: "saloon",
     label: "Saloon",
-    src: "/assets/board/cars/saloon.glb?v=4",
+    src: "/assets/board/cars/saloon.glb?v=5",
     model: {
       by: "Armored Wave",
       page: "https://sketchfab.com/3d-models/2014-toyota-corolla-e180-eu-with-interior-36f95efb0585464cae43a25a3b3392e8",
@@ -26,7 +26,7 @@ export const BOARD_CARS = [
   {
     id: "hatchback",
     label: "Hatchback",
-    src: "/assets/board/cars/hatchback.glb?v=4",
+    src: "/assets/board/cars/hatchback.glb?v=5",
     model: {
       by: "snowcappedandescrash",
       page: "https://sketchfab.com/3d-models/2016-nissan-note-3929336debbf45a8a2e4096f1fdf5baa",
@@ -36,7 +36,7 @@ export const BOARD_CARS = [
   {
     id: "wagon",
     label: "Wagon",
-    src: "/assets/board/cars/wagon.glb?v=4",
+    src: "/assets/board/cars/wagon.glb?v=5",
     model: {
       by: "tnikita",
       page: "https://sketchfab.com/3d-models/toyota-probox-1b48dd220c69495e8f278376fb7a3add",
@@ -46,7 +46,7 @@ export const BOARD_CARS = [
   {
     id: "pickup",
     label: "Pickup",
-    src: "/assets/board/cars/pickup.glb?v=4",
+    src: "/assets/board/cars/pickup.glb?v=5",
     model: {
       by: "David_Holiday",
       page: "https://sketchfab.com/3d-models/toyota-hilux-417915f419f945c8a424b2a7943eb25a",
@@ -56,7 +56,7 @@ export const BOARD_CARS = [
   {
     id: "suv",
     label: "SUV",
-    src: "/assets/board/cars/suv.glb?v=4",
+    src: "/assets/board/cars/suv.glb?v=5",
     model: {
       by: "Daniel Zhabotinsky",
       page: "https://sketchfab.com/3d-models/urban-10-low-poly-model-2866efdfa943484391ef8313768e074d",

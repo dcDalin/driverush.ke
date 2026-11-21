@@ -28,6 +28,17 @@ export async function loadWrap(
   return texture;
 }
 
+/** A school's picture for a flat surface (the roof board), the usual way up. */
+export async function loadPicture(
+  url: string,
+  anisotropy: number,
+): Promise<THREE.Texture> {
+  const texture = await loader.loadAsync(url);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = anisotropy;
+  return texture;
+}
+
 export function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();

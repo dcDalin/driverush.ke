@@ -1,0 +1,6 @@
+{
+  "note": "Top Gear Driving School: their own red car, copied from the photos of it (scripts/sponsor-art/topgear/reference-*.{png,jpg}) and their logo. See topgear/design.mjs.",
+  "design": "topgear/design.mjs",
+  "fonts": ["Anton-Regular.ttf", "AlfaSlabOne-Regular.ttf", "Arvo-Bold.ttf"],
+  "colors": { "base": "#c2201c" }
+}

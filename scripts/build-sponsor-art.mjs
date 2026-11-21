@@ -15,6 +15,7 @@
  *   <car>-wrap4-hi.webp, -wrap4-lo.webp  the paint, for strong and weak phones (near-lossless).
  *                                    "wrap4" goes with the cars' `?v=4` UVs: a new layout
  *                                    means new names, so no cache pairs old art with new UVs.
+ *   topboard.webp                      the name board on the car's roof
  *   logo.png                           the lockup in colour, transparent
  *   logo-mono.png                      the lockup in white, for brass and board paint
  *
@@ -127,6 +128,14 @@ async function roomArt(brand, fonts, dir) {
       .flatten({ background: "#ffffff" })
       .webp(CRISP)
       .toFile(path.join(dir, `poster-${poster.id}.webp`));
+  }
+  // The name board on the car's roof (app/components/board/top-board.ts).
+  if (design.topBoard) {
+    await sharp(Buffer.from(design.topBoard({ fonts })), { density: 72 })
+      .resize({ width: 1024 })
+      .flatten({ background: "#ffffff" })
+      .webp(CRISP)
+      .toFile(path.join(dir, "topboard.webp"));
   }
 }
 

@@ -223,6 +223,7 @@ export default function SponsorTool() {
                     car={car}
                     wrapUrl={paint?.hi ?? null}
                     base={sponsor.livery.base}
+                    topBoard={sponsor.topBoard ?? null}
                     view={view}
                   />
                 </React.Suspense>

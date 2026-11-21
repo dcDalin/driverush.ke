@@ -42,8 +42,13 @@ export function carFromGltf(
 
   let smooth = false;
   let wheelRadius = 0.32;
+  let roof: { y: number; z: number } | undefined;
   copy.traverse((node) => {
     if (node.userData.smooth === true) smooth = true;
+    const at = node.userData.roof as { y?: unknown; z?: unknown } | undefined;
+    if (typeof at?.y === "number" && typeof at.z === "number") {
+      roof = { y: at.y, z: at.z };
+    }
     const radius = node.userData.wheelRadius;
     if (typeof radius === "number") wheelRadius = radius;
   });
@@ -154,6 +159,6 @@ export function carFromGltf(
     if (wheel.name.startsWith("wheel_f")) steering.push(hub);
   }
 
-  car.userData = { tail, wheels, steering, wheelRadius, paintwork };
+  car.userData = { tail, wheels, steering, wheelRadius, paintwork, roof };
   return car as CarModel;
 }

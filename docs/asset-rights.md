@@ -35,6 +35,15 @@ to date when an asset or an agreement changes. No personal contact details here.
 - The table, its wood and the floor are drawn in code in `app/components/board/board-table.tsx`.
 - **Removed on 2026-11-11:** the cars and trees from Kenney's "Racing Pack" (CC0), used by the earlier 2D game. They are no longer in the repository.
 
+## Driving schools' brands (Model Town Board sponsors)
+- **What they are:** each school's name, logo and car paint, copied from the school's own car and logo so the board car is recognisably theirs. Drawn by `scripts/sponsor-art/<id>/design.mjs`, built by `npm run build:sponsors` into `public/assets/board/sponsors/<id>/`.
+- **Heltz Driving Academy:** copied from the owner's photo of their car (`scripts/sponsor-art/heltz/reference.jpg`). Their real car has no roof board; the one on the board cars is our design in their look (owner, 2026-11-21).
+  - **Agreement and artwork:** _to fill in: who at Heltz agreed, when, and where their artwork files are kept_
+- **Top Gear Driving School** (added 2026-11-21): copied from three photos of their cars and their logo, supplied by the owner (`scripts/sponsor-art/topgear/reference-*.{png,jpg}`, `logo.jpg`). The TG mark is traced from their logo. Their door lettering has no free match, so its letters are drawn to the photo's shapes.
+  - **Agreement and artwork:** _to fill in: who at Top Gear agreed, when, and where their artwork files are kept_
+- **Typefaces standing in for the schools' lettering** (all SIL Open Font License, files and licences in `scripts/sponsor-art/fonts/`): Rubik Mono One and Righteous (Heltz); Anton, Alfa Slab One and Arvo Bold (Top Gear). Only pictures made with them are shipped, never the font files.
+- **If a school's sponsorship ends:** set `live: false` in `app/lib/board/sponsors.ts` (or remove its entry) and delete its folder in `public/assets/board/sponsors/`.
+
 ## Voice clips
 - **Made with:** ElevenLabs, on a paid plan. The clips in `public/assets/road-signs/sounds/` carry ElevenLabs content tags.
 - **Receipt:** _to fill in: where the proof of the paid plan is kept_

@@ -81,6 +81,7 @@ import {
   disposeRibbons,
 } from "~/components/board/route-ribbon";
 import { SHARED, carFromGltf } from "~/components/board/car-glb";
+import { wearTopBoard } from "~/components/board/top-board";
 import {
   buildRoom,
   hangSchool,
@@ -90,6 +91,7 @@ import {
   PLATE,
   boardLogo,
   loadImage,
+  loadPicture,
   loadWrap,
   sponsoredPlate,
   wearWrap,
@@ -1194,6 +1196,37 @@ function Scene({
     if (wearWrap(player, wrap, livery.base)) sponsorShown(sponsor, "car");
     invalidate();
   }, [player, wrap, livery, sponsor, invalidate]);
+
+  // With its paint, the school's name board on the roof (top-board.ts).
+  const topBoard = (livery && sponsor?.topBoard) || null;
+  const [boardArt, setBoardArt] = React.useState<THREE.Texture | null>(null);
+  React.useEffect(() => {
+    if (!topBoard) return;
+    let alive = true;
+    let loaded: THREE.Texture | null = null;
+    loadPicture(topBoard.src, tier === "low" ? 4 : 16)
+      .then((texture) => {
+        if (!alive) return texture.dispose();
+        loaded = texture;
+        setBoardArt(texture);
+      })
+      .catch(() => {
+        // The car goes without its board.
+      });
+    return () => {
+      alive = false;
+      setBoardArt(null);
+      loaded?.dispose();
+    };
+  }, [topBoard, tier]);
+  React.useEffect(() => {
+    if (!topBoard) return;
+    wearTopBoard(player, topBoard, boardArt, tier === "low");
+    invalidate();
+    return () => {
+      wearTopBoard(player, null, null);
+    };
+  }, [player, topBoard, boardArt, tier, invalidate]);
 
   const others = React.useMemo(
     () =>

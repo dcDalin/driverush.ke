@@ -24,6 +24,29 @@ describe("pickSponsor", () => {
     expect(seen).toEqual(["a", "b", "c", "c"]);
   });
 
+  it("takes turns: a learner gets the school after the one they saw last", () => {
+    // whatever the roll
+    for (const roll of [0, 0.5, 0.99]) {
+      expect(pickSponsor({ roll, now, list, last: "a" })?.id).toBe("b");
+      expect(pickSponsor({ roll, now, list, last: "b" })?.id).toBe("c");
+      expect(pickSponsor({ roll, now, list, last: "c" })?.id).toBe("a");
+    }
+  });
+
+  it("goes by the roll on a first visit, or after a school that has gone", () => {
+    expect(pickSponsor({ roll: 0.5, now, list, last: null })?.id).toBe("b");
+    expect(pickSponsor({ roll: 0.5, now, list, last: "left" })?.id).toBe("b");
+  });
+
+  it("skips a school that is not live when taking turns", () => {
+    const some = [school("a"), school("x", { live: false }), school("c")];
+    expect(pickSponsor({ roll: 0, now, list: some, last: "a" })?.id).toBe("c");
+    expect(pickSponsor({ roll: 0, now, list: some, last: "c" })?.id).toBe("a");
+    // With one live school, it is that school every visit.
+    const one = [school("a"), school("x", { live: false })];
+    expect(pickSponsor({ roll: 0.9, now, list: one, last: "a" })?.id).toBe("a");
+  });
+
   it("never picks a school that is not live", () => {
     const hidden = [school("a", { live: false }), school("b")];
     for (const roll of [0, 0.5, 0.99]) {

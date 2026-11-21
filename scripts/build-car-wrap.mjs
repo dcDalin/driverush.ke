@@ -196,7 +196,25 @@ function landmarks(doc, paintTris, bodyTris) {
   const clutter = bodyTris
     .filter((t) => facesUp(t) && t.colour !== glassColour && inRoof(t))
     .reduce((s, t) => s + areaOf(t), 0);
+  // Where a school's name board stands (app/components/board/top-board.ts):
+  // on the flat of the roof, over the front seats.
+  const flat = boxOf(
+    roofTris.filter((t) => centroid(t)[1] > roofBox.max[1] - 0.07),
+  );
+  // About half a metre behind the windscreen's top, as on a real school
+  // car; less on a short cab.
+  const boardZ =
+    flat.min[2] + Math.min(0.5, (flat.max[2] - flat.min[2]) * 0.4);
+  const under = roofTris.filter(
+    (t) =>
+      Math.abs(centroid(t)[2] - boardZ) < 0.12 &&
+      Math.abs(centroid(t)[0]) < 0.3,
+  );
+  const boardY = under.length
+    ? Math.max(...under.flatMap((t) => t.map((p) => p[1])))
+    : roofBox.max[1];
   const roof = {
+    board: { z: r3(boardZ), y: r3(boardY) },
     z0: r3(roofBox.min[2]),
     z1: r3(roofBox.max[2]),
     x0: r3(roofBox.min[0]),
@@ -473,6 +491,9 @@ async function wrapCar(id) {
   );
 
   const marks = landmarks(doc, paintTris, bodyTris);
+  // The board reads where a name board stands from the car's own file.
+  const rootNode = nodes.find((n) => n.getExtras()?.wheelRadius);
+  rootNode?.setExtras({ ...rootNode.getExtras(), roof: marks.roof.board });
 
   await doc.transform(
     weld(),

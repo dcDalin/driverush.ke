@@ -11,7 +11,13 @@ import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.j
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 import { carFromGltf } from "~/components/board/car-glb";
-import { loadWrap, wearWrap } from "~/components/board/board-sponsor";
+import {
+  loadPicture,
+  loadWrap,
+  wearWrap,
+} from "~/components/board/board-sponsor";
+import { wearTopBoard } from "~/components/board/top-board";
+import type { TopBoard } from "~/lib/board/sponsors";
 import { BOARD_CARS, type BoardCarId } from "~/lib/board/cars";
 
 export type CarView = { heading: number; tilt: number; dist: number };
@@ -20,10 +26,12 @@ function Car({
   src,
   wrapUrl,
   base,
+  topBoard,
 }: {
   src: string;
   wrapUrl: string | null;
   base: string;
+  topBoard: TopBoard | null;
 }) {
   const gltf = useLoader(GLTFLoader, src, (loader) =>
     loader.setMeshoptDecoder(MeshoptDecoder),
@@ -54,6 +62,22 @@ function Car({
       texture?.dispose();
     };
   }, [holder, wrapUrl, base, invalidate]);
+  React.useEffect(() => {
+    if (!topBoard) return;
+    let alive = true;
+    let texture: THREE.Texture | null = null;
+    loadPicture(topBoard.src, 8).then((loaded) => {
+      if (!alive) return loaded.dispose();
+      texture = loaded;
+      wearTopBoard(holder, topBoard, loaded);
+      invalidate();
+    });
+    return () => {
+      alive = false;
+      wearTopBoard(holder, null, null);
+      texture?.dispose();
+    };
+  }, [holder, topBoard, invalidate]);
   return <primitive object={holder} />;
 }
 
@@ -82,11 +106,14 @@ export default function SponsorCarCanvas({
   car = "saloon",
   wrapUrl,
   base,
+  topBoard = null,
   view,
 }: {
   car?: BoardCarId;
   wrapUrl: string | null;
   base: string;
+  /** The school's roof board, if it has one. */
+  topBoard?: TopBoard | null;
   view: CarView;
 }) {
   return (
@@ -112,6 +139,7 @@ export default function SponsorCarCanvas({
           src={BOARD_CARS.find((c) => c.id === car)!.src}
           wrapUrl={wrapUrl}
           base={base}
+          topBoard={topBoard}
         />
       </React.Suspense>
       <OrbitControls
