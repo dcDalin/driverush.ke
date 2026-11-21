@@ -88,7 +88,10 @@ export function BoardSheet({
         >
           {strip}
         </div>
-        <div className="grid min-h-0 gap-3 overflow-y-auto overscroll-contain p-4">
+        {/* One column that can shrink to the card: a plain `grid` sizes its
+            column to the widest child's min-content, so a row of buttons
+            that won't wrap would push the text past the card's edge. */}
+        <div className="grid min-h-0 grid-cols-[minmax(0,1fr)] gap-3 overflow-y-auto overflow-x-hidden overscroll-contain p-4">
           {children}
         </div>
       </div>

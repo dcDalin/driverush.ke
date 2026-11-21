@@ -169,7 +169,9 @@ export function TrainerResultCard({
       transition={{ duration: 0.2 }}
     >
       {/* Saved for a flawless round, so it still means something. */}
-      {selfGraded && (flawless || allKnown) && <CelebrationConfetti bursts={2} />}
+      {selfGraded && (flawless || allKnown) && (
+        <CelebrationConfetti bursts={2} />
+      )}
       <motion.div
         variants={CARD}
         initial="hidden"
@@ -184,10 +186,7 @@ export function TrainerResultCard({
             onClick={onExit}
             className="relative -my-1 inline-flex size-6 shrink-0 items-center justify-center border-2 border-paper before:absolute before:-inset-2.5 before:content-[''] text-paper outline-none transition-colors duration-100 hover:bg-paper hover:text-ink focus-visible:bg-paper focus-visible:text-ink"
           >
-            <Icon
-              icon={CloseIcon}
-              size={13}
-            />
+            <Icon icon={CloseIcon} size={13} />
           </button>
         </div>
 
@@ -256,25 +255,25 @@ export function TrainerResultCard({
                   }}
                   className="mt-2 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-ink-3 outline-none hover:text-ink focus-visible:text-ink"
                 >
-                  <Icon
-                    icon={RefreshIcon}
-                    size={11}
-                  />
+                  <Icon icon={RefreshIcon} size={11} />
                   Reset progress
                 </button>
               )}
             </motion.div>
           )}
 
-          <motion.div variants={ITEM} className="mt-1 grid w-full gap-2">
+          {/* minmax(0,1fr): a long label wraps instead of widening the card. */}
+          <motion.div
+            variants={ITEM}
+            className="mt-1 grid w-full grid-cols-[minmax(0,1fr)] gap-2"
+          >
             {missed.length > 0 ? (
               <>
                 <Button variant="rush" size="lg" onClick={onDrill}>
-                  <Icon
-                    icon={RefreshIcon}
-                    size={18}
-                  />
-                  Drill {missed.length === 1 ? "it" : `these ${missed.length}`}{" "}
+                  <Icon icon={RefreshIcon} size={18} />
+                  Drill {missed.length === 1
+                    ? "it"
+                    : `these ${missed.length}`}{" "}
                   again
                 </Button>
                 <Button variant="paper" onClick={onNext}>
@@ -284,13 +283,14 @@ export function TrainerResultCard({
             ) : (
               <Button variant="rush" size="lg" onClick={onNext}>
                 {nextLabel}
-                <Icon
-                  icon={ArrowRightIcon}
-                  size={16}
-                />
+                <Icon icon={ArrowRightIcon} size={16} />
               </Button>
             )}
-            <Button variant="ink" asChild>
+            <Button
+              variant="ink"
+              asChild
+              className="h-auto min-h-11 whitespace-normal py-2 text-center leading-snug"
+            >
               <Link
                 to={
                   crossLink?.to ??

@@ -49,11 +49,7 @@ import {
   type BoardNotice,
 } from "~/lib/board-store";
 import { levelHref } from "~/lib/board-guides";
-import {
-  COURSE_LEVELS,
-  levelAfter,
-  levelById,
-} from "~/lib/board/curriculum";
+import { COURSE_LEVELS, levelAfter, levelById } from "~/lib/board/curriculum";
 import { signCounts } from "~/lib/pelican-progress";
 import { cn } from "~/lib/utils";
 
@@ -318,7 +314,10 @@ function TaskHint({
   return (
     <>
       <div
-        className={cn("pointer-events-auto flex flex-wrap gap-1.5", bare && "hidden")}
+        className={cn(
+          "pointer-events-auto flex flex-wrap gap-1.5",
+          bare && "hidden",
+        )}
       >
         <button
           type="button"
@@ -798,12 +797,10 @@ export function BoardGame() {
     () => (s.lanes ? queueCars(s.lanes.arm) : null),
     [s.lanes],
   );
-  const pickedCar =
-    lineUp?.find((one) => one.id === s.lanes?.picked) ?? null;
+  const pickedCar = lineUp?.find((one) => one.id === s.lanes?.picked) ?? null;
   const lanesRest = s.lanes?.rest;
   const frontCars = React.useMemo(
-    () =>
-      lineUp && lanesRest ? pickable(lineUp, Object.keys(lanesRest)) : [],
+    () => (lineUp && lanesRest ? pickable(lineUp, Object.keys(lanesRest)) : []),
     [lineUp, lanesRest],
   );
   // An upside-down car a card is talking about (`blocked-roads`).
@@ -840,7 +837,8 @@ export function BoardGame() {
   // A lesson car or an Easy level: a miss is "not quite", not an examiner.
   // A broken lane rule ends the attempt there too; only the words are kinder.
   const kindly =
-    pickedCar != null || (level?.kind === "drive" && level.difficulty === "Easy");
+    pickedCar != null ||
+    (level?.kind === "drive" && level.difficulty === "Easy");
   // Reading or watching: no task, no clock, no joystick.
   const offClock = s.mode !== "drive";
   const nextUp = level ? levelAfter(level) : undefined;
@@ -1015,9 +1013,7 @@ export function BoardGame() {
         painted &&
         s.mode === "level" &&
         s.lanes &&
-        !settingsOpen && (
-          <BoardCarPicks cars={frontCars} onPick={s.pickCar} />
-        )}
+        !settingsOpen && <BoardCarPicks cars={frontCars} onPick={s.pickCar} />}
 
       {/* The examiner's task, top left. Status and the way out, top right. */}
       {!unsupported && painted && challenge && s.phase !== "complete" && (
@@ -1069,7 +1065,10 @@ export function BoardGame() {
                   aria-expanded={moreOpen}
                   aria-controls="board-more"
                   onClick={() => setMoreOpen((v) => !v)}
-                  className={cn(hudButton, moreOpen && "border-white bg-white/15")}
+                  className={cn(
+                    hudButton,
+                    moreOpen && "border-white bg-white/15",
+                  )}
                 >
                   <Icon icon={MenuIcon} size={20} />
                 </button>
@@ -1408,27 +1407,27 @@ export function BoardGame() {
             {warmup
               ? "You can drive it."
               : s.taskFaults === 0
-              ? s.hinted
-                ? "Passed, with a hint."
-                : "Clean, first try."
-              : s.tries > 1
-                ? `Passed on try ${s.tries}.`
-                : challenge.title}
+                ? s.hinted
+                  ? "Passed, with a hint."
+                  : "Clean, first try."
+                : s.tries > 1
+                  ? `Passed on try ${s.tries}.`
+                  : challenge.title}
           </h2>
           <p className="m-0 text-[13.5px] leading-snug text-ink-2">
             {warmup
               ? "Push to go, let go to stop. That is all the control there is. Now learn the board you will drive on."
               : s.taskFaults > 0
-              ? `You got there with ${s.taskFaults} ${s.taskFaults === 1 ? "mistake" : "mistakes"}. ${level ? "Drive it again for all three stars, or carry on." : "It will come back in a later round."}`
-              : s.hinted
-                ? level
-                  ? "You got there with help. Try it again on your own, or carry on."
-                  : "You got there with help. It will come back in a later round, to do on your own."
-                : taskParks(challenge)
-                  ? "In the bay, inside the lines and straight."
-                  : isRouteTask(challenge)
-                    ? "Right way, right lane, and you stopped in the box."
-                    : "Right lane, right exit, and you stopped in the box."}
+                ? `You got there with ${s.taskFaults} ${s.taskFaults === 1 ? "mistake" : "mistakes"}. ${level ? "Drive it again for all three stars, or carry on." : "It will come back in a later round."}`
+                : s.hinted
+                  ? level
+                    ? "You got there with help. Try it again on your own, or carry on."
+                    : "You got there with help. It will come back in a later round, to do on your own."
+                  : taskParks(challenge)
+                    ? "In the bay, inside the lines and straight."
+                    : isRouteTask(challenge)
+                      ? "Right way, right lane, and you stopped in the box."
+                      : "Right lane, right exit, and you stopped in the box."}
           </p>
           {!warmup && s.lastScore != null && (
             <div
@@ -1467,7 +1466,8 @@ export function BoardGame() {
           {level && !warmup && (
             <InstallNudge surface="level_passed" tone="game" />
           )}
-          <div className="flex gap-2">
+          {/* Wraps on a phone: Share drops to its own full-width row. */}
+          <div className="flex flex-wrap gap-2">
             {level ? (
               <>
                 <Button
@@ -1504,6 +1504,7 @@ export function BoardGame() {
               <ShareButton
                 surface="board_task_passed"
                 payload={{ kind: "board", total: 1, firstTry: 1 }}
+                className="flex-1"
               />
             )}
           </div>
