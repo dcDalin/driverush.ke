@@ -114,7 +114,7 @@ export const BOARD_GUIDES: readonly BoardGuide[] = [
     name: "The rules",
     title: "Model Town Board rules",
     description:
-      "The Model Town Board rules in one place: the three route rules, lane numbers, continuous and broken lines, kerbs, stop and give way.",
+      "The Model Town Board rules in one place: the three route rules, lanes and lines, the roundabout, kerbs, stop and give way, and parking.",
     lede: "Every rule on the board comes down to a few ideas: the right route, the right lane, and obeying what is painted and posted.",
     blurb: "The route rules, lane numbers, lines, kerbs, stop and give way.",
     published: "2026-11-11",
