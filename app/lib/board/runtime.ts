@@ -10,6 +10,7 @@ import { challengeRoute, taskParks, taskStart } from "./lessons";
 import { bearingOf, wrapPi } from "./geometry";
 import { poseAt, type Route } from "./network";
 import {
+  AISLE_SPEED,
   STICK_DEADZONE,
   createAssist,
   stickToInput,
@@ -327,6 +328,8 @@ function manoeuvring(): boolean {
   HANDS_ON.reverse = drive.reverse;
   // Lane assist lets go, and parking assist takes over for the reversing.
   HANDS_ON.guide = drive.assist ? reverseLine : undefined;
+  // It keeps the aisle's slow speed on into the bay, as a driver would.
+  HANDS_ON.cap = drive.assist ? AISLE_SPEED : undefined;
   return true;
 }
 

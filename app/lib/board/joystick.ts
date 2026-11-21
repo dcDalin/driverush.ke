@@ -76,6 +76,8 @@ export type DriveOptions = {
    * change into a lane with a car alongside or just ahead.
    */
   others?: readonly { x: number; z: number }[];
+  /** The fastest the car may go forward here, metres a second, whatever the knob says. */
+  cap?: number;
 };
 
 /** What the assist remembers between steps. */
@@ -132,6 +134,9 @@ const AWAY: Record<Seat, number> = {
   north: Math.PI,
   east: -Math.PI / 2,
 };
+
+/** Down the parking aisle, and on into a bay, lane assist keeps to this. Metres a second. */
+export const AISLE_SPEED = 4;
 
 /** Inside this the knob counts as let go. */
 export const STICK_DEADZONE = 0.18;
@@ -501,7 +506,7 @@ function laneAhead(
         along: lane.heading,
         left: ROAD_CONE,
         right: ROAD_CONE,
-        cap: lane.road === "aisle" ? 4 : CAR.maxSpeed,
+        cap: lane.road === "aisle" ? AISLE_SPEED : CAR.maxSpeed,
         aim: { x: lane.a.x + dir.x * ahead, z: lane.a.z + dir.z * ahead },
       };
     }
@@ -598,7 +603,7 @@ export function stickToInput(
   }
 
   let target = knob;
-  let cap: number = CAR.maxSpeed;
+  let cap: number = options.cap ?? CAR.maxSpeed;
   if (lane) {
     const off = wrapPi(knob - lane.along);
     const cone = off < 0 ? lane.left : lane.right;
@@ -607,7 +612,7 @@ export function stickToInput(
       Math.min(1, (cone + CONE_EDGE - Math.abs(off)) / (2 * CONE_EDGE)),
     );
     target = knob + hold * wrapPi(lane.heading - knob);
-    cap = CAR.maxSpeed + hold * (lane.cap - CAR.maxSpeed);
+    cap = Math.min(cap, CAR.maxSpeed + hold * (lane.cap - CAR.maxSpeed));
     state.hold = hold;
     state.aimX = lane.aim.x;
     state.aimZ = lane.aim.z;

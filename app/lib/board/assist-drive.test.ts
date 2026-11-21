@@ -16,7 +16,12 @@ import {
   laneBearing,
   locate,
 } from "./geometry";
-import { createAssist, stickToInput, type AssistState } from "./joystick";
+import {
+  AISLE_SPEED,
+  createAssist,
+  stickToInput,
+  type AssistState,
+} from "./joystick";
 import { challengeRoute } from "./lessons";
 import { car, drive, loadPhysics, stick, tick } from "./runtime";
 
@@ -36,7 +41,12 @@ beforeEach(() => {
  * (2.5 m when reversing), stop at each stop line, let go at the end. A thumb
  * that is a little off can be given a steady `bias`, in degrees.
  */
-function driveLevel(id: string, bias = 0): string {
+function driveLevel(
+  id: string,
+  bias = 0,
+  /** Told after each step how far along the route the car is, of how far. */
+  watch?: (along: number, length: number) => void,
+): string {
   useBoardStore.getState().startLevel(id);
   const first = useBoardStore.getState();
   const route = challengeRoute(first.queue[first.pos]);
@@ -108,6 +118,7 @@ function driveLevel(id: string, bias = 0): string {
     stick.x = rest ? 0 : Math.sin(knob);
     stick.y = rest ? 0 : -Math.cos(knob);
     tick(STEP);
+    watch?.(points[at].d, route.length);
   }
   const after = useBoardStore.getState();
   return after.phase === "fault" ? (after.fault?.id ?? "fault") : after.phase;
@@ -133,6 +144,22 @@ describe("lane assist lets go for a tight first exit", () => {
     "%s with a thumb 8 degrees off",
     (id) => {
       expect(driveLevel(id, 8)).toBe("passed");
+    },
+  );
+});
+
+describe("lane assist keeps the aisle's speed into a bay", () => {
+  // It lets go of the steering about 7 m before the bay. The aisle's speed
+  // limit used to go with it, so a full push took the car in at about 6 m/s.
+  it.each([["drive-park-angle"], ["drive-blocked-parking"]])(
+    "%s goes into its bay no faster than the aisle",
+    (id) => {
+      let fastest = 0;
+      const result = driveLevel(id, 0, (along, length) => {
+        if (along > length - 12) fastest = Math.max(fastest, car.speed);
+      });
+      expect(result).toBe("passed");
+      expect(fastest).toBeLessThanOrEqual(AISLE_SPEED + 0.05);
     },
   );
 });
