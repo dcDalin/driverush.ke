@@ -51,6 +51,8 @@ const MSM = "Learner Driver Handbook, MSM technique, pp. 38 to 39";
 const SIGNS = "Learner Driver Handbook, Unit 2: traffic signs, p. 8";
 const ROAD_RULE =
   "Not in the handbook: a road rule to confirm with your school";
+/** How our board is laid out, where it differs from the handbook. */
+const OUR_BOARD = "How the DriveRush board is laid out";
 /** Where the handbook stops short: which roundabout lane and exit lane each option uses. */
 const TUTORIAL = "Perez's Model Town Board animation tutorial, lane options";
 
@@ -400,8 +402,8 @@ export const BOARD_QUESTIONS: readonly BoardQuestion[] = [
   {
     topic: "parking",
     q: "How does traffic move through the angle parking zone?",
-    a: "In one direction. The zone has a set entrance and exit.",
-    source: unit3(12),
+    a: "Both ways. The aisle is two-way, with a way in and out at each end and a give way line at each. Keep left, and drive slowly: a car may pull out of a bay on either side.",
+    source: OUR_BOARD,
   },
   {
     topic: "parking",

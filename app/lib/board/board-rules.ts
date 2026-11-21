@@ -163,6 +163,10 @@ const RULES: Record<FaultId, RuleWords> = {
     title: "Stopped on the crossing",
     rule: "No stopping, parking or waiting on a pedestrian crossing.",
   },
+  kerb_stop: {
+    title: "Stopped beside a yellow kerb",
+    rule: "Yellow kerb: no stopping, no waiting, no parking.",
+  },
   bay_line: {
     title: "Not straight in the bay",
     rule: "Park with the whole car inside the lines, straight in the bay.",
@@ -182,7 +186,7 @@ function reasonFor(fault: Fault): string {
     case "roundabout_lane_change":
       return `You moved out of your lane inside the roundabout. Choose your lane before you enter, go round in it, and leave it only at your exit. Lane ${fault.lane ?? 1} on the road goes round in lane ${fault.lane ?? 1} of the roundabout, counting from the outside. The one exception is lane 3 of the three-lane road: to turn right into lane 4, come back or turn left, it goes round in the fourth lane, beside the island, and joins it on the way in.`;
     case "roundabout_stop":
-      return "There is no stopping or waiting on the roundabout. Keep moving until you've taken your exit.";
+      return "You stood still on the roundabout. A brief pause is fine, but there is no stopping or waiting on it. Keep moving until you've taken your exit.";
     case "wrong_exit": {
       const lanes = fault.lanes ?? 4;
       const turn = fault.turn ?? "straight";
@@ -225,7 +229,9 @@ function reasonFor(fault: Fault): string {
     case "u_turn_lane":
       return `To turn back through a gap in the central reserve, be in lane ${fault.lane ?? 4}, the lane beside the reserve, before you reach the gap. Finish the turn in the lane beside the reserve on the other side, then change lanes where the lines are broken.`;
     case "crossing_stop":
-      return "You stopped on the white bars of the pedestrian crossing. Stop before it when someone is crossing, and never on it. The same goes for the roundabout, the yellow kerb and junctions: no stopping, parking or waiting there.";
+      return "You stood still on the white bars of the pedestrian crossing. A brief pause is fine, but stop before it when someone is crossing, and never on it. The same goes for the roundabout and the yellow kerb: no stopping, parking or waiting there.";
+    case "kerb_stop":
+      return "You stood still beside a yellow kerb. A brief pause is fine, but a yellow kerb means no stopping, no waiting, no parking and no overtaking. Keep moving, and stop only at a stop or give way line, or in a parking bay.";
     case "bay_line":
       return "The car is in the bay but over a line or at an angle. Straighten up so the whole car sits inside the lines. You can reverse a little to line it up.";
     case "past_end":

@@ -27,6 +27,7 @@ export type SmallFaultId =
   | "island"
   | "roundabout_stop"
   | "crossing_stop"
+  | "kerb_stop"
   | "bay_line";
 export type SeriousFaultId =
   | "wrong_exit"

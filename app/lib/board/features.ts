@@ -115,7 +115,7 @@ export const BOARD_FEATURES: readonly BoardFeature[] = [
   {
     id: "yellow-kerb",
     name: "Yellow kerb",
-    note: "A yellow marking that protects the land, or field: the green part on the left side of the road. A yellow kerb means no overtaking, no parking, no waiting and no stopping. Stay off every kerb.",
+    note: "A yellow marking that protects the land, or field: the green part on the left side of the road. A yellow kerb means no overtaking, no parking, no waiting and no stopping. A brief pause is fine, but standing still beside it costs a star. Stay off every kerb.",
     box: { x0: 6, x1: 38, z0: 2, z1: 34 },
   },
   {

@@ -10,7 +10,7 @@ import {
   type BoardChallenge,
   type TurnChallenge,
 } from "./challenges";
-import { BOUNDS, U_TURN_GAPS, onTarmac } from "./full-board";
+import { BOUNDS, ROADS, U_TURN_GAPS, onTarmac } from "./full-board";
 import {
   ARMS,
   ISLAND_R,
@@ -37,7 +37,7 @@ import {
 import { SEATS, stickBearing, type Seat } from "./joystick";
 import { lanePath, turnBackPath } from "./lane-paths";
 import { challengeRoute, taskParks } from "./lessons";
-import { distanceNear, poseAt, type Route } from "./network";
+import { distanceNear, network, poseAt, type Route } from "./network";
 import {
   PARKING_LAYOUTS,
   parkedCars,
@@ -941,7 +941,7 @@ describe("small mistakes cost a star and the drive goes on", () => {
     const result = play(challenge, (seconds, outcome) => {
       const degrees = (bearingOf(car.x, car.z) / DEG + 360) % 360;
       const onRing = Math.hypot(car.x, car.z) < 19;
-      if (onRing && degrees > 250 && waited < 4.5) {
+      if (onRing && degrees > 250 && waited < 7) {
         letGo();
         waited += STEP;
       } else {
@@ -949,6 +949,24 @@ describe("small mistakes cost a star and the drive goes on", () => {
       }
     });
     expect(result.small.map((f) => f.id)).toEqual(["roundabout_stop"]);
+    expect(result.goal).toBe(true);
+  });
+
+  it("but not for a brief pause on the roundabout", () => {
+    const challenge = task("straight", 2);
+    const onward = follower(challenge, lanePath("S", 2, "straight"));
+    let waited = 0;
+    const result = play(challenge, (seconds, outcome) => {
+      const degrees = (bearingOf(car.x, car.z) / DEG + 360) % 360;
+      const onRing = Math.hypot(car.x, car.z) < 19;
+      if (onRing && degrees > 250 && waited < 3) {
+        letGo();
+        waited += STEP;
+      } else {
+        onward(seconds, outcome);
+      }
+    });
+    expect(result.small).toEqual([]);
     expect(result.goal).toBe(true);
   });
 });
@@ -1130,7 +1148,7 @@ describe("no stopping on a pedestrian crossing", () => {
   }
 
   it("costs a star for standing on it", () => {
-    const result = waitingAt(2.5, 4);
+    const result = waitingAt(2.5, 7);
     expect(result.small.map((f) => f.id)).toEqual(["crossing_stop"]);
     expect(faultTip(result.small[0]).rule).toContain("pedestrian crossing");
     expect(result.goal).toBe(true);
@@ -1138,6 +1156,60 @@ describe("no stopping on a pedestrian crossing", () => {
 
   it("costs nothing for stopping short of it", () => {
     const result = waitingAt(14, 4);
+    expect(result.small).toEqual([]);
+    expect(result.goal).toBe(true);
+  });
+});
+
+describe("no stopping beside a yellow kerb, but a brief pause is fine", () => {
+  const task = ROUTE_TASKS.find((c) => c.id === "down-the-street")!;
+  const inStreet = () =>
+    car.z > ROADS.STREET.z0 && car.z < ROADS.STREET.z1;
+  const stopLine = () => {
+    const net = network();
+    const edge = net.edges.find(
+      (e) => e.control === "stop" && e.from.startsWith("street:east"),
+    )!;
+    return net.nodes.get(edge.from)!;
+  };
+
+  /** Drive down the street, standing still `seconds` where `here` says. */
+  function standing(here: () => boolean, seconds: number) {
+    const onward = routeFollower(task, challengeRoute(task)!);
+    let waited = 0;
+    return play(
+      task,
+      () => {
+        if (here() && waited < seconds) {
+          letGo();
+          if (Math.abs(car.speed) < 0.05) waited += STEP;
+          return;
+        }
+        onward();
+      },
+      300,
+    );
+  }
+
+  it("costs a star for standing in the street beside its yellow kerb", () => {
+    const result = standing(() => inStreet() && car.x > 24 && car.x < 40, 7);
+    expect(result.small.map((f) => f.id)).toEqual(["kerb_stop"]);
+    expect(faultTip(result.small[0]).rule).toContain("Yellow kerb");
+    expect(result.goal).toBe(true);
+  });
+
+  it("costs nothing for a brief pause there", () => {
+    const result = standing(() => inStreet() && car.x > 24 && car.x < 40, 3);
+    expect(result.small).toEqual([]);
+    expect(result.goal).toBe(true);
+  });
+
+  it("costs nothing for waiting at the stop line beside it", () => {
+    const line = stopLine();
+    const result = standing(
+      () => inStreet() && Math.abs(car.x - line.x) < 4,
+      7,
+    );
     expect(result.small).toEqual([]);
     expect(result.goal).toBe(true);
   });

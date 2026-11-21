@@ -8,13 +8,13 @@
  * take or in the wrong lane, going all the way round from an outer lane,
  * turning back through a gap from the wrong lane, driving against the
  * traffic, and running a stop line. It takes a star for bumping a kerb, the
- * reserve or the island, and for standing on the roundabout or on a
- * pedestrian crossing.
+ * reserve or the island, and for standing on the roundabout, on a pedestrian
+ * crossing or beside a yellow kerb for longer than a brief pause.
  *
  * Where the car goes is not judged here. That is the task's business.
  */
 import type { CarState } from "./car";
-import { ROADS } from "./full-board";
+import { ROADS, kerbHighlights } from "./full-board";
 import {
   ARMS,
   EXIT_CLEAR,
@@ -33,6 +33,7 @@ import {
   wrapPi,
   type ArmId,
   type Location,
+  type Vec,
   type Turn,
 } from "./geometry";
 import { createLineState, lineStep, type LineState } from "./lines";
@@ -143,8 +144,18 @@ const WRONG_WAY_GRACE = 0.8;
 const WRONG_WAY_ANGLE = (115 * Math.PI) / 180;
 const MOVING = 0.5;
 const STOPPED = 0.2;
-/** Standing this long where no car may stop costs a star. */
-const STANDING_GRACE = 2.5;
+/**
+ * Standing this long where no car may stop costs a star. A brief pause, the
+ * thumb lifting off the joystick, is not a stop.
+ */
+const STANDING_GRACE = 5;
+/**
+ * The middle of the car this near a yellow kerb is in the lane beside it: one
+ * lane on the roads, and the car's whole half of the wide street, which has a
+ * yellow kerb on both sides.
+ */
+const KERB_NEAR = LANE_W;
+const STREET_HALF = (ROADS.STREET.z1 - ROADS.STREET.z0) / 2;
 /**
  * Crossing the outer lanes to reach your own, or to leave from it, takes this
  * much of the circle at most. Riding along in one of them takes more.
@@ -243,7 +254,49 @@ function noStopping(car: CarState, loc: Location): string | null {
       if (Math.abs(car.z - z) < ON_CROSSING) return `crossing:${z}`;
     }
   }
-  return loc.kind === "ring" ? "ring" : null;
+  if (loc.kind === "ring") return "ring";
+  const kerb = yellowKerbBeside(car, loc);
+  return kerb == null ? null : `kerb:${kerb}`;
+}
+
+/** The distance from a point to a stretch of line. */
+function fromSegment(p: Vec, a: Vec, b: Vec): number {
+  const dx = b.x - a.x;
+  const dz = b.z - a.z;
+  const t = Math.max(
+    0,
+    Math.min(
+      1,
+      ((p.x - a.x) * dx + (p.z - a.z) * dz) / (dx * dx + dz * dz || 1),
+    ),
+  );
+  return Math.hypot(p.x - a.x - t * dx, p.z - a.z - t * dz);
+}
+
+/**
+ * Which painted yellow kerb the car is standing beside, by its place in
+ * `kerbHighlights`, or null. Waiting at a stop or give way line, or to join
+ * the roundabout, is where a car is meant to stand, so it never counts.
+ */
+function yellowKerbBeside(car: CarState, loc: Location): number | null {
+  if (
+    loc.kind === "arm" &&
+    loc.side === "approach" &&
+    loc.along < RING_OUTER_R + STOP_BEFORE
+  ) {
+    return null;
+  }
+  if (atControlLine(car)) return null;
+  const reach =
+    loc.kind === "road" && loc.what === "street" ? STREET_HALF : KERB_NEAR;
+  const kerbs = kerbHighlights();
+  for (let k = 0; k < kerbs.length; k += 1) {
+    const line = kerbs[k];
+    for (let i = 1; i < line.length; i += 1) {
+      if (fromSegment(car, line[i - 1], line[i]) < reach) return k;
+    }
+  }
+  return null;
 }
 
 /**
@@ -268,6 +321,40 @@ function roadLaneUnder(car: CarState): { heading: number } | null {
 
 type StopLine = { key: string; x: number; z: number; heading: number };
 let stopLines: StopLine[] | null = null;
+let controlLines: StopLine[] | null = null;
+
+/** Every stop and give way line on the board, gaps in the reserve included. */
+function allControlLines(): StopLine[] {
+  if (controlLines) return controlLines;
+  const net = network();
+  const seen = new Map<string, StopLine>();
+  for (const edge of net.edges) {
+    if (edge.control !== "stop" && edge.control !== "give_way") continue;
+    const from = net.nodes.get(edge.from);
+    if (!from || seen.has(edge.from)) continue;
+    seen.set(edge.from, {
+      key: edge.from,
+      x: from.x,
+      z: from.z,
+      heading: from.heading,
+    });
+  }
+  controlLines = [...seen.values()];
+  return controlLines;
+}
+
+/** Is the car waiting at a stop or give way line, facing it? */
+function atControlLine(car: CarState): boolean {
+  return allControlLines().some((line) => {
+    const dir = dirOf(line.heading);
+    const ahead = (line.x - car.x) * dir.x + (line.z - car.z) * dir.z;
+    const aside = Math.abs(
+      (line.x - car.x) * -dir.z + (line.z - car.z) * dir.x,
+    );
+    const facing = Math.abs(wrapPi(car.heading - line.heading)) < Math.PI / 3;
+    return ahead > -STOP_AFTER && ahead < STOP_BEFORE && aside < 2.4 && facing;
+  });
+}
 
 /** Every stop line on the board: where it is, and the way a car comes up to it. */
 function allStopLines(): StopLine[] {
@@ -370,7 +457,13 @@ export function roadStep(
   if (where && ref.standing > STANDING_GRACE && !ref.stoodAt.includes(where)) {
     ref.stoodAt.push(where);
     result.small.push(
-      small(where === "ring" ? "roundabout_stop" : "crossing_stop"),
+      small(
+        where === "ring"
+          ? "roundabout_stop"
+          : where.startsWith("kerb:")
+            ? "kerb_stop"
+            : "crossing_stop",
+      ),
     );
   }
 
