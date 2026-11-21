@@ -287,6 +287,17 @@ export const analytics = {
     score_version: number;
   }) => emit("board_challenge_missed", args),
 
+  /**
+   * The learner opened a locked level after the "Skip ahead?" ask, from the
+   * levels list or the arrows in the game. `next_level` is where Continue
+   * would have taken them.
+   */
+  boardSkipAhead: (args: {
+    to_level: string;
+    next_level: string;
+    surface: "levels_page" | "levels_sheet";
+  }) => emit("board_skip_ahead", args),
+
   /** The learner left a round before the end. Shows where people give up. */
   boardAbandoned: (args: {
     challenge_id: string;

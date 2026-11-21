@@ -56,6 +56,10 @@ export const MenuIcon: IconDef = { s: "M4 7h16M4 12h16M4 17h10" };
 // Do
 export const CheckIcon: IconDef = { s: "M5 12.5l4.5 4.5L19 7" };
 export const CloseIcon: IconDef = { s: "M6 6l12 12M18 6L6 18" };
+export const LockIcon: IconDef = {
+  s: "M8 10.5V8a4 4 0 0 1 8 0v2.5M5.5 10.5h13v9.5h-13zM12 14.5v2",
+  b: "M5.5 10.5h13v9.5h-13z",
+};
 export const PlusIcon: IconDef = { s: "M12 5v14M5 12h14" };
 export const MinusIcon: IconDef = { s: "M5 12h14" };
 export const StarIcon: IconDef = {

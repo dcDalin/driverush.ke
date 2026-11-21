@@ -22,7 +22,9 @@ import {
   levelDone,
   nextLevel,
   readiness,
+  unitState,
   weakestDrive,
+  type UnitState,
 } from "~/lib/board/curriculum";
 import { dayKey, usePracticeStreak } from "~/lib/practice-streak";
 import {
@@ -43,6 +45,7 @@ import { TestCard } from "~/components/board/test-card";
 import {
   CheckIcon,
   ChevronRightIcon,
+  LockIcon,
   PlayIcon,
 } from "~/components/brand/icons";
 import { Badge } from "~/components/ui/badge";
@@ -67,9 +70,6 @@ export function BoardLevels({ className }: { className?: string }) {
       ? `Continue: level ${next.n}`
       : "Start level 1";
   const units = UNITS.filter((unit) => unit.id !== "mock");
-  // The unit the learner is in stands open. The rest open on a tap. All of
-  // them are in the page either way.
-  const openUnit = mock ? null : next.unit;
   const ready = saved ? readiness(saved) : 0;
   const streak = usePracticeStreak();
   const today =
@@ -216,22 +216,40 @@ export function BoardLevels({ className }: { className?: string }) {
             const unitDone = saved
               ? unit.levels.filter((l) => levelDone(l, saved)).length
               : 0;
-            const complete = unitDone === unit.levels.length;
-            const here = unit.id === openUnit;
+            const state: UnitState = saved ? unitState(unit, saved) : "open";
             return (
               <li key={unit.id}>
                 <Link
                   to={`${BOARD_LEVELS_PATH}#unit-${unit.id}`}
                   className={cn(
-                    "flex h-full min-h-16 items-center gap-3 border bg-surface px-4 py-3 text-ink no-underline outline-none transition-colors hover:bg-paper-2 focus-visible:bg-paper-2",
-                    here && saved ? "border-ink" : "border-ink/25",
+                    "flex h-full min-h-16 items-center gap-3 rounded-soft border px-4 py-3 text-ink no-underline outline-none transition-colors hover:bg-paper-2 focus-visible:bg-paper-2",
+                    state === "done"
+                      ? "border-success-line bg-state-done-soft"
+                      : state === "current"
+                        ? "border-2 border-ink bg-surface"
+                        : state === "locked"
+                          ? "border-dashed border-neutral-line bg-surface"
+                          : "border-neutral-line bg-surface",
                   )}
                 >
                   <span className="min-w-0 flex-1">
-                    <span className="block font-mono text-[10px] font-bold uppercase tracking-widest text-ink-3">
+                    <span className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-widest text-ink-3">
                       Unit {i + 1}
+                      {state === "current" && (
+                        <span className="rounded-soft bg-state-next px-1.5 py-0.5 leading-none text-state-next-foreground">
+                          In progress
+                        </span>
+                      )}
+                      {state === "done" && (
+                        <span className="text-success-strong">Done</span>
+                      )}
                     </span>
-                    <span className="block font-display text-[16px] font-extrabold uppercase leading-tight tracking-tight">
+                    <span
+                      className={cn(
+                        "block font-display text-[16px] font-extrabold uppercase leading-tight tracking-tight",
+                        state === "locked" && "text-neutral-strong",
+                      )}
+                    >
                       {unit.title}
                     </span>
                     <span className="mt-0.5 block text-[13.5px] leading-snug text-ink-2">
@@ -241,10 +259,18 @@ export function BoardLevels({ className }: { className?: string }) {
                   <span
                     className={cn(
                       "inline-flex shrink-0 items-center gap-1 font-mono text-[11px] font-bold tabular-nums",
-                      complete ? "text-kenya-green" : "text-ink-3",
+                      state === "done"
+                        ? "text-success-strong"
+                        : "text-neutral-strong",
                     )}
                   >
-                    {complete && <Icon icon={CheckIcon} size={12} />}
+                    {state === "done" && <Icon icon={CheckIcon} size={12} />}
+                    {state === "locked" && (
+                      <>
+                        <Icon icon={LockIcon} size={12} />
+                        <span className="sr-only">Ahead of you.</span>
+                      </>
+                    )}
                     {unitDone} / {unit.levels.length}
                   </span>
                   <Icon

@@ -482,6 +482,51 @@ export function nextLevel(saved: CourseProgress): Level {
   );
 }
 
+/**
+ * Where a level stands for this learner, to show at a glance:
+ * - `done`: finished.
+ * - `next`: the first level not done, where Continue goes.
+ * - `open`: not done, but at or before the frontier: the first level not done,
+ *   or the one after the farthest done (a learner who skipped ahead and
+ *   finished level 14 has 15 open, and 12 and 13 stay open behind them).
+ * - `locked`: past the frontier. Locked levels can still be opened after a
+ *   "Skip ahead?", and any link straight to a level opens it.
+ * The mock test is never locked: it can be taken any time.
+ */
+export type LevelState = "done" | "next" | "open" | "locked";
+
+/** The index in `ALL_LEVELS` of the last level that is not locked. */
+function frontier(saved: CourseProgress): number {
+  let farthest = -1;
+  COURSE_LEVELS.forEach((l) => {
+    if (levelDone(l, saved)) farthest = ALL_LEVELS.indexOf(l);
+  });
+  return Math.max(ALL_LEVELS.indexOf(nextLevel(saved)), farthest + 1);
+}
+
+export function levelState(level: Level, saved: CourseProgress): LevelState {
+  if (levelDone(level, saved)) return "done";
+  const next = nextLevel(saved);
+  if (level.id === next.id && level.kind !== "mock") return "next";
+  if (level.kind === "mock") return "open";
+  return ALL_LEVELS.indexOf(level) <= frontier(saved) ? "open" : "locked";
+}
+
+/**
+ * Where a unit stands: `done` when every level is, `current` when it holds the
+ * next level, `locked` when every level in it is, `open` otherwise.
+ */
+export type UnitState = "done" | "current" | "open" | "locked";
+
+export function unitState(unit: Unit, saved: CourseProgress): UnitState {
+  if (unit.id === "mock") return "open";
+  const states = unit.levels.map((l) => levelState(l, saved));
+  if (states.every((s) => s === "done")) return "done";
+  if (states.includes("next")) return "current";
+  if (states.every((s) => s === "locked")) return "locked";
+  return "open";
+}
+
 /** The level after this one in the list, whether or not it is done. */
 export function levelAfter(level: Level): Level | undefined {
   return ALL_LEVELS[ALL_LEVELS.indexOf(level) + 1];

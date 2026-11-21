@@ -104,6 +104,46 @@
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
 
+  /* Status tones: each status in four steps, so a state can be a tinted
+     panel, a border and readable text, not only one loud fill.
+     `-soft` background, `-line` border, `-strong` text on surface/paper. */
+  --color-success-soft: var(--success-soft);
+  --color-success-line: var(--success-line);
+  --color-success-strong: var(--success-strong);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-line: var(--warning-line);
+  --color-warning-strong: var(--warning-strong);
+  --color-info-soft: var(--info-soft);
+  --color-info-line: var(--info-line);
+  --color-info-strong: var(--info-strong);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-line: var(--danger-line);
+  --color-danger-strong: var(--danger-strong);
+  --color-neutral: var(--neutral);
+  --color-neutral-foreground: var(--neutral-foreground);
+  --color-neutral-soft: var(--neutral-soft);
+  --color-neutral-line: var(--neutral-line);
+  --color-neutral-strong: var(--neutral-strong);
+
+  /* Progress states (course levels, units, any step list). One meaning each:
+     done = green, next = amber, now (open/playing) = blue, todo = neutral,
+     locked = faded neutral. */
+  --color-state-done: var(--success);
+  --color-state-done-foreground: var(--success-foreground);
+  --color-state-done-soft: var(--success-soft);
+  --color-state-next: var(--amber);
+  --color-state-next-foreground: var(--amber-foreground);
+  --color-state-next-soft: var(--warning-soft);
+  --color-state-now: var(--info);
+  --color-state-now-foreground: var(--info-foreground);
+  --color-state-now-soft: var(--info-soft);
+  --color-state-todo: var(--neutral-line);
+  --color-state-locked: var(--neutral);
+  --color-state-locked-foreground: var(--neutral-foreground);
+  --color-state-locked-soft: var(--neutral-soft);
+
   /* ---------- Rush (red) ramp 50 → 700 ---------- */
   --color-rush-50: #fef2f4;
   --color-rush-100: #fee6e9;
@@ -283,6 +323,27 @@
   --info: var(--plate-blue);
   --info-foreground: #ffffff;
 
+  /* Status tones (see @theme). Tints sit on white surface and paper. */
+  --success-soft: #e2f3e9;
+  --success-line: #8ccaa5;
+  --success-strong: #146236;
+  --warning-soft: #fff3d1;
+  --warning-line: #e5c060;
+  --warning-strong: #845600;
+  --info-soft: #e6ecfb;
+  --info-line: #9cb0ea;
+  --info-strong: #1640b6;
+  --danger: var(--rush);
+  --danger-foreground: #ffffff;
+  --danger-soft: #fee6e9;
+  --danger-line: #f4a0ab;
+  --danger-strong: #b3121f;
+  --neutral: #3d4148;
+  --neutral-foreground: #ffffff;
+  --neutral-soft: #ebe6dc;
+  --neutral-line: #c4bdae;
+  --neutral-strong: #5b6068;
+
   /* Charts: stop · slow · go · info · slate */
   --chart-1: var(--rush);
   --chart-2: var(--amber);
@@ -377,6 +438,26 @@
   --warning-foreground: #14161b;
   --info: var(--plate-blue);
   --info-foreground: #14161b;
+
+  --success-soft: #10271a;
+  --success-line: #22693f;
+  --success-strong: #5fe09a;
+  --warning-soft: #2b2410;
+  --warning-line: #7c6520;
+  --warning-strong: #ffd978;
+  --info-soft: #121a35;
+  --info-line: #2d4384;
+  --info-strong: #93acff;
+  --danger: var(--rush);
+  --danger-foreground: #14161b;
+  --danger-soft: #2a0f12;
+  --danger-line: #7a1e29;
+  --danger-strong: #ff7684;
+  --neutral: #3a3e47;
+  --neutral-foreground: #f4efe2;
+  --neutral-soft: #1f2229;
+  --neutral-line: #3a3e47;
+  --neutral-strong: #a8a59b;
 
   --chart-1: var(--rush);
   --chart-2: var(--amber);

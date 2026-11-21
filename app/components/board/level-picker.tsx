@@ -18,20 +18,30 @@ import {
 } from "~/lib/board-guides";
 import {
   KIND_LABEL,
-  MOCK_LEVEL_ID,
   UNITS,
   levelDone,
+  levelState,
   nextLevel,
+  unitState,
   type CourseProgress,
   type Level,
   type LevelKind,
+  type LevelState,
+  type UnitState,
 } from "~/lib/board/curriculum";
 import { useCourseProgress } from "~/lib/use-course-progress";
 import { cn } from "~/lib/utils";
 
 import { Icon } from "~/components/brand/icon";
-import { CheckIcon, StarIcon } from "~/components/brand/icons";
+import { useSkipAhead } from "~/components/board/skip-ahead";
+import {
+  CheckIcon,
+  LockIcon,
+  PlayIcon,
+  StarIcon,
+} from "~/components/brand/icons";
 import { Badge, type BadgeProps } from "~/components/ui/badge";
+import { Progress } from "~/components/ui/progress";
 
 const KIND_BADGE: Record<LevelKind, BadgeProps["variant"]> = {
   warmup: "rush",
@@ -57,40 +67,78 @@ const PICTURE: Record<LevelKind, string> = {
 
 const EMPTY: CourseProgress = { learned: [], bestStars: {} };
 
+/** The word under each card, so a state never rests on colour alone. */
+const STATE_WORD: Record<LevelState, string> = {
+  done: "Done",
+  next: "Start",
+  open: "Not done",
+  locked: "Locked",
+};
+
+/** The same, read out with the level's name. */
+const STATE_SAID: Record<LevelState, string> = {
+  done: "Done",
+  next: "Next",
+  open: "Not done",
+  locked: "Ahead of you, locked",
+};
+
 function LevelCard({
   level,
-  done,
-  next,
+  state,
   now,
   stars,
   replace,
   onPick,
+  onLocked,
 }: {
   level: Level;
-  done: boolean;
-  next: boolean;
+  /** Before saved progress is read, every level shows as open. */
+  state: LevelState;
   /** The level the game is on, when the picker is open over it. */
   now: boolean;
   stars: number;
   replace?: boolean;
   onPick?: (level: Level) => void;
+  onLocked: (level: Level) => void;
 }) {
   const mock = level.kind === "mock";
+  const done = state === "done";
+  const next = state === "next";
+  const locked = state === "locked";
   return (
     <li className={cn(mock && "col-span-full")}>
       <Link
         to={mock ? BOARD_PLAY_PATH : levelHref(level.id)}
         replace={replace}
         data-level={level.id}
+        data-state={state}
         aria-current={now ? "true" : next ? "step" : undefined}
-        onClick={() => onPick?.(level)}
+        aria-label={
+          mock
+            ? undefined
+            : `Level ${level.n}: ${level.title}. ${now ? "Playing now. " : ""}${STATE_SAID[state]}.`
+        }
+        onClick={(event) => {
+          if (locked && !now) {
+            event.preventDefault();
+            onLocked(level);
+            return;
+          }
+          onPick?.(level);
+        }}
         className={cn(
-          "group flex h-full overflow-hidden rounded-soft border text-ink no-underline outline-none transition-colors",
+          "group relative flex h-full overflow-hidden rounded-soft border text-ink no-underline outline-none transition-colors",
           mock ? "flex-row items-stretch" : "flex-col",
           next
-            ? "border-ink bg-amber text-amber-foreground"
-            : "border-ink/25 bg-surface hover:bg-paper-2 focus-visible:bg-paper-2",
-          now && "ring-2 ring-rush ring-offset-2 ring-offset-surface",
+            ? "border-2 border-ink bg-state-next text-state-next-foreground"
+            : done
+              ? "border-success-line bg-state-done-soft hover:brightness-[0.98] focus-visible:brightness-[0.98]"
+              : locked
+                ? "border-dashed border-neutral-line bg-state-locked-soft hover:bg-paper-2 focus-visible:bg-paper-2"
+                : "border-neutral-line bg-surface hover:bg-paper-2 focus-visible:bg-paper-2",
+          now &&
+            "ring-[3px] ring-state-now ring-offset-2 ring-offset-background",
           "focus-visible:ring-2 focus-visible:ring-ink",
         )}
       >
@@ -98,8 +146,10 @@ function LevelCard({
           className={cn(
             "relative block shrink-0 overflow-hidden",
             mock ? "w-24 sm:w-32" : "aspect-square w-full",
+            locked && "bg-state-locked-soft",
           )}
-          style={{ backgroundColor: GRASS }}
+          // A locked level's picture is grey all through, grass included.
+          style={{ backgroundColor: locked ? undefined : GRASS }}
         >
           <img
             src={levelPictureHref(level.id)}
@@ -108,32 +158,48 @@ function LevelCard({
             height={320}
             loading="lazy"
             decoding="async"
-            className="absolute inset-0 size-full object-cover transition-transform duration-300 group-hover:scale-[1.04] group-focus-visible:scale-[1.04] motion-reduce:transition-none"
+            className={cn(
+              "absolute inset-0 size-full object-cover transition-[transform,filter,opacity] duration-300 group-hover:scale-[1.04] group-focus-visible:scale-[1.04] motion-reduce:transition-none",
+              locked && "opacity-45 grayscale group-hover:opacity-70",
+            )}
           />
           {!mock && (
             <span
+              aria-hidden
               className={cn(
-                "absolute left-1.5 top-1.5 flex h-7 min-w-7 items-center justify-center rounded-soft px-1.5 font-mono text-[12.5px] font-bold tabular-nums",
+                "absolute left-1.5 top-1.5 flex h-7 min-w-7 items-center justify-center gap-1 rounded-soft px-1.5 font-mono text-[12.5px] font-bold tabular-nums",
                 done
-                  ? "bg-kenya-green text-kenya-green-foreground"
-                  : "bg-[#101114]/85 text-white",
+                  ? "bg-state-done text-state-done-foreground"
+                  : next
+                    ? "bg-state-next text-state-next-foreground ring-1 ring-ink"
+                    : locked
+                      ? "bg-state-locked text-state-locked-foreground"
+                      : "bg-[#101114]/85 text-white",
               )}
             >
-              {done ? (
-                <>
-                  <Icon icon={CheckIcon} size={14} />
-                  <span className="ml-1">{level.n}</span>
-                  <span className="sr-only">, done</span>
-                </>
-              ) : (
-                level.n
-              )}
+              {done && <Icon icon={CheckIcon} size={14} />}
+              {locked && <Icon icon={LockIcon} size={13} />}
+              {level.n}
             </span>
           )}
           {(next || now) && (
-            <span className="absolute right-1.5 top-1.5 rounded-soft bg-kenya-gold px-1.5 py-1 font-mono text-[10px] font-bold uppercase leading-none tracking-widest text-kenya-gold-foreground">
-              {now ? "Now" : "Next"}
+            <span
+              aria-hidden
+              className={cn(
+                "absolute right-1.5 top-1.5 rounded-soft px-1.5 py-1 font-mono text-[10px] font-bold uppercase leading-none tracking-widest",
+                now
+                  ? "bg-state-now text-state-now-foreground"
+                  : "bg-state-next text-state-next-foreground ring-1 ring-ink",
+              )}
+            >
+              {now ? "Playing" : "Next"}
             </span>
+          )}
+          {done && !mock && (
+            <span
+              aria-hidden
+              className="absolute inset-x-0 bottom-0 h-1 bg-state-done"
+            />
           )}
         </span>
         <span className="flex min-w-0 flex-1 flex-col gap-1.5 p-2.5">
@@ -143,6 +209,7 @@ function LevelCard({
               mock
                 ? "font-display text-[16px] font-extrabold uppercase tracking-tight"
                 : "text-[13.5px]",
+              locked && "text-neutral-strong",
             )}
           >
             {mock ? "Mock test" : level.title}
@@ -154,13 +221,23 @@ function LevelCard({
             </span>
           )}
           <span className="mt-auto flex flex-wrap items-center gap-x-1.5 gap-y-1">
-            <Badge variant={KIND_BADGE[level.kind]} className="border px-1.5">
-              {KIND_LABEL[level.kind]}
-            </Badge>
-            {!mock && (
-              <span className="font-mono text-[10px] font-bold uppercase tracking-widest opacity-70">
-                {level.difficulty}
+            {next && !now ? (
+              <span className="inline-flex items-center gap-1 rounded-soft bg-ink px-2 py-1 font-mono text-[10.5px] font-bold uppercase leading-none tracking-widest text-paper">
+                <Icon icon={PlayIcon} size={11} />
+                Start
               </span>
+            ) : (
+              !mock && (
+                <span
+                  aria-hidden
+                  className={cn(
+                    "font-mono text-[10px] font-bold uppercase tracking-widest",
+                    done ? "text-success-strong" : "text-neutral-strong",
+                  )}
+                >
+                  {now ? "Playing" : STATE_WORD[state]}
+                </span>
+              )
             )}
             {level.kind === "drive" && stars > 0 && (
               <span
@@ -178,10 +255,48 @@ function LevelCard({
                 ))}
               </span>
             )}
+            <span className="ml-auto inline-flex items-center gap-1.5">
+              <Badge
+                variant={KIND_BADGE[level.kind]}
+                className={cn("border px-1.5", locked && "opacity-60")}
+              >
+                {KIND_LABEL[level.kind]}
+              </Badge>
+            </span>
           </span>
         </span>
       </Link>
     </li>
+  );
+}
+
+/** What each look means, once, above the units. */
+function StateKey() {
+  const item =
+    "inline-flex items-center gap-1.5 font-mono text-[10.5px] font-bold uppercase tracking-widest text-ink-3";
+  return (
+    <p className="m-0 flex flex-wrap gap-x-4 gap-y-1.5" aria-hidden>
+      <span className={item}>
+        <span className="flex size-4 items-center justify-center rounded-[4px] bg-state-done text-state-done-foreground">
+          <Icon icon={CheckIcon} size={11} />
+        </span>
+        Done
+      </span>
+      <span className={item}>
+        <span className="size-4 rounded-[4px] bg-state-next ring-1 ring-ink" />
+        Next
+      </span>
+      <span className={item}>
+        <span className="size-4 rounded-[4px] border border-neutral-line bg-surface" />
+        Not done
+      </span>
+      <span className={item}>
+        <span className="flex size-4 items-center justify-center rounded-[4px] bg-state-locked text-state-locked-foreground">
+          <Icon icon={LockIcon} size={11} />
+        </span>
+        Ahead
+      </span>
+    </p>
   );
 }
 
@@ -207,6 +322,14 @@ export function LevelPicker({
   const saved = useCourseProgress();
   const next = nextLevel(saved ?? EMPTY);
   const root = React.useRef<HTMLDivElement>(null);
+  const inGame = current != null;
+  const skip = useSkipAhead({
+    next,
+    replace,
+    surface: inGame ? "levels_sheet" : "levels_page",
+    dark: inGame,
+    onGo: onPick,
+  });
 
   // Open on the level the learner is at, not on level 1 every time. Once, and
   // never over an address that already points at a unit.
@@ -231,61 +354,84 @@ export function LevelPicker({
 
   return (
     <div ref={root} className={cn("grid gap-6", className)}>
-      <nav
-        aria-label="Units"
+      <div
         className={cn(
-          "sticky z-10 -mx-1 flex gap-1.5 overflow-x-auto bg-background/95 px-1 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+          "sticky z-10 -mx-1 grid gap-2 bg-background px-1 py-2",
           stripClassName ?? "top-0",
         )}
       >
-        {UNITS.map((unit, i) => {
-          const count = saved
-            ? unit.levels.filter((l) => levelDone(l, saved)).length
-            : 0;
-          const mock = unit.id === "mock";
-          return (
-            <a
-              key={unit.id}
-              href={`#unit-${unit.id}`}
-              onClick={(event) => jump(event, unit.id)}
-              className={cn(
-                "inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-soft border px-3 text-[13px] font-bold text-ink no-underline outline-none transition-colors hover:bg-paper-2 focus-visible:bg-paper-2",
-                !mock && unit.id === next.unit
-                  ? "border-ink bg-surface"
-                  : "border-ink/25 bg-surface",
-              )}
-            >
-              {!mock && (
-                <span className="font-mono text-[11px] tabular-nums text-ink-3">
-                  {i + 1}
-                </span>
-              )}
-              <span className="whitespace-nowrap">{unit.title}</span>
-              {!mock && saved && (
-                <span
-                  className={cn(
-                    "font-mono text-[10.5px] tabular-nums",
-                    count === unit.levels.length
-                      ? "text-kenya-green"
-                      : "text-ink-3",
-                  )}
-                >
-                  {count}/{unit.levels.length}
-                </span>
-              )}
-            </a>
-          );
-        })}
-      </nav>
+        <nav
+          aria-label="Units"
+          className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {UNITS.map((unit, i) => {
+            const count = saved
+              ? unit.levels.filter((l) => levelDone(l, saved)).length
+              : 0;
+            const mock = unit.id === "mock";
+            const state: UnitState = saved ? unitState(unit, saved) : "open";
+            return (
+              <a
+                key={unit.id}
+                href={`#unit-${unit.id}`}
+                onClick={(event) => jump(event, unit.id)}
+                className={cn(
+                  "inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-soft border px-3 text-[13px] font-bold no-underline outline-none transition-colors hover:bg-paper-2 focus-visible:bg-paper-2",
+                  state === "done"
+                    ? "border-success-line bg-state-done-soft text-ink"
+                    : state === "current"
+                      ? "border-2 border-ink bg-state-next text-state-next-foreground hover:bg-state-next focus-visible:bg-state-next"
+                      : state === "locked"
+                        ? "border-dashed border-neutral-line bg-surface text-neutral-strong"
+                        : "border-neutral-line bg-surface text-ink",
+                )}
+              >
+                {!mock &&
+                  (state === "done" ? (
+                    <span className="flex size-4 items-center justify-center rounded-full bg-state-done text-state-done-foreground">
+                      <Icon icon={CheckIcon} size={10} />
+                      <span className="sr-only">Done:</span>
+                    </span>
+                  ) : state === "locked" ? (
+                    <Icon icon={LockIcon} size={13} />
+                  ) : (
+                    <span className="font-mono text-[11px] tabular-nums opacity-70">
+                      {i + 1}
+                    </span>
+                  ))}
+                <span className="whitespace-nowrap">{unit.title}</span>
+                {!mock && saved && (
+                  <span
+                    className={cn(
+                      "font-mono text-[10.5px] tabular-nums",
+                      state === "done"
+                        ? "text-success-strong"
+                        : state === "current"
+                          ? "opacity-80"
+                          : "text-neutral-strong",
+                    )}
+                  >
+                    {count}/{unit.levels.length}
+                  </span>
+                )}
+              </a>
+            );
+          })}
+        </nav>
+        {saved && <StateKey />}
+      </div>
 
       {UNITS.map((unit, i) => {
         const mock = unit.id === "mock";
+        const count = saved
+          ? unit.levels.filter((l) => levelDone(l, saved)).length
+          : 0;
         return (
           <section
             key={unit.id}
             id={`unit-${unit.id}`}
             aria-labelledby={`unit-${unit.id}-title`}
-            className="scroll-mt-32"
+            className="scroll-mt-40"
           >
             {!mock && (
               <header className="mb-3">
@@ -301,6 +447,20 @@ export function LevelPicker({
                 <p className="m-0 mt-1 text-[14px] leading-snug text-ink-2">
                   {unit.blurb}
                 </p>
+                {saved && (
+                  <div className="mt-2 flex max-w-sm items-center gap-2.5">
+                    <Progress
+                      value={(count / unit.levels.length) * 100}
+                      tone="green"
+                      showTicks={false}
+                      aria-label={`${unit.title}: levels done`}
+                      className="h-1.5 flex-1"
+                    />
+                    <span className="shrink-0 font-mono text-[10.5px] font-bold uppercase tracking-widest tabular-nums text-ink-3">
+                      {count} of {unit.levels.length} done
+                    </span>
+                  </div>
+                )}
               </header>
             )}
             {mock && (
@@ -313,13 +473,7 @@ export function LevelPicker({
                 <LevelCard
                   key={level.id}
                   level={level}
-                  done={saved ? levelDone(level, saved) : false}
-                  next={
-                    saved != null &&
-                    !current &&
-                    level.id === next.id &&
-                    level.id !== MOCK_LEVEL_ID
-                  }
+                  state={saved ? levelState(level, saved) : "open"}
                   now={level.id === current}
                   stars={
                     saved && level.kind === "drive"
@@ -328,12 +482,14 @@ export function LevelPicker({
                   }
                   replace={replace}
                   onPick={onPick}
+                  onLocked={skip.ask}
                 />
               ))}
             </ol>
           </section>
         );
       })}
+      {skip.dialog}
     </div>
   );
 }

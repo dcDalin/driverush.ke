@@ -5,18 +5,14 @@
  * with the way on to the next level.
  */
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router";
 
 import { analytics } from "~/lib/analytics";
 import { BOARD_LEVELS_PATH, levelHref } from "~/lib/board-guides";
-import {
-  BLOCK_SOURCE,
-  RULES_SOURCE,
-  laneRule,
-} from "~/lib/board/board-rules";
+import { BLOCK_SOURCE, RULES_SOURCE, laneRule } from "~/lib/board/board-rules";
 import {
   COURSE_LEVELS,
-  KIND_LABEL,
   learnedKey,
   levelAfter,
   unitOf,
@@ -56,6 +52,7 @@ import { InstallNudge } from "~/components/brand/install-nudge";
 import {
   ArrowRightIcon,
   CheckIcon,
+  ChevronDownIcon,
   ChevronLeftIcon,
   CloseIcon,
   GridIcon,
@@ -73,7 +70,6 @@ import { useParkingLayout } from "~/components/board/use-parking-layout";
 const chip =
   "min-h-11 rounded-md border-2 px-3 py-2 text-left text-[13.5px] font-semibold leading-snug outline-none transition-colors focus-visible:border-white";
 const chipOff = "border-white/15 bg-white/5 text-white hover:bg-white/10";
-const chipOn = "border-[#f6c416] bg-[#f6c416] text-[#17181b]";
 const eyebrow =
   "m-0 font-mono text-[10px] font-bold uppercase tracking-widest text-white/55";
 const primary =
@@ -83,35 +79,126 @@ const secondary =
 const iconButton =
   "inline-flex size-11 items-center justify-center rounded-md border-2 border-white/15 outline-none transition-colors hover:bg-white/15 focus-visible:border-white";
 
-/** The way on from a finished level, said under whatever finished it. */
+const quiet =
+  "inline-flex min-h-10 items-center justify-center text-center text-[13px] font-semibold text-white/75 underline underline-offset-4 outline-none hover:text-white focus-visible:text-white";
+
+/**
+ * The panel's foot: where the one thing to do next always sits, under the
+ * scrolling part, so it is never scrolled out of sight. Levels put their
+ * buttons here with `PanelActions`.
+ */
+const FootSlot = React.createContext<HTMLElement | null>(null);
+
+function PanelActions({ children }: { children: React.ReactNode }) {
+  const slot = React.useContext(FootSlot);
+  return slot ? createPortal(children, slot) : null;
+}
+
+/** Folded detail: open on a tap, closed by default on every screen. */
+function Fold({
+  label,
+  children,
+  defaultOpen = false,
+}: {
+  label: React.ReactNode;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = React.useState(defaultOpen);
+  return (
+    <div className="grid gap-2">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="flex min-h-11 w-full items-center justify-between gap-2 rounded-md border-2 border-white/15 px-3 text-left text-[13.5px] font-semibold outline-none transition-colors hover:bg-white/10 focus-visible:border-white"
+      >
+        {label}
+        <Icon
+          icon={ChevronDownIcon}
+          size={16}
+          className={cn(
+            "shrink-0 transition-transform motion-reduce:transition-none",
+            open && "rotate-180",
+          )}
+        />
+      </button>
+      {open && children}
+    </div>
+  );
+}
+
+/**
+ * The way on from a finished level: one button to the next level, and a quiet
+ * link to every level. Rendered into the panel's foot.
+ */
 export function LevelNext({
   level,
-  className,
+  children,
 }: {
   level: Level;
-  className?: string;
+  /** Another quiet choice beside "All levels", like reading it again. */
+  children?: React.ReactNode;
 }) {
   const next = levelAfter(level);
   const openLevels = useOpenLevels();
   return (
-    <div className={cn("grid gap-2", className)}>
+    <PanelActions>
       {next && (
         <Link to={levelHref(next.id)} replace className={primary}>
           <span className="min-w-0">
-            Next: level {next.n}, {next.title}
+            {next.kind === "mock"
+              ? "Next: the mock test"
+              : `Next: level ${next.n}, ${next.title}`}
           </span>
           <Icon icon={ArrowRightIcon} size={16} className="shrink-0" />
         </Link>
       )}
-      {openLevels ? (
-        <button type="button" onClick={openLevels} className={secondary}>
-          All levels
-        </button>
-      ) : (
-        <Link to={BOARD_LEVELS_PATH} replace className={secondary}>
-          All levels
-        </Link>
-      )}
+      <div className="flex flex-wrap items-center justify-center gap-x-5">
+        {children}
+        {openLevels ? (
+          <button type="button" onClick={openLevels} className={quiet}>
+            All levels
+          </button>
+        ) : (
+          <Link to={BOARD_LEVELS_PATH} replace className={quiet}>
+            All levels
+          </Link>
+        )}
+      </div>
+    </PanelActions>
+  );
+}
+
+/** A level done before this visit: the way on, without finishing it again. */
+function SkipOn({ level }: { level: Level }) {
+  const next = levelAfter(level);
+  if (!next) return null;
+  return (
+    <PanelActions>
+      <p className="m-0 text-center text-[12.5px] leading-snug text-white/65">
+        You have done this level before.
+      </p>
+      <Link to={levelHref(next.id)} replace className={secondary}>
+        {next.kind === "mock" ? "Go to the mock test" : `Go to level ${next.n}`}
+        <Icon icon={ArrowRightIcon} size={14} />
+      </Link>
+    </PanelActions>
+  );
+}
+
+/** Done: a tick, the level's cheer, and the install ask, at the top. */
+function LevelDone({
+  level,
+  children,
+}: {
+  level: Level;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="grid gap-2 rounded-md border-2 border-kenya-green/50 bg-kenya-green/10 p-3">
+      <DoneNote>{children}</DoneNote>
+      <LevelCheer level={level} />
       <InstallNudge surface="level_done" tone="game" />
     </div>
   );
@@ -274,22 +361,27 @@ function SlidesLevel({
               : "Tap a pin on the table."}
           </p>
         </div>
-        <button
-          type="button"
-          className={secondary}
-          onClick={() => {
-            setFinding(false);
-            setWrong([]);
-          }}
-        >
-          <Icon icon={ChevronLeftIcon} size={16} />
-          Back to the cards
-        </button>
+        <PanelActions>
+          <button
+            type="button"
+            className={secondary}
+            onClick={() => {
+              setFinding(false);
+              setWrong([]);
+            }}
+          >
+            <Icon icon={ChevronLeftIcon} size={16} />
+            Back to the cards
+          </button>
+        </PanelActions>
       </div>
     );
   }
+  const ended = finished || (done && last);
+  const after = levelAfter(level);
   return (
     <div className="grid gap-3">
+      {ended && <LevelDone level={level}>Level {level.n} done.</LevelDone>}
       <div
         aria-live="polite"
         className="rounded-md border-2 border-[#f6c416] bg-white/5 p-3"
@@ -317,14 +409,11 @@ function SlidesLevel({
         </p>
       </div>
 
-      {finished || (done && last) ? (
-        <>
-          <DoneNote>Level {level.n} done.</DoneNote>
-          <LevelCheer level={level} />
-          <LevelNext level={level} />
+      {ended ? (
+        <LevelNext level={level}>
           <button
             type="button"
-            className="min-h-11 text-center text-[13px] font-semibold text-white/75 underline underline-offset-4 outline-none hover:text-white focus-visible:text-white"
+            className={quiet}
             onClick={() => {
               setFinished(false);
               setAt(0);
@@ -332,42 +421,53 @@ function SlidesLevel({
           >
             Read it again
           </button>
-        </>
+        </LevelNext>
       ) : (
-        <div className="flex gap-2">
-          <button
-            type="button"
-            aria-label="Previous card"
-            disabled={at === 0}
-            onClick={() => setAt((n) => Math.max(0, n - 1))}
-            className={cn(secondary, "w-14 shrink-0 px-0")}
-          >
-            <Icon icon={ChevronLeftIcon} size={18} />
-          </button>
-          <button
-            type="button"
-            className={primary}
-            onClick={() => {
-              if (!last) {
-                setAt((n) => n + 1);
-                return;
-              }
-              if (target) {
-                setWrong([]);
-                setFinding(true);
-                return;
-              }
-              setFinished(true);
-              onDone();
-            }}
-          >
-            {last && !target ? "Got it" : "Next"}
-            <Icon
-              icon={last && !target ? CheckIcon : ArrowRightIcon}
-              size={16}
-            />
-          </button>
-        </div>
+        <PanelActions>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              aria-label="Previous card"
+              disabled={at === 0}
+              onClick={() => setAt((n) => Math.max(0, n - 1))}
+              className={cn(secondary, "w-14 shrink-0 px-0")}
+            >
+              <Icon icon={ChevronLeftIcon} size={18} />
+            </button>
+            <button
+              type="button"
+              className={primary}
+              onClick={() => {
+                if (!last) {
+                  setAt((n) => n + 1);
+                  return;
+                }
+                if (target) {
+                  setWrong([]);
+                  setFinding(true);
+                  return;
+                }
+                setFinished(true);
+                onDone();
+              }}
+            >
+              {last
+                ? target
+                  ? "Find it on the board"
+                  : "Got it"
+                : "Next card"}
+              <Icon
+                icon={last && !target ? CheckIcon : ArrowRightIcon}
+                size={16}
+              />
+            </button>
+          </div>
+          {done && after && (
+            <Link to={levelHref(after.id)} replace className={quiet}>
+              Done before. Skip to level {after.n}
+            </Link>
+          )}
+        </PanelActions>
       )}
     </div>
   );
@@ -428,13 +528,9 @@ function LanesLevel({
   const front = React.useMemo(() => pickable(cars, home), [cars, home]);
   const road = APPROACHES.find((a) => a.arm === arm);
   const allHome = home.length >= cars.length;
-  // On a phone the list of every option would cover the cars it is about, so
-  // it stays folded: the cars are picked on the table.
-  const [listOpen, setListOpen] = React.useState(
-    () =>
-      typeof window === "undefined" ||
-      !window.matchMedia("(max-width: 639px)").matches,
-  );
+  // What can be driven right now: the front car of each lane not yet home.
+  // The full list of options stays folded on every screen.
+  const ready = front.filter((car) => !home.includes(car.id));
 
   React.useEffect(() => {
     show([]);
@@ -442,40 +538,113 @@ function LanesLevel({
     flyTo(lineUpBox(arm, phone), sideways);
   }, [arm, sideways, show]);
 
-  return (
-    <div className="grid gap-3">
-      <p className="m-0 text-[14px] font-semibold leading-snug text-white">
-        Tap the front car of any lane and drive it to its place.
-      </p>
-      <div className="flex items-center justify-between gap-3">
-        <p aria-live="polite" className={eyebrow}>
-          {home.length} of {cars.length} cars home
-        </p>
-        <span aria-hidden className="flex gap-1">
-          {cars.map((car) => (
-            <span
-              key={car.id}
-              className={cn(
-                "size-2.5 rounded-full border border-white/40",
-                !home.includes(car.id) && "opacity-35",
-              )}
-              style={{ background: car.paint }}
-            />
-          ))}
-        </span>
-      </div>
+  const carRow = (car: (typeof cars)[number], compact: boolean) => {
+    const isHome = home.includes(car.id);
+    const canTake = front.includes(car) && !isHome;
+    return (
       <button
         type="button"
-        aria-expanded={listOpen}
-        onClick={() => setListOpen((v) => !v)}
-        className="flex min-h-11 w-full items-center justify-between gap-2 rounded-md border-2 border-white/15 px-3 text-left text-[13.5px] font-semibold outline-none transition-colors hover:bg-white/10 focus-visible:border-white"
+        disabled={!canTake}
+        onClick={() => pickCar(car.id)}
+        className={cn(
+          chip,
+          canTake
+            ? "border-[#f6c416]/70 bg-white/5 text-white hover:bg-white/10"
+            : chipOff,
+          "flex w-full items-center gap-3 disabled:hover:bg-white/5",
+          !canTake && !isHome && "opacity-55",
+        )}
       >
-        Where each lane may go
-        <span aria-hidden className="font-mono text-[16px] leading-none">
-          {listOpen ? "−" : "+"}
+        <span
+          aria-hidden
+          className="h-4 w-7 shrink-0 rounded-[5px] border border-white/40"
+          style={{ background: car.paint }}
+        />
+        <span className="min-w-0 flex-1">
+          {compact && (
+            <span className="block font-mono text-[10px] font-bold uppercase tracking-widest text-white/55">
+              Lane {car.lane}
+            </span>
+          )}
+          {car.option.label}{" "}
+          <span className="font-mono text-[11px] text-white/55">
+            {car.option.degrees}
+          </span>
+          {!compact && (
+            <span className="mt-0.5 block text-[12px] leading-snug text-white/60">
+              {car.option.how}
+            </span>
+          )}
+          {!car.option.confirmed && (
+            <span className="mt-0.5 block text-[12px] font-semibold text-kenya-gold">
+              {UNSURE_NOTE}
+            </span>
+          )}
         </span>
+        {isHome ? (
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-kenya-green text-kenya-green-foreground">
+            <Icon icon={CheckIcon} size={12} />
+            <span className="sr-only">Home</span>
+          </span>
+        ) : canTake ? (
+          <span className="shrink-0 rounded-[4px] bg-[#f6c416] px-2 py-1 font-mono text-[10.5px] font-bold uppercase leading-none tracking-widest text-[#17181b]">
+            Drive
+          </span>
+        ) : (
+          <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-widest text-white/55">
+            Waiting
+          </span>
+        )}
       </button>
-      {listOpen && (
+    );
+  };
+
+  return (
+    <div className="grid gap-3">
+      {allHome && (
+        <LevelDone level={level}>
+          Every car is home. Level {level.n} done.
+        </LevelDone>
+      )}
+      {!allHome && (
+        <div className="grid gap-2 rounded-md border-2 border-[#f6c416] bg-white/5 p-3">
+          <p className={eyebrow}>Do this</p>
+          <p className="m-0 text-[14.5px] font-semibold leading-snug text-white">
+            Drive each car to its place. Tap a car marked Drive, here or on the
+            table.
+          </p>
+          <div className="flex items-center justify-between gap-3">
+            <p aria-live="polite" className={eyebrow}>
+              {home.length} of {cars.length} cars home
+            </p>
+            <span aria-hidden className="flex gap-1">
+              {cars.map((car) => (
+                <span
+                  key={car.id}
+                  className={cn(
+                    "size-2.5 rounded-full border border-white/40",
+                    !home.includes(car.id) && "opacity-35",
+                  )}
+                  style={{ background: car.paint }}
+                />
+              ))}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {ready.length > 0 && (
+        <section aria-label="Cars you can drive now" className="grid gap-1.5">
+          <p className={eyebrow}>Drive now</p>
+          <ul className="m-0 grid list-none gap-1.5 p-0">
+            {ready.map((car) => (
+              <li key={car.id}>{carRow(car, true)}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <Fold label="Where each lane may go">
         <p className="m-0 text-[13.5px] leading-snug text-white/80">
           {road?.road}, {lanes} lanes each way. Its option code is{" "}
           <strong className="font-mono text-white">
@@ -484,9 +653,7 @@ function LanesLevel({
           : the number of options in each lane, counted from the kerb. There is
           one car for each option.
         </p>
-      )}
-      {listOpen &&
-        Array.from({ length: lanes }, (_, i) => i + 1).map((lane) => (
+        {Array.from({ length: lanes }, (_, i) => i + 1).map((lane) => (
           <section key={lane} aria-label={`Lane ${lane}`}>
             <p className="m-0 text-[13px] font-semibold leading-snug text-white/80">
               {laneRule(lanes, lane)}
@@ -494,79 +661,15 @@ function LanesLevel({
             <ul className="m-0 mt-1.5 grid list-none gap-1.5 p-0">
               {cars
                 .filter((car) => car.lane === lane)
-                .map((car) => {
-                  const isHome = home.includes(car.id);
-                  const canTake = front.includes(car);
-                  return (
-                    <li key={car.id}>
-                      <button
-                        type="button"
-                        disabled={!canTake}
-                        onClick={() => pickCar(car.id)}
-                        className={cn(
-                          chip,
-                          chipOff,
-                          "flex w-full items-center gap-3 disabled:hover:bg-white/5",
-                          !canTake && !isHome && "opacity-55",
-                        )}
-                      >
-                        <span
-                          aria-hidden
-                          className="h-4 w-7 shrink-0 rounded-[5px] border border-white/40"
-                          style={{ background: car.paint }}
-                        />
-                        <span className="flex-1">
-                          {car.option.label}{" "}
-                          <span className="font-mono text-[11px] text-white/55">
-                            {car.option.degrees}
-                          </span>
-                          <span className="mt-0.5 block text-[12px] leading-snug text-white/60">
-                            {car.option.how}
-                          </span>
-                          {!car.option.confirmed && (
-                            <span className="mt-0.5 block text-[12px] font-semibold text-kenya-gold">
-                              {UNSURE_NOTE}
-                            </span>
-                          )}
-                        </span>
-                        {isHome ? (
-                          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-kenya-green text-kenya-green-foreground">
-                            <Icon icon={CheckIcon} size={12} />
-                            <span className="sr-only">Home</span>
-                          </span>
-                        ) : canTake ? (
-                          <span className="shrink-0 font-mono text-[11px] font-bold uppercase tracking-widest text-[#f6c416]">
-                            Drive
-                          </span>
-                        ) : (
-                          <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-widest text-white/55">
-                            Waiting
-                          </span>
-                        )}
-                      </button>
-                    </li>
-                  );
-                })}
+                .map((car) => (
+                  <li key={car.id}>{carRow(car, false)}</li>
+                ))}
             </ul>
           </section>
         ))}
+      </Fold>
 
-      {allHome ? (
-        <>
-          <DoneNote>Every car is home. Level {level.n} done.</DoneNote>
-          <LevelCheer level={level} />
-          <LevelNext level={level} />
-        </>
-      ) : (
-        done && (
-          <>
-            <p className="m-0 text-[13px] leading-snug text-white/70">
-              You have done this level before. Drive the cars again, or go on.
-            </p>
-            <LevelNext level={level} />
-          </>
-        )
-      )}
+      {allHome ? <LevelNext level={level} /> : done && <SkipOn level={level} />}
     </div>
   );
 }
@@ -629,6 +732,9 @@ function WatchLevel({
 
   return (
     <div className="grid gap-3">
+      {route && ended && (
+        <LevelDone level={level}>Level {level.n} done.</LevelDone>
+      )}
       <div>
         <p className={eyebrow}>The examiner might say</p>
         <p className="m-0 mt-1 text-[14.5px] font-semibold leading-snug">
@@ -644,37 +750,47 @@ function WatchLevel({
       {route ? (
         <>
           <BoardPlayback className="rounded-md border-2 border-white/15 bg-white/5 p-3" />
-          {(ended || done) && (
-            <>
-              {ended && <DoneNote>Level {level.n} done.</DoneNote>}
-              {ended && <LevelCheer level={level} />}
-              <LevelNext level={level} />
-            </>
+          <Fold label={`Steps (${route.steps.length})`}>
+            <RouteSteps route={route} step={step} />
+          </Fold>
+          {ended ? (
+            <LevelNext level={level} />
+          ) : (
+            done && <SkipOn level={level} />
           )}
-          <RouteSteps route={route} step={step} />
         </>
       ) : (
         <>
-          <button
-            type="button"
-            className={primary}
-            onClick={() => {
-              watch(line);
-              analytics.boardLessonViewed({
-                kind: parking ? "parking" : "route",
-                lesson_id: lesson.id,
-              });
-            }}
-          >
-            <Icon icon={PlayIcon} size={16} />
-            Watch the car drive it
-          </button>
           <p className="m-0 text-[12.5px] leading-snug text-white/65">
             {line.steps.length} steps
             {line.steps.some((s) => s.gear === "reverse") && ", with reversing"}
             . You can pause, step back and slow it down.
           </p>
-          {done && <LevelNext level={level} />}
+          <PanelActions>
+            <button
+              type="button"
+              className={primary}
+              onClick={() => {
+                watch(line);
+                analytics.boardLessonViewed({
+                  kind: parking ? "parking" : "route",
+                  lesson_id: lesson.id,
+                });
+              }}
+            >
+              <Icon icon={PlayIcon} size={16} />
+              Watch the car drive it
+            </button>
+            {done && levelAfter(level) && (
+              <Link
+                to={levelHref(levelAfter(level)!.id)}
+                replace
+                className={quiet}
+              >
+                Done before. Skip to level {levelAfter(level)!.n}
+              </Link>
+            )}
+          </PanelActions>
         </>
       )}
     </div>
@@ -737,6 +853,7 @@ export function BoardLevel({
   }, []);
 
   const unit = unitOf(level);
+  const [foot, setFoot] = React.useState<HTMLDivElement | null>(null);
 
   return (
     <div className="pointer-events-none absolute inset-0 z-20 flex flex-col justify-end sm:flex-row sm:justify-start">
@@ -748,8 +865,7 @@ export function BoardLevel({
         <header className="flex items-start justify-between gap-2 px-3.5 pt-3">
           <div className="min-w-0">
             <p className={eyebrow}>
-              Level {level.n} of {COURSE_LEVELS.length} · {unit.title} ·{" "}
-              {KIND_LABEL[level.kind]}
+              Level {level.n} of {COURSE_LEVELS.length} · {unit.title}
             </p>
             <h2 className="m-0 mt-1 font-display text-[19px] font-extrabold uppercase leading-[1.05] tracking-tight">
               {level.title}
@@ -785,20 +901,27 @@ export function BoardLevel({
           </div>
         </header>
 
-        <div className="mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5 pb-4">
-          {level.kind === "slides" ? (
-            <SlidesLevel
-              level={level}
-              sideways={sideways}
-              done={wasDone}
-              onDone={completeLevel}
-            />
-          ) : level.kind === "lanes" ? (
-            <LanesLevel level={level} sideways={sideways} done={wasDone} />
-          ) : level.kind === "watch" ? (
-            <WatchLevel level={level} done={wasDone} onDone={completeLevel} />
-          ) : null}
-        </div>
+        <FootSlot.Provider value={foot}>
+          <div className="mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5 pb-4">
+            {level.kind === "slides" ? (
+              <SlidesLevel
+                level={level}
+                sideways={sideways}
+                done={wasDone}
+                onDone={completeLevel}
+              />
+            ) : level.kind === "lanes" ? (
+              <LanesLevel level={level} sideways={sideways} done={wasDone} />
+            ) : level.kind === "watch" ? (
+              <WatchLevel level={level} done={wasDone} onDone={completeLevel} />
+            ) : null}
+          </div>
+        </FootSlot.Provider>
+        {/* The one thing to do next, never scrolled away. Empty, it takes no room. */}
+        <div
+          ref={setFoot}
+          className="grid shrink-0 gap-1.5 border-t-2 border-white/10 px-3.5 pb-3 pt-3 empty:hidden"
+        />
       </section>
     </div>
   );

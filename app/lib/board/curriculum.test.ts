@@ -11,7 +11,9 @@ import {
   levelBefore,
   levelById,
   levelDone,
+  levelState,
   nextLevel,
+  unitState,
 } from "./curriculum";
 import { levelSlides } from "./curriculum-content";
 import { BOARD_FEATURES } from "./features";
@@ -140,5 +142,81 @@ describe("progress through the course", () => {
     expect(levelAfter(ALL_LEVELS[ALL_LEVELS.length - 1])).toBeUndefined();
     expect(levelBefore(first)).toBeUndefined();
     expect(levelBefore(ALL_LEVELS[1])).toBe(first);
+  });
+
+  it("marks each level done, next, open or locked", () => {
+    const state = (id: string, saved: Parameters<typeof levelState>[1]) =>
+      levelState(levelById(id) ?? ALL_LEVELS[Number(id) - 1], saved);
+    // A first visit: level 1 is next, everything after is locked, the mock
+    // test can be taken any time.
+    expect(state("1", EMPTY)).toBe("next");
+    expect(state("2", EMPTY)).toBe("locked");
+    expect(state("mock-test", EMPTY)).toBe("open");
+    expect(unitState(UNITS[0], EMPTY)).toBe("current");
+    expect(unitState(UNITS[1], EMPTY)).toBe("locked");
+
+    // Levels 1 to 9 done: 10 is next, 11 locked.
+    const nine = {
+      learned: COURSE_LEVELS.slice(0, 9).flatMap((l) => [
+        learnedKey(l),
+        ...(l.kind === "watch" ? [l.lesson] : []),
+      ]),
+      bestStars: Object.fromEntries(
+        COURSE_LEVELS.slice(0, 9).flatMap((l) =>
+          l.kind === "drive" ? [[l.challenge, 1]] : [],
+        ),
+      ),
+    };
+    for (let n = 1; n <= 9; n++) expect(state(String(n), nine)).toBe("done");
+    expect(state("10", nine)).toBe("next");
+    expect(state("11", nine)).toBe("locked");
+    expect(unitState(UNITS[0], nine)).toBe("done");
+
+    // Skipped ahead to 14 and finished it: 10 still next, 11 to 13 open
+    // behind, 15 open after it, 16 locked.
+    const l14 = ALL_LEVELS[13];
+    const skipped = {
+      learned: [
+        ...nine.learned,
+        learnedKey(l14),
+        ...(l14.kind === "watch" ? [l14.lesson] : []),
+      ],
+      bestStars: {
+        ...nine.bestStars,
+        ...(l14.kind === "drive" ? { [l14.challenge]: 1 } : {}),
+      },
+    };
+    expect(state("14", skipped)).toBe("done");
+    expect(state("10", skipped)).toBe("next");
+    for (const n of [11, 12, 13, 15])
+      expect(state(String(n), skipped)).toBe("open");
+    expect(state("16", skipped)).toBe("locked");
+
+    // Everything done: nothing is next or locked.
+    const all = {
+      learned: [
+        ...LESSONS.map((l) => l.id),
+        ...COURSE_LEVELS.map((l) => learnedKey(l)),
+      ],
+      bestStars: Object.fromEntries(BOARD_CHALLENGES.map((c) => [c.id, 1])),
+    };
+    expect(COURSE_LEVELS.every((l) => levelState(l, all) === "done")).toBe(
+      true,
+    );
+    expect(state("mock-test", all)).toBe("open");
+  });
+
+  it("never locks the level after a finished one", () => {
+    for (const level of COURSE_LEVELS) {
+      const saved = {
+        learned: [
+          learnedKey(level),
+          ...(level.kind === "watch" ? [level.lesson] : []),
+        ],
+        bestStars: level.kind === "drive" ? { [level.challenge]: 1 } : {},
+      };
+      const after = levelAfter(level);
+      if (after) expect(levelState(after, saved)).not.toBe("locked");
+    }
   });
 });
