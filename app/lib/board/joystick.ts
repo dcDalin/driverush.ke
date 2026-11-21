@@ -71,6 +71,11 @@ export type DriveOptions = {
    * apart by the knob.
    */
   exitTo?: { arm: ArmId; lane: number } | null;
+  /**
+   * Where the other cars on the table stand. Lane assist never starts a lane
+   * change into a lane with a car alongside or just ahead.
+   */
+  others?: readonly { x: number; z: number }[];
 };
 
 /** What the assist remembers between steps. */
@@ -182,6 +187,29 @@ const LANE_DWELL_AGAIN = 0.5;
 const LANE_SQUARE = (25 * Math.PI) / 180;
 /** A lane change is over once the car is this close to the new lane's middle. */
 const LANE_IN = 0.5;
+/** A car this far behind, or this far ahead, keeps a lane change out of its lane. */
+const CLEAR_BEHIND = CAR.length + 1;
+const CLEAR_AHEAD = 12;
+
+/** Is a car standing in this lane alongside or just ahead? */
+function laneTaken(
+  loc: { arm: ArmId; side: "approach" | "exit"; along: number },
+  lane: number,
+  others: readonly { x: number; z: number }[],
+): boolean {
+  // Up the approach `along` falls; down the exit it grows.
+  const ahead = loc.side === "approach" ? -1 : 1;
+  return others.some((other) => {
+    const at = locate(other.x, other.z);
+    if (at.kind !== "arm" || at.arm !== loc.arm || at.side !== loc.side) {
+      return false;
+    }
+    if (at.lane !== lane) return false;
+    const gap = (at.along - loc.along) * ahead;
+    return gap > -CLEAR_BEHIND && gap < CLEAR_AHEAD;
+  });
+}
+
 /**
  * Room a change needs before the continuous lines at the roundabout, metres.
  * A change crosses the lane line about halfway over; starting later than
@@ -202,6 +230,7 @@ function laneToHold(
   ahead: number,
   knob: number | null,
   state: AssistState,
+  others: readonly { x: number; z: number }[],
 ): number {
   const road = `${loc.arm}:${loc.side}`;
   if (state.change && state.change.road !== road) state.change = null;
@@ -226,8 +255,9 @@ function laneToHold(
   const change = state.change;
   if (change) {
     const into = lanePoint(loc.arm, loc.side, change.to, loc.along);
-    if (leaning === -change.dir) {
-      // leaned back the other way: stay in the lane it is in now
+    if (leaning === -change.dir || laneTaken(loc, change.to, others)) {
+      // leaned back the other way, or a car is in the way: stay in the lane
+      // it is in now
       state.change = null;
       return loc.lane;
     }
@@ -249,7 +279,8 @@ function laneToHold(
     Math.abs(state.lean) >= (state.again ? LANE_DWELL_AGAIN : LANE_DWELL) &&
     to >= 1 &&
     to <= ARMS[loc.arm].lanes &&
-    room
+    room &&
+    !laneTaken(loc, to, others)
   ) {
     state.change = { road, to, dir: leaning };
     return to;
@@ -261,6 +292,8 @@ function laneToHold(
 const EXIT_NEAR = 24;
 /** The knob must point within this of the way the exit road runs. */
 const EXIT_CONE = (50 * Math.PI) / 180;
+/** And this far outward of the way the ring runs, so a knob along it is not asking. */
+const EXIT_OUTWARD = (10 * Math.PI) / 180;
 /** The car turns off once it is this close to the line of the exit lane, metres. */
 const EXIT_LEVEL = 2.4;
 /** Turning off, it aims this far on down the exit lane from where it is. */
@@ -285,9 +318,9 @@ export function exitAhead(
   if (loc.kind !== "ring") return null;
   for (const id of ARM_ORDER) {
     const runs = laneBearing(id, "exit");
-    if (Math.abs(wrapPi(knob - runs)) > EXIT_CONE) continue;
-    const dir = dirOf(runs);
+    if (!downExit(knob, runs, loc.bearing)) continue;
     const turning = state?.leaving === id && state.leavingLane != null;
+    const dir = dirOf(runs);
     // The lanes the rule allows out of the lane it came round in. Still
     // joining the ring, that is the lane it is joining, not the one it is
     // crossing on the way.
@@ -345,12 +378,23 @@ export function exitAhead(
   return null;
 }
 
+/**
+ * Does the knob point down this exit road, for a car on the ring at `bearing`
+ * from the middle? Within the cone, and clearly outward of the way the ring
+ * runs there: close to an exit the ring itself runs about 45 degrees off the
+ * road, so a knob held along the ring is not asking to leave.
+ */
+function downExit(knob: number, runs: number, bearing: number): boolean {
+  // clockwise, so outward is the knob turned back from the ring's way
+  const outward = -wrapPi(knob - bearing - Math.PI / 2);
+  return Math.abs(wrapPi(knob - runs)) <= EXIT_CONE && outward >= EXIT_OUTWARD;
+}
+
 /** Is the knob pointing down an exit road whose mouth is close? */
 function exitNear(car: CarState, knob: number): boolean {
+  const bearing = bearingOf(car.x, car.z);
   return ARM_ORDER.some((id) => {
-    if (Math.abs(wrapPi(knob - laneBearing(id, "exit"))) > EXIT_CONE) {
-      return false;
-    }
+    if (!downExit(knob, laneBearing(id, "exit"), bearing)) return false;
     const mouth = lanePoint(id, "exit", 1, RING_OUTER_R);
     return Math.hypot(car.x - mouth.x, car.z - mouth.z) <= EXIT_NEAR;
   });
@@ -366,6 +410,7 @@ function laneAhead(
   car: CarState,
   state: AssistState,
   knob: number | null,
+  others: readonly { x: number; z: number }[],
 ): {
   /** Where to steer to hold the lane. */
   heading: number;
@@ -389,7 +434,15 @@ function laneAhead(
     const aim = lanePoint(
       loc.arm,
       loc.side,
-      laneToHold(car, loc, runs, loc.along + toward * reach, knob, state),
+      laneToHold(
+        car,
+        loc,
+        runs,
+        loc.along + toward * reach,
+        knob,
+        state,
+        others,
+      ),
       loc.along + toward * reach,
     );
     return {
@@ -471,6 +524,7 @@ export function stickToInput(
         car,
         state,
         push < STICK_DEADZONE ? null : stickBearing(stick, options.seat),
+        options.others ?? [],
       )
     : null;
   state.hold = 0;

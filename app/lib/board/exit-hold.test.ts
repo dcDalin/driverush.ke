@@ -20,7 +20,7 @@ function hold(x: number, y: number, until: () => boolean, most = 30) {
  * along its painted line, and let go in the box. The cars in front of it are
  * home already, out of the way.
  */
-function driveHome(level: string, arm: ArmId, id: string) {
+function driveHome(level: string, arm: ArmId, id: string, bias = 0) {
   const cars = queueCars(arm);
   const one = cars.find((c) => c.id === id)!;
   useBoardStore.getState().exit();
@@ -63,7 +63,9 @@ function driveHome(level: string, arm: ArmId, id: string) {
       }
     }
     const aim = points[Math.min(points.length - 1, near + 12)];
-    const knob = bearingOf(aim.x - car.x, aim.z - car.z);
+    // a thumb can be held a steady `bias` degrees off
+    const knob =
+      bearingOf(aim.x - car.x, aim.z - car.z) + (bias * Math.PI) / 180;
     // seated south, up on the knob is north
     stick.x = home ? 0 : Math.sin(knob);
     stick.y = home ? 0 : -Math.cos(knob);
@@ -177,7 +179,8 @@ describe("lane assist out of the roundabout", () => {
     const state = { ...createAssist(), entryLane: 3, entryArm: "W" as const };
     const at = { x: -13.2, z: -2.6, heading: 1.1, speed: 6, steer: 0 };
     expect(locate(at.x, at.z)).toMatchObject({ kind: "ring", lane: 2 });
-    expect(exitAhead(at, (43 * Math.PI) / 180, state)).toBe("wait");
+    // pointing up the north road, a little out from the way the ring runs
+    expect(exitAhead(at, (-5 * Math.PI) / 180, state)).toBe("wait");
   });
 
   it("goes into lane 4 when the rule allows lane 3 or lane 4", () => {
@@ -186,6 +189,32 @@ describe("lane assist out of the roundabout", () => {
     expect(home).toBe(true);
     const at = locate(car.x, car.z);
     expect(at.kind === "arm" && at.lane).toBe(4);
+  });
+
+  it.each([
+    // leaning toward lane 3 from the start: the lane has a car standing in it
+    ["four-lane", "S", "rb:S4:straight", -15],
+    // leaning out along the ring past the left exit: not asking to leave
+    ["three-lane", "W", "rb:W2:straight", -15],
+    ["four-lane", "S", "rb:S1:left", 15],
+  ] as const)(
+    "%s %s %s comes home with a thumb %d degrees off",
+    (level, arm, id, bias) => {
+      const { fault, home } = driveHome(level, arm, id, bias);
+      expect(fault).toBeNull();
+      expect(home).toBe(true);
+    },
+  );
+
+  it("is not asked for an exit by a knob held along the ring", () => {
+    // in ring lane 2, north-west of the island, driving clockwise: the ring
+    // runs north-east here, 45 degrees off the north road's way out
+    const state = { ...createAssist(), entryArm: "W" as const };
+    const at = { x: -12, z: -11.6, heading: 0.3, speed: 4, steer: 0 };
+    expect(locate(at.x, at.z)).toMatchObject({ kind: "ring", lane: 2 });
+    expect(exitAhead(at, (47 * Math.PI) / 180, state)).toBeNull();
+    // pointing up the north road is asking for it
+    expect(exitAhead(at, 0, state)).not.toBeNull();
   });
 
   it("asks for nothing while the knob lies along the ring", () => {

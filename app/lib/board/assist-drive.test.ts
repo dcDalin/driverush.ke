@@ -155,13 +155,20 @@ describe("lane assist gives way to a lane change", () => {
     angle: number,
     seconds: number,
     state: AssistState = createAssist(),
+    others: { x: number; z: number }[] = [],
   ): number | null {
     const input: CarInput = { steer: 0, throttle: 0, brake: 0 };
     const heading = laneBearing("S", "approach") + angle;
     // seated south, up on the knob is north
     const knob = { x: Math.sin(heading), y: -Math.cos(heading) };
     for (let t = 0; t < seconds; t += STEP) {
-      stickToInput(knob, from, input, { seat: "south", assist: true }, state);
+      stickToInput(
+        knob,
+        from,
+        input,
+        { seat: "south", assist: true, others },
+        state,
+      );
     }
     return state.change?.to ?? null;
   }
@@ -174,6 +181,20 @@ describe("lane assist gives way to a lane change", () => {
   it("ignores a wobble and a slight lean", () => {
     expect(lean(onApproach(56), 20 * DEG, 0.15)).toBeNull();
     expect(lean(onApproach(56), 10 * DEG, 2)).toBeNull();
+  });
+
+  it("never steers into a lane with a car alongside or just ahead", () => {
+    const beside = lanePoint("S", "approach", 3, 56);
+    const ahead = lanePoint("S", "approach", 3, 48);
+    const far = lanePoint("S", "approach", 3, 30);
+    expect(
+      lean(onApproach(56), 20 * DEG, 0.4, createAssist(), [beside]),
+    ).toBeNull();
+    expect(
+      lean(onApproach(56), 20 * DEG, 0.4, createAssist(), [ahead]),
+    ).toBeNull();
+    // a car well up the road is no reason not to
+    expect(lean(onApproach(56), 20 * DEG, 0.4, createAssist(), [far])).toBe(3);
   });
 
   it("never helps a car across the continuous lines", () => {

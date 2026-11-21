@@ -382,6 +382,8 @@ export function tick(frameSeconds: number): void {
       continue;
     }
 
+    // lane assist keeps clear of the other cars
+    drive.others = view.others;
     stickToInput(
       letGo ? REST : stick,
       car,
