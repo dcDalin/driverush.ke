@@ -51,4 +51,59 @@ describe("gaHeadScript", () => {
     expect(script).not.toContain("</script>");
     expect(() => new Function(script)).not.toThrow();
   });
+
+  it("stays quiet in a headless or bot browser, and measures a phone", () => {
+    const script = gaHeadScript(
+      { path: "/", content_group: "Home", page_template: "/" },
+      "G-TEST",
+    );
+    const run = (navigator: Record<string, unknown>) => {
+      const win: Record<string, unknown> = {};
+      const store = () => ({
+        getItem: () => null,
+        setItem() {},
+        removeItem() {},
+      });
+      new Function(
+        "window",
+        "location",
+        "document",
+        "navigator",
+        "sessionStorage",
+        "localStorage",
+        "matchMedia",
+        script,
+      )(
+        win,
+        { search: "", pathname: "/", origin: "https://driverush.ke" },
+        {
+          title: "Home",
+          referrer: "",
+          createElement: () => ({}),
+          head: { appendChild() {} },
+        },
+        navigator,
+        store(),
+        store(),
+        () => ({ matches: false }),
+      );
+      return "__drGa" in win;
+    };
+    const phone =
+      "Mozilla/5.0 (Linux; Android 11; CUBOT X30) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36";
+    expect(run({ userAgent: phone })).toBe(true);
+    expect(run({ userAgent: phone, webdriver: true })).toBe(false);
+    expect(
+      run({ userAgent: "Mozilla/5.0 HeadlessChrome/131.0.0.0 Safari/537.36" }),
+    ).toBe(false);
+    expect(run({ userAgent: "Mozilla/5.0 (compatible; Googlebot/2.1)" })).toBe(
+      false,
+    );
+    expect(
+      run({
+        userAgent: phone,
+        userAgentData: { brands: [{ brand: "HeadlessChrome" }] },
+      }),
+    ).toBe(false);
+  });
 });

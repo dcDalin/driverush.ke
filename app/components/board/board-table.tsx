@@ -35,14 +35,7 @@ import { dirOf } from "~/lib/board/geometry";
 import { STICK_DEADZONE, type Seat } from "~/lib/board/joystick";
 import { taskGoalBox } from "~/lib/board/lessons";
 import { parkedCars } from "~/lib/board/parking-layouts";
-import {
-  car,
-  hasMoved,
-  shown,
-  stick,
-  tick,
-  view,
-} from "~/lib/board/runtime";
+import { car, hasMoved, shown, stick, tick, view } from "~/lib/board/runtime";
 import {
   advance,
   asDriveSpan,
@@ -65,8 +58,12 @@ import {
   stepDown,
   type BoardTier,
 } from "~/lib/board/quality";
+import { analytics } from "~/lib/analytics";
 
-import { buildBoardPaint, type BoardPaint } from "~/components/board/board-paint";
+import {
+  buildBoardPaint,
+  type BoardPaint,
+} from "~/components/board/board-paint";
 import {
   buildRibbon,
   chevronTexture,
@@ -1301,8 +1298,7 @@ function Scene({
     // enough out to see the road ahead, close enough to see which car is
     // yours. Backed right off, the car is a few pixels long.
     const waiting = driving && !hasMoved() && aspect < 1 ? START_CLOSE : 0;
-    const wantIn =
-      focus || (driving && (busy || r.linger > 0)) ? 1 : waiting;
+    const wantIn = focus || (driving && (busy || r.linger > 0)) ? 1 : waiting;
     if (fresh) {
       r.zoom = waiting;
       r.look = 1;
@@ -1721,12 +1717,15 @@ function SceneWithCars(props: SceneProps) {
 
 /** If the models can't be fetched, the board carries on with the built car. */
 class CarsFallback extends React.Component<
-  { fallback: React.ReactNode; children: React.ReactNode },
+  { fallback: React.ReactNode; tier: BoardTier; children: React.ReactNode },
   { failed: boolean }
 > {
   state = { failed: false };
   static getDerivedStateFromError() {
     return { failed: true };
+  }
+  componentDidCatch() {
+    analytics.boardLoadFailed({ reason: "models", tier: this.props.tier });
   }
   render() {
     return this.state.failed ? this.props.fallback : this.props.children;
@@ -1755,6 +1754,7 @@ export default function BoardTable(props: BoardTableProps) {
   const onSlow = React.useCallback(() => {
     const next = stepDown(tier, rung, screenNow());
     if (next === rung) return;
+    analytics.boardQualityDropped({ tier, from: rung, to: next });
     saveRung(tier, next);
     setHeld({ tier, rung: next });
   }, [tier, rung]);
@@ -1778,7 +1778,7 @@ export default function BoardTable(props: BoardTableProps) {
       }}
       style={{ touchAction: "none" }}
     >
-      <CarsFallback fallback={<Scene {...scene} models={null} />}>
+      <CarsFallback tier={tier} fallback={<Scene {...scene} models={null} />}>
         <React.Suspense fallback={null}>
           <SceneWithCars {...scene} />
         </React.Suspense>

@@ -16,6 +16,8 @@
  */
 import posthog, { type PostHog } from "posthog-js";
 
+import { pageMetaForPath } from "./page-meta";
+
 const TOKEN = import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN;
 const HOST = import.meta.env.VITE_PUBLIC_POSTHOG_HOST;
 
@@ -109,6 +111,11 @@ export function initPostHog(): PostHog | undefined {
       // Drop internal-tool traffic entirely rather than filtering it in every
       // insight later.
       if (INTERNAL_PATH_RE.test(path)) return null;
+      // The page's type ("Sign page", "Board game") on every event, as GA
+      // has it, so content can be compared with content. Worked out from the
+      // path, because PostHog sends a page view before React draws the page.
+      const meta = pageMetaForPath(path);
+      event.properties = { ...event.properties, ...meta };
       return event;
     },
     loaded: (ph) => {
@@ -118,6 +125,7 @@ export function initPostHog(): PostHog | undefined {
         // in errors or a drop in a funnel can be tied to the deploy.
         app_version: APP_VERSION,
         display_mode: displayMode(),
+        ...connection(),
       });
     },
   });
@@ -140,4 +148,22 @@ function displayMode(): "standalone" | "browser" {
     window.matchMedia("(display-mode: standalone)").matches ||
     (navigator as Navigator & { standalone?: boolean }).standalone === true;
   return standalone ? "standalone" : "browser";
+}
+
+/**
+ * How good this learner's connection is, as the browser judges it (`4g`,
+ * `3g`, `2g`, `slow-2g`), and whether they asked for data saving. Most of
+ * Kenya is on mobile data, so this splits the numbers by what really slows
+ * the board down. Safari doesn't say: `unknown`.
+ */
+function connection(): { connection: string; save_data: boolean } {
+  const info = (
+    navigator as Navigator & {
+      connection?: { effectiveType?: string; saveData?: boolean };
+    }
+  ).connection;
+  return {
+    connection: info?.effectiveType ?? "unknown",
+    save_data: info?.saveData === true,
+  };
 }

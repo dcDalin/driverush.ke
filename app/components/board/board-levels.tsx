@@ -6,6 +6,7 @@
  * level is next, is filled in from this browser's saved progress once the
  * page is running.
  */
+import * as React from "react";
 import { Link } from "react-router";
 
 import {
@@ -24,6 +25,13 @@ import {
   weakestDrive,
 } from "~/lib/board/curriculum";
 import { dayKey, usePracticeStreak } from "~/lib/practice-streak";
+import {
+  cardStage,
+  daysLeft,
+  today as todayKey,
+  useTestRecord,
+  type TestCardStage,
+} from "~/lib/test-date";
 import { useCourseProgress } from "~/lib/use-course-progress";
 import { cn } from "~/lib/utils";
 
@@ -31,6 +39,7 @@ import { BoardThumb } from "~/components/board/board-thumb";
 import { CourseLabel } from "~/components/board/course-label";
 import { Icon } from "~/components/brand/icon";
 import { InstallNudge } from "~/components/brand/install-nudge";
+import { TestCard } from "~/components/board/test-card";
 import {
   CheckIcon,
   ChevronRightIcon,
@@ -69,6 +78,16 @@ export function BoardLevels({ className }: { className?: string }) {
       : 0;
   // With every level done, the one to drive again is the one with fewest stars.
   const weakest = saved && mock ? weakestDrive(saved) : undefined;
+  // The NTSA test: asked for after a few levels, asked about once it's past.
+  const [test, updateTest] = useTestRecord();
+  const now = todayKey();
+  const testStage = test && saved ? cardStage(test, done, now) : null;
+  const testIn = test ? daysLeft(test, now) : null;
+  // Once asked, the card stays for this visit, so its thanks can be read.
+  const [testCard, setTestCard] = React.useState<TestCardStage | null>(null);
+  React.useEffect(() => {
+    if (testStage) setTestCard((was) => was ?? testStage);
+  }, [testStage]);
 
   return (
     <div id="levels" className={cn("grid scroll-mt-20 gap-5", className)}>
@@ -152,6 +171,13 @@ export function BoardLevels({ className }: { className?: string }) {
               </div>
             </dl>
           )}
+          {saved && done > 0 && testIn != null && (
+            <p className="m-0 text-center text-[13.5px] font-semibold text-ink-2">
+              {testIn === 0
+                ? "Your NTSA test is today. Good luck!"
+                : `Your NTSA test is in ${testIn} ${testIn === 1 ? "day" : "days"}.`}
+            </p>
+          )}
           {weakest && weakest.kind === "drive" && (
             <Link to={levelHref(weakest.id)} className={quiet}>
               Or get 3 stars on level {weakest.n}: {weakest.title}
@@ -162,7 +188,19 @@ export function BoardLevels({ className }: { className?: string }) {
 
       {/* After a finished level, not before: a first visit is not asked for
           anything. */}
-      {done >= 1 && <InstallNudge surface="levels_page" />}
+      {/* One card at a time, and the test comes first. */}
+      {test && testCard ? (
+        <TestCard
+          stage={testCard}
+          record={test}
+          update={updateTest}
+          levelsDone={done}
+          readiness={ready}
+          mockBestClean={saved?.mockBest?.clean ?? 0}
+        />
+      ) : (
+        done >= 1 && <InstallNudge surface="levels_page" />
+      )}
 
       <div className="grid gap-2">
         <div className="flex items-baseline justify-between gap-3">

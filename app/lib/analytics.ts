@@ -231,9 +231,15 @@ export const analytics = {
 
   // ----- Model Town Board -----
 
-  /** A board round kicked off. */
-  boardStarted: (args: { challenges: number; scope: "round" | "drill" }) =>
-    emit("board_started", args),
+  /**
+   * A board round kicked off. A `round` with no tasks asked for is the mock
+   * test (`mock: true`); a `drill` is one task or a chosen few.
+   */
+  boardStarted: (args: {
+    challenges: number;
+    scope: "round" | "drill";
+    mock: boolean;
+  }) => emit("board_started", args),
 
   /** The referee called a mistake. Shows which rules trip people up. PostHog only. */
   boardFaulted: (args: {
@@ -296,12 +302,53 @@ export const analytics = {
     off_route: boolean;
   }) => emit("board_abandoned", args),
 
-  /** A board round finished. */
+  /**
+   * A board round finished. For the mock test, `best_before` is the most
+   * clean tasks in an earlier mock (0 for the first) and `new_best` says this
+   * one beat it.
+   */
   boardCompleted: (args: {
     challenges: number;
     clean: number;
     fault_count: number;
+    scope: "round" | "drill";
+    mock: boolean;
+    best_before?: number;
+    new_best?: boolean;
   }) => emit("board_completed", args),
+
+  /**
+   * The board is drawn and on screen: `ms` from the viewer opening, so it
+   * covers the scene download, the car models and the first paint. Shows
+   * how long a learner on a cheap phone waits. PostHog only.
+   */
+  boardLoaded: (args: {
+    ms: number;
+    tier: "low" | "high";
+    start_rung: number;
+    weak_gpu: boolean;
+  }) => emit("board_loaded", args, false),
+
+  /**
+   * The board could not be shown as it should. `no_webgl`: this browser can't
+   * draw it at all. `download`: the scene failed to download. `models`: the
+   * car models failed, so the plain built car is used.
+   */
+  boardLoadFailed: (args: {
+    reason: "no_webgl" | "download" | "models";
+    tier?: "low" | "high";
+  }) => emit("board_load_failed", args),
+
+  /** A slow phone gave up some picture quality, one rung down. PostHog only. */
+  boardQualityDropped: (args: {
+    tier: "low" | "high";
+    from: number;
+    to: number;
+  }) => emit("board_quality_dropped", args, false),
+
+  /** A board setting was changed in the settings sheet. PostHog only. */
+  boardSettingChanged: (args: { setting: string; value: string }) =>
+    emit("board_setting_changed", args, false),
 
   /** Learn mode opened on the board. */
   boardLearnOpened: () => emit("board_learn_opened", {}),
@@ -379,9 +426,44 @@ export const analytics = {
       params: { method: args.channel, content_type: args.kind },
     }),
 
-  /** Someone opened a shared link. `valid: false` means the payload was junk. */
-  shareLandingViewed: (args: { kind: string; valid: boolean }) =>
-    emit("share_landing_viewed", args),
+  /**
+   * Someone opened a shared link. `valid: false` means the payload was junk.
+   * A valid one also marks this browser, once and for good, with the kind of
+   * share that brought it (`arrived_via_share`, a super property: no person
+   * profile), so everything they do later can be tied back to the share.
+   */
+  shareLandingViewed: (args: { kind: string; valid: boolean }) => {
+    if (args.valid) {
+      (getPostHog() ?? initPostHog())?.register_once({
+        arrived_via_share: args.kind,
+      });
+    }
+    emit("share_landing_viewed", args);
+  },
+
+  // ----- the NTSA test itself -----
+  // The card on the course page asks when the test is and, once that day has
+  // passed, how it went. The result is the number that says DriveRush works.
+
+  /** The learner gave their test date, or said it isn't booked yet. */
+  testDateSet: (args: {
+    booked: boolean;
+    /** Days from today to the test; left out when not booked. */
+    days_until?: number;
+  }) => emit("test_date_set", args),
+
+  /** The learner said how their NTSA test went. */
+  testResultReported: (args: {
+    result: "passed" | "failed" | "not_yet";
+    days_after_test: number;
+    levels_done: number;
+    readiness: number;
+    mock_best_clean: number;
+  }) => emit("test_result_reported", args),
+
+  /** "Not now" on the test card. PostHog only. */
+  testCardDismissed: (args: { stage: "date" | "result" }) =>
+    emit("test_card_dismissed", args, false),
 
   // ----- installing the app -----
   // shown → answered → installed. On iPhone there is no prompt to answer, so

@@ -1,9 +1,19 @@
 import { describe, expect, it } from "vitest";
 
 import routes from "~/routes";
-import { cleanPath, LABELLED_ROUTE_IDS, pageMeta } from "./page-meta";
+import {
+  cleanPath,
+  LABELLED_ROUTE_IDS,
+  pageMeta,
+  pageMetaForPath,
+} from "./page-meta";
 
-type RouteEntry = { id?: string; file: string; children?: RouteEntry[] };
+type RouteEntry = {
+  id?: string;
+  file: string;
+  path?: string;
+  children?: RouteEntry[];
+};
 
 /** Route ids as React Router makes them: the given `id`, or the file path. */
 function routeIds(entries: RouteEntry[]): { id: string; file: string }[] {
@@ -70,5 +80,45 @@ describe("cleanPath", () => {
   it("returns the bare path when nothing is kept", () => {
     expect(cleanPath("/road-signs", "?igshid=1")).toBe("/road-signs");
     expect(cleanPath("/", "")).toBe("/");
+  });
+});
+
+describe("pageMetaForPath", () => {
+  /** Every page route with a path, as a URL a learner could open. */
+  const pages = (routes as RouteEntry[])
+    .filter((r) => r.path != null && !NOT_PAGES.test(r.file))
+    .filter((r) => !r.file.startsWith("routes/tools/"))
+    .map((r) => ({
+      id: r.id ?? r.file.replace(/\.[^.]+$/, ""),
+      url: "/" + r.path!.replace(/:[^/]+/g, "sample"),
+    }));
+
+  it("labels every page by its path as its route id does", () => {
+    expect(pages.length).toBeGreaterThan(20);
+    for (const { id, url } of pages) {
+      expect({ url, ...pageMetaForPath(url) }).toEqual({
+        url,
+        ...pageMeta(id, url),
+      });
+    }
+  });
+
+  it("finds the home page, trailing slashes and fixed pages over :slug", () => {
+    expect(pageMetaForPath("/").content_group).toBe("Home");
+    expect(pageMetaForPath("/road-signs/pelican/").content_group).toBe(
+      "Sign trainer",
+    );
+    expect(pageMetaForPath("/road-signs/warning-signs").content_group).toBe(
+      "Sign class",
+    );
+    expect(pageMetaForPath("/road-signs/stop")).toEqual({
+      content_group: "Sign page",
+      page_template: "/road-signs/:slug",
+    });
+  });
+
+  it("calls an unknown path not found and the tools internal", () => {
+    expect(pageMetaForPath("/nope/at/all").content_group).toBe("Not found");
+    expect(pageMetaForPath("/tools/og").content_group).toBe("Internal");
   });
 });

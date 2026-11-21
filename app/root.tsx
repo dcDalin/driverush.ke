@@ -8,6 +8,7 @@ import {
   Scripts,
   ScrollRestoration,
   useLocation,
+  useRouteLoaderData,
 } from "react-router";
 import * as React from "react";
 
@@ -32,12 +33,26 @@ import {
   useGaPage,
   usePageviews,
 } from "~/lib/analytics";
+import { shouldMeasure } from "~/lib/bot-traffic";
 import { GA_MEASUREMENT_ID, gaHeadScript } from "~/lib/ga";
 import { useLearnerAnalytics } from "~/lib/use-learner-analytics";
 // Catches the browser's install prompt from the first load.
 import "~/lib/install";
 
 const BOARD_INIT_SCRIPT = `try{var s=JSON.parse(localStorage.getItem("driverush:board")||"{}").state;if(s&&((s.learned&&s.learned.length)||(s.bestStars&&Object.keys(s.bestStars).length)))document.documentElement.dataset.board="started"}catch(e){}`;
+
+/**
+ * Whether Google Analytics measures this visit: not for a bot, or for a
+ * browser run from a data centre (`bot-traffic.ts`). Decided once, from the
+ * request that loads the page, and kept for every navigation after it.
+ */
+export function loader({ request }: Route.LoaderArgs) {
+  return { measure: shouldMeasure(request) };
+}
+
+export function shouldRevalidate() {
+  return false;
+}
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -108,6 +123,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
   // script has run by then, and its text must not change.
   const gaPage = useGaPage();
   const [gaLanding] = React.useState(gaPage);
+  // Missing on the error page when the root itself failed: measure then.
+  const measure = useRouteLoaderData<typeof loader>("root")?.measure ?? true;
   usePageviews();
   // The service worker (`public/sw.js`) keeps opened pages and the board's
   // files for when there is no connection. Not in development, where it would
@@ -172,7 +189,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: BOARD_INIT_SCRIPT }} />
         <Meta />
         {/* After <Meta />, so the landing page view has the page's title. */}
-        {GA_MEASUREMENT_ID && (
+        {GA_MEASUREMENT_ID && measure && (
           <script
             dangerouslySetInnerHTML={{ __html: gaHeadScript(gaLanding) }}
           />

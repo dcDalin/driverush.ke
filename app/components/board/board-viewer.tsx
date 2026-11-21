@@ -9,7 +9,13 @@ import * as React from "react";
 import type { BoardCarId } from "~/lib/board/cars";
 import type { BoardChallenge } from "~/lib/board/challenges";
 import type { Seat } from "~/lib/board/joystick";
-import { startRung, tierFor, type Device } from "~/lib/board/quality";
+import { analytics } from "~/lib/analytics";
+import {
+  isWeakGpu,
+  startRung,
+  tierFor,
+  type Device,
+} from "~/lib/board/quality";
 import type { BoardQuality } from "~/lib/board-store";
 import { cn } from "~/lib/utils";
 
@@ -24,12 +30,15 @@ const loadTable = () => import("~/components/board/board-table");
  * another go.
  */
 class LoadGuard extends React.Component<
-  { onRetry: () => void; children: React.ReactNode },
+  { onRetry: () => void; onFail: () => void; children: React.ReactNode },
   { failed: boolean }
 > {
   state = { failed: false };
   static getDerivedStateFromError() {
     return { failed: true };
+  }
+  componentDidCatch() {
+    this.props.onFail();
   }
   render() {
     if (!this.state.failed) return this.props.children;
@@ -138,12 +147,19 @@ export function BoardViewer({
     Table: React.lazy(loadTable),
   }));
   const BoardTable = load.Table;
+  // When the viewer opened, for how long the learner waited for the board.
+  const openedAt = React.useRef(0);
+  const reported = React.useRef(false);
 
   React.useEffect(() => {
+    openedAt.current = performance.now();
     const found = probeDevice();
     if (found) setDevice(found);
     setState(found ? "ok" : "none");
-    if (!found) onUnsupported?.();
+    if (!found) {
+      analytics.boardLoadFailed({ reason: "no_webgl" });
+      onUnsupported?.();
+    }
     // Checked once, when the board opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -159,6 +175,7 @@ export function BoardViewer({
       {state === "ok" && (
         <LoadGuard
           key={load.n}
+          onFail={() => analytics.boardLoadFailed({ reason: "download", tier })}
           onRetry={() => {
             setLoad((was) => ({ n: was.n + 1, Table: React.lazy(loadTable) }));
           }}
@@ -178,6 +195,15 @@ export function BoardViewer({
               focus={focus}
               sweep={sweep}
               onReady={() => {
+                if (!reported.current) {
+                  reported.current = true;
+                  analytics.boardLoaded({
+                    ms: Math.round(performance.now() - openedAt.current),
+                    tier,
+                    start_rung: rung,
+                    weak_gpu: isWeakGpu(device.renderer),
+                  });
+                }
                 setPainted(true);
                 onPainted?.();
               }}

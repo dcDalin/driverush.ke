@@ -20,36 +20,91 @@ export type PageMeta = { content_group: string; page_template: string };
 /** No route matched: only `root` is in the matches. */
 export const NOT_FOUND_GROUP = "Not found";
 
-type Entry = { group: string; template?: string };
+type Entry = {
+  group: string;
+  template?: string;
+  /** The route's URL pattern, as in `routes.ts`. A test keeps them equal. */
+  path: string;
+};
 
 const ROUTES: Record<string, Entry> = {
-  "routes/home": { group: "Home" },
-  "routes/road-signs": { group: "Signs hub" },
-  "routes/road-signs-pelican": { group: "Sign trainer" },
-  "routes/road-signs-3d": { group: "Sign trainer" },
-  "sign-class-warning": { group: "Sign class" },
-  "sign-class-mandatory": { group: "Sign class" },
-  "sign-class-prohibitory": { group: "Sign class" },
-  "routes/road-sign": { group: "Sign page", template: "/road-signs/:slug" },
-  "routes/model-town-board": { group: "Board guide" },
-  "routes/board-play": { group: "Board game" },
-  "routes/board-levels": { group: "Board levels" },
-  "board-guide-diagram": { group: "Board guide" },
-  "board-guide-lane-options": { group: "Board guide" },
-  "board-guide-questions": { group: "Board guide" },
-  "board-guide-roundabout": { group: "Board guide" },
-  "board-guide-rules": { group: "Board guide" },
-  "board-guide-parking": { group: "Board guide" },
-  "routes/guides": { group: "Guide" },
-  "routes/ntsa-test": { group: "NTSA test" },
-  "routes/ntsa-questions": { group: "NTSA test" },
-  "routes/driving-schools-kenya": { group: "Guide" },
-  "routes/derevaprep-alternative": { group: "Guide" },
-  "routes/about": { group: "Info" },
-  "routes/privacy": { group: "Info" },
-  "routes/blogs": { group: "Blog" },
-  "routes/blogs-post": { group: "Blog", template: "/blogs/:slug" },
-  "routes/share-landing": { group: "Share landing" },
+  "routes/home": { group: "Home", path: "/" },
+  "routes/road-signs": { group: "Signs hub", path: "/road-signs" },
+  "routes/road-signs-pelican": {
+    group: "Sign trainer",
+    path: "/road-signs/pelican",
+  },
+  "routes/road-signs-3d": { group: "Sign trainer", path: "/road-signs/3d" },
+  "sign-class-warning": {
+    group: "Sign class",
+    path: "/road-signs/warning-signs",
+  },
+  "sign-class-mandatory": {
+    group: "Sign class",
+    path: "/road-signs/mandatory-signs",
+  },
+  "sign-class-prohibitory": {
+    group: "Sign class",
+    path: "/road-signs/prohibitory-signs",
+  },
+  "routes/road-sign": {
+    group: "Sign page",
+    template: "/road-signs/:slug",
+    path: "/road-signs/:slug",
+  },
+  "routes/model-town-board": {
+    group: "Board guide",
+    path: "/model-town-board",
+  },
+  "routes/board-play": { group: "Board game", path: "/model-town-board/play" },
+  "routes/board-levels": {
+    group: "Board levels",
+    path: "/model-town-board/levels",
+  },
+  "board-guide-diagram": {
+    group: "Board guide",
+    path: "/model-town-board/diagram",
+  },
+  "board-guide-lane-options": {
+    group: "Board guide",
+    path: "/model-town-board/lane-options",
+  },
+  "board-guide-questions": {
+    group: "Board guide",
+    path: "/model-town-board/questions",
+  },
+  "board-guide-roundabout": {
+    group: "Board guide",
+    path: "/model-town-board/roundabout",
+  },
+  "board-guide-rules": {
+    group: "Board guide",
+    path: "/model-town-board/rules",
+  },
+  "board-guide-parking": {
+    group: "Board guide",
+    path: "/model-town-board/parking",
+  },
+  "routes/guides": { group: "Guide", path: "/guides" },
+  "routes/ntsa-test": { group: "NTSA test", path: "/ntsa-test" },
+  "routes/ntsa-questions": { group: "NTSA test", path: "/ntsa-test/questions" },
+  "routes/driving-schools-kenya": {
+    group: "Guide",
+    path: "/driving-schools-kenya",
+  },
+  "routes/derevaprep-alternative": {
+    group: "Guide",
+    path: "/derevaprep-alternative",
+  },
+  "routes/about": { group: "Info", path: "/about" },
+  "routes/privacy": { group: "Info", path: "/privacy" },
+  "routes/blogs": { group: "Blog", path: "/blogs" },
+  "routes/blogs-post": {
+    group: "Blog",
+    template: "/blogs/:slug",
+    path: "/blogs/:slug",
+  },
+  "routes/share-landing": { group: "Share landing", path: "/s" },
 };
 
 /** Labels for the page whose deepest matched route is `routeId`. */
@@ -68,6 +123,36 @@ export function pageMeta(
     content_group: entry?.group ?? "Other",
     page_template: entry?.template ?? pathname,
   };
+}
+
+/** The labelled routes, static paths first so they outrank `:slug` ones. */
+const BY_PATH = Object.values(ROUTES)
+  .map((entry) => ({
+    entry,
+    re: new RegExp(
+      "^" + entry.path.replace(/:[^/]+/g, "[^/]+").replace(/\//g, "\\/") + "$",
+    ),
+  }))
+  .sort(
+    (a, b) =>
+      Number(a.entry.path.includes(":")) - Number(b.entry.path.includes(":")),
+  );
+
+/**
+ * The same labels from the URL path alone, for code that runs with no route
+ * match to hand: PostHog sends its page view as the URL changes, before
+ * React has drawn the new page. An unknown path is "Not found".
+ */
+export function pageMetaForPath(pathname: string): PageMeta {
+  if (INTERNAL_PATH_RE.test(pathname)) {
+    return { content_group: "Internal", page_template: pathname };
+  }
+  const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+  const hit = BY_PATH.find((r) => r.re.test(path))?.entry;
+  if (!hit) {
+    return { content_group: NOT_FOUND_GROUP, page_template: "(not found)" };
+  }
+  return { content_group: hit.group, page_template: hit.template ?? path };
 }
 
 /** Route ids `pageMeta` knows by name. For the test that keeps it complete. */

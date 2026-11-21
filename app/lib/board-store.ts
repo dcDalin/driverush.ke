@@ -18,12 +18,7 @@ import {
   isRouteTask,
   type BoardChallenge,
 } from "./board/challenges";
-import {
-  learnedKey,
-  levelById,
-  unitOf,
-  type Level,
-} from "./board/curriculum";
+import { learnedKey, levelById, unitOf, type Level } from "./board/curriculum";
 import type { ArmId } from "./board/geometry";
 import {
   pickable,
@@ -33,11 +28,7 @@ import {
 } from "./board/lane-queue";
 import { shuffleParkingLayout } from "./board/parking-layouts";
 import { challengeRoute, taskParks } from "./board/lessons";
-import {
-  STOPS_ALWAYS,
-  type Fault,
-  type FaultId,
-} from "./board/referee";
+import { STOPS_ALWAYS, type Fault, type FaultId } from "./board/referee";
 import {
   beginChallenge,
   car,
@@ -694,6 +685,7 @@ export const useBoardStore = create<BoardState>()(
           analytics.boardStarted({
             challenges: queue.length,
             scope: wanted ? "drill" : "round",
+            mock: !wanted,
           });
           begin();
         },
@@ -713,13 +705,21 @@ export const useBoardStore = create<BoardState>()(
           if (s.phase !== "passed") return;
           if (s.pos >= s.queue.length - 1) {
             if (s.settings.sound) playSfx("complete");
-            analytics.boardCompleted({
-              challenges: s.queue.length,
-              clean: s.runClean.length,
-              fault_count: s.runFaultCount,
-            });
             const best = s.mockBest;
             const clean = s.runClean.length;
+            analytics.boardCompleted({
+              challenges: s.queue.length,
+              clean,
+              fault_count: s.runFaultCount,
+              scope: s.round ? "round" : "drill",
+              mock: s.round,
+              ...(s.round
+                ? {
+                    best_before: best?.clean ?? 0,
+                    new_best: !best || clean > best.clean,
+                  }
+                : {}),
+            });
             set({
               phase: "complete",
               mockBest:
@@ -944,8 +944,19 @@ export const useBoardStore = create<BoardState>()(
               : { places: { ...s.places, [level]: at } },
           ),
 
-        setSetting: (patch) =>
-          set((s) => ({ settings: { ...s.settings, ...patch } })),
+        setSetting: (patch) => {
+          const was = get().settings;
+          set({ settings: { ...was, ...patch } });
+          for (const [key, value] of Object.entries(patch)) {
+            // The first-drive tips closing is not a choice of setting.
+            if (key === "coached" || value === undefined) continue;
+            if (was[key as keyof BoardSettings] === value) continue;
+            analytics.boardSettingChanged({
+              setting: key,
+              value: String(value),
+            });
+          }
+        },
         resetProgress: () =>
           set({
             progress: {},

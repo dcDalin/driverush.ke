@@ -32,6 +32,7 @@ import {
   type SignProgress,
 } from "./pelican-progress";
 import { liveStreak, readPracticeStreak } from "./practice-streak";
+import { readTestRecord, testBucket, today } from "./test-date";
 import {
   COURSE_LEVELS,
   doneCount,
@@ -95,6 +96,7 @@ function buildProfile(): LearnerProfile {
   const pelicanMastered = masteredSigns(pelican);
   const signs3dMastered = masteredSigns(signs3d);
   const boardLevelsDone = doneCount(course);
+  const test = readTestRecord();
 
   return {
     signs_mastered_pelican: pelicanMastered,
@@ -109,6 +111,10 @@ function buildProfile(): LearnerProfile {
       boardLevelsDone,
     ),
     practice_streak_days: liveStreak(readPracticeStreak()).days,
+    // The NTSA test, from the course page's card: when, and how it went.
+    test_date: test.date ?? "",
+    test_days_left_bucket: testBucket(test, today()),
+    test_result: test.result ?? "",
   };
 }
 
@@ -152,6 +158,7 @@ export function useLearnerAnalytics() {
       gaSetUserProperties({
         learner_stage: profile.learner_stage,
         board_levels_bucket: levelsBucket(Number(profile.board_levels_done)),
+        test_booked: profile.test_date ? "yes" : "no",
       });
 
       const posthog = getPostHog();

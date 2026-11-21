@@ -19,6 +19,9 @@ import { spawnSync } from "node:child_process";
 const PROJECT_ID = 755646;
 const POSTHOG = "https://us.posthog.com";
 const DASHBOARDS = [
+  ["Weekly health", 2391457],
+  ["Growth and content", 2391459],
+  ["Board on real phones", 2391460],
   ["Board course", 2391145],
   ["Learners", 2391147],
   ["Road signs", 2391150],
@@ -103,6 +106,10 @@ const totals = sql(`
   SELECT
     if(timestamp >= toDateTime('${ts(mid)}'), 'now', 'prev') AS w,
     uniqIf(person_id, event = '$pageview') AS visitors,
+    uniqIf(person_id, event IN ('board_level_completed', 'board_challenge_passed', 'pelican_completed', 'signs3d_completed', 'sign_check_completed')) AS active_learners,
+    uniqIf(person_id, (event = 'board_level_completed' AND toFloat(properties.number) >= 3) OR event IN ('pelican_completed', 'signs3d_completed')) AS activated,
+    uniqIf(person_id, event = 'test_result_reported' AND properties.result IN ('passed', 'failed')) AS tests_reported,
+    uniqIf(person_id, event = 'test_result_reported' AND properties.result = 'passed') AS tests_passed,
     uniqIf(person_id, event = 'board_level_started') AS board_learners,
     uniqIf(person_id, event = 'board_level_completed' AND toString(properties.number) = '1') AS first_drives,
     countIf(event = 'board_level_completed') AS levels_done,
@@ -196,12 +203,29 @@ const firstDriveRate =
     ? ` (${Math.round((num(now.first_drives) / num(now.visitors)) * 100)}% of visitors)`
     : "";
 
+const pct = (part, whole) =>
+  num(whole) > 0 ? ` (${Math.round((num(part) / num(whole)) * 100)}%)` : "";
+
 const embed = {
   title: "DriveRush weekly summary",
   description: `${day(mid)} to ${day(end)}, live site, bots removed. Changes compare with the 7 days before.`,
   color: RUSH,
   fields: [
     { name: "Visitors", value: stat("visitors"), inline: true },
+    {
+      name: "Active learners",
+      value: stat("active_learners"),
+      inline: true,
+    },
+    {
+      name: "Reached activation",
+      value:
+        stat("activated") +
+        (num(now.visitors) > 0
+          ? `, ${Math.round((num(now.activated) / num(now.visitors)) * 100)}% of visitors`
+          : ""),
+      inline: true,
+    },
     {
       name: "Learners on the board",
       value: stat("board_learners"),
@@ -216,6 +240,13 @@ const embed = {
     {
       name: "Learners on sign trainers",
       value: stat("sign_learners"),
+      inline: true,
+    },
+    {
+      name: "NTSA tests passed",
+      value: num(now.tests_reported)
+        ? `**${num(now.tests_passed)}** of ${num(now.tests_reported)} who told us${pct(now.tests_passed, now.tests_reported)}`
+        : "Nobody told us this week",
       inline: true,
     },
     {

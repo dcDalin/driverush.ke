@@ -18,9 +18,12 @@
  * and local `.env`. Unset, nothing loads at all. Dev and preview traffic so
  * never reaches the production numbers.
  *
- * Never measured on `/tools`, or in a browser driven by a script (the promo
- * video recorder). Outside a production build every hit is in debug mode, so
- * it shows in the dev property's DebugView. Two switches, both sticky:
+ * Never measured on `/tools`, in a browser driven by a script (the promo
+ * video recorder), or in one that says it is headless or a bot. Bots and
+ * data-centre browsers are also stopped on the server, before this script is
+ * sent at all (`bot-traffic.ts`, through the root loader). Outside a
+ * production build every hit is in debug mode, so it shows in the dev
+ * property's DebugView. Two switches, both sticky:
  *
  *  - `?ga_debug=1` puts a production tab in debug mode too, for DebugView
  *    (`?ga_debug=0` stops). Kept for the tab.
@@ -66,7 +69,9 @@ var q=new URLSearchParams(l.search),s=sessionStorage,ls=localStorage;
 var g=q.get('ga_debug');if(g==='1')s.setItem('${DEBUG_KEY}','1');else if(g==='0')s.removeItem('${DEBUG_KEY}');
 var n=q.get('internal');if(n==='1')ls.setItem('${INTERNAL_KEY}','1');else if(n==='0')ls.removeItem('${INTERNAL_KEY}');
 var dbg=${ALWAYS_DEBUG}||s.getItem('${DEBUG_KEY}')==='1';
-if(navigator.webdriver)return;
+var nv=navigator;if(nv.webdriver)return;
+if(/headless|[^u]bot\\b|crawl|spider|lighthouse|pagespeed|puppeteer|playwright|phantomjs|selenium/i.test(nv.userAgent))return;
+try{if(nv.userAgentData&&nv.userAgentData.brands.some(function(b){return /headless/i.test(b.brand)}))return;}catch(e){}
 if(/^\\/tools(\\/|$)/.test(l.pathname))return;
 w.dataLayer=w.dataLayer||[];
 function gtag(){w.dataLayer.push(arguments);}

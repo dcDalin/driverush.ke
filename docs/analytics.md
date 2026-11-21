@@ -16,11 +16,12 @@ so every learner is anonymous — person profiles carry the learner state instea
 2. [What comes for free](#what-comes-for-free)
 3. [Event taxonomy](#event-taxonomy)
 4. [Learner profile](#learner-profile)
-5. [Insights worth building first](#insights-worth-building-first)
-6. [Adding an event](#adding-an-event)
-7. [Local development](#local-development)
-8. [Known gaps](#known-gaps)
-9. [Google Analytics 4](#google-analytics-4)
+5. [Dashboards, actions, cohorts and surveys](#dashboards-actions-cohorts-and-surveys)
+6. [Bot filtering](#bot-filtering)
+7. [Adding an event](#adding-an-event)
+8. [Local development](#local-development)
+9. [Known gaps](#known-gaps)
+10. [Google Analytics 4](#google-analytics-4)
 
 ---
 
@@ -69,7 +70,18 @@ Two filters are applied at the source:
 - Every event carries `app_env` (`production` | `development`), so localhost can be excluded with one filter.
 
 Every event also carries `app_version` (the deploy's commit), `display_mode`
-(`standalone` when opened from the home screen) and `learner_stage`.
+(`standalone` when opened from the home screen) and `learner_stage`, plus:
+
+- `content_group` and `page_template`: the page's type, the same labels GA
+  gets ("Board game", "Sign page"). Added in `before_send` from the URL path
+  (`pageMetaForPath` in `page-meta.ts`), because PostHog sends its page view
+  as the URL changes, before React has drawn the new page. A test keeps the
+  path labels in step with `routes.ts`.
+- `connection` (`4g`, `3g`, `2g`, `slow-2g`, `unknown` on Safari) and
+  `save_data`: what the browser says about the learner's connection.
+- `arrived_via_share`: set once, for good, when a valid shared link (`/s`) is
+  opened, to the kind of share (`board`, `pelican`, `signs3d`). Everything that
+  visitor does later can be tied back to the share.
 
 ## Event taxonomy
 
@@ -101,15 +113,35 @@ get wrong" report.
 | ------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | `board_level_started`     | A course level opens, from the list or Continue            | `level`, `number`, `kind`, `unit`                                                  |
 | `board_level_completed`   | A level is read, watched or passed for the first time      | `level`, `number`, `kind`, `unit`                                                  |
-| `board_started`           | A round or drill starts                                    | `challenges`, `scope`                                                              |
+| `board_started`           | A round or drill starts. A round is the mock test          | `challenges`, `scope`, `mock`                                                      |
 | `board_faulted`           | The referee calls a mistake                                | `challenge_id`, `rule`, `severity`, `fault_number`                                 |
 | `board_challenge_passed`  | A task is passed                                           | `challenge_id`, `clean`, `faults`, `stars`, `seconds`, `tries`, `score`, `best`    |
 | `board_challenge_missed`  | Stopped in the box after leaving the route                 | `challenge_id`, `rule`, `tries`, `seconds`                                         |
 | `board_abandoned`         | Left a round before the end                                | `challenge_id`, `phase`, `task`, `of`, `tries`, `moved`, `off_route`               |
-| `board_completed`         | A round finishes                                           | `challenges`, `clean`, `fault_count`                                               |
+| `board_completed`         | A round finishes                                           | `challenges`, `clean`, `fault_count`, `scope`, `mock`; for the mock also `best_before`, `new_best` |
 | `board_hint_used`         | A hint is used on a task                                   | `challenge_id`, `kind`                                                             |
 | `board_learn_opened`      | Learn mode opens                                           |                                                                                    |
 | `board_lesson_viewed`     | A lesson route or board feature is looked at               | `kind`, `lesson_id`                                                                |
+| `board_loaded`            | The 3D board is drawn (PostHog only)                       | `ms` (from the viewer opening), `tier`, `start_rung`, `weak_gpu`                   |
+| `board_load_failed`       | The board can't be shown as it should                      | `reason` (`no_webgl`, `download`, `models`), `tier`                                |
+| `board_quality_dropped`   | A slow phone gives up a rung of picture (PostHog only)     | `tier`, `from`, `to`                                                               |
+| `board_setting_changed`   | A setting is changed in the board's sheet (PostHog only)   | `setting` (`assist`, `seat`, `quality`, `sound`, `car`), `value`                   |
+
+### The NTSA test
+
+The course page (`board-levels.tsx`) shows a small card (`test-card.tsx`).
+After 3 finished levels it asks "When is your NTSA test?". From the day after
+that date it asks "How did it go?". The rules are in `test-date.ts`: "Not now",
+"Not booked yet" and "Not taken yet" each wait 14 days before asking again,
+and a passed or failed answer ends it. The answer is stored on the device under
+`driverush:test`. With a date set, the page also shows "Your NTSA test is in N
+days". The privacy page says the date and result go to analytics.
+
+| Event                  | Fires when                               | Key properties                                                            |
+| ---------------------- | ---------------------------------------- | ------------------------------------------------------------------------- |
+| `test_date_set`        | A date is saved, or "Not booked yet"     | `booked`, `days_until`                                                    |
+| `test_result_reported` | How the test went                        | `result` (`passed`, `failed`, `not_yet`), `days_after_test`, `levels_done`, `readiness`, `mock_best_clean` |
+| `test_card_dismissed`  | "Not now" (PostHog only)                 | `stage`                                                                   |
 
 `board_faulted` broken down by `rule` is the "which rules trip people up"
 report; `board_level_started` → `board_level_completed` by `number` shows the
@@ -147,8 +179,10 @@ On mount, route change and tab focus, once past `visitor`, it writes:
 
 `signs_mastered_pelican`, `signs_mastered_3d`, `board_levels_done`,
 `board_levels_total`, `board_readiness` (0 to 100, the course page's figure),
-`board_mock_best_clean`, `practice_streak_days`, `learner_stage`, and
-`first_seen_at` (set once).
+`board_mock_best_clean`, `practice_streak_days`, `learner_stage`,
+`test_date`, `test_days_left_bucket` (`none`, `past`, `0-7`, `8-30`, `31+`),
+`test_result`, and `first_seen_at` (set once). GA gets `test_booked` (`yes` or
+`no`) as a user property.
 
 `learner_stage` is also a **super property**, registered for _everyone_
 including anonymous visitors (super properties don't create a profile), so any
@@ -162,48 +196,77 @@ makes a `sampler`, 5 of either `practising`, 26 levels or 40 signs `committed`.
 The properties are read from the same localStorage the app already uses. If a
 store's persisted shape changes, update the readers in that file.
 
-## Insights worth building first
+## Dashboards, actions, cohorts and surveys
 
-Nothing below exists yet — these are the dashboards to create once the MCP
-connector is authorised (or by hand in the UI).
+All in project 755646, all on production humans only (every insight sets
+`filterTestAccounts`, which drops dev traffic, the internal cohort and bots).
+Dashboard links: `https://us.posthog.com/project/755646/dashboard/<id>`.
 
-**Board activation funnel** (the core question: does a visitor drive?)
-`$pageview` (`/`) → `board_level_started` (number 1) → `board_level_completed`
-(number 1) → `board_level_started` (number 2). Break down by `utm_source`,
-`$device_type` and `display_mode`.
+**Actions**
 
-**Where the course loses people**
-`board_level_completed` broken down by `number`, and `board_abandoned` by
-`challenge_id` and `phase`.
+| Action               | Id     | What                                                                                       |
+| -------------------- | ------ | ------------------------------------------------------------------------------------------ |
+| Learned something    | 493634 | `board_level_completed`, `board_challenge_passed`, `pelican_completed`, `signs3d_completed`, `sign_check_completed` |
+| Reached activation   | 493635 | `board_level_completed` with `number >= 3`, or `pelican_completed` / `signs3d_completed`   |
+| Practised signs      | 493636 | `pelican_started`, `signs3d_started`, `sign_check_completed`                               |
 
-**Signs activation funnel**
-`$pageview` (`/`) → `pelican_started` OR `signs3d_started` → `pelican_completed`
-OR `signs3d_completed`.
+"Learned something" is the active-learner definition: use it for weekly
+active learners, retention and stickiness.
 
-**Which signs are hardest**
-`sign_graded` where `result = missed`, broken down by `sign_code`.
+**Cohorts:** Activated (745931), Committed (745932), Test within 30 days
+(745934, as of the learner's last visit), Arrived via share (745936), and the
+built-in Internal / Test users (744655).
 
-**Chart versus 3D**
-Compare `pelican_started` and `signs3d_started` volumes, and retention on each.
+**Dashboards**
 
-**Retention**
-PostHog retention on `pelican_started` OR `signs3d_started`, split by
-`learner_stage`.
+| Dashboard            | Id      | Answers                                                                                                   |
+| -------------------- | ------- | --------------------------------------------------------------------------------------------------------- |
+| Weekly health        | 2391457 | Open first. Weekly active learners, activation rate by week, D1/D7/D30 retention, lifecycle, stickiness, levels per learner, mock clean tasks, NTSA results, pass rate by readiness |
+| Growth and content   | 2391459 | Visitor to learner by landing page type, campaign source and referring site; sharing; shared link to learner; sign retention |
+| Board on real phones | 2391460 | Board load time (median, p90, by device and tier), load failures, quality drops, activation by connection, page speed on the game |
+| Board course         | 2391145 | First drive funnel, levels, abandons, mistakes, hints; level-by-level opened to finished, mock tests and new bests, settings changed |
+| Learners             | 2391147 | Stages, devices, retention on the board, sources, installs, sharing, bottom bar                           |
+| Road signs           | 2391150 | Sign trainer runs, chart vs 3D, most-missed signs                                                         |
+| Site health          | 2391155 | Errors, rage and dead clicks, web vitals                                                                  |
 
-**Installed app**
-`install_prompt_shown` → `install_prompt_answered` (`outcome = accepted`), and
-retention split by `display_mode`.
+**Surveys** (popover, any `driverush.ke` page, 30 days between surveys)
 
-**Friction**
+- `Board game: after a level` (01a1fc4f-87f7-0000-bcf5-17c6a81c649e): ease,
+  test date, what would help. Fires on `board_level_completed`.
+- `NPS: would you recommend DriveRush` (01a1fc77-9498-0000-5fad-face8edc6e9d):
+  0 to 10 and a reason. Learners `practising` or `committed`, first seen 7+
+  days ago.
+- `What would you pay for` (01a1fc77-ca13-0000-21c6-7faec2b2a7c5): which paid
+  extras and a monthly KES price. `committed` learners only.
 
-- `$rageclick` and `$dead_click` trends by URL.
+The weekly Discord summary (`scripts/weekly-summary.mjs`) reports active
+learners, activation and NTSA passes alongside the older numbers.
 
-**Reach**
-`partner_clicked` and `contact_clicked`.
+## Bot filtering
 
-**Error tracking**
-Watch the `$exception` issue list; the ones on `/road-signs/*` matter most because
-they interrupt a run.
+Bots are kept out of both tools, in layers:
+
+| Layer | Where | PostHog | GA |
+| ----- | ----- | ------- | -- |
+| Known bot user agents and `navigator.webdriver` | posthog-js itself; `gaHeadScript` in `ga.ts` (also HeadlessChrome in `userAgentData`) | dropped before sending | not measured |
+| Bot user agents and data-centre IPs, on the server | `bot-traffic.ts`, through the root `loader` in `root.tsx` | still captured | the GA script is never sent |
+| Custom bot rules (data-centre CIDR ranges) | PostHog: Settings, Environment, Custom bots | labelled `$virt_is_bot` | n/a |
+| Test-account filter | PostHog project settings: `$virt_is_bot = false` with `app_env = production` and the internal cohort | dropped from every insight | n/a |
+| Google's known-bot list | GA4, always on | n/a | dropped |
+
+PostHog keeps capturing bots on purpose: they stay measurable
+(`$virt_traffic_type`, `$virt_bot_name`), and the default filter leaves them
+out of the numbers.
+
+**The IP ranges live in two places**: PostHog's custom bot rules and
+`DATACENTER_RANGES` in `bot-traffic.ts`. To add a range, add it to both
+(`npx posthog-cli api call web-analytics-bot-rules-list '{}'` shows the
+PostHog list) and add a test address to `bot-traffic.test.ts`. A data-centre
+browser that slips through shows in PostHog as a burst of one-event "people"
+from one network; `$virt_bot_name` empty and `$ip` in a hosting range.
+
+GA's filtering only applies going forward: hits that already reached GA keep
+the bots that got in before 2026-11-21.
 
 ## Adding an event
 
@@ -278,8 +341,10 @@ one is for checking that events fire.
 | Events                   | `app/lib/analytics.ts` (`emit`)          | Same taxonomy as PostHog, mapped to GA4 names where one exists (below). Every event carries the page's `content_group` and `page_template`. |
 | User properties          | `use-learner-analytics.ts`, head script  | `learner_stage`, `board_levels_bucket`, `display_mode`.                                                                                |
 
-**Never measured:** `/tools/*`, or a browser driven by a script
-(`navigator.webdriver`, which covers the promo video recorder).
+**Never measured:** `/tools/*`, a browser driven by a script
+(`navigator.webdriver`, which covers the promo video recorder), a headless or
+bot user agent, or a request from a data-centre range. See
+[Bot filtering](#bot-filtering).
 
 **Consent:** no banner. Consent Mode v2 defaults: `analytics_storage`
 granted; `ad_storage`, `ad_user_data`, `ad_personalization` denied. Google
@@ -344,10 +409,21 @@ These live in GA, not in code. Applied 2026-11-21 unless marked.
    `level_number`, `score`, `stars`, `seconds`. User-scoped: `learner_stage`,
    `board_levels_bucket`, `display_mode`. (`content_group` is built in.) A new
    parameter is invisible in reports until it is registered here.
+   Added 2026-11-21 for the NTSA test and board loading: dimensions Test
+   result (`result`), Load failure reason (`reason`), Test booked
+   (`booked`), and user-scoped Learner has a test date (`test_booked`);
+   metrics Days until test (`days_until`), Days after test
+   (`days_after_test`), Levels done at test (`levels_done`), Board readiness
+   at test (`readiness`), Mock best clean at test (`mock_best_clean`).
 5. **Key events: not done yet.** GA only lets an event be starred once it has
    arrived. After the first production traffic, star `level_end`,
-   `sign_check_completed`, `app_installed`, `share` and `generate_lead` under
-   Admin → Events.
+   `sign_check_completed`, `app_installed`, `share`, `generate_lead` and
+   `test_result_reported` under Admin → Events. Still pending on 2026-11-21:
+   the events list was empty.
 6. **Data filters:** Internal Traffic (`traffic_type = internal`) and
    Developer traffic, both **Active**. Neither is set on the dev property:
    all of its hits are debug hits.
+7. **Search Console: not linked.** The Google account that owns the GA
+   property has no verified Search Console property, so there is nothing to
+   link yet. Verify `driverush.ke` in Search Console (a domain property, by
+   DNS), then link it under Admin → Product links → Search Console links.
