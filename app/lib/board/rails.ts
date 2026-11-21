@@ -3,37 +3,33 @@
  * in the lane network (`network.ts`): each lane, each roundabout option round
  * its ring lane and out into its exit lane, each turn and each gap. The assist
  * keeps track of where on that network the car is, lays out the few paths it
- * could take from here, and follows the one the thumb points along.
+ * could take from here, and finds the one the thumb points along.
  *
  * "Points along" is judged the way a person points: at somewhere a little way
  * ahead. Each path is looked at from the car at several distances, and the
- * closest any of them comes to the knob is that path's score. So a thumb
- * pointing at the exit road picks the exit, a thumb pointing across a tight
- * bend picks the bend, and a thumb pointing 15 degrees over toward the next
- * lane picks that lane. The old assist compared the knob with the lane's
- * direction where the car was, which a person pointing ahead rarely matches,
- * and then let go suddenly.
+ * closest any of them comes to the knob is how well it fits. So a thumb
+ * pointing at the exit road fits the exit, and a thumb pointing across a
+ * tight bend fits the bend.
  *
- * The chosen path is kept unless another clearly fits better for a moment,
- * so a wobble does not swap them. When no path fits at all, the thumb has the
- * car (the joystick decides; the referee judges), and the assist takes it back
- * as soon as the thumb points along a path again.
+ * The thumb steers; the assist only steadies it. How much the path steers
+ * goes smoothly from all of it, for a thumb pointing along it, to none, for a
+ * thumb pointing clearly elsewhere (`HELP_FULL`, `HELP_NONE`). So a shaky
+ * thumb keeps its lane, and any push further over turns the car that way, by
+ * as much as it points. There are no modes to fall in and out of: no hold
+ * that lets go all at once, no lane change or exit made for the learner.
+ * Earlier versions had those, and learners said the car steered itself.
  *
- * Lane changes are made here rather than taken from the network, so one can
- * start anywhere the lines are broken, not only at the network's nodes.
+ * Lane changes are the thumb's. The keys ask for one outright (`changes`),
+ * made here rather than taken from the network, so one can start anywhere
+ * the lines are broken.
  *
  * Pure. Run once per physics step.
  */
 import { CAR, type CarState } from "./car";
 import {
   ARMS,
-  ARM_ORDER,
-  RING_OUTER_R,
   SOLID_ZONE,
   bearingOf,
-  dirOf,
-  laneBearing,
-  lanePoint,
   locate,
   ringRadius,
   turnBetween,
@@ -50,55 +46,47 @@ const HORIZON = 30;
 /** The distances a path is looked at from the car, metres. */
 const LOOKS = [4, 7, 11, 16, 22] as const;
 /**
- * A lane change is asked for by leaning the knob toward the lane beside, by
- * this much or more off the way the lane runs a few metres on: 10 degrees is
- * a sloppy thumb, 15 is a lean.
+ * How much a thumb is helped, by how far off the path it fits best it points
+ * (`misfit`). Within `HELP_FULL` the car keeps to the path: a shaky thumb
+ * holds its lane, round the ring too. From there the help fades, all gone at
+ * `HELP_NONE`, so a push further over turns the car by as much as it points.
+ * One smooth blend: no hold that suddenly lets go, nothing that takes the
+ * car somewhere the thumb is not pointing.
  */
-const CHANGE_FROM = 12 * DEG;
-/** Up to this: further over is the thumb's, not a change (`FREE_AT`). */
-const CHANGE_TO = 38 * DEG;
+const HELP_FULL = 6 * DEG;
+const HELP_NONE = 18 * DEG;
 /**
- * A firm push toward the lane beside, past `CHANGE_TO` and up to square
- * across the road (and a little back), held `FREE_TIME`: that lane too, made
- * now. A learner trying to get out of a lane pushes hard toward the one they
- * want; handing them a car pointing across the road, then pulling it back in
- * when they straighten up, is what kept them stuck.
+ * Wider where moving over is never right. At the continuous lines a change
+ * ends the attempt, so a sloppy lean of 20 or 25 degrees there is steadied,
+ * and only a clear push crosses (the referee judges it).
  */
-const PUSH_OVER = 110 * DEG;
-/** Where the lane's way is read, metres on. */
-const CHANGE_AHEAD = 7;
-/** Held for this long, so a wobble is not a request. */
-const CHANGE_TIME = 0.4;
+const LINES_FULL = 25 * DEG;
+const LINES_NONE = 40 * DEG;
+/**
+ * And round the ring, where a thumb held still points further outward of
+ * the bend the further the car goes, and changing ring lane ends the attempt
+ * too. An exit the thumb points down fits its own path, which it then gets.
+ */
+const RING_FULL = 25 * DEG;
+const RING_NONE = 55 * DEG;
+/**
+ * A thumb's car is turned back toward its lane's middle by at most this, on
+ * top of the lane's own way: a car moved part way over drifts gently to the
+ * nearer lane rather than being pulled back across.
+ */
+const CENTRE_MAX = 8 * DEG;
+/** A thumb pointing along a path may be off its way by this much and still be. */
+const ALONG_SLACK = 4 * DEG;
 /** The path being followed counts as this much better fitting than it is. */
-const STICKY = 7 * DEG;
-/** Another path has to fit better for this long before it is taken. */
-const SWITCH_TIME = 0.15;
+const STICKY = 2 * DEG;
+/** A path that leaves the task's exit lane is this much less likely. */
+const TASK_BIAS = 3 * DEG;
 /**
- * A lane change is asked for by the knob smoothed over this long, seconds,
- * so a shake about one way asks for nothing. The other paths, and letting go
- * to the thumb, go by the knob as it is: a tight exit leaves no time to wait.
+ * Going on round the ring lane past every exit its option allows: wrong for
+ * that lane, but the learner's to choose (the referee judges). This much
+ * less likely than a way the lane may go.
  */
-const SMOOTH_TIME = 0.25;
-/** No path within this of the knob, for `FREE_TIME`: the thumb has the car. */
-const FREE_AT = 38 * DEG;
-const FREE_TIME = 0.2;
-/** And the assist takes it back once a path is within this. */
-const BACK_AT = 26 * DEG;
-/**
- * On the roundabout, a thumb held still while the ring bends soon points
- * outward of it. That is a lagging thumb, not a request: leaving the ring
- * between exits only crosses its lanes. So it takes the car outward only
- * pointing down an exit road close by, or this far off every path.
- */
-const RING_LAG = 62 * DEG;
-/** An exit is close when its mouth is within this of the car, metres. */
-const EXIT_NEAR = 24;
-/** The knob must point within this of the way the exit road runs. */
-const EXIT_CONE = 50 * DEG;
-/** And this far outward of the way the ring runs, to be asking. */
-const EXIT_OUTWARD = 10 * DEG;
-/** An exit mouth this far round behind the car is still one it can take. */
-const EXIT_PAST = 25 * DEG;
+const ROUND_AGAIN = 10 * DEG;
 /** The car is on a path while this close to its line, metres. */
 const ON_PATH = 1.8;
 /** Further than this from the path being followed, it has lost it, metres. */
@@ -111,7 +99,7 @@ const ADOPT_GAIN = 0.5;
 const LOST_CHANGING = 5;
 /** And it has lost it once facing this far off the path's way. */
 const LOST_TURN = 75 * DEG;
-/** A lane change ends this far on from where it starts, metres. */
+/** A lane change the keys ask for ends this far on from where it starts, metres. */
 const CHANGE_LENGTH = 8;
 /** Room a change needs before the continuous lines at the roundabout, metres. */
 const CHANGE_ROOM = 5;
@@ -121,12 +109,6 @@ const SETTLED = 0.9;
 const SQUARE = 25 * DEG;
 /** Sideways grip the assist drives within on a bend, m/s². */
 const BEND_GRIP = 3.2;
-/**
- * Moving over a lane, the car keeps to this, metres a second: as a driver is
- * taught, and so a second change, or the turn the change was for, is not
- * already gone by the time it is over.
- */
-const CHANGE_SPEED = 4.5;
 /** The slow speed down the parking aisle, metres a second. */
 export const AISLE_SPEED = 4;
 /**
@@ -136,31 +118,6 @@ export const AISLE_SPEED = 4;
  */
 const CLEAR_BEHIND = CAR.length + 1;
 const CLEAR_AHEAD = 20;
-/** A path that leaves the task's exit lane is this much less likely. */
-const NOT_THE_TASK = 12 * DEG;
-/**
- * Going on round the ring lane past every exit its option allows: wrong for
- * that lane, but the learner's to choose (the referee judges). This much
- * less likely than a way the lane may go, so it is only taken on purpose.
- */
-const ROUND_AGAIN = 10 * DEG;
-/**
- * Coming up to the roundabout, a thumb pointing well off every path, toward
- * the side one of this lane's options turns to, is pointing at where it wants
- * to go: down that option's exit road. It is kept to that option (within
- * this of the way to the road), not handed the car to drive into the kerb.
- */
-const AIMED_AT = 75 * DEG;
-/** Where an option leads: this far down its exit road, metres. */
-const AIM_DOWN = 10;
-/**
- * Toward a lane beside, a firm push (40 or 50 degrees) is the thumb taking
- * the car across: only this far round or more is it pointing at the exit
- * road instead. With no lane that side, only kerb, any push past the paths is.
- */
-const AIM_FROM = 60 * DEG;
-/** Pointing in across the island, up to this far in: a thumb following the bend. */
-const INWARD = 100 * DEG;
 /** On a tight bend the car aims no further ahead than this share of its radius. */
 const BEND_REACH = 0.28;
 
@@ -183,25 +140,8 @@ export type RailsState = {
   plan: string[];
   /** The road the car came up to the roundabout, and its lane. */
   entry: { arm: ArmId; lane: number } | null;
-  /** A path that fits better than the plan, and for how long it has. */
-  rival: string | null;
-  rivalFor: number;
-  /** Seconds no path has fitted, and whether the thumb has the car. */
-  misfit: number;
-  free: boolean;
-  /** The knob smoothed over `SMOOTH_TIME`, as a unit vector. Null let go. */
-  steadyX: number | null;
-  steadyZ: number | null;
-  /** Moving over into the lane beside: still a lane's width off its line. */
+  /** Moving over into the lane beside, asked for by the keys. */
   changing: boolean;
-  /** Which way that change goes, -1 left or 1 right; 0 when not a firm push's. */
-  changeSide: number;
-  /**
-   * A firm push may make a lane change. Not again straight after one, until
-   * the knob has come back toward the way the road runs: a thumb still
-   * pushing hard after one lane is aiming at something, and has the car.
-   */
-  armed: boolean;
 };
 
 export function createRails(): RailsState {
@@ -210,15 +150,7 @@ export function createRails(): RailsState {
     s: 0,
     plan: [],
     entry: null,
-    rival: null,
-    rivalFor: 0,
-    misfit: 0,
-    free: false,
-    steadyX: null,
-    steadyZ: null,
     changing: false,
-    changeSide: 0,
-    armed: true,
   };
 }
 
@@ -226,6 +158,12 @@ export function createRails(): RailsState {
 export type Steer = {
   /** The way to steer. */
   heading: number;
+  /**
+   * How much of the steering is the path's, 0 to 1. A thumb pointing along
+   * it gets it all; pointing further off, less and less, so the car turns
+   * the way the thumb points, by as much as it points.
+   */
+  weight: number;
   /** The fastest to go here, for the bends ahead. */
   cap: number;
   /** Where on the path it is aiming, and which way the path runs there. */
@@ -735,7 +673,13 @@ function changes(
 
 // ---- choosing ----------------------------------------------------------------------
 
-/** How far off the knob a path is: the closest it comes, looked at from the car. */
+/**
+ * How far off the knob a path is: the closest it comes, looked at from the
+ * car. A point only counts as far as the path runs the knob's way on the
+ * stretch to it, too (within `ALONG_SLACK`): a car crossing into a lane at
+ * an angle has the lane just ahead of it right where the thumb points, but
+ * the thumb is pointing across that lane, not along it.
+ */
 function misfit(path: Path, car: CarState, knob: number): number {
   let best = Infinity;
   for (const look of LOOKS) {
@@ -743,9 +687,32 @@ function misfit(path: Path, car: CarState, knob: number): number {
     if (!p) continue;
     if (Math.hypot(p.x - car.x, p.z - car.z) < 2) continue;
     const off = Math.abs(wrapPi(bearingOf(p.x - car.x, p.z - car.z) - knob));
-    if (off < best) best = off;
+    // the way along the path toward that point: halfway between how it runs
+    // at the car and how it runs there (round a tight turn, the path a few
+    // metres on has turned twice as far as a thumb pointing at it)
+    const way = p.h - wrapPi(p.h - path.points[0].h) / 2;
+    const across = Math.abs(wrapPi(way - knob)) - ALONG_SLACK;
+    const fit = Math.max(off, across);
+    if (fit < best) best = fit;
   }
   return best;
+}
+
+/** Where the help is full, and where it is gone, for a car here. */
+function bandFor(car: CarState): [number, number] {
+  const at = locate(car.x, car.z);
+  if (at.kind === "ring") return [RING_FULL, RING_NONE];
+  if (at.kind === "arm" && at.along < SOLID_ZONE) return [LINES_FULL, LINES_NONE];
+  return [HELP_FULL, HELP_NONE];
+}
+
+/** How much of the steering a path gets, for a thumb this far off it. */
+function helpFor(fit: number, [full, none]: [number, number]): number {
+  if (fit <= full) return 1;
+  if (fit >= none) return 0;
+  const t = (none - fit) / (none - full);
+  // eased at both ends, so the help neither snaps on nor off
+  return t * t * (3 - 2 * t);
 }
 
 /** Is this path the one being followed, as far as both run? */
@@ -790,14 +757,12 @@ export function rails(
       if (one.id !== edge.id && project(one, car, state.s).off > 1) continue;
       paths.push(...pathsFrom(one, at, false));
     }
-    if (ask === "point" || ask === "change") {
-      paths.push(...changes(car, edge, state.s, others));
-    }
+    // the thumb makes its own lane changes; the keys ask for one outright
+    if (ask === "change") paths.push(...changes(car, edge, state.s, others));
   }
   const again = ask === "point" ? roundAgain(car, edge, state.plan) : null;
   if (again) paths.push(again);
   if (!paths.length) {
-    state.free = false;
     return null;
   }
 
@@ -805,19 +770,15 @@ export function rails(
   let plan = paths.find((p) => isPlan(p, state.plan)) ?? null;
 
   if (knob == null) {
-    state.armed = true;
-    state.steadyX = state.steadyZ = null;
-    state.free = false;
-    state.misfit = 0;
     // let go: keep to the plan while the car rolls to a stop
     const keep = plan ?? paths[0];
     state.plan = keep.edges.length ? keep.edges.map((e) => e.id) : [keep.key];
-    return steerAlong(keep, car);
+    return { ...steerAlong(keep, car), weight: 1 };
   }
 
   let pick: Path;
-  /** A lane change a firm push asked for, this step. */
-  let firm: Path | null = null;
+  /** How much the path steers, 0 (the knob alone) to 1 (the path alone). */
+  let weight = 1;
   if (ask === "follow") {
     // up alone: the path that stays on this road longest, the plan if level
     // (of those going the task's way, where it ends in one lane)
@@ -827,7 +788,6 @@ export function rails(
     const longest = Math.max(...paths.map((p) => p.stays));
     const stay = paths.filter((p) => p.stays >= longest - 1);
     pick = stay.find((p) => p === plan) ?? stay[0];
-    state.free = false;
   } else if (ask === "change") {
     // keys ask outright: into the lane beside, if there is one to go to
     const over = paths.filter((p) => p.change && p.side === options.side);
@@ -836,7 +796,6 @@ export function rails(
       over[0] ??
       plan ??
       stay.reduce((a, b) => (b.stays > a.stays ? b : a), stay[0] ?? paths[0]);
-    state.free = false;
   } else if (ask === "exit") {
     const ours = paths.filter((p) => fitsTask(p, state.entry, options.exitTo));
     const leaving = (ours.some((p) => p.exit) ? ours : paths)
@@ -850,159 +809,49 @@ export function rails(
             misfit(a, car, knob) <= misfit(b, car, knob) ? a : b,
           )
         : (plan ?? paths[0]);
-    state.free = false;
   } else {
-    const steady = smooth(state, knob, step);
-    // the way the lane runs a few metres on, for telling a lean
-    // (the way on that stays on this road longest: not a turn or an exit)
-    const lane = paths
-      .filter((p) => !p.change && p !== again)
-      .reduce<Path | null>(
-        (best, p) => (!best || p.stays > best.stays ? p : best),
-        null,
-      );
-    const ahead = lane?.points[Math.min(lane.points.length - 1, CHANGE_AHEAD)];
-    const runs = ahead ? bearingOf(ahead.x - car.x, ahead.z - car.z) : null;
-    const lean = (k: number, side: number) =>
-      runs == null ? 0 : wrapPi(k - runs) * side;
-    const leans = (k: number, side: number) => {
-      const off = lean(k, side);
-      return off >= CHANGE_FROM && off <= CHANGE_TO;
-    };
-    const scored = paths
-      .filter((path) => !path.change || leans(steady, path.side ?? 1))
-      .map((path) => {
-        if (path.change) {
-          // leaning toward the lane beside, steadily: that lane, before all
-          const now = leans(knob, path.side ?? 1) ? 0 : Infinity;
-          return { path, fit: 0, score: -1, now };
-        }
-        // the rest by the knob as it is: a tight exit leaves no time to wait
-        const fit = misfit(path, car, knob);
-        let score = fit;
-        if (path === plan) score -= STICKY;
-        if (!fitsTask(path, state.entry, options.exitTo)) score += NOT_THE_TASK;
-        if (path === again) score += ROUND_AGAIN;
-        return { path, fit, score, now: fit };
-      });
-    scored.sort((a, b) => a.score - b.score);
-    // nothing fits the knob as it is: after a moment the thumb has the car
-    const fits = scored.length
-      ? Math.min(...scored.map((one) => one.now))
-      : Infinity;
-    const limit = freeLimit(car, knob);
-    // Coming up to the roundabout, pointing well off every path toward the
-    // road one of this lane's options leads to: on to the roundabout and out
-    // that way, not into the kerb.
-    const aimed =
-      fits > limit && edge && approaching(edge)
-        ? aimedAt(paths, car, knob, runs, edge)
-        : null;
-    // a firm push toward the lane beside, steadily: over into it
-    // (the smoothed knob only has to be on its way there: it lags a firm push)
-    // (the way the lane itself runs: seen from a car part way over, the lane
-    // ahead lies off to the side, the way the knob still points)
-    if (!ahead || Math.abs(wrapPi(knob - ahead.h)) < CHANGE_FROM) {
-      state.armed = true;
-    }
-    const over =
-      state.armed &&
-      !aimed &&
-      fits > limit &&
-      (state.free || state.misfit + step >= FREE_TIME)
-        ? (paths.find(
-            (p) =>
-              p.change &&
-              pushesOver(lean(steady, p.side ?? 1), CHANGE_FROM) &&
-              pushesOver(lean(knob, p.side ?? 1)),
-          ) ?? null)
-        : null;
-    firm = over;
-    // part way over after a firm push, still pushing that way: finish it
-    const finishing =
-      state.changing &&
-      state.changeSide !== 0 &&
-      pushesOver(lean(knob, state.changeSide), CHANGE_FROM);
-    if (aimed || over) {
-      state.free = false;
-      state.misfit = 0;
-      state.rival = null;
-      state.rivalFor = 0;
-      pick = (aimed ?? over)!;
-    } else if (finishing) {
-      state.free = false;
-      state.misfit = 0;
-    } else if (state.free) {
-      if (fits < BACK_AT && limit !== Infinity) {
-        state.free = false;
-        state.misfit = 0;
-      } else if (limit === Infinity) {
-        state.free = false;
-        state.misfit = 0;
+    // A thumb: the path it points along best, helped as much as it fits.
+    // Picked by the knob as it is (a tight exit leaves no time to wait), with
+    // the one being followed a little ahead, so two ways that lie together
+    // where they split do not take turns.
+    let best: { path: Path; fit: number; score: number } | null = null;
+    for (const path of paths) {
+      // lane changes are the thumb's to make: the network's own crossings
+      // between lanes are no path to be steadied along either
+      if (path.change || path.edges.some((e) => e.maneuver === "lane_change")) {
+        continue;
       }
-    } else if (fits > limit) {
-      state.misfit += step;
-      if (state.misfit >= FREE_TIME) state.free = true;
-    } else {
-      state.misfit = 0;
+      const fit = misfit(path, car, knob);
+      let score = fit;
+      if (path === plan) score -= STICKY;
+      if (!fitsTask(path, state.entry, options.exitTo)) score += TASK_BIAS;
+      if (path === again) score += ROUND_AGAIN;
+      if (!best || score < best.score) best = { path, fit, score };
     }
-    if (!aimed && !over && (state.free || !scored.length)) {
-      state.rival = null;
-      state.rivalFor = 0;
-      if (plan) {
-        state.plan = plan.edges.length
-          ? plan.edges.map((e) => e.id)
-          : [plan.key];
-      }
-      return null;
-    }
-    const best = scored[0];
-    // another path has to fit better for a moment before it is taken
-    if (aimed || over) {
-      // taken at once: the thumb is already well off every other way
-      pick = (aimed ?? over)!;
-    } else if (!plan) {
-      pick = best.path.change
-        ? (paths.find((p) => !p.change) ?? best.path)
-        : best.path;
-    } else if (best.path !== plan) {
-      pick = plan;
-      if (state.rival === best.path.key) state.rivalFor += step;
-      else {
-        state.rival = best.path.key;
-        state.rivalFor = step;
-      }
-      const wait = best.path.change ? CHANGE_TIME : SWITCH_TIME;
-      if (state.rivalFor >= wait) pick = best.path;
-    } else {
-      pick = plan;
-      state.rival = null;
-      state.rivalFor = 0;
-    }
+    if (!best) return null;
+    pick = best.path;
+    weight = helpFor(best.fit, bandFor(car));
   }
 
+  // A thumb's car is eased back to its lane's middle only gently: one moved
+  // part way over drifts to whichever lane is nearer, never yanked back. Not
+  // on the ring, where the inner lanes bend too tightly to hold that gently
+  // and moving over is never right anyway.
+  const centring = ask === "point" && !onRing(car) ? CENTRE_MAX : Math.PI;
   if (!pick.edges.length) {
     // round again: the car's place is found afresh on the ring as it goes
     state.plan = [pick.key];
-    return steerAlong(pick, car);
+    return { ...steerAlong(pick, car, centring), weight };
   }
   if (pick.edges[0].id !== state.edge) {
     // a path lying alongside (another way round the same ring lane), or the
     // lane beside: the car is now on it
     state.edge = pick.edges[0].id;
     state.s = pick.s0;
-    if (pick.change) {
-      state.changing = true;
-      state.changeSide = pick === firm ? (pick.side ?? 0) : 0;
-      state.armed = false;
-    }
-    state.rival = null;
-    state.rivalFor = 0;
+    if (pick.change) state.changing = true;
   }
   state.plan = pick.edges.map((e) => e.id);
-  const steer = steerAlong(pick, car);
-  if (state.changing) steer.cap = Math.min(steer.cap, CHANGE_SPEED);
-  return steer;
+  return { ...steerAlong(pick, car, centring), weight };
 }
 
 /**
@@ -1031,105 +880,12 @@ function fitsTask(
   return true;
 }
 
-/** A lean past a lane change's and up to square across the road (or `from`). */
-function pushesOver(lean: number, from = CHANGE_TO): boolean {
-  return lean > from && lean <= PUSH_OVER;
-}
 
-/** Is there a lane beside this one, on that side (-1 left, 1 right)? */
-function laneBeside(edge: NetEdge, side: number): boolean {
-  const key =
-    laneKey(edge) ??
-    (() => {
-      const m = /^([NSEW]):in:(\d)@/.exec(edge.id);
-      return m ? `${m[1]}:in:${m[2]}` : null;
-    })();
-  if (!key) return false;
-  const { arm, lane } = parseLane(key);
-  // lane 1 is at the kerb, on the left of the way in
-  const to = lane + side;
-  return to >= 1 && to <= ARMS[arm].lanes;
-}
 
-/** On a road coming up to the roundabout, or on the last stretch onto it. */
-function approaching(edge: NetEdge): boolean {
-  if (edge.maneuver === "hold_lane") return true;
-  const key = laneKey(edge);
-  return key != null && parseLane(key).side === "in";
-}
 
-const leads = new Map<string, { at: Vec; side: number } | null>();
 
-/**
- * Where a path's roundabout option leads: a point down its exit road, and
- * which way it turns off, -1 left or 1 right (and back). Null for straight on.
- */
-function leadsTo(path: Path): { at: Vec; side: number } | null {
-  for (const edge of path.edges) {
-    const option = /rb:[NSEW]\d:(left|straight|right|back)[:\d]/.exec(edge.id);
-    if (!option) continue;
-    if (!leads.has(edge.id)) leads.set(edge.id, turnOff(edge, option[1]));
-    return leads.get(edge.id) ?? null;
-  }
-  return null;
-}
 
-function turnOff(
-  edge: NetEdge,
-  option: string,
-): { at: Vec; side: number } | null {
-  if (option === "straight") return null;
-  let here: NetEdge | undefined = edge;
-  for (let hops = 0; here && hops < 3; hops += 1) {
-    const out = /^([NSEW]):out:\d@/.exec(here.to);
-    const node = network().nodes.get(here.to);
-    if (here.maneuver === "exit" && out && node) {
-      const dir = dirOf(laneBearing(out[1] as ArmId, "exit"));
-      return {
-        at: { x: node.x + dir.x * AIM_DOWN, z: node.z + dir.z * AIM_DOWN },
-        side: option === "left" ? -1 : 1,
-      };
-    }
-    here = successors(here)[0];
-  }
-  return null;
-}
 
-/**
- * The option a thumb pointing well off every path is aiming at, coming up to
- * the roundabout: one of this lane's that turns the way the thumb points,
- * whose exit road lies nearest the knob. Null when none does.
- */
-function aimedAt(
-  paths: Path[],
-  car: CarState,
-  knob: number,
-  runs: number | null,
-  edge: NetEdge,
-): Path | null {
-  if (runs == null) return null;
-  const turned = wrapPi(knob - runs);
-  const side = Math.sign(turned);
-  // toward a lane beside, however hard: that lane (a change, or the thumb's
-  // at the continuous lines), never an option of this one turning that way
-  if (laneBeside(edge, side)) return null;
-  if (Math.abs(turned) < AIM_FROM) return null;
-  let best: Path | null = null;
-  let nearest = AIMED_AT;
-  for (const path of paths) {
-    if (path.change) continue;
-    const to = leadsTo(path);
-    if (!to || to.side !== side) continue;
-    const off = Math.abs(
-      wrapPi(bearingOf(to.at.x - car.x, to.at.z - car.z) - knob),
-    );
-    if (off < nearest) {
-      nearest = off;
-      best = path;
-    }
-  }
-  return best;
-}
 
 /** Where a way round the ring (or the stretch onto it) comes out: road and lane. */
 function exitOf(edge: NetEdge): { arm: ArmId; lane: number } | null {
@@ -1144,64 +900,17 @@ function exitOf(edge: NetEdge): { arm: ArmId; lane: number } | null {
   return null;
 }
 
-/** The knob smoothed over `SMOOTH_TIME`: a shake about one way averages out. */
-function smooth(state: RailsState, knob: number, step: number): number {
-  const x = Math.sin(knob);
-  const z = -Math.cos(knob);
-  if (state.steadyX == null || state.steadyZ == null) {
-    state.steadyX = x;
-    state.steadyZ = z;
-  } else {
-    const k = Math.min(1, step / SMOOTH_TIME);
-    state.steadyX += (x - state.steadyX) * k;
-    state.steadyZ += (z - state.steadyZ) * k;
-  }
-  return bearingOf(state.steadyX, state.steadyZ);
-}
 
-/**
- * How far off every path the knob may point before the thumb has the car.
- * On the ring: never pointing in (that is a thumb following the bend), and
- * outward only down an exit road close by, or a long way out.
- */
-function freeLimit(car: CarState, knob: number): number {
-  const loc = locate(car.x, car.z);
-  if (loc.kind !== "ring") return FREE_AT;
-  if (inwardOnRing(car, knob)) return Infinity;
-  for (const id of ARM_ORDER) {
-    if (!downExit(knob, laneBearing(id, "exit"), loc.bearing)) continue;
-    const mouth = lanePoint(id, "exit", 1, RING_OUTER_R);
-    const behind =
-      wrapPi(bearingOf(mouth.x, mouth.z) - loc.bearing) < -EXIT_PAST;
-    if (!behind && Math.hypot(car.x - mouth.x, car.z - mouth.z) <= EXIT_NEAR) {
-      return FREE_AT;
-    }
-  }
-  return RING_LAG;
-}
 
-/**
- * Does the knob point down this exit road, for a car on the ring at `bearing`
- * from the middle? Within the cone, and clearly outward of the way the ring
- * runs there.
- */
-function downExit(knob: number, runs: number, bearing: number): boolean {
-  // clockwise, so outward is the knob turned back from the ring's way
-  const outward = -wrapPi(knob - bearing - Math.PI / 2);
-  return Math.abs(wrapPi(knob - runs)) <= EXIT_CONE && outward >= EXIT_OUTWARD;
-}
 
-/** Pointing in across the island, on the ring: a thumb following the bend. */
-function inwardOnRing(car: CarState, knob: number): boolean {
-  const loc = locate(car.x, car.z);
-  if (loc.kind !== "ring") return false;
-  // clockwise, so the ring runs a quarter turn on from the car's bearing
-  const turn = wrapPi(knob - (loc.bearing + Math.PI / 2));
-  return turn > 0 && turn < INWARD;
-}
 
 /** Steer for a point on the path a little ahead, slowing for its bends. */
-function steerAlong(path: Path, car: CarState): Steer {
+function steerAlong(
+  path: Path,
+  car: CarState,
+  /** At most this much toward the path's line, on top of its own way. */
+  centring = Math.PI,
+): Omit<Steer, "weight"> {
   const pts = path.points;
   // how far off the path the car is: a long way off, it eases back over
   const near = pts.reduce(
@@ -1232,8 +941,14 @@ function steerAlong(path: Path, car: CarState): Steer {
     cap = Math.min(cap, AISLE_SPEED);
   }
   const key = path.edges.length ? laneKey(path.edges[0]) : null;
+  // the path's own way from where the car is level with it, then toward its
+  // line from the car, no more than `centring`
+  const from = pts[near.i];
+  const own =
+    k > near.i ? bearingOf(aim.x - from.x, aim.z - from.z) : from.h;
+  const toward = wrapPi(bearingOf(aim.x - car.x, aim.z - car.z) - own);
   return {
-    heading: bearingOf(aim.x - car.x, aim.z - car.z),
+    heading: wrapPi(own + Math.max(-centring, Math.min(centring, toward))),
     cap,
     aim: { x: aim.x, z: aim.z },
     along: aim.h,

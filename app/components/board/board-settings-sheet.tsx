@@ -208,7 +208,7 @@ export function BoardSettingsSheet({
           <SettingSection title="Driving">
             <ToggleRow
               label="Lane assist"
-              description="Holds the car in the lane you are following, and steers it into or out of a parking bay when you reverse. Point the stick somewhere else and it lets go."
+              description="Steadies a shaky thumb so the car keeps to its lane, and steers it into a parking bay when you reverse. Push the stick anywhere else and the car goes there."
               icon={RoadIcon}
               checked={settings.assist ?? true}
               onCheckedChange={(assist) => setSetting({ assist })}

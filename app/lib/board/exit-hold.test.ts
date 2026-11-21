@@ -322,8 +322,12 @@ function choose(
 ): { plan: string; free: boolean } {
   const state = createRails();
   state.entry = entry;
-  for (let i = 0; i < 30; i += 1) rails(at, (knob * Math.PI) / 180, state);
-  return { plan: state.plan.join(" "), free: state.free };
+  let steer: ReturnType<typeof rails> = null;
+  for (let i = 0; i < 30; i += 1) {
+    steer = rails(at, (knob * Math.PI) / 180, state);
+  }
+  // the thumb has the car when the path gives it no steering at all
+  return { plan: state.plan.join(" "), free: !steer || steer.weight === 0 };
 }
 
 describe("which way out of the roundabout", () => {
@@ -413,26 +417,12 @@ describe("pointing early at the road a turn leads to", () => {
     return { fault, small, handed, at: locate(car.x, car.z) };
   }
 
-  it("takes lane 1 round to the west road, not into the kerb", () => {
-    // pointing west from the start, as the finish badge's arrow does
-    const { fault, small, handed, at } = early(1, -90);
-    expect(fault).toBeNull();
-    expect(small).toEqual([]);
-    expect(handed).toBe(false);
-    expect(at.kind === "arm" && at.arm === "W" && at.lane).toBe(1);
-  });
-
-  it("from a lane with no turn that way, moves over to the lane that has one", () => {
-    // lane 2 only goes straight on, and lane 1 lies to its left: pointing
-    // west there is a lane change first, never lane 2 held round to the left
-    const { fault, at } = early(2, -90);
-    expect(fault).toBeNull();
-    expect(at.kind === "arm" && at.arm === "W" && at.lane).toBe(1);
-  });
-
-  it("hands the car over pointing where no lane or turn goes", () => {
-    // lane 1 pointing back and to the left: no lane beside, no option there
-    const { handed } = early(1, -150);
-    expect(handed).toBe(true);
+  it("turns the car the way the thumb points, from any lane", () => {
+    // Pointing at the west road from the start is the thumb steering there:
+    // the assist no longer guesses which roundabout option it means.
+    for (const lane of [1, 2]) {
+      const { handed } = early(lane, -90);
+      expect(handed).toBe(true);
+    }
   });
 });

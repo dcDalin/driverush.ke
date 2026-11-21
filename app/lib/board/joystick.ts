@@ -6,10 +6,10 @@
  * turns, so "up" on the knob always means "away from me". From the south side
  * that is north; from the west side it is east.
  *
- * Lane assist (`rails.ts`): the car follows whichever real path on the board,
- * a lane, a lane change, a way round the roundabout and out, a turn, the knob
- * points along. Point along no path and the knob is obeyed as it is. The
- * learner still decides everything; the assist only does the holding.
+ * Lane assist (`rails.ts`): pointing along a real path on the board (a lane,
+ * a way round the roundabout and out, a turn), the car keeps to it through a
+ * shaky thumb. Pointing further off, the help fades smoothly and the car
+ * turns the way the knob points. The learner steers; the assist steadies.
  *
  * Pure, and run once per physics step so the steering tracks the car as it
  * turns.
@@ -368,10 +368,14 @@ export function stickToInput(
 
   let target = knob;
   let cap: number = options.cap ?? CAR.maxSpeed;
-  if (path) {
-    target = path.heading;
-    cap = Math.min(cap, path.cap);
-    state.hold = 1;
+  if (path && path.weight > 0) {
+    // The thumb steers; the lane only steadies it. Pointing along the lane,
+    // the car keeps to it; pointing further off, the path's share fades, so
+    // the car turns the way the knob points, by as much as it points.
+    const w = path.weight;
+    target = wrapPi(knob + w * wrapPi(path.heading - knob));
+    cap = Math.min(cap, CAR.maxSpeed + w * (path.cap - CAR.maxSpeed));
+    state.hold = w;
     state.aimX = path.aim.x;
     state.aimZ = path.aim.z;
     state.along = path.along;

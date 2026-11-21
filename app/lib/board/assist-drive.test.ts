@@ -164,7 +164,7 @@ describe("lane assist keeps the aisle's speed into a bay", () => {
   );
 });
 
-describe("lane assist gives way to a lane change", () => {
+describe("lane changes are the thumb's", () => {
   // up the four-lane road in lane 2, well before the continuous lines
   function onApproach(along: number): CarState {
     const at = lanePoint("S", "approach", 2, along);
@@ -176,14 +176,17 @@ describe("lane assist gives way to a lane change", () => {
       steer: 0,
     };
   }
-  /** Hold the knob this far right of the lane for a while; the lane it then follows. */
+  /**
+   * Hold the knob this far right of the lane for a while, the car standing
+   * still: how much of the steering the lane then has (0 to 1).
+   */
   function lean(
     from: CarState,
     angle: number,
     seconds: number,
     state: AssistState = createAssist(),
     others: { x: number; z: number }[] = [],
-  ): number | null {
+  ): number {
     const input: CarInput = { steer: 0, throttle: 0, brake: 0 };
     const heading = laneBearing("S", "approach") + angle;
     // seated south, up on the knob is north
@@ -197,36 +200,26 @@ describe("lane assist gives way to a lane change", () => {
         state,
       );
     }
-    return state.lane;
+    return state.hold;
   }
 
-  it("moves over a lane when the knob leans toward it", () => {
-    expect(lean(onApproach(56), 20 * DEG, 0.6)).toBe(3);
-    expect(lean(onApproach(56), -20 * DEG, 0.6)).toBe(1);
+  it("never makes a lane change for a thumb leaning toward one", () => {
+    // a 20° lean is the thumb's own: the lane lets go of it, and the assist
+    // never picks the lane beside to steer into
+    expect(lean(onApproach(56), 20 * DEG, 0.6)).toBe(0);
+    expect(lean(onApproach(56), -20 * DEG, 0.6)).toBe(0);
   });
 
-  it("ignores a wobble and a slight lean", () => {
-    expect(lean(onApproach(56), 20 * DEG, 0.15)).toBe(2);
-    expect(lean(onApproach(56), 10 * DEG, 2)).toBe(2);
+  it("steadies a slight lean", () => {
+    expect(lean(onApproach(56), 4 * DEG, 2)).toBe(1);
+    expect(lean(onApproach(56), 10 * DEG, 2)).toBeGreaterThan(0.5);
   });
 
-  it("never steers into a lane with a car alongside or just ahead", () => {
-    const beside = lanePoint("S", "approach", 3, 56);
-    const ahead = lanePoint("S", "approach", 3, 48);
-    const far = lanePoint("S", "approach", 3, 30);
-    expect(lean(onApproach(56), 20 * DEG, 0.6, createAssist(), [beside])).toBe(
-      2,
-    );
-    expect(lean(onApproach(56), 20 * DEG, 0.6, createAssist(), [ahead])).toBe(
-      2,
-    );
-    // a car well up the road is no reason not to
-    expect(lean(onApproach(56), 20 * DEG, 0.6, createAssist(), [far])).toBe(3);
-  });
-
-  it("never helps a car across the continuous lines", () => {
-    const close = onApproach(SOLID_ZONE + 3);
+  it("steadies a sloppy lean at the continuous lines", () => {
+    const close = onApproach(SOLID_ZONE - 3);
     expect(locate(close.x, close.z)).toMatchObject({ kind: "arm", lane: 2 });
-    expect(lean(close, 20 * DEG, 2)).toBe(2);
+    expect(lean(close, 20 * DEG, 2)).toBe(1);
+    // and a clear push across them is the thumb's (the referee judges it)
+    expect(lean(close, 50 * DEG, 2)).toBe(0);
   });
 });

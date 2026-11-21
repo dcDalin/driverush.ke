@@ -330,7 +330,8 @@ describe("a sloppy thumb is not a push", () => {
     );
     expect(fault?.id).not.toBe("roundabout_lane_change");
     expect(samples.some((s) => Math.hypot(s.x, s.z) < 22.4)).toBe(true);
-    expect(held / onRing).toBeGreaterThan(0.9);
+    // steadied, not left to drift outward
+    expect(held / onRing).toBeGreaterThan(0.5);
   });
 });
 
@@ -350,62 +351,102 @@ describe("the car still goes where it is pointed", () => {
   });
 });
 
-describe("a firm push toward the lane beside", () => {
-  // Learners stuck in a blocked lane pushed hard toward the next one and the
-  // car stayed put: a hard push held a moment was taken for aiming at a
-  // roundabout exit, and a short one handed over a car pointing across the
-  // road, then pulled it back in when the thumb straightened up.
-  const runs = laneBearing("S", "approach");
+describe("the thumb steers; the assist only steadies it", () => {
+  // Learners said the assist steered for them: held a lane they pushed out
+  // of, changed lanes on its own, then handed over a car that swung past
+  // where they pointed. Now the car turns toward the knob, by as much as it
+  // points, and the lane only takes the wobble out of a thumb pointing along
+  // it. Up the long road from the top, well clear of the continuous lines.
+  const runs = laneBearing("N", "approach");
+  const turned = (s: Sample) => (wrapPi(s.heading - runs) * 180) / Math.PI;
   const laneAt = () => {
     const at = locate(car.x, car.z);
     return at.kind === "arm" ? at.lane : null;
   };
 
-  for (const angle of [45, 60, 90]) {
-    for (const hold of [0.5, 1]) {
-      it(`moves over a lane for a ${angle}° push held ${hold} s`, () => {
+  for (const push of [0.5, 1]) {
+    for (const angle of [20, 30, 45, 60]) {
+      it(`turns ${angle}° to the right with a ${push} push, no further`, () => {
         drive.assist = true;
-        // from lane 4, toward lane 3 on the left, then straight on
-        const { samples, fault } = run(
-          task("S", 4, 58),
-          (t) => (t > 0.8 && t < 0.8 + hold ? runs - angle * DEG : runs),
-          4,
-          0.7,
+        const from = 0.5;
+        const { samples } = run(
+          task("N", 2, 150),
+          (t) => runs + (t > from ? angle : 0) * DEG,
+          from + 2.5,
+          push,
         );
-        expect(fault).toBeUndefined();
-        expect(laneAt()).toBe(3);
-        // the assist did it: the thumb never had a car pointing across
-        expect(samples.every((s) => s.hold > 0)).toBe(true);
+        const after = samples.filter((s) => s.t > from);
+        // starts turning toward it at once
+        const early = after.filter((s) => s.t < from + 0.3);
+        expect(Math.max(...early.map(turned))).toBeGreaterThan(1);
+        // gets most of the way there (a gentle push reads a little less)
+        const most = push < 0.6 ? 0.65 : 0.8;
+        const reached = after.find((s) => turned(s) >= angle * most);
+        expect(reached, "never got there").toBeDefined();
+        expect(reached!.t - from).toBeLessThan(push < 0.6 ? 2.5 : 2);
+        // and never swings past it, or the other way
+        expect(Math.max(...after.map(turned))).toBeLessThan(angle + 3);
+        expect(Math.min(...after.map(turned))).toBeGreaterThan(-1);
       });
     }
   }
 
-  it("moves over to the right the same way", () => {
+  it("turns left just the same", () => {
     drive.assist = true;
-    run(
-      task("S", 2, 58),
-      (t) => (t > 0.8 && t < 1.4 ? runs + 90 * DEG : runs),
-      4,
-      0.7,
+    const { samples } = run(
+      task("N", 3, 150),
+      (t) => runs - (t > 0.5 ? 30 : 0) * DEG,
+      3,
     );
-    expect(laneAt()).toBe(3);
+    const after = samples.filter((s) => s.t > 0.5);
+    expect(Math.min(...after.map(turned))).toBeLessThan(-24);
+    expect(Math.min(...after.map(turned))).toBeGreaterThan(-33);
+    expect(Math.max(...after.map(turned))).toBeLessThan(1);
   });
 
-  it("makes one change, then the thumb has the car if it keeps pushing", () => {
+  it("keeps going across lanes while the push is held, never pulled back", () => {
     drive.assist = true;
-    // held hard all the way: one lane over, then the thumb steers
     const { samples } = run(
-      task("S", 4, 58),
-      (t) => (t > 0.8 ? runs - 60 * DEG : runs),
-      4.5,
-      0.7,
+      task("N", 1, 150),
+      (t) => runs + (t > 0.5 ? 30 : 0) * DEG,
+      4,
     );
-    expect(samples.some((s) => s.hold === 0)).toBe(true);
-    // and it was in lane 3 when the thumb took it, not still crossing
-    const first = samples.findIndex((s) => s.hold === 0);
-    const at = locate(samples[first].x, samples[first].z);
-    expect(at.kind === "arm" && at.lane).toBe(3);
+    const lanes = new Set<number>();
+    let worst = 0;
+    const turnedIn = samples.findIndex((one) => turned(one) >= 27);
+    expect(turnedIn).toBeGreaterThan(0);
+    for (const s of samples.slice(turnedIn)) {
+      // once turned, it stays turned: no straightening up at each lane
+      worst = Math.min(worst, turned(s) - 30);
+      const at = locate(s.x, s.z);
+      if (at.kind === "arm") lanes.add(at.lane);
+    }
+    expect(lanes.size).toBeGreaterThanOrEqual(2);
+    expect(worst).toBeGreaterThan(-4);
   });
+
+  it("a short push moves the car over a little, and it settles, no snap", () => {
+    drive.assist = true;
+    const { samples } = run(
+      task("N", 2, 150),
+      (t) => runs + (t > 0.5 && t < 1 ? 45 : 0) * DEG,
+      5,
+    );
+    const after = samples.filter((s) => s.t > 1);
+    // it eases back to running along a lane, without swinging hard across
+    expect(Math.min(...after.map(turned))).toBeGreaterThan(-10);
+    expect(Math.abs(turned(samples[samples.length - 1]))).toBeLessThan(3);
+    expect([2, 3]).toContain(laneAt());
+  });
+
+  for (const hz of [1, 2, 3]) {
+    it(`holds its lane through a ±6° wobble at ${hz} Hz`, () => {
+      drive.assist = true;
+      const wobble = (t: number) => 6 * Math.sin(2 * Math.PI * hz * t) * DEG;
+      run(task("N", 2, 150), (t) => runs + wobble(t), 5);
+      expect(laneAt()).toBe(2);
+    });
+  }
 });
 
 describe("where the car is", () => {

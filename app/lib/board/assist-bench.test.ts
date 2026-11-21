@@ -29,6 +29,14 @@
  * 2026-11-21, every driving level, 16 thumbs of each kind, pass rate:
  * old assist 97.8 / 73.6 / 18.5 %, path assist (`rails.ts`) 97.0 / 94.0 /
  * 79.6 %, assist off 83.2 / 66.0 / 11.1 %.
+ *
+ * 2026-11-22, the thumb steering with the assist only steadying it (no lane
+ * changes or exits made for it): 100 / 94.3 / 44.8 %, assist off 84.2 /
+ * 68.8 / 11.1 %. Coarse thumbs lost most: aiming 20 m or more ahead, a lane
+ * change is a few degrees, which the help steadies away, so they reach the
+ * roundabout in the wrong lane; and they point across the reserve at a gap.
+ * The path assist made those changes for them, which is what learners said
+ * felt like the car steering itself.
  */
 import { beforeAll, beforeEach, describe, it } from "vitest";
 
@@ -246,7 +254,7 @@ export function driveWith(id: string, thumb: Thumb, seed: number): RunResult {
             ? `${loc.arm}${loc.side === "approach" ? "in" : "out"}${loc.lane}@${loc.along.toFixed(0)}`
             : loc.kind;
       trace.push(
-        `${out.seconds.toFixed(1)} ${where} h${((car.heading * 180) / Math.PI).toFixed(0)} knob${((knob * 180) / Math.PI).toFixed(0)} want${((want * 180) / Math.PI).toFixed(0)} hold${a.hold.toFixed(0)} ${a.rails.free ? "FREE" : ""}${a.rails.changing ? "CHG" : ""} e=${a.rails.edge} plan=${a.rails.plan.slice(1, 3).join(",")} v${car.speed.toFixed(1)}`,
+        `${out.seconds.toFixed(1)} ${where} h${((car.heading * 180) / Math.PI).toFixed(0)} knob${((knob * 180) / Math.PI).toFixed(0)} want${((want * 180) / Math.PI).toFixed(0)} hold${a.hold.toFixed(0)} ${a.rails.changing ? "CHG" : ""} e=${a.rails.edge} plan=${a.rails.plan.slice(1, 3).join(",")} v${car.speed.toFixed(1)}`,
       );
       if (trace.length > 600) trace.shift();
     }
