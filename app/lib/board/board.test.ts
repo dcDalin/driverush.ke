@@ -1383,7 +1383,11 @@ describe("leaving the route breaks no rule, but it is not a pass", () => {
   });
 
   it("off the route and back to the box: the drive goes on, and does not pass", () => {
+    // With lane assist off: with it on, a thumb pushing two lanes over moves
+    // the car over lane by lane, and stays on the route.
+    drive.assist = false;
     const s = roam("down-the-street", { stray: 7.4 });
+    drive.assist = true;
     expect(s.wentOn).toBe(true);
     expect(s.phase).toBe("fault");
     expect(s.missed).toBe(true);
@@ -1410,7 +1414,9 @@ describe("leaving the route breaks no rule, but it is not a pass", () => {
   });
 
   it("off the route, a stop line still has to be stopped at", () => {
+    drive.assist = false;
     const s = roam("down-the-street", { stray: 7.4, runStopLines: true });
+    drive.assist = true;
     expect(s.offRoute).toMatchObject({ id: "off_route" });
     expect(s.phase).toBe("fault");
     expect(s.missed).toBe(false);

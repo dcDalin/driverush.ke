@@ -336,16 +336,75 @@ describe("a sloppy thumb is not a push", () => {
 
 describe("the car still goes where it is pointed", () => {
   it("follows a heading with assist on as closely as with it off", () => {
-    // pointing 40° off the lane: well past any hold
+    // pointing 40° off the lane toward the kerb, where there is no lane to
+    // move into: well past any hold, so the thumb has the car
     const runs = laneBearing("S", "approach");
     const ends: number[] = [];
     for (const assist of [false, true]) {
       drive.assist = assist;
-      const { samples } = run(task("S", 2, 60), () => runs + 40 * DEG, 1.5);
+      const { samples } = run(task("S", 1, 60), () => runs - 40 * DEG, 1.5);
       const last = samples[samples.length - 1];
-      ends.push(Math.abs(wrapPi(last.heading - (runs + 40 * DEG))));
+      ends.push(Math.abs(wrapPi(last.heading - (runs - 40 * DEG))));
     }
     expect(ends[1]).toBeLessThan(ends[0] + 5 * DEG);
+  });
+});
+
+describe("a firm push toward the lane beside", () => {
+  // Learners stuck in a blocked lane pushed hard toward the next one and the
+  // car stayed put: a hard push held a moment was taken for aiming at a
+  // roundabout exit, and a short one handed over a car pointing across the
+  // road, then pulled it back in when the thumb straightened up.
+  const runs = laneBearing("S", "approach");
+  const laneAt = () => {
+    const at = locate(car.x, car.z);
+    return at.kind === "arm" ? at.lane : null;
+  };
+
+  for (const angle of [45, 60, 90]) {
+    for (const hold of [0.5, 1]) {
+      it(`moves over a lane for a ${angle}° push held ${hold} s`, () => {
+        drive.assist = true;
+        // from lane 4, toward lane 3 on the left, then straight on
+        const { samples, fault } = run(
+          task("S", 4, 58),
+          (t) => (t > 0.8 && t < 0.8 + hold ? runs - angle * DEG : runs),
+          4,
+          0.7,
+        );
+        expect(fault).toBeUndefined();
+        expect(laneAt()).toBe(3);
+        // the assist did it: the thumb never had a car pointing across
+        expect(samples.every((s) => s.hold > 0)).toBe(true);
+      });
+    }
+  }
+
+  it("moves over to the right the same way", () => {
+    drive.assist = true;
+    run(
+      task("S", 2, 58),
+      (t) => (t > 0.8 && t < 1.4 ? runs + 90 * DEG : runs),
+      4,
+      0.7,
+    );
+    expect(laneAt()).toBe(3);
+  });
+
+  it("makes one change, then the thumb has the car if it keeps pushing", () => {
+    drive.assist = true;
+    // held hard all the way: one lane over, then the thumb steers
+    const { samples } = run(
+      task("S", 4, 58),
+      (t) => (t > 0.8 ? runs - 60 * DEG : runs),
+      4.5,
+      0.7,
+    );
+    expect(samples.some((s) => s.hold === 0)).toBe(true);
+    // and it was in lane 3 when the thumb took it, not still crossing
+    const first = samples.findIndex((s) => s.hold === 0);
+    const at = locate(samples[first].x, samples[first].z);
+    expect(at.kind === "arm" && at.lane).toBe(3);
   });
 });
 

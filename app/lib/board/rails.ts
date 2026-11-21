@@ -57,6 +57,14 @@ const LOOKS = [4, 7, 11, 16, 22] as const;
 const CHANGE_FROM = 12 * DEG;
 /** Up to this: further over is the thumb's, not a change (`FREE_AT`). */
 const CHANGE_TO = 38 * DEG;
+/**
+ * A firm push toward the lane beside, past `CHANGE_TO` and up to square
+ * across the road (and a little back), held `FREE_TIME`: that lane too, made
+ * now. A learner trying to get out of a lane pushes hard toward the one they
+ * want; handing them a car pointing across the road, then pulling it back in
+ * when they straighten up, is what kept them stuck.
+ */
+const PUSH_OVER = 110 * DEG;
 /** Where the lane's way is read, metres on. */
 const CHANGE_AHEAD = 7;
 /** Held for this long, so a wobble is not a request. */
@@ -186,6 +194,14 @@ export type RailsState = {
   steadyZ: number | null;
   /** Moving over into the lane beside: still a lane's width off its line. */
   changing: boolean;
+  /** Which way that change goes, -1 left or 1 right; 0 when not a firm push's. */
+  changeSide: number;
+  /**
+   * A firm push may make a lane change. Not again straight after one, until
+   * the knob has come back toward the way the road runs: a thumb still
+   * pushing hard after one lane is aiming at something, and has the car.
+   */
+  armed: boolean;
 };
 
 export function createRails(): RailsState {
@@ -201,6 +217,8 @@ export function createRails(): RailsState {
     steadyX: null,
     steadyZ: null,
     changing: false,
+    changeSide: 0,
+    armed: true,
   };
 }
 
@@ -787,6 +805,7 @@ export function rails(
   let plan = paths.find((p) => isPlan(p, state.plan)) ?? null;
 
   if (knob == null) {
+    state.armed = true;
     state.steadyX = state.steadyZ = null;
     state.free = false;
     state.misfit = 0;
@@ -797,6 +816,8 @@ export function rails(
   }
 
   let pick: Path;
+  /** A lane change a firm push asked for, this step. */
+  let firm: Path | null = null;
   if (ask === "follow") {
     // up alone: the path that stays on this road longest, the plan if level
     // (of those going the task's way, where it ends in one lane)
@@ -877,12 +898,40 @@ export function rails(
       fits > limit && edge && approaching(edge)
         ? aimedAt(paths, car, knob, runs, edge)
         : null;
-    if (aimed) {
+    // a firm push toward the lane beside, steadily: over into it
+    // (the smoothed knob only has to be on its way there: it lags a firm push)
+    // (the way the lane itself runs: seen from a car part way over, the lane
+    // ahead lies off to the side, the way the knob still points)
+    if (!ahead || Math.abs(wrapPi(knob - ahead.h)) < CHANGE_FROM) {
+      state.armed = true;
+    }
+    const over =
+      state.armed &&
+      !aimed &&
+      fits > limit &&
+      (state.free || state.misfit + step >= FREE_TIME)
+        ? (paths.find(
+            (p) =>
+              p.change &&
+              pushesOver(lean(steady, p.side ?? 1), CHANGE_FROM) &&
+              pushesOver(lean(knob, p.side ?? 1)),
+          ) ?? null)
+        : null;
+    firm = over;
+    // part way over after a firm push, still pushing that way: finish it
+    const finishing =
+      state.changing &&
+      state.changeSide !== 0 &&
+      pushesOver(lean(knob, state.changeSide), CHANGE_FROM);
+    if (aimed || over) {
       state.free = false;
       state.misfit = 0;
       state.rival = null;
       state.rivalFor = 0;
-      pick = aimed;
+      pick = (aimed ?? over)!;
+    } else if (finishing) {
+      state.free = false;
+      state.misfit = 0;
     } else if (state.free) {
       if (fits < BACK_AT && limit !== Infinity) {
         state.free = false;
@@ -897,7 +946,7 @@ export function rails(
     } else {
       state.misfit = 0;
     }
-    if (!aimed && (state.free || !scored.length)) {
+    if (!aimed && !over && (state.free || !scored.length)) {
       state.rival = null;
       state.rivalFor = 0;
       if (plan) {
@@ -909,9 +958,9 @@ export function rails(
     }
     const best = scored[0];
     // another path has to fit better for a moment before it is taken
-    if (aimed) {
+    if (aimed || over) {
       // taken at once: the thumb is already well off every other way
-      pick = aimed;
+      pick = (aimed ?? over)!;
     } else if (!plan) {
       pick = best.path.change
         ? (paths.find((p) => !p.change) ?? best.path)
@@ -942,7 +991,11 @@ export function rails(
     // lane beside: the car is now on it
     state.edge = pick.edges[0].id;
     state.s = pick.s0;
-    if (pick.change) state.changing = true;
+    if (pick.change) {
+      state.changing = true;
+      state.changeSide = pick === firm ? (pick.side ?? 0) : 0;
+      state.armed = false;
+    }
     state.rival = null;
     state.rivalFor = 0;
   }
@@ -976,6 +1029,11 @@ function fitsTask(
     return !out || out.arm !== task.arm || out.lane === task.lane;
   }
   return true;
+}
+
+/** A lean past a lane change's and up to square across the road (or `from`). */
+function pushesOver(lean: number, from = CHANGE_TO): boolean {
+  return lean > from && lean <= PUSH_OVER;
 }
 
 /** Is there a lane beside this one, on that side (-1 left, 1 right)? */
@@ -1052,7 +1110,10 @@ function aimedAt(
   if (runs == null) return null;
   const turned = wrapPi(knob - runs);
   const side = Math.sign(turned);
-  if (Math.abs(turned) < AIM_FROM && laneBeside(edge, side)) return null;
+  // toward a lane beside, however hard: that lane (a change, or the thumb's
+  // at the continuous lines), never an option of this one turning that way
+  if (laneBeside(edge, side)) return null;
+  if (Math.abs(turned) < AIM_FROM) return null;
   let best: Path | null = null;
   let nearest = AIMED_AT;
   for (const path of paths) {

@@ -422,9 +422,17 @@ describe("pointing early at the road a turn leads to", () => {
     expect(at.kind === "arm" && at.arm === "W" && at.lane).toBe(1);
   });
 
-  it("still hands the car over from a lane with no turn that way", () => {
-    // lane 2 only goes straight on: pointing west there is the thumb's
-    const { handed } = early(2, -90);
+  it("from a lane with no turn that way, moves over to the lane that has one", () => {
+    // lane 2 only goes straight on, and lane 1 lies to its left: pointing
+    // west there is a lane change first, never lane 2 held round to the left
+    const { fault, at } = early(2, -90);
+    expect(fault).toBeNull();
+    expect(at.kind === "arm" && at.arm === "W" && at.lane).toBe(1);
+  });
+
+  it("hands the car over pointing where no lane or turn goes", () => {
+    // lane 1 pointing back and to the left: no lane beside, no option there
+    const { handed } = early(1, -150);
     expect(handed).toBe(true);
   });
 });
