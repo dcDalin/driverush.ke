@@ -620,8 +620,14 @@ function LanesLevel({
         <div className="grid gap-2 rounded-md border-2 border-[#f6c416] bg-white/5 p-3 max-sm:gap-1.5 max-sm:p-2.5">
           <p className={cn(eyebrow, "max-sm:hidden")}>Do this</p>
           <p className="m-0 text-[14.5px] font-semibold leading-snug text-white max-sm:text-[14px]">
-            Drive each car to its place. Tap a car marked Drive
-            <span className="max-sm:hidden">, here or on the table</span>.
+            {/* One line on a phone, so the panel fits a short screen. */}
+            <span className="max-sm:hidden">
+              Drive each car to its place. Tap a car marked Drive, here or on
+              the table.
+            </span>
+            <span className="sm:hidden">
+              Tap a car marked Drive and take it home.
+            </span>
           </p>
           <div className="flex items-center justify-between gap-3">
             <p aria-live="polite" className={eyebrow}>
