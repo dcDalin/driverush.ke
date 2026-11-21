@@ -1771,6 +1771,10 @@ export default function BoardTable(props: BoardTableProps) {
         antialias: true,
         alpha: false,
         powerPreference: "high-performance",
+        // Session replay reads the board twice a second. Without a kept
+        // buffer the read sees an empty frame, and the recorder clears the
+        // canvas first, which would blank an idle board. See `posthog.ts`.
+        preserveDrawingBuffer: true,
       }}
       style={{ touchAction: "none" }}
     >

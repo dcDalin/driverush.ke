@@ -86,6 +86,20 @@ export function initPostHog(): PostHog | undefined {
       // opt individual nodes out with `data-ph-mask` if anything slips.
       maskAllInputs: true,
       maskTextSelector: "[data-ph-mask]",
+      // Record the 3D board, so a replay shows what the car did and not an
+      // empty box. Kept cheap for low-end phones: 2 frames a second, at half
+      // resolution, low quality. Only the board takes part: it keeps its
+      // drawing buffer (`board-table.tsx`) so a snapshot never wipes it. Any
+      // other WebGL canvas must sit inside `.ph-no-capture` (as the 3D sign
+      // trainer does), because the recorder clears a WebGL canvas that
+      // doesn't keep its buffer before reading it, and that canvas would
+      // flicker blank on the learner's screen.
+      captureCanvas: {
+        recordCanvas: true,
+        canvasFps: 2,
+        canvasQuality: "0.4",
+      },
+      canvasCapture: { resolutionScale: 0.5 },
     },
     debug: import.meta.env.DEV,
     before_send: (event) => {

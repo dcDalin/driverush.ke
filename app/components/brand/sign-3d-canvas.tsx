@@ -714,7 +714,10 @@ function SceneContents({
 export default function Sign3DCanvas(props: Sign3DCanvasProps) {
   return (
     <Canvas
-      className="!touch-none"
+      // ph-no-capture: session replay records only the board's canvas. This
+      // one doesn't keep its drawing buffer, so the recorder would clear it
+      // twice a second and it would flicker (see `posthog.ts`).
+      className="!touch-none ph-no-capture"
       shadows={false}
       dpr={[1, 2]}
       frameloop={props.autoRotate ? "always" : "demand"}
