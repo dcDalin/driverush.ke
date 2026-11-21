@@ -73,6 +73,8 @@ export function meta({ data }: Route.MetaArgs) {
     { name: "twitter:title", content: title },
     { name: "twitter:description", content: description },
     { name: "twitter:image", content: ogImage },
+    // X reads its own alt tag, not Open Graph's.
+    ...(card ? [{ name: "twitter:image:alt", content: card.alt }] : []),
   ];
 }
 
@@ -91,9 +93,7 @@ export default function ShareLanding({ loaderData }: Route.ComponentProps) {
       <SiteNav />
       <main className="mx-auto w-full max-w-3xl px-5 py-14 sm:px-9 sm:py-20">
         <div className="grid justify-items-center gap-6 border-2 border-ink bg-surface px-6 py-12 text-center shadow-stamp sm:px-10">
-          {resolved.valid && (
-            <SignIcon name="finish" size={64} />
-          )}
+          {resolved.valid && <SignIcon name="finish" size={64} />}
           <div>
             <p className="m-0 font-mono text-[11px] uppercase tracking-widest text-ink-3">
               {resolved.valid ? "Shared with you" : "Sent to you"}
@@ -109,10 +109,7 @@ export default function ShareLanding({ loaderData }: Route.ComponentProps) {
             <Button variant="rush" size="lg" asChild>
               <Link to={resolved.ctaHref}>
                 {resolved.ctaLabel}
-                <Icon
-                  icon={ArrowRightIcon}
-                  size={16}
-                />
+                <Icon icon={ArrowRightIcon} size={16} />
               </Link>
             </Button>
             <Button variant="paper" size="lg" asChild>
@@ -154,7 +151,8 @@ const ENTRY_POINTS = [
   {
     href: "/model-town-board",
     title: "Model Town Board",
-    blurb: "Learn the lanes and the roundabout level by level, then drive them.",
+    blurb:
+      "Learn the lanes and the roundabout level by level, then drive them.",
   },
   ...SIGN_GAMES.map((game) => ({
     href: game.to,

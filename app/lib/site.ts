@@ -452,8 +452,12 @@ export function pageMeta(opts: {
             property: "og:image:height",
             content: String(opts.ogImageHeight ?? OG_HEIGHT),
           },
+          // X reads its own alt tag, not Open Graph's.
           ...(opts.ogImageAlt
-            ? [{ property: "og:image:alt", content: opts.ogImageAlt }]
+            ? [
+                { property: "og:image:alt", content: opts.ogImageAlt },
+                { name: "twitter:image:alt", content: opts.ogImageAlt },
+              ]
             : []),
         ]
       : []),
