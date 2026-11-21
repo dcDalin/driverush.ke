@@ -5,7 +5,14 @@
  * The models are built by `scripts/build-board-cars.mjs`.
  */
 export const BOARD_CARS = [
-  { id: "saloon", label: "Saloon", src: "/assets/board/cars/saloon.glb" },
+  // `?v=2`: the saloon gained its wrap template (scripts/build-car-wrap.mjs).
+  // A new address, so no cache hands out the old one. Keep public/sw.js's
+  // BOARD_FILES in step.
+  {
+    id: "saloon",
+    label: "Saloon",
+    src: "/assets/board/cars/saloon.glb?v=2",
+  },
   { id: "suv", label: "SUV", src: "/assets/board/cars/suv.glb" },
   { id: "pickup", label: "Pickup", src: "/assets/board/cars/pickup.glb" },
 ] as const;
@@ -23,8 +30,14 @@ const IDS: readonly BoardCarId[] = BOARD_CARS.map((car) => car.id);
 export function resolveCar(
   setting: BoardCarSetting | undefined,
   roll: number,
+  /**
+   * The car to give a learner who has not chosen one: the saloon, when a
+   * sponsoring school's paint is waiting for it.
+   */
+  prefer?: BoardCarId,
 ): BoardCarId {
   if (setting && setting !== "random" && IDS.includes(setting)) return setting;
+  if (prefer) return prefer;
   const at = Math.min(
     IDS.length - 1,
     Math.max(0, Math.floor(roll * IDS.length)),

@@ -92,6 +92,6 @@ export function carFromGltf(
     if (mesh.name.startsWith("wheel_f")) steering.push(hub);
   }
 
-  car.userData = { tail, wheels, steering, wheelRadius };
+  car.userData = { tail, wheels, steering, wheelRadius, paintwork };
   return car as CarModel;
 }

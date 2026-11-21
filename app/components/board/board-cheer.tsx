@@ -16,10 +16,12 @@ import {
   type Level,
 } from "~/lib/board/curriculum";
 import { useBoardStore } from "~/lib/board-store";
+import { useVisitSponsor } from "~/lib/board/sponsor-visit";
 import { cn } from "~/lib/utils";
 
 import { Icon } from "~/components/brand/icon";
 import { CheckIcon } from "~/components/brand/icons";
+import { SponsorReadyCard } from "~/components/board/sponsor-credit";
 
 // Only a learner who finishes the course ever downloads it.
 const Confetti = React.lazy(() =>
@@ -44,6 +46,7 @@ export function LevelCheer({
   const total = COURSE_LEVELS.length;
   const whole = done >= total;
   const count = `${done} of ${total} levels done · Board ready ${readiness(saved)}%`;
+  const sponsor = useVisitSponsor();
 
   // The burst plays the first time the course is finished, and never again.
   const [burst] = React.useState(
@@ -66,12 +69,12 @@ export function LevelCheer({
     );
   }
   const n = UNITS.indexOf(unit) + 1;
-  return (
+  const cheer = (
     <div
       role="status"
       className={cn(
         "dr-pop flex items-center gap-3 rounded-md border-2 border-kenya-gold bg-kenya-gold/15 p-3",
-        className,
+        !(whole && sponsor) && className,
       )}
     >
       {burst && (
@@ -99,5 +102,14 @@ export function LevelCheer({
         </span>
       </span>
     </div>
+  );
+  // The end of the course is when a learner needs a real school.
+  return whole && sponsor ? (
+    <div className={cn("grid gap-2.5", className)}>
+      {cheer}
+      <SponsorReadyCard sponsor={sponsor} ready />
+    </div>
+  ) : (
+    cheer
   );
 }

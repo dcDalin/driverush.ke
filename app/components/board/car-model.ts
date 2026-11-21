@@ -291,6 +291,11 @@ export type CarModel = THREE.Group & {
     steering: THREE.Group[];
     /** The wheels' radius in metres, when it is not `WHEEL_RADIUS`. */
     wheelRadius?: number;
+    /**
+     * The bodywork's material, on a downloaded model whose bodywork can take
+     * a school's paint (see `~/lib/board/sponsors`).
+     */
+    paintwork?: THREE.MeshStandardMaterial;
   };
 };
 

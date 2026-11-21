@@ -97,6 +97,7 @@ export function TrainerResultCard({
   share,
   summary,
   missedSlot,
+  footerSlot,
   nextLabel: nextLabelOverride,
   crossLink,
   onDrill,
@@ -122,6 +123,8 @@ export function TrainerResultCard({
   summary?: string;
   /** Shown instead of the missed-sign thumbnails. */
   missedSlot?: React.ReactNode;
+  /** Shown under the buttons. The board puts its sponsoring school here. */
+  footerSlot?: React.ReactNode;
   nextLabel?: string;
   /** Replaces the link to the other sign trainer. */
   crossLink?: { to: string; label: string };
@@ -318,6 +321,11 @@ export function TrainerResultCard({
               </Button>
             </div>
           </motion.div>
+          {footerSlot && (
+            <motion.div variants={ITEM} className="w-full">
+              {footerSlot}
+            </motion.div>
+          )}
         </div>
       </motion.div>
     </motion.div>

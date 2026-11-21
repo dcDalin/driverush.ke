@@ -73,6 +73,15 @@ import {
   disposeRibbons,
 } from "~/components/board/route-ribbon";
 import { SHARED, carFromGltf } from "~/components/board/car-glb";
+import {
+  PLATE,
+  boardLogo,
+  loadImage,
+  loadWrap,
+  sponsoredPlate,
+  wearWrap,
+} from "~/components/board/board-sponsor";
+import { sponsorShown, useVisitSponsor } from "~/lib/board/sponsor-visit";
 import { useParkingLayout } from "~/components/board/use-parking-layout";
 import {
   WHEEL_RADIUS,
@@ -471,6 +480,8 @@ type Table = {
    */
   top: THREE.Mesh;
   surface: THREE.MeshStandardMaterial;
+  /** The brass plates on the frame: south, west, north, east. */
+  plates: THREE.Mesh[];
 };
 
 function buildTable(tier: BoardTier): Table {
@@ -601,19 +612,29 @@ function buildTable(tier: BoardTier): Table {
     );
     if (turned) bar.rotation.y = Math.PI / 2;
   }
-  const plate = put(
-    new THREE.PlaneGeometry(15, 2.7),
-    new THREE.MeshStandardMaterial({
-      map: plateTexture(),
-      metalness: 0.85,
-      roughness: 0.32,
-    }),
-    CX,
-    2.13,
-    BOUNDS.z1 + FRAME / 2,
-  );
-  plate.rotation.x = -Math.PI / 2;
-  plate.castShadow = false;
+  // One plate on each side's bar, each reading from its own side. Only the
+  // near (south) one shows, unless a school sponsors the board: then every
+  // seat gets one, with the school's logo engraved on it.
+  const plateShape = new THREE.PlaneGeometry(PLATE.width, PLATE.depth);
+  plateShape.rotateX(-Math.PI / 2);
+  const plateMaterial = new THREE.MeshStandardMaterial({
+    map: plateTexture(),
+    metalness: 0.85,
+    roughness: 0.32,
+  });
+  const plateSpots: [number, number, number][] = [
+    [CX, BOUNDS.z1 + FRAME / 2, 0],
+    [BOUNDS.x0 - FRAME / 2, CZ, -Math.PI / 2],
+    [CX, BOUNDS.z0 - FRAME / 2, Math.PI],
+    [BOUNDS.x1 + FRAME / 2, CZ, Math.PI / 2],
+  ];
+  const plates = plateSpots.map(([x, z, turn], i) => {
+    const plate = put(plateShape, plateMaterial, x, 2.13, z);
+    plate.rotation.y = turn;
+    plate.castShadow = false;
+    plate.visible = i === 0;
+    return plate;
+  });
 
   // The board's top.
   const surface = new THREE.MeshStandardMaterial({
@@ -677,7 +698,7 @@ function buildTable(tier: BoardTier): Table {
   put(raise(disc(ISLAND_R), 0.3), kerb);
   put(raise(disc(ISLAND_R - 0.5), 0.34), green);
 
-  return { group, top, surface };
+  return { group, top, surface, plates };
 }
 
 /** Free everything a built object holds on the graphics card. */
@@ -940,6 +961,53 @@ function Scene({
   const table = React.useMemo(() => buildTable(tier), [tier]);
   React.useEffect(() => () => dispose(table.group), [table]);
 
+  // A sponsoring school: its logo engraved on every plate and painted in one
+  // green field. See board-sponsor.ts.
+  const sponsor = useVisitSponsor();
+  React.useEffect(() => {
+    if (!sponsor) return;
+    let alive = true;
+    let logoMesh: THREE.Mesh | null = null;
+    let engraved: THREE.Texture | null = null;
+    const brass = table.plates[0].material as THREE.MeshStandardMaterial;
+    const plain = brass.map;
+    loadImage(sponsor.logo.mono)
+      .then((logo) => {
+        if (!alive) return;
+        engraved = sponsoredPlate(logo);
+        brass.map = engraved;
+        brass.needsUpdate = true;
+        for (const plate of table.plates) {
+          plate.visible = true;
+          plate.scale.x = PLATE.sponsoredWidth / PLATE.width;
+        }
+        logoMesh = boardLogo(logo);
+        table.group.add(logoMesh);
+        sponsorShown(sponsor, "plate");
+        sponsorShown(sponsor, "board");
+        invalidate();
+      })
+      .catch(() => {
+        // No logo: the table stays as it is with no sponsor.
+      });
+    return () => {
+      alive = false;
+      if (logoMesh) {
+        table.group.remove(logoMesh);
+        dispose(logoMesh);
+      }
+      if (engraved) {
+        brass.map = plain;
+        brass.needsUpdate = true;
+        engraved.dispose();
+        table.plates.forEach((plate, i) => {
+          plate.visible = i === 0;
+          plate.scale.x = 1;
+        });
+      }
+    };
+  }, [sponsor, table, invalidate]);
+
   // The room the paint and the varnish reflect. Phones that struggle go without.
   React.useEffect(() => {
     gl.toneMappingExposure = tier === "high" ? 0.8 : 0.95;
@@ -1023,6 +1091,34 @@ function Scene({
     };
   }, [gl, tier, table, invalidate]);
 
+  // The school's paint goes on the learner's own car when it is the saloon
+  // (the one with a wrap template), never on a line-up car with its own colour.
+  const livery =
+    sponsor?.livery && driven === "saloon" && models && !paint
+      ? sponsor.livery
+      : null;
+  const wrapUrl = livery ? (tier === "low" ? livery.lo : livery.hi) : null;
+  const [wrap, setWrap] = React.useState<THREE.Texture | null>(null);
+  React.useEffect(() => {
+    if (!wrapUrl) return;
+    let alive = true;
+    let loaded: THREE.Texture | null = null;
+    loadWrap(wrapUrl, tier === "low" ? 2 : 8)
+      .then((texture) => {
+        if (!alive) return texture.dispose();
+        loaded = texture;
+        setWrap(texture);
+      })
+      .catch(() => {
+        // The car keeps the school's plain body colour.
+      });
+    return () => {
+      alive = false;
+      setWrap(null);
+      loaded?.dispose();
+    };
+  }, [wrapUrl, tier]);
+
   const player = React.useMemo(
     () =>
       carOnTable(
@@ -1034,6 +1130,13 @@ function Scene({
     [tier, models, driven, paint],
   );
   React.useEffect(() => () => dispose(player), [player]);
+  // The school's paint goes on the car already on the table, never by
+  // building a new one: a new car would reset what the camera is doing.
+  React.useEffect(() => {
+    if (!livery) return;
+    if (wearWrap(player, wrap, livery.base)) sponsorShown(sponsor, "car");
+    invalidate();
+  }, [player, wrap, livery, sponsor, invalidate]);
 
   const others = React.useMemo(
     () =>

@@ -12,6 +12,7 @@ import {
   RoadIcon,
   Sign3DIcon,
   SoundIcon,
+  StarIcon,
 } from "~/components/brand/icons";
 
 export type ToolStatus = "live" | "soon";
@@ -63,6 +64,15 @@ export const TOOLS: Tool[] = [
     blurb:
       "Every lane, turn, U-turn and parking move on the Model Town Board, drawn flat for checking. Pick a start and an end to see the route the lessons will teach, step by step, and the list of rules a driving school still has to confirm.",
     icon: RoadIcon,
+    status: "live",
+  },
+  {
+    slug: "sponsor",
+    path: "/tools/sponsor",
+    title: "Sponsor check",
+    blurb:
+      "A sponsoring driving school before it goes live: its car paint flat and in 3D from every seat, its logo on the brass plate and painted on the board, and the lines and card that name it.",
+    icon: StarIcon,
     status: "live",
   },
   {

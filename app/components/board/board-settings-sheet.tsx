@@ -12,11 +12,13 @@ import {
 import { fullBoardSvg } from "~/lib/board/full-board";
 import type { Seat } from "~/lib/board/joystick";
 import { useBoardStore, type BoardQuality } from "~/lib/board-store";
+import { useVisitSponsor } from "~/lib/board/sponsor-visit";
 import { cn } from "~/lib/utils";
 
 import { RoadIcon, SoundIcon } from "~/components/brand/icons";
 import { SettingSection, ToggleRow } from "~/components/brand/setting-controls";
 import { Button } from "~/components/ui/button";
+import { SponsorCredit } from "~/components/board/sponsor-credit";
 import {
   Sheet,
   SheetBody,
@@ -96,6 +98,7 @@ export function BoardSettingsSheet({
   const setSetting = useBoardStore((s) => s.setSetting);
   const pick = (next: Seat) => setSetting({ seat: next });
   const carChoice = settings.car ?? "random";
+  const sponsor = useVisitSponsor();
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -170,6 +173,9 @@ export function BoardSettingsSheet({
               The cars only look different. They are the same size and drive
               the same way. Surprise me picks one each time you visit.
             </p>
+            {open && car === "saloon" && sponsor?.livery && (
+              <SponsorCredit sponsor={sponsor} lead="Car by" place="credit" />
+            )}
           </SettingSection>
 
           <SettingSection title="Picture">

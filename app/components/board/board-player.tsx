@@ -10,6 +10,11 @@ import { Link, useNavigate } from "react-router";
 import { useShallow } from "zustand/react/shallow";
 
 import { BOARD_CARS, resolveCar } from "~/lib/board/cars";
+import { useVisitSponsor } from "~/lib/board/sponsor-visit";
+import {
+  SponsorCredit,
+  SponsorReadyCard,
+} from "~/components/board/sponsor-credit";
 import { faultRule, faultTip } from "~/lib/board/board-rules";
 import {
   BOARD_CHALLENGES,
@@ -784,7 +789,13 @@ export function BoardGame() {
   const assist = s.settings.assist ?? true;
   // Drawn once a visit, so a random car stays the same from task to task.
   const [carRoll] = React.useState(() => Math.random());
-  const boardCar = resolveCar(s.settings.car, carRoll);
+  // A sponsoring school's paint only fits the saloon.
+  const sponsor = useVisitSponsor();
+  const boardCar = resolveCar(
+    s.settings.car,
+    carRoll,
+    sponsor?.livery ? "saloon" : undefined,
+  );
   React.useEffect(() => {
     drive.seat = seat;
     drive.assist = assist;
@@ -962,6 +973,16 @@ export function BoardGame() {
           onUnsupported={() => setUnsupported(true)}
           onPainted={() => setPainted(true)}
           className="absolute inset-0"
+        />
+      )}
+
+      {/* While the table loads, under the loader: the school sponsoring the board. */}
+      {!unsupported && !painted && (
+        <SponsorCredit
+          sponsor={sponsor}
+          lead="Board by"
+          place="loader"
+          className="pointer-events-auto absolute inset-x-0 bottom-[max(1.5rem,env(safe-area-inset-bottom))] z-30 mx-auto w-fit max-w-[calc(100%-2rem)] rounded-md border border-white/15 bg-white/10 px-3 py-2 text-white"
         />
       )}
 
@@ -1559,6 +1580,12 @@ export function BoardGame() {
                 firstTry: s.runClean.length,
               },
             }}
+            footerSlot={
+              <SponsorReadyCard
+                sponsor={sponsor}
+                ready={s.queue.length > 0 && s.runClean.length === s.queue.length}
+              />
+            }
             onDrill={() => s.start(s.runFaulted)}
             onNext={() => s.start()}
             onResetMastery={s.resetProgress}

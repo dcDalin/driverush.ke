@@ -943,7 +943,25 @@ export type FullBoardOptions = {
     /** An arrowhead at the far end. */
     arrow?: boolean;
   }[];
+  /**
+   * A sponsoring school's logo (white on transparent), painted faintly in
+   * {@link sponsorSpot}. See `~/lib/board/sponsors`.
+   */
+  sponsorLogo?: string;
 };
+
+/** How strongly a sponsor's logo is painted: well under the road paint. */
+export const SPONSOR_PAINT = { color: "#f2f2ee", opacity: 0.5 } as const;
+
+/**
+ * Where a sponsoring school's logo is painted: the middle of the green field
+ * south-west of the roundabout, the one nearest the learner's usual seat. It
+ * keeps clear of every road (tested in `sponsors-board.test.ts`) and is shaped
+ * for a wide logo.
+ */
+export function sponsorSpot(): Box {
+  return { x0: -52, x1: -24, z0: 30.5, z1: 43.5 };
+}
 
 /** Parts of the board worth a picture of their own. */
 export const BOARD_VIEWS = {
@@ -1211,6 +1229,8 @@ export function fullBoardSvg(options: FullBoardOptions = {}): string {
       ],
     ),
 
+    options.sponsorLogo ? sponsorPaint(options.sponsorLogo) : "",
+
     (options.routes ?? [])
       .map((route) => {
         if (route.points.length < 2) return "";
@@ -1239,6 +1259,15 @@ export function fullBoardSvg(options: FullBoardOptions = {}): string {
     `</g>`,
     `</svg>`,
   ].join("");
+}
+
+/**
+ * A sponsor's logo in its spot. It is paint, so it turns with the board: it
+ * reads upright from the south side of the table, as in the 3D scene.
+ */
+function sponsorPaint(href: string): string {
+  const b = sponsorSpot();
+  return `<image href="${href}" x="${n(b.x0)}" y="${n(b.z0)}" width="${n(b.x1 - b.x0)}" height="${n(b.z1 - b.z0)}" preserveAspectRatio="xMidYMid meet" opacity="${SPONSOR_PAINT.opacity}"/>`;
 }
 
 /** The bays with a car standing in them, counted from 1. */

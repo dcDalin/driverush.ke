@@ -404,6 +404,19 @@ export const analytics = {
     kind: "next_step" | "show_me" | "after_fault";
   }) => emit("board_hint_used", args),
 
+  // ----- driving-school sponsors (see ~/lib/board/sponsors) -----
+
+  /**
+   * A sponsoring school was on screen in one place, once per place per
+   * visit. What schools are shown when we sell to them. PostHog only.
+   */
+  sponsorShown: (args: { school: string; place: string }) =>
+    emit("sponsor_shown", args, false),
+
+  /** Learner tapped through to a sponsoring school. */
+  sponsorLinkClicked: (args: { school: string; place: string }) =>
+    emit("sponsor_link_clicked", args),
+
   /** Outbound click to a credited source site. */
   partnerClicked: (args: { name: string; url: string }) =>
     emit("partner_clicked", {

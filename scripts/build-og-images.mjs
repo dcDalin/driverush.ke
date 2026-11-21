@@ -40,6 +40,16 @@ const HEIGHT = 630;
 const SCALE = Number(process.env.SCALE ?? 1);
 
 /**
+ * A sponsoring school's id (`app/lib/board/sponsors.ts`): the board still is
+ * taken with the learner's car in that school's paint and its logo on the
+ * table, and saved as `<card>-<id>.png`, for the school's sales deck and
+ * socials. The site's own cards are never taken this way.
+ *   SPONSOR=helz SCALE=2 DEV_URL=http://localhost:5190 npm run build:og -- board-3d
+ */
+const SPONSOR = process.env.SPONSOR ?? "";
+const fileOf = (card) => (SPONSOR ? `${card.id}-${SPONSOR}` : card.id);
+
+/**
  * Keep in step with OG_CARDS in `app/lib/og-cards.ts`.
  *
  * `minBytes` is a blank-frame tripwire. The 3D card sometimes screenshots
@@ -113,8 +123,10 @@ async function assertDevServer() {
 }
 
 async function capture(chrome, card, attempt = 1) {
-  const out = path.join(OUT_DIR, `${card.id}.png`);
-  const url = `${DEV_URL}/tools/og?card=${encodeURIComponent(card.id)}`;
+  const out = path.join(OUT_DIR, `${fileOf(card)}.png`);
+  const url = `${DEV_URL}/tools/og?card=${encodeURIComponent(card.id)}${
+    SPONSOR ? `&sponsor=${encodeURIComponent(SPONSOR)}` : ""
+  }`;
   const settleMs = card.settleMs * attempt;
   await execFileAsync(
     chrome,
@@ -148,8 +160,8 @@ async function capture(chrome, card, attempt = 1) {
  * ships with macOS, the same tool the poster steps above use.
  */
 async function toJpeg(card) {
-  const png = path.join(OUT_DIR, `${card.id}.png`);
-  const jpg = path.join(OUT_DIR, `${card.id}.jpg`);
+  const png = path.join(OUT_DIR, `${fileOf(card)}.png`);
+  const jpg = path.join(OUT_DIR, `${fileOf(card)}.jpg`);
   await execFileAsync("sips", [
     "-s",
     "format",
@@ -197,7 +209,7 @@ async function main() {
       ext = "jpg";
     }
     console.log(
-      `${(size / 1024).toFixed(0)} kB  →  public/og/${card.id}.${ext}`,
+      `${(size / 1024).toFixed(0)} kB  →  public/og/${fileOf(card)}.${ext}`,
     );
   }
 
