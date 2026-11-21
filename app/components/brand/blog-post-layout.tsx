@@ -153,14 +153,26 @@ export function BlogPostLayout({
               </em>
               .
             </h2>
+            {/* On a phone the buttons wrap their words and fill the width: a
+                one-line label is wider than the screen. */}
             <div className="flex flex-wrap gap-3">
-              <Button variant="rush" size="lg" asChild>
+              <Button
+                variant="rush"
+                size="lg"
+                asChild
+                className="max-sm:h-auto max-sm:min-h-14 max-sm:w-full max-sm:whitespace-normal max-sm:px-4 max-sm:py-3 max-sm:text-center"
+              >
                 <Link to="/road-signs/pelican">
                   <Icon icon={PelicanIcon} size={18} />
                   Train on the Pelican chart
                 </Link>
               </Button>
-              <Button variant="paper" size="lg" asChild>
+              <Button
+                variant="paper"
+                size="lg"
+                asChild
+                className="max-sm:h-auto max-sm:min-h-14 max-sm:w-full max-sm:whitespace-normal max-sm:px-4 max-sm:py-3 max-sm:text-center"
+              >
                 <Link to="/road-signs/3d">
                   <Icon icon={Sign3DIcon} size={18} />
                   Spin signs in 3D

@@ -1,10 +1,7 @@
 import * as React from "react";
 import { Link } from "react-router";
 import { Icon } from "~/components/brand/icon";
-import {
-  ArrowRightIcon,
-  PelicanIcon,
-} from "~/components/brand/icons";
+import { ArrowRightIcon, PelicanIcon } from "~/components/brand/icons";
 
 import type { Route } from "./+types/blogs";
 
@@ -96,7 +93,6 @@ export function meta(_: Route.MetaArgs) {
   ];
 }
 
-
 const Container = ({ children }: { children: React.ReactNode }) => (
   <div className="mx-auto w-full max-w-6xl px-5 sm:px-9">{children}</div>
 );
@@ -165,10 +161,7 @@ export default function BlogsIndex() {
                     <Button variant="rush" size="lg" asChild>
                       <Link to={`/blogs/${hero.slug}`}>
                         Read it
-                        <Icon
-                          icon={ArrowRightIcon}
-                          size={16}
-                        />
+                        <Icon icon={ArrowRightIcon} size={16} />
                       </Link>
                     </Button>
                     <span className="font-mono text-[11px] uppercase tracking-widest text-ink-3">
@@ -221,14 +214,26 @@ export default function BlogsIndex() {
               Try the live <span className="italic text-rush">games</span> the
               blog keeps pointing at.
             </h2>
+            {/* On a phone the buttons wrap their words and fill the width: a
+                one-line label is wider than the screen. */}
             <div className="flex flex-wrap gap-3">
-              <Button variant="rush" size="lg" asChild>
+              <Button
+                variant="rush"
+                size="lg"
+                asChild
+                className="max-sm:h-auto max-sm:min-h-14 max-sm:w-full max-sm:whitespace-normal max-sm:px-4 max-sm:py-3 max-sm:text-center"
+              >
                 <Link to="/road-signs/pelican">
                   <Icon icon={PelicanIcon} size={18} />
                   Train on the Pelican chart
                 </Link>
               </Button>
-              <Button variant="paper" size="lg" asChild>
+              <Button
+                variant="paper"
+                size="lg"
+                asChild
+                className="max-sm:h-auto max-sm:min-h-14 max-sm:w-full max-sm:whitespace-normal max-sm:px-4 max-sm:py-3 max-sm:text-center"
+              >
                 <Link to="/road-signs/3d">Spin signs in 3D</Link>
               </Button>
             </div>
