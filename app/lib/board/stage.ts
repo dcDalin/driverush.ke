@@ -148,7 +148,9 @@ export function widestDriveSpan(): number {
  * its roads. On a phone the drive's close view is about 23 m, under half the
  * ring, so the exits are off screen just when the learner needs them.
  */
-export const RING_VIEW = 2 * RING_R + 6;
+// Only a metre of each road's mouth either side: any wider and the car is
+// hard to pick out on a phone (owner, 2026-11-21).
+export const RING_VIEW = 2 * RING_R + 2;
 /** The view starts backing off this far from the roundabout's centre... */
 const RING_PULL_FROM = RING_R + 10;
 /** ...and shows the whole of it this close in. */
