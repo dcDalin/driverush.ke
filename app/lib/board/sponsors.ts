@@ -71,9 +71,8 @@ export const SPONSORS: readonly Sponsor[] = [
         pickup: paintOf(HELTZ_DIR, "pickup"),
       },
     },
-    // Not live until the school has agreed and paid: reachable only with
-    // ?sponsor=heltz, for showing them their car.
-    live: false,
+    // Live for everyone since 2026-11-21 (owner's call).
+    live: true,
   },
 ];
 
