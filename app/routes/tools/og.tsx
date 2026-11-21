@@ -425,19 +425,19 @@ const STILL_CARS = [
 ] as const;
 
 const STILL = {
-  // The roundabout as a phone shows it while driving round: the whole ring,
-  // its pale cross and every road's mouth, with the yellow car going round in
-  // lane 2 towards the first exit (owner, 2026-11-21). A landscape picture
-  // needs a little more width than the phone's 47 m to fit the ring top to
-  // bottom. Seen from the south, as on a phone.
+  // The roundabout as a phone shows it while driving round: the ring, its
+  // pale cross and the yellow car going round in lane 2, crossing the cross
+  // (owner, 2026-11-21). The island sits right of the middle: `BoardThumb`
+  // puts its play button in the middle and its line top left, and the owner
+  // asked that the button not cover the island. Seen from the south.
   seat: "south",
-  x: 0,
+  x: -11,
   z: 3,
   span: 54,
   // On the ring at this bearing, in degrees. `?carx=` stands it on a road
   // instead (the earlier picture: `x=-3&z=24&span=76&carx=-8.4`).
   onRing: true,
-  bearing: 215,
+  bearing: 180,
   lane: 2,
   car: { x: -8.4, z: 38, heading: 8 },
   // a right lock to follow ring lane 2 round the island

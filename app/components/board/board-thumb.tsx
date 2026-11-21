@@ -21,7 +21,7 @@ const WIDTH = 1200;
 const HEIGHT = 630;
 
 export const BOARD_THUMB_ALT =
-  "The Model Town Board game: a yellow car on the four-lane road, coming up to the lane arrows numbered 1 to 4 and the roundabout.";
+  "The Model Town Board game: a yellow car going round the roundabout, past the green island and the pale yellow cross marking each road.";
 
 export function BoardThumb({
   className,
