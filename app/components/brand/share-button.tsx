@@ -12,7 +12,7 @@
  * phone it goes straight to the OS share sheet with its link, and elsewhere
  * to the same sheet without the picture.
  *
- * Every outbound link is UTM-tagged per channel, so `useUtmCapture` can
+ * Every outbound link is UTM-tagged per channel, so analytics can
  * attribute return traffic to the share that caused it.
  */
 import * as React from "react";

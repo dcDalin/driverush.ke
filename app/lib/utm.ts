@@ -1,17 +1,10 @@
-import * as React from "react";
-
 /**
- * UTM plumbing — one place for the campaign vocabulary, link tagging, and the
- * inbound capture that feeds session attribution into our GA events.
+ * UTM plumbing: one place for the campaign vocabulary and link tagging.
  *
- * Two flows:
- *  - **Outbound** — `addUtm(url, params)` appends `utm_*` query keys to a link
- *    we ship out (partner cards, share buttons, the /tools/share builder).
- *  - **Inbound** — `useUtmCapture()` reads `utm_*` off the landing URL once
- *    on mount and persists them to sessionStorage. The analytics emitter
- *    then merges those onto every event as `session_utm_*` params so custom
- *    GA reports can break down conversions by source/campaign even when
- *    GA4's session source rolls up differently.
+ * `addUtm(url, params)` appends `utm_*` query keys to a link we ship out
+ * (partner cards, share buttons, the /tools/share builder). Inbound, GA4 and
+ * PostHog both read `utm_*` off the landing URL themselves and attribute the
+ * whole session to it, so nothing here needs to store them.
  */
 
 /** Canonical channel presets. Pairs of source+medium that match GA4 defaults. */
@@ -79,55 +72,4 @@ export function utmSlug(value: string): string {
     .trim()
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_|_$/g, "");
-}
-
-/** Parse `utm_*` keys out of a `?...` search string. */
-export function readIncomingUtms(search: string): Partial<UtmParams> {
-  const sp = new URLSearchParams(search);
-  const out: Partial<UtmParams> = {};
-  for (const k of UTM_KEYS) {
-    const v = sp.get(`utm_${k}`);
-    if (v) out[k] = v;
-  }
-  return out;
-}
-
-const SESSION_KEY = "dr-utm-session";
-
-/** Persist the captured UTMs for the current tab/session. No-op on server. */
-export function persistUtms(utms: Partial<UtmParams>) {
-  if (typeof window === "undefined") return;
-  if (Object.keys(utms).length === 0) return;
-  try {
-    window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(utms));
-  } catch {
-    // sessionStorage can throw in private mode / quota-exceeded — fine to drop.
-  }
-}
-
-/** Read whatever UTMs were captured this session. Empty object on server. */
-export function getPersistedUtms(): Partial<UtmParams> {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = window.sessionStorage.getItem(SESSION_KEY);
-    return raw ? (JSON.parse(raw) as Partial<UtmParams>) : {};
-  } catch {
-    return {};
-  }
-}
-
-/**
- * On first mount, capture `utm_*` off the landing URL and stash them for the
- * session. Subsequent SPA navigations don't re-trigger — we want the *entry*
- * attribution, not later drift.
- */
-export function useUtmCapture() {
-  React.useEffect(() => {
-    if (typeof window === "undefined") return;
-    // Skip if we already captured this tab — preserves the original landing
-    // source even if the user navigates internally to another utm'd URL.
-    if (window.sessionStorage.getItem(SESSION_KEY)) return;
-    const utms = readIncomingUtms(window.location.search);
-    if (Object.keys(utms).length > 0) persistUtms(utms);
-  }, []);
 }

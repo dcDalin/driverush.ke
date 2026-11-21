@@ -1,7 +1,12 @@
 import * as React from "react";
-import { useLocation } from "react-router";
-import ReactGA from "react-ga4";
-import { getPersistedUtms } from "./utm";
+import { useLocation, useMatches } from "react-router";
+import { gaEvent, gaPageView, type GaLanding } from "./ga";
+import {
+  cleanPath,
+  INTERNAL_PATH_RE,
+  NOT_FOUND_GROUP,
+  pageMeta,
+} from "./page-meta";
 import { getPostHog, initPostHog } from "./posthog";
 
 /**
@@ -13,31 +18,20 @@ import { getPostHog, initPostHog } from "./posthog";
  * *semantic* events autocapture can't infer — was the answer right, did the
  * lesson finish, did the learner hit a locked node.
  *
- * Google Analytics 4 (via `react-ga4`) rides along for the legacy reports:
- * it loads the gtag script and we drive pageviews off `useLocation()` so SPA
- * navigations register. GA stays disabled in dev so localhost doesn't
- * pollute the property; PostHog captures in dev too but stamps
- * `app_env: development` so it can be filtered out.
+ * Google Analytics 4 gets the same events through `ga.ts`, with two
+ * differences: where GA4 has a recommended event for the same thing
+ * (`level_start`, `share`) it gets that name, so its built-in reports work,
+ * and the few very high-volume events stay in PostHog only. GA page views
+ * are sent by the `<head>` script (the landing page) and {@link usePageviews}
+ * (every navigation after it). GA only measures driverush.ke; see `ga.ts`.
  *
  * Custom events go through {@link analytics} — a typed dispatch object so
  * call sites can't typo event names or invent ad-hoc params.
  */
 
-export const GA_MEASUREMENT_ID = "G-SPS89YRDGL";
-
-const GA_ENABLED = import.meta.env.PROD;
-
-let initialized = false;
-
-/** Initialise analytics clients once on the client. Safe to call repeatedly. */
+/** Make sure PostHog is up. Safe to call repeatedly. */
 export async function initAnalytics() {
   if (typeof window === "undefined") return;
-
-  if (!initialized && GA_ENABLED) {
-    ReactGA.initialize(GA_MEASUREMENT_ID);
-    initialized = true;
-  }
-
   // Normally already done in `entry.client.tsx`; this covers call sites that
   // can run before hydration finishes (e.g. the root ErrorBoundary).
   initPostHog();
@@ -46,24 +40,63 @@ export async function initAnalytics() {
 export { getPostHog };
 
 /**
- * Initialises GA on first run, then fires a `page_view` on every React Router
- * navigation. Call once from the root component. No-op on the server and when
- * GA is disabled.
+ * The page being shown, labelled for GA: its cleaned path, content group and
+ * route template. Works on the server, which is how the landing page view in
+ * `<head>` gets its labels.
+ */
+export function useGaPage(): GaLanding {
+  const location = useLocation();
+  const matches = useMatches();
+  const leaf = matches[matches.length - 1]?.id;
+  return {
+    path: cleanPath(location.pathname, location.search),
+    ...pageMeta(leaf, location.pathname),
+  };
+}
+
+/** The last page sent to GA, as a full cleaned URL: the next one's referrer. */
+let lastPage: { pathname: string; url: string } | undefined;
+
+/**
+ * Sends a GA `page_view` for every in-app navigation to a new path. The
+ * landing page is already sent by the `<head>` script, so the first run only
+ * records it. A change of query alone (the next level inside the game) is
+ * not a new page: level events cover it. Call once, from the root `Layout`,
+ * so the error page is counted too.
  */
 export function usePageviews() {
   const location = useLocation();
-  React.useEffect(() => {
-    void initAnalytics();
-    if (!initialized) return;
-    ReactGA.send({
-      hitType: "pageview",
-      page: location.pathname + location.search,
-      title: typeof document !== "undefined" ? document.title : undefined,
+  const page = useGaPage();
+  // A layout effect, so the page view is sent before any effect in the new
+  // page runs: an event a page sends as it opens (`level_start`) is then
+  // reported against that page, not the one before it. By now React has
+  // already put the new page's <title> in place.
+  React.useLayoutEffect(() => {
+    const url = window.location.origin + page.path;
+    const previous = lastPage;
+    lastPage = { pathname: location.pathname, url };
+    if (!previous || previous.pathname === location.pathname) return;
+    if (INTERNAL_PATH_RE.test(location.pathname)) return;
+    gaPageView({
+      page_location: url,
+      page_referrer: previous.url,
+      page_title: document.title,
+      content_group: page.content_group,
+      page_template: page.page_template,
     });
-  }, [location.pathname, location.search]);
+    if (page.content_group === NOT_FOUND_GROUP) {
+      gaEvent("page_not_found", { missing_path: location.pathname });
+    }
+  }, [location.pathname, page]);
 }
 
-function emit(name: string, params?: Record<string, unknown>) {
+/**
+ * What GA gets for an event: `false` keeps it in PostHog only, an object
+ * sends it under GA4's recommended name and parameters instead.
+ */
+type GaMapping = false | { name: string; params: Record<string, unknown> };
+
+function emit(name: string, params?: Record<string, unknown>, ga?: GaMapping) {
   // In DEV, mirror the event to the console so we can verify dispatch
   // without digging through the network tab.
   if (import.meta.env.DEV) {
@@ -74,17 +107,9 @@ function emit(name: string, params?: Record<string, unknown>) {
   // capture; `initPostHog()` is the belt-and-braces path for anything that
   // fires earlier.
   (getPostHog() ?? initPostHog())?.capture(name, params);
-  if (!initialized) return;
-  // Auto-merge the session's landing UTMs so every event carries attribution
-  // for custom reports. Explicit `params` always win on key collision.
-  const utms = getPersistedUtms();
-  const utmParams: Record<string, unknown> = {};
-  if (utms.source) utmParams.session_utm_source = utms.source;
-  if (utms.medium) utmParams.session_utm_medium = utms.medium;
-  if (utms.campaign) utmParams.session_utm_campaign = utms.campaign;
-  if (utms.term) utmParams.session_utm_term = utms.term;
-  if (utms.content) utmParams.session_utm_content = utms.content;
-  ReactGA.event(name, { ...utmParams, ...params });
+  if (ga === false) return;
+  if (ga) gaEvent(ga.name, ga.params);
+  else gaEvent(name, params);
 }
 
 type RunStarted = {
@@ -122,9 +147,26 @@ function completedProps(args: RunCompleted) {
   };
 }
 
+type Level = {
+  level: string;
+  number: number;
+  kind: "warmup" | "slides" | "lanes" | "watch" | "drive";
+  unit: string;
+};
+
+/** GA4's `level_start` / `level_end` parameters for a course level. */
+function gaLevel(args: Level) {
+  return {
+    level_name: args.level,
+    level_number: args.number,
+    level_kind: args.kind,
+    unit: args.unit,
+  };
+}
+
 /**
  * Typed event dispatcher. One method per event we care about; the keys are
- * the only names that should ever land in GA reports. If you need a new
+ * the only names that should ever land in reports. If you need a new
  * event, add a method here rather than calling `emit` directly — it keeps
  * the report taxonomy stable and surfaces the full event list in one place.
  */
@@ -135,7 +177,8 @@ export const analytics = {
 
   /** A sign question appeared in the homepage check. */
   signChallengeStarted: (args: { sign_id: string; category: string }) =>
-    emit("sign_challenge_started", args),
+    // One per question shown: PostHog only, the answers say more in GA.
+    emit("sign_challenge_started", args, false),
 
   /** Visitor answered a homepage sign question. */
   signChallengeAnswered: (args: {
@@ -171,7 +214,7 @@ export const analytics = {
   /**
    * One "Knew it" or "Missed it" tap. Higher volume than the rest of this file,
    * and deliberately so: it's the only way to see which signs people actually
-   * get wrong.
+   * get wrong. PostHog only: in GA it would bury every other event.
    */
   signGraded: (args: {
     trainer: "pelican" | "3d";
@@ -184,7 +227,7 @@ export const analytics = {
     scope: string;
     /** On a miss: whether the tip was the sign's own guide or its class rule. */
     miss_tip?: "guide" | "class_rule";
-  }) => emit("sign_graded", args),
+  }) => emit("sign_graded", args, false),
 
   // ----- Model Town Board -----
 
@@ -192,7 +235,7 @@ export const analytics = {
   boardStarted: (args: { challenges: number; scope: "round" | "drill" }) =>
     emit("board_started", args),
 
-  /** The referee called a mistake. Shows which rules trip people up. */
+  /** The referee called a mistake. Shows which rules trip people up. PostHog only. */
   boardFaulted: (args: {
     challenge_id: string;
     rule: string;
@@ -204,7 +247,7 @@ export const analytics = {
     severity: "small" | "serious" | "route";
     /** 1 for the first fault on this challenge, and so on. */
     fault_number: number;
-  }) => emit("board_faulted", args),
+  }) => emit("board_faulted", args, false),
 
   /** A challenge was passed, cleanly or after faults. */
   boardChallengePassed: (args: {
@@ -221,7 +264,11 @@ export const analytics = {
     par_seconds: number;
     /** The score is the learner's best yet on this task. */
     best: boolean;
-  }) => emit("board_challenge_passed", args),
+  }) =>
+    emit("board_challenge_passed", args, {
+      name: "post_score",
+      params: { ...args, level_name: args.challenge_id },
+    }),
 
   /** The learner stopped in the box after leaving the route: not a pass. */
   boardChallengeMissed: (args: {
@@ -275,7 +322,11 @@ export const analytics = {
     number: number;
     kind: "warmup" | "slides" | "lanes" | "watch" | "drive";
     unit: string;
-  }) => emit("board_level_started", args),
+  }) =>
+    emit("board_level_started", args, {
+      name: "level_start",
+      params: gaLevel(args),
+    }),
 
   /** A level was finished: read or watched for the first time, or passed. */
   boardLevelCompleted: (args: {
@@ -283,7 +334,11 @@ export const analytics = {
     number: number;
     kind: "warmup" | "slides" | "lanes" | "watch" | "drive";
     unit: string;
-  }) => emit("board_level_completed", args),
+  }) =>
+    emit("board_level_completed", args, {
+      name: "level_end",
+      params: { ...gaLevel(args), success: true },
+    }),
 
   /** A hint was used on a driving task. */
   boardHintUsed: (args: {
@@ -304,7 +359,10 @@ export const analytics = {
    * it out of autocaptured link clicks.
    */
   contactClicked: (args: { channel: "phone" | "email"; location: string }) =>
-    emit("contact_clicked", args),
+    emit("contact_clicked", args, {
+      name: "generate_lead",
+      params: { method: args.channel, location: args.location },
+    }),
 
   // ----- sharing -----
   // opened → completed measures how many people who reach for share actually
@@ -316,7 +374,10 @@ export const analytics = {
 
   /** A share was actually dispatched to a channel. */
   shareCompleted: (args: { kind: string; channel: string }) =>
-    emit("share_completed", args),
+    emit("share_completed", args, {
+      name: "share",
+      params: { method: args.channel, content_type: args.kind },
+    }),
 
   /** Someone opened a shared link. `valid: false` means the payload was junk. */
   shareLandingViewed: (args: { kind: string; valid: boolean }) =>

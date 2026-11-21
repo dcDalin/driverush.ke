@@ -3,7 +3,8 @@
 **Audience:** whoever is looking at the numbers, and engineers adding events.
 
 **Status:** active. PostHog is the system of record for product analytics; GA4
-still runs alongside it for the legacy reports. There are no user accounts yet,
+runs alongside it for traffic, acquisition and search reports (see
+[Google Analytics 4](#google-analytics-4)). There are no user accounts yet,
 so every learner is anonymous — person profiles carry the learner state instead
 (see [Learner profile](#learner-profile)).
 
@@ -19,6 +20,7 @@ so every learner is anonymous — person profiles carry the learner state instea
 6. [Adding an event](#adding-an-event)
 7. [Local development](#local-development)
 8. [Known gaps](#known-gaps)
+9. [Google Analytics 4](#google-analytics-4)
 
 ---
 
@@ -238,3 +240,114 @@ users") when reading production numbers.
   cap the cost with a sampling rate / minimum duration in PostHog project
   settings rather than in code, so it can be tuned without a deploy. Replay
   and heatmaps must also be switched on there before data appears.
+
+## Google Analytics 4
+
+No library: the gtag snippet is ours, in `app/lib/ga.ts`.
+
+### Two properties, picked by environment
+
+Both live in the GA account **driverush** (417049674).
+
+| Property          | Property ID | Measurement ID  | Gets                                   |
+| ----------------- | ----------- | --------------- | -------------------------------------- |
+| `driverush.ke`    | 565305500   | `G-JH6E8C5H1J`  | Production only: the real numbers      |
+| `DriveRush (dev)` | 565373649   | `G-6D0HL2RW9R`  | Localhost, Vercel previews, dev builds |
+
+The code reads `VITE_PUBLIC_GA_MEASUREMENT_ID` at build time. Unset or empty,
+GA does not load at all.
+
+```
+.env (local)                VITE_PUBLIC_GA_MEASUREMENT_ID=G-6D0HL2RW9R
+Vercel: Production          VITE_PUBLIC_GA_MEASUREMENT_ID=G-JH6E8C5H1J
+Vercel: Preview, Development VITE_PUBLIC_GA_MEASUREMENT_ID=G-6D0HL2RW9R
+```
+
+Outside a production build every hit is sent in debug mode, so local work
+shows up in the dev property's **DebugView** straight away. Only the
+production property has the custom definitions and filters below; the dev
+one is for checking that events fire.
+
+### How a visit is measured
+
+| Piece                    | File                                     | Notes                                                                                                                                  |
+| ------------------------ | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Head script              | `app/lib/ga.ts` (`gaHeadScript`), `root.tsx` | Runs before React. Decides whether to measure, sets consent, configures the stream, sends the **landing page view** itself.        |
+| In-app page views        | `app/lib/analytics.ts` (`usePageviews`)  | One `page_view` per new path, in a layout effect so it goes out before the new page's own events. A query change alone is not a page. |
+| Page labels              | `app/lib/page-meta.ts`                   | `content_group` and `page_template` from the route id. A test fails if a page route has no label.                                       |
+| Events                   | `app/lib/analytics.ts` (`emit`)          | Same taxonomy as PostHog, mapped to GA4 names where one exists (below). Every event carries the page's `content_group` and `page_template`. |
+| User properties          | `use-learner-analytics.ts`, head script  | `learner_stage`, `board_levels_bucket`, `display_mode`.                                                                                |
+
+**Never measured:** `/tools/*`, or a browser driven by a script
+(`navigator.webdriver`, which covers the promo video recorder).
+
+**Consent:** no banner. Consent Mode v2 defaults: `analytics_storage`
+granted; `ad_storage`, `ad_user_data`, `ad_personalization` denied. Google
+signals and ad personalisation off. There are no ads.
+
+**URLs are cleaned** before they reach GA (`cleanPath`): only `utm_*`,
+`gclid`, `level`, `task`, `learn` and `k` survive. `ttclid`, `fbclid`,
+`igshid` and share payloads are dropped, so pages don't fragment in reports.
+GA still reads the campaign from the landing URL, so attribution is
+unaffected.
+
+### Switches
+
+- `?ga_debug=1` puts a production tab in debug mode, for **DebugView** (Admin →
+  DebugView). `?ga_debug=0` stops it. The Developer traffic filter keeps
+  these hits out of production reports.
+- `?internal=1` marks this device as ours: every hit carries
+  `traffic_type=internal`, which the Internal traffic data filter removes.
+  Open `https://driverush.ke/?internal=1` once on each of your own phones and
+  laptops. `?internal=0` clears it.
+
+### Content groups
+
+`Home`, `Board game`, `Board levels`, `Board guide`, `Sign trainer`,
+`Sign class`, `Sign page`, `Signs hub`, `NTSA test`, `Guide`, `Blog`,
+`Share landing`, `Info`, `Not found`. `page_template` is the route pattern for
+dynamic pages (`/road-signs/:slug`, `/blogs/:slug`) and the path otherwise.
+A 404 also sends `page_not_found` with `missing_path`: that is the broken inbound
+links report.
+
+### Event names in GA
+
+| PostHog event            | GA4 event        | GA parameters                                                  |
+| ------------------------ | ---------------- | -------------------------------------------------------------- |
+| `board_level_started`    | `level_start`    | `level_name`, `level_number`, `level_kind`, `unit`             |
+| `board_level_completed`  | `level_end`      | the same, plus `success: true`                                 |
+| `board_challenge_passed` | `post_score`     | `score`, `level_name` (the task id), `stars`, `seconds`, …     |
+| `share_completed`        | `share`          | `method` (channel), `content_type` (kind)                      |
+| `contact_clicked`        | `generate_lead`  | `method` (channel), `location`                                 |
+| `sign_graded`, `board_faulted`, `sign_challenge_started` | not sent | too many to be useful in GA; PostHog has them  |
+| everything else          | same name        | same parameters                                                |
+
+GA4 limits are applied in `sanitizeGaParams`: names up to 40 characters,
+25 parameters, text up to 100 characters.
+
+### Property settings (production property)
+
+These live in GA, not in code. Applied 2026-11-21 unless marked.
+
+1. **Enhanced measurement** (Data streams → DriveRush website): page changes
+   based on browser history events **off**, or every in-app page view counts
+   twice (the app sends its own). Page loads, scrolls, outbound clicks, file
+   downloads **on**. Site search, form interactions, video engagement
+   **off**. Same on the dev stream.
+2. **Google signals:** off.
+3. **Data retention:** event and user data **14 months**.
+4. **Custom definitions.** Event-scoped dimensions: `page_template`,
+   `level_name`, `level_kind`, `unit`, `scope`, `category`, `challenge_id`,
+   `rule`, `phase`, `channel`, `kind`, `surface`, `outcome`, `platform`,
+   `tab`, `from`, `method`, `content_type`, `location`, `missing_path`,
+   `lesson_id`, `sign_id`, `partner_name`. Event-scoped metrics:
+   `level_number`, `score`, `stars`, `seconds`. User-scoped: `learner_stage`,
+   `board_levels_bucket`, `display_mode`. (`content_group` is built in.) A new
+   parameter is invisible in reports until it is registered here.
+5. **Key events: not done yet.** GA only lets an event be starred once it has
+   arrived. After the first production traffic, star `level_end`,
+   `sign_check_completed`, `app_installed`, `share` and `generate_lead` under
+   Admin → Events.
+6. **Data filters:** Internal Traffic (`traffic_type = internal`) and
+   Developer traffic, both **Active**. Neither is set on the dev property:
+   all of its hits are debug hits.

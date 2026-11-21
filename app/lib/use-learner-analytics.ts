@@ -23,6 +23,7 @@
 import * as React from "react";
 import { useLocation } from "react-router";
 
+import { gaSetUserProperties } from "./ga";
 import { getPostHog } from "./posthog";
 import {
   masteredCount,
@@ -124,8 +125,18 @@ function firstSeenAt(): string {
   return now;
 }
 
+/** Board course progress in a few bands, for a GA user property. */
+function levelsBucket(done: number): string {
+  if (done >= COURSE_LEVELS.length) return "all";
+  if (done >= 26) return "26+";
+  if (done >= 5) return "5-25";
+  if (done >= 1) return "1-4";
+  return "0";
+}
+
 /**
- * Push the learner profile to PostHog on mount, on every route change, and
+ * Push the learner profile to PostHog (and the coarse part of it to Google
+ * Analytics) on mount, on every route change, and
  * when the tab regains focus (a run finished in another tab counts).
  * Writes only when something actually changed, so it costs one `$set` at most
  * per navigation.
@@ -136,9 +147,15 @@ export function useLearnerAnalytics() {
 
   React.useEffect(() => {
     const sync = () => {
+      const profile = buildProfile();
+      // GA user properties: buckets only, GA reports can't use raw counts.
+      gaSetUserProperties({
+        learner_stage: profile.learner_stage,
+        board_levels_bucket: levelsBucket(Number(profile.board_levels_done)),
+      });
+
       const posthog = getPostHog();
       if (!posthog) return;
-      const profile = buildProfile();
 
       // Free for everyone: super properties don't create a person profile, so
       // even a bouncing visitor's events carry their stage.

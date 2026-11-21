@@ -10,7 +10,7 @@ import { breadcrumbLd, graphLd, guideLd, pageMeta } from "~/lib/site";
 import { GuideLayout } from "~/components/brand/guide-layout";
 
 const PATH = "/privacy";
-const CHECKED = "2026-11-11";
+const CHECKED = "2026-11-21";
 const TITLE = "Privacy: what DriveRush stores and measures";
 const DESCRIPTION =
   "DriveRush has no accounts. What stays in your browser, what our analytics use, who else is involved, and how to ask us about your data.";

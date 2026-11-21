@@ -26,9 +26,14 @@ import {
   useThemeSync,
 } from "~/lib/theme";
 import { SITE, absUrl, appMeta } from "~/lib/site";
-import { getPostHog, initAnalytics, usePageviews } from "~/lib/analytics";
+import {
+  getPostHog,
+  initAnalytics,
+  useGaPage,
+  usePageviews,
+} from "~/lib/analytics";
+import { GA_MEASUREMENT_ID, gaHeadScript } from "~/lib/ga";
 import { useLearnerAnalytics } from "~/lib/use-learner-analytics";
-import { useUtmCapture } from "~/lib/utm";
 // Catches the browser's install prompt from the first load.
 import "~/lib/install";
 
@@ -97,6 +102,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
   // the way of the games on mobile.
   useThemeSync();
   useThemeColorSync();
+  // Google Analytics: the landing page is sent from <head> (below), every
+  // navigation after it from here. In Layout, not App, so the error page is
+  // counted too. The landing labels are kept from the first render: the
+  // script has run by then, and its text must not change.
+  const gaPage = useGaPage();
+  const [gaLanding] = React.useState(gaPage);
+  usePageviews();
   // The service worker (`public/sw.js`) keeps opened pages and the board's
   // files for when there is no connection. Not in development, where it would
   // serve stale files.
@@ -159,6 +171,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
             paint, so the page opens as theirs (`course-label.css`). */}
         <script dangerouslySetInnerHTML={{ __html: BOARD_INIT_SCRIPT }} />
         <Meta />
+        {/* After <Meta />, so the landing page view has the page's title. */}
+        {GA_MEASUREMENT_ID && (
+          <script
+            dangerouslySetInnerHTML={{ __html: gaHeadScript(gaLanding) }}
+          />
+        )}
         <Links />
       </head>
       <body>
@@ -177,8 +195,6 @@ export default function App() {
   const firstPath = React.useRef(location.pathname);
   const navigated = React.useRef(false);
   if (location.pathname !== firstPath.current) navigated.current = true;
-  useUtmCapture();
-  usePageviews();
   // Keeps PostHog person properties (signs mastered) in step with the local
   // progress stores. PostHog itself is initialised in
   // `entry.client.tsx`, before hydration.
@@ -222,6 +238,12 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 
   return (
     <main className="mx-auto grid w-full max-w-xl gap-6 px-5 pb-16 pt-12 text-ink">
+      {/* Read by the tab and by Google Analytics' page title report. */}
+      <title>{`${
+        isRouteErrorResponse(error) && error.status === 404
+          ? "Page not found"
+          : "Something went wrong"
+      } · ${SITE.name}`}</title>
       <ScenePlate>
         <RoadClosedScene title="A road barrier with a number plate reading KDR 404" />
       </ScenePlate>
