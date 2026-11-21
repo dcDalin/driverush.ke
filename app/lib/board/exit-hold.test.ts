@@ -57,6 +57,46 @@ describe("lane assist out of the roundabout", () => {
     expect(at.kind === "arm" && at.side === "exit" && at.lane).toBe(1);
   });
 
+  it("keeps an inner lane car in its own lane all the way out", () => {
+    // Driving straight out of an inner ring lane crosses the outer ring lanes
+    // on the way to the mouth. The lane it turns off into must not slip with
+    // them, or the car is dragged across to lane 2 against the knob.
+    const cars = queueCars("S");
+    for (const one of cars.filter((c) => c.option.turn === "straight")) {
+      useBoardStore.getState().exit();
+      useBoardStore.getState().startLevel("four-lane");
+      // the cars in front of it are home already, out of the way
+      const ahead = cars.filter(
+        (c) => c.lane === one.lane && c.slot < one.slot,
+      );
+      useBoardStore.setState((s) => ({
+        lanes: {
+          ...s.lanes!,
+          rest: Object.fromEntries(
+            ahead.map((c, k) => [
+              c.id,
+              { x: 500 + k * 10, z: 500, heading: 0 },
+            ]),
+          ),
+        },
+      }));
+      useBoardStore.getState().pickCar(one.id);
+      // nothing but up, the whole way
+      hold(0, -1, () => {
+        const at = locate(car.x, car.z);
+        return at.kind === "arm" && at.arm === "N" && at.along > 38;
+      });
+      hold(0, 0, () => useBoardStore.getState().lanes?.picked == null, 4);
+      const after = useBoardStore.getState();
+      expect(after.fault, one.id).toBeNull();
+      expect(after.lanes?.rest[one.id], one.id).toBeDefined();
+      const at = locate(car.x, car.z);
+      expect(at.kind === "arm" && at.side === "exit" && at.lane, one.id).toBe(
+        one.lane,
+      );
+    }
+  });
+
   it("asks for nothing while the knob lies along the ring", () => {
     // on the ring due south of the island, driving clockwise (west)
     const at = { x: 0, z: 14, heading: -Math.PI / 2, speed: 3, steer: 0 };

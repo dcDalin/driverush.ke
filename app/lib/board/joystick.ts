@@ -77,6 +77,12 @@ export type AssistState = {
   backing: number;
   /** The exit road the car has begun to turn off onto, with `exitHold`. */
   leaving?: string | null;
+  /**
+   * The exit lane it is turning off into, fixed when the turn begins. Read
+   * again each step, it would slip outward: driving straight out of an inner
+   * lane takes the car across the outer ring lanes on its way to the mouth.
+   */
+  leavingLane?: number | null;
 };
 
 export function createAssist(): AssistState {
@@ -165,7 +171,10 @@ export function exitAhead(
   for (const id of ARM_ORDER) {
     const runs = laneBearing(id, "exit");
     if (Math.abs(wrapPi(knob - runs)) > EXIT_CONE) continue;
-    const lane = Math.min(loc.lane, ARMS[id].lanes);
+    const turning = state?.leaving === id && state.leavingLane != null;
+    const lane = turning
+      ? state.leavingLane!
+      : Math.min(loc.lane, ARMS[id].lanes);
     const mouth = lanePoint(id, "exit", lane, RING_OUTER_R);
     const dir = dirOf(runs);
     const dx = car.x - mouth.x;
@@ -176,15 +185,21 @@ export function exitAhead(
     const side = Math.abs(dx * -dir.z + dz * dir.x);
     // Once it has begun to turn off it keeps to that exit, even if the turn
     // carries it a little wide of the line.
-    if (side > EXIT_LEVEL && state?.leaving !== id) return "wait";
-    if (state) state.leaving = id;
+    if (side > EXIT_LEVEL && !turning) return "wait";
+    if (state && !turning) {
+      state.leaving = id;
+      state.leavingLane = lane;
+    }
     const ahead = along + EXIT_AIM;
     return bearingOf(
       mouth.x + dir.x * ahead - car.x,
       mouth.z + dir.z * ahead - car.z,
     );
   }
-  if (state) state.leaving = null;
+  if (state) {
+    state.leaving = null;
+    state.leavingLane = null;
+  }
   return null;
 }
 
