@@ -137,7 +137,7 @@ down by `$pathname`, not `$current_url`.
 
 | Event                  | Fires when                                                   | Key properties    |
 | ---------------------- | ------------------------------------------------------------ | ----------------- |
-| `sponsor_shown`        | A school is on screen in one place, once per place per visit (PostHog only) | `school`, `place` |
+| `sponsor_shown`        | A school is on screen in one place, once per place per task (per visit before 22 Nov 2026; PostHog only) | `school`, `place` |
 | `sponsor_link_clicked` | A learner taps through to a school's site                    | `school`, `place` |
 
 `place` is one of `car`, `room`, `plate`, `board`, `loader`, `ready_card`,
