@@ -82,6 +82,12 @@ import {
   wearWrap,
 } from "~/components/board/board-sponsor";
 import { sponsorShown, useVisitSponsor } from "~/lib/board/sponsor-visit";
+import {
+  SHOW_TOTAL,
+  showcaseCamera,
+  showcasePose,
+  skipTo,
+} from "~/lib/board/showcase";
 import { useParkingLayout } from "~/components/board/use-parking-layout";
 import {
   WHEEL_RADIUS,
@@ -121,8 +127,10 @@ export type BoardTableProps = {
    */
   focus?: boolean;
   /**
-   * Open this attempt with a look at the finish, then slide back to the car,
-   * so the learner has seen where the task ends before setting off.
+   * Open this attempt with a close-up circling the car (its paint, a school's
+   * when one sponsors the board; showcase.ts), then, on a screen that shows
+   * only part of the table, a look at the finish before sliding back to the
+   * car, so the learner has seen where the task ends before setting off.
    */
   sweep?: boolean;
   /** The board is painted and on screen. */
@@ -919,7 +927,12 @@ type Rig = {
   near: number;
   /** Seconds left of the opening look at the finish. */
   intro: number;
+  /** Seconds left of the opening close-up round the car (showcase.ts). */
+  show: number;
 };
+
+/** Shadow reach round the car during the opening close-up, in metres. */
+const CLOSE_UP_SHADOW = 10;
 
 /** The opening look rests on the finish this long, then slides to the car. */
 const SWEEP_HOLD = 0.6;
@@ -1295,6 +1308,7 @@ function Scene({
     returning: false,
     near: 0,
     intro: 0,
+    show: 0,
   });
   const calm = React.useMemo(
     () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
@@ -1328,7 +1342,10 @@ function Scene({
       tick(dt);
       // A drive that stays under about 26 frames a second goes down a step:
       // shadows first, sharpness last. Smooth driving matters more than either.
-      if (paceFrame(pace.current, delta)) slow.current();
+      // The opening close-up is not the drive: it does not count.
+      if (rig.current.show <= 0 && paceFrame(pace.current, delta)) {
+        slow.current();
+      }
     }
 
     // A route being played back moves the car itself, so the minimap and the
@@ -1510,6 +1527,14 @@ function Scene({
     // With a way blocked, the upside-down car is the thing to see first.
     const blockAt = challenge?.otherCars.find((other) => other.flipped);
     const look = blockAt ?? goal;
+    // First, the close-up round the car (showcase.ts): a push of the stick,
+    // or taking the view, glides out of it at once.
+    if (fresh) {
+      r.show = sweep && !calm ? SHOW_TOTAL : 0;
+    } else {
+      if (busy || focus || cam.free) r.show = skipTo(r.show);
+      if (driving) r.show = Math.max(0, r.show - dt);
+    }
     if (fresh) {
       r.intro =
         sweep &&
@@ -1521,7 +1546,8 @@ function Scene({
           : 0;
     } else if (busy || focus) {
       r.intro = 0;
-    } else if (driving) {
+    } else if (driving && r.show <= 0) {
+      // The look at the finish waits for the close-up to end.
       r.intro = Math.max(0, r.intro - dt);
     }
     if (r.intro > 0 && look) {
@@ -1620,12 +1646,34 @@ function Scene({
     const sz = r.z + Math.cos(state.clock.elapsedTime * 53) * shake;
     const lookY = lerp(-5, 0, near);
     const angle = SEAT_ANGLE[seat];
-    state.camera.position.set(
-      sx + r.dist * Math.cos(tiltNow) * Math.sin(angle),
-      lookY + r.dist * Math.sin(tiltNow),
-      sz + r.dist * Math.cos(tiltNow) * Math.cos(angle),
-    );
-    state.camera.lookAt(sx, lookY, sz);
+    let camX = sx + r.dist * Math.cos(tiltNow) * Math.sin(angle);
+    let camY = lookY + r.dist * Math.sin(tiltNow);
+    let camZ = sz + r.dist * Math.cos(tiltNow) * Math.cos(angle);
+    let aimX = sx;
+    let aimY = lookY;
+    let aimZ = sz;
+    // The opening close-up, blended over the seat's view: the seat's view
+    // keeps running underneath, so going back to it is seamless.
+    let closeUp = 0;
+    if (r.show > 0) {
+      const pose = showcasePose({
+        left: r.show,
+        seatAngle: angle,
+        car,
+        aspect,
+        halfV,
+      });
+      const at = showcaseCamera(pose);
+      closeUp = pose.weight;
+      camX = lerp(camX, at.x, closeUp);
+      camY = lerp(camY, at.y, closeUp);
+      camZ = lerp(camZ, at.z, closeUp);
+      aimX = lerp(aimX, pose.target.x, closeUp);
+      aimY = lerp(aimY, pose.target.y, closeUp);
+      aimZ = lerp(aimZ, pose.target.z, closeUp);
+    }
+    state.camera.position.set(camX, camY, camZ);
+    state.camera.lookAt(aimX, aimY, aimZ);
 
     // The sun's shadows are spent on the part of the board in view: closed in
     // on a car, the same shadow picture covers a fifth of the ground it does
@@ -1634,12 +1682,16 @@ function Scene({
     if (light?.castShadow) {
       const groundAcross = 2 * r.dist * Math.tan(halfH);
       const groundDeep = (2 * r.dist * Math.tan(halfV)) / Math.sin(tiltNow);
-      const want = 0.575 * Math.hypot(groundAcross, groundDeep) + 6;
+      // Up close round the car, the picture is spent on the car alone.
+      const want =
+        closeUp > 0.5
+          ? CLOSE_UP_SHADOW
+          : 0.575 * Math.hypot(groundAcross, groundDeep) + 6;
       const half = SHADOW_STEPS.find((s) => s >= want) ?? SHADOW_REACH;
       // Backed right off it is the whole table, about its middle.
       const room = SHADOW_REACH - half;
-      const px = clamp(r.x, CX - room, CX + room);
-      const pz = clamp(r.z, CZ - room, CZ + room);
+      const px = clamp(closeUp > 0.5 ? car.x : r.x, CX - room, CX + room);
+      const pz = clamp(closeUp > 0.5 ? car.z : r.z, CZ - room, CZ + room);
       // Moved in whole pixels of the shadow picture, so edges don't shimmer
       // as the view slides.
       const texel = (2 * half) / light.shadow.mapSize.x;

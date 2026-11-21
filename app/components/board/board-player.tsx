@@ -970,9 +970,11 @@ export function BoardGame() {
           extraCars={standingCars}
           learning={offClock}
           focus={s.phase === "fault"}
-          // The first go at a task opens on where it ends. A retry does not,
-          // and nor does a lesson car, whose line is already on the table.
-          sweep={s.tries === 1 && !warmup && !pickedCar && s.mode === "drive"}
+          // The first go at a drive opens with a close-up round the car (so
+          // the learner sees its paint), then, on a phone, on where it ends.
+          // A retry does not, nor does a lesson car, whose line is already
+          // on the table.
+          sweep={s.tries === 1 && !pickedCar && s.mode === "drive"}
           onUnsupported={() => setUnsupported(true)}
           onPainted={() => setPainted(true)}
           className="absolute inset-0"
