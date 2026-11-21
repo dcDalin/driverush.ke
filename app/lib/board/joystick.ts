@@ -156,8 +156,20 @@ const AWAY: Record<Seat, number> = {
 /** Down the parking aisle, and on into a bay, lane assist keeps to this. Metres a second. */
 export const AISLE_SPEED = 4;
 
-/** Inside this the knob counts as let go. */
-export const STICK_DEADZONE = 0.18;
+/** Inside this the knob counts as let go: about 9 px of the 72 px stick. */
+export const STICK_DEADZONE = 0.12;
+/**
+ * Speed grows as the push to this power: slow speeds get most of the knob's
+ * travel, for creeping up to a line or into a bay, and a full push is still
+ * full speed.
+ */
+const SPEED_CURVE = 1.3;
+/** On a gentle push, a sideways slip this big (of a full push, so 9 px) is ignored. */
+const SLIP = 0.12;
+/** Up to this push the whole slip is ignored; less of it after. */
+const SOFT = 0.3;
+/** From this push on, the knob is read exactly as it points. */
+const FIRM = 0.6;
 /** How hard the wheel turns per radian the car is off its target. */
 const STEER_GAIN = 2;
 /** Pointing this far behind the car brakes rather than spinning it round. */
@@ -488,6 +500,27 @@ export function stickBearing(stick: Stick, seat: Seat): number {
 }
 
 /**
+ * Where the knob points, as the car is steered by it. Pushed gently, the knob
+ * is a short lever: a thumb slipping a few pixels sideways turns it 30
+ * degrees, where the same slip on a firm push turns it 10, so a careful
+ * learner got the twitchiest car. Here a sideways slip of up to `SLIP` from
+ * the way the car points does not count on a gentle push, fading out by a
+ * `FIRM` one. A clear push sideways, or back, is read as it is.
+ */
+export function knobBearing(stick: Stick, seat: Seat, heading: number): number {
+  const raw = stickBearing(stick, seat);
+  const push = Math.min(1, Math.hypot(stick.x, stick.y));
+  const slack = SLIP * Math.max(0, Math.min(1, (FIRM - push) / (FIRM - SOFT)));
+  if (slack === 0) return raw;
+  const off = wrapPi(raw - heading);
+  const ahead = push * Math.cos(off);
+  if (ahead <= 0) return raw;
+  const side = push * Math.sin(off);
+  const kept = Math.sign(side) * Math.max(0, Math.abs(side) - slack);
+  return wrapPi(heading + Math.atan2(kept, ahead));
+}
+
+/**
  * The roundabout lane a car coming up `arm` in `lane` joins. Lane 3 of the
  * three-lane road may go round in the third or the fourth: the one the task's
  * exit needs, or else the third.
@@ -674,16 +707,14 @@ export function stickToInput(
   state: AssistState,
 ): void {
   const push = Math.min(1, Math.hypot(stick.x, stick.y));
-  const steady = steadyKnob(
-    state,
-    push < STICK_DEADZONE ? null : stickBearing(stick, options.seat),
-  );
+  const knob = knobBearing(stick, options.seat, car.heading);
+  const steady = steadyKnob(state, push < STICK_DEADZONE ? null : knob);
   // Keep the assist's memory of the approach lane fresh even when coasting.
   const lane = options.assist
     ? laneAhead(
         car,
         state,
-        push < STICK_DEADZONE ? null : stickBearing(stick, options.seat),
+        push < STICK_DEADZONE ? null : knob,
         options.others ?? [],
         options.exitTo,
       )
@@ -698,8 +729,6 @@ export function stickToInput(
     input.brake = car.speed > 0 ? RELEASE_BRAKE : 0;
     return;
   }
-
-  const knob = stickBearing(stick, options.seat);
 
   if (options.reverse) {
     const reversing = car.speed < -0.05;
@@ -807,7 +836,7 @@ export function stickToInput(
   const turning = Math.min(1, Math.abs(off) / QUARTER_TURN);
   const speed = Math.min(
     cap,
-    CAR.maxSpeed * reach * (1 - TURN_SLOWDOWN * turning),
+    CAR.maxSpeed * reach ** SPEED_CURVE * (1 - TURN_SLOWDOWN * turning),
   );
   // Ease onto the speed asked for, rather than switching the engine on and
   // off round it.

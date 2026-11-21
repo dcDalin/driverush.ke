@@ -40,17 +40,19 @@ const KEYS: Record<string, Dir> = {
   S: "down",
 };
 
-/** How far the keys push the knob with Shift held: a crawl, for a parking bay. */
-const GENTLE = 0.45;
-
-/** Across the stick's base, pixels: the same as the one drawn at rest. */
-const STICK_SIZE = 144;
 /**
- * A full push is this far from where the thumb landed, pixels. The drawn
- * knob goes to the rim (72 px), but the old fixed pad gave full speed at
- * 40 px, and a thumb should not have to travel much further than that.
+ * How far the keys push the knob with Shift held: a crawl, for a parking bay.
+ * About 2 m/s, with the speed eased toward a full push.
  */
-const FULL_PUSH = 48;
+const GENTLE = 0.5;
+
+/**
+ * Across the stick's base, pixels: the same as the one drawn at rest. A full
+ * push is the knob at the rim (72 px from where the thumb landed), so what
+ * the knob shows is what the car does. Full speed used to come at 48 px, with
+ * the knob only two thirds out and its last third doing nothing.
+ */
+const STICK_SIZE = 144;
 
 type StickPad = ReturnType<typeof import("nipplejs").create>;
 
@@ -195,9 +197,9 @@ export function BoardControls({
       });
       pad.on("move", (e) => {
         if (!dragging.current || !live.current) return;
-        // nipplejs counts up as positive; the stick counts down
-        const k = STICK_SIZE / 2 / FULL_PUSH;
-        place(e.data.vector.x * k, -e.data.vector.y * k);
+        // nipplejs counts up as positive; the stick counts down. Its vector
+        // is 1 with the knob at the rim.
+        place(e.data.vector.x, -e.data.vector.y);
       });
       pad.on("end", drop);
     });

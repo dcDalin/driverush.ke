@@ -56,8 +56,9 @@ describe("the engine", () => {
     const state: CarState = { x: 0, z: 0, heading: 0, speed: 3, steer: 0 };
     const input: CarInput = { steer: 0, throttle: 0, brake: 0 };
     const options = { seat: "south" as const, assist: false };
-    // Half a push asks for a little under half speed.
-    const half = { x: 0, y: -0.59 };
+    // Under two thirds of a push asks for about half speed (3.5 m/s): the
+    // speed is eased, so slow speeds get more of the knob.
+    const half = { x: 0, y: -0.64 };
     stickToInput(half, state, input, options, createAssist());
     const far = input.throttle;
     state.speed = 3.4;
@@ -83,6 +84,54 @@ describe("the engine", () => {
       createAssist(),
     );
     expect(input.throttle).toBe(1);
+  });
+});
+
+describe("a gentle thumb", () => {
+  // The car points north, up the screen from the south seat. A full push is
+  // the knob at the rim, 72 px out.
+  const PX = 1 / 72;
+  const steerFor = (forward: number, sideways: number): number => {
+    const state: CarState = { x: 0, z: 0, heading: 0, speed: 1, steer: 0 };
+    const input: CarInput = { steer: 0, throttle: 0, brake: 0 };
+    stickToInput(
+      { x: sideways * PX, y: -forward * PX },
+      state,
+      input,
+      { seat: "south", assist: false },
+      createAssist(),
+    );
+    return input.steer;
+  };
+
+  it("does not steer on a small sideways slip", () => {
+    // 8 px to the side of a 14 px push is a 30 degree knob: it was a swerve.
+    expect(Math.abs(steerFor(14, 8))).toBeLessThan(0.1);
+    expect(Math.abs(steerFor(22, -8))).toBeLessThan(0.15);
+  });
+
+  it("reads a firm push exactly as it points", () => {
+    // 20 degrees off at a firm push: the wheel turns as before.
+    const firm = steerFor(48 * Math.cos(20 * DEG), 48 * Math.sin(20 * DEG));
+    expect(firm).toBeCloseTo(Math.min(1, 20 * DEG * 2), 2);
+  });
+
+  it("still turns hard on a gentle push to the side", () => {
+    expect(steerFor(0, 16)).toBe(1);
+    expect(steerFor(4, -16)).toBeLessThan(-0.9);
+  });
+
+  it("asks for full speed only with the knob at the rim", () => {
+    const state: CarState = { x: 0, z: 0, heading: 0, speed: 0, steer: 0 };
+    const input: CarInput = { steer: 0, throttle: 0, brake: 0 };
+    const options = { seat: "south" as const, assist: false };
+    // Two thirds of the way out, where full speed used to come: well short.
+    state.speed = 4;
+    stickToInput({ x: 0, y: -48 * PX }, state, input, options, createAssist());
+    expect(input.throttle).toBe(0);
+    stickToInput({ x: 0, y: -1 }, state, input, options, createAssist());
+    expect(input.throttle).toBeGreaterThan(0);
+    expect(CAR.maxSpeed).toBeGreaterThan(4);
   });
 });
 
