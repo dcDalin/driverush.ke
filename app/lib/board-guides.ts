@@ -77,7 +77,8 @@ export const BOARD_GUIDES: readonly BoardGuide[] = [
     description:
       "Model Town Board lane options for both roads: 2124 and 215, which lane turns left, right or goes straight, the U-turn, the Q-turn and the minus 1 rule.",
     lede: "Each lane into the roundabout has its own options. Here is every one, on both roads, with the line each car takes.",
-    blurb: "2124 and 215: which lane may take which turn.",
+    blurb:
+      "2124 and 215: which lane may take which turn, and the minus 1 rule.",
     published: "2026-11-11",
   },
   {
@@ -99,7 +100,8 @@ export const BOARD_GUIDES: readonly BoardGuide[] = [
     description:
       "Model Town Board roundabout rules: keep left and go clockwise, the five things you must not do on it, who may go all the way round, and the minus 1 rule.",
     lede: "Pick your lane before the roundabout and maintain it all the way round to your exit, with one lane less off the four-lane road onto the three-lane road. These are the rules once you are on it.",
-    blurb: "Clockwise, no stopping or changing lanes, and leaving right.",
+    blurb:
+      "Clockwise, give way to the right, no stopping or changing lanes, and your exit lane.",
     published: "2026-11-11",
   },
   {

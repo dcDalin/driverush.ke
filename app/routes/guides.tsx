@@ -30,7 +30,7 @@ const GROUPS: readonly { title: string; items: readonly Entry[] }[] = [
         to: "/ntsa-test",
         title: "The NTSA test",
         blurb:
-          "The steps, what NTSA charges, and practice questions with answers.",
+          "The steps, what NTSA charges, the board's rules in brief, and practice questions.",
       },
       {
         to: "/ntsa-test/questions",
