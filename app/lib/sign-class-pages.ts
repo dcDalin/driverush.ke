@@ -45,7 +45,7 @@ export const SIGN_CLASS_PAGES: SignClassPage[] = [
       "The 10 Kenyan mandatory signs: blue circles that tell you what you must do, how to read the arrows, and the red signs with the same picture.",
     lede: "The blue circles that tell you what you must do, and how to tell them from the red signs with the same picture.",
     published: "2026-11-10",
-    checked: "2026-11-10",
+    checked: "2026-11-21",
   },
   {
     category: "prohibitory",
