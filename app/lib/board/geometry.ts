@@ -204,20 +204,104 @@ export function armForTurn(entry: ArmId, turn: Turn): ArmId {
   return ARM_ORDER[(ARM_ORDER.indexOf(entry) + steps) % 4];
 }
 
-const ALL_TURNS: readonly Turn[] = ["right", "back", "left", "straight"];
+/** One option of one approach lane: the way it goes through the roundabout. */
+export type LaneRule = {
+  turn: Turn;
+  /** The roundabout lane it goes round in, 1 outermost to 4 by the island. */
+  ring: number;
+  /** The lane of the road out that it leaves in. */
+  exit: number;
+  /** The turn's angle as driving schools count it. */
+  degrees: number;
+  /** It goes once right round the roundabout before it leaves. */
+  fullCircle?: boolean;
+};
 
 /**
- * What each approach lane may do, from the handbook (Unit 3) and the option
- * codes driving schools teach. The four-lane road is "2124": lane 1 straight or
- * left, lane 2 straight only, lane 3 straight or right, lane 4 right, back,
- * left the long way round, or straight after going round. The three-lane road
- * is "215": lanes 1 and 2 the same, and lane 3 takes the rest.
+ * Every lane's options, as driving schools teach them on the Model Town Board
+ * (Perez's Model Town Board animation tutorial, which the owner chose as the
+ * reference, and the NTSA learner handbook's option codes).
+ *
+ * The four-lane road is "2124": lane 1 straight or left, lane 2 straight,
+ * lane 3 straight or right, lane 4 right, back (180°), and left (270°) or
+ * straight (360°) after going once right round the island. The degrees add
+ * up as the car turns: once round and then left is 270°. Turning onto the three-lane road from
+ * lane 3 or 4 you leave one lane further out: right from lane 3 is the middle
+ * lane, from lane 4 the third.
+ *
+ * The three-lane road is "215": lanes 1 and 2 the same, and lane 3 has five.
+ * Its first two (straight, and right into lane 3) go round in the roundabout's
+ * third lane. The last three (right into lane 4, back, and left at 270° into
+ * lane 4, once round first) go round in its fourth lane, beside the island.
  */
+export const LANE_OPTIONS: Record<
+  number,
+  Record<number, readonly LaneRule[]>
+> = {
+  4: {
+    1: [
+      { turn: "straight", ring: 1, exit: 1, degrees: 0 },
+      { turn: "left", ring: 1, exit: 1, degrees: 90 },
+    ],
+    2: [{ turn: "straight", ring: 2, exit: 2, degrees: 0 }],
+    3: [
+      { turn: "straight", ring: 3, exit: 3, degrees: 0 },
+      { turn: "right", ring: 3, exit: 2, degrees: 90 },
+    ],
+    4: [
+      { turn: "right", ring: 4, exit: 3, degrees: 90 },
+      { turn: "back", ring: 4, exit: 4, degrees: 180 },
+      { turn: "left", ring: 4, exit: 3, degrees: 270, fullCircle: true },
+      { turn: "straight", ring: 4, exit: 4, degrees: 360, fullCircle: true },
+    ],
+  },
+  3: {
+    1: [
+      { turn: "straight", ring: 1, exit: 1, degrees: 0 },
+      { turn: "left", ring: 1, exit: 1, degrees: 90 },
+    ],
+    2: [{ turn: "straight", ring: 2, exit: 2, degrees: 0 }],
+    3: [
+      { turn: "straight", ring: 3, exit: 3, degrees: 0 },
+      { turn: "right", ring: 3, exit: 3, degrees: 90 },
+      { turn: "right", ring: 4, exit: 4, degrees: 90 },
+      { turn: "back", ring: 4, exit: 3, degrees: 180 },
+      { turn: "left", ring: 4, exit: 4, degrees: 270, fullCircle: true },
+    ],
+  },
+};
+
+/** Every option of one approach lane, in the order schools list them. */
+export function laneRules(lanes: number, lane: number): readonly LaneRule[] {
+  return LANE_OPTIONS[lanes]?.[lane] ?? [];
+}
+
+/**
+ * The options of one lane for one turn, optionally only those going round in
+ * one roundabout lane.
+ */
+export function rulesFor(
+  lanes: number,
+  lane: number,
+  turn: Turn,
+  ring?: number | null,
+): LaneRule[] {
+  return laneRules(lanes, lane).filter(
+    (rule) => rule.turn === turn && (ring == null || rule.ring === ring),
+  );
+}
+
+/** The turns one approach lane may make (`LANE_OPTIONS`). */
 export function allowedTurns(lanes: number, lane: number): readonly Turn[] {
-  if (lane <= 1) return ["straight", "left"];
-  if (lane === 2) return ["straight"];
-  if (lanes === 4 && lane === 3) return ["straight", "right"];
-  return ALL_TURNS;
+  return [...new Set(laneRules(lanes, lane).map((rule) => rule.turn))];
+}
+
+/** The roundabout lanes one approach lane goes round in, outermost first. */
+export function ringLanes(lanes: number, lane: number, turn?: Turn): number[] {
+  const rules = turn
+    ? rulesFor(lanes, lane, turn)
+    : [...laneRules(lanes, lane)];
+  return [...new Set(rules.map((rule) => rule.ring))].sort((a, b) => a - b);
 }
 
 /** The approach lanes that may make a turn, lowest first. */
@@ -233,20 +317,19 @@ export function lanesForTurn(lanes: number, turn: Turn): number[] {
 export const OPTION_CODES: Record<number, string> = { 4: "2124", 3: "215" };
 
 /**
- * The lanes a car may leave the roundabout in. It leaves in the lane with the
- * number it came round in, or the innermost lane where the road out has fewer.
- * The handbook gives lane 3 of the three-lane road one more: turning right onto
- * the four-lane road it may enter lane 3 or lane 4.
+ * The lanes a car may leave the roundabout in, for one approach lane and turn,
+ * from `LANE_OPTIONS`. Given the roundabout lane it went round in, only that
+ * option's exit lane. Empty when the lane may not make the turn.
  */
 export function exitLanes(
   entryLanes: number,
   entryLane: number,
   turn: Turn,
-  outLanes: number,
+  ring?: number | null,
 ): number[] {
-  const same = Math.min(entryLane, outLanes);
-  if (entryLanes === 3 && entryLane === 3 && turn === "right" && outLanes === 4) {
-    return [same, 4];
-  }
-  return [same];
+  return [
+    ...new Set(
+      rulesFor(entryLanes, entryLane, turn, ring).map((rule) => rule.exit),
+    ),
+  ];
 }

@@ -23,11 +23,12 @@ import {
   RING_LANE_W,
   RING_OUTER_R,
   TAU,
-  allowedTurns,
   dirOf,
   exitLanes,
   laneBearing,
   locate,
+  ringLanes,
+  rulesFor,
   turnBetween,
   wrapPi,
   type ArmId,
@@ -42,9 +43,19 @@ import type { Fault, SmallFaultId } from "./referee";
 type RingVisit = {
   entryArm: ArmId;
   entryLane: number;
+  /**
+   * The roundabout lane it goes round in. Most approach lanes have one; lane 3
+   * of the three-lane road may use the third or the fourth, and starts as the
+   * third until it carries on in.
+   */
+  ring: number;
+  /** The roundabout lanes its approach lane may go round in. */
+  rings: number[];
+  /** How far round it had come when it reached its ring lane. */
+  joinedAt: number;
   total: number;
   lastBearing: number | null;
-  /** The car has reached the ring lane with its approach lane's number. */
+  /** The car has reached its ring lane. */
   joined: boolean;
   /** It has moved out of that lane again, toward an exit. */
   left: boolean;
@@ -177,8 +188,9 @@ function small(id: SmallFaultId): Fault {
 
 /**
  * Has the car changed lanes on the roundabout? It should cross the outer lanes
- * to the one with its approach lane's number, stay there, and cross them again
- * only to leave.
+ * to the ring lane its option goes round in, stay there, and cross them again
+ * only to leave. A lane that may go round in two (lane 3 of the three-lane
+ * road) picks the inner one by carrying on in while it is still joining.
  */
 function changedRingLane(
   visit: RingVisit,
@@ -186,11 +198,12 @@ function changedRingLane(
   step: number,
   dt: number,
 ): boolean {
-  const outer = RING_OUTER_R - (visit.entryLane - 1) * RING_LANE_W;
+  const outer = RING_OUTER_R - (visit.ring - 1) * RING_LANE_W;
   const inner = outer - RING_LANE_W;
   if (!visit.joined) {
     if (r <= outer) {
       visit.joined = true;
+      visit.joinedAt = visit.total;
       return false;
     }
     visit.joinArc += step;
@@ -198,8 +211,18 @@ function changedRingLane(
     return visit.joinArc > JOIN_ARC || r > visit.reach + TURNED_BACK;
   }
   if (!visit.left) {
+    // Still joining, carrying on in to the next lane it may go round in.
+    if (
+      r < inner - LANE_OVER &&
+      visit.rings.includes(visit.ring + 1) &&
+      visit.total - visit.joinedAt < JOIN_ARC
+    ) {
+      visit.ring += 1;
+      visit.astray = 0;
+      return false;
+    }
     // Further in than its own lane is never part of joining or leaving.
-    const inside = visit.entryLane < RING_LANES && r < inner - LANE_OVER;
+    const inside = visit.ring < RING_LANES && r < inner - LANE_OVER;
     const outside = r > outer + LANE_OVER;
     visit.astray = inside || outside ? visit.astray + dt : 0;
     if (visit.astray <= LINE_GRACE) return false;
@@ -371,9 +394,14 @@ export function roadStep(
 
   if (loc.kind === "ring") {
     if (!ref.ring && ref.lastApproach) {
+      const { arm, lane } = ref.lastApproach;
+      const rings = ringLanes(ARMS[arm].lanes, lane);
       ref.ring = {
-        entryArm: ref.lastApproach.arm,
-        entryLane: ref.lastApproach.lane,
+        entryArm: arm,
+        entryLane: lane,
+        ring: rings[0] ?? lane,
+        rings: rings.length ? rings : [lane],
+        joinedAt: 0,
         total: 0,
         lastBearing: null,
         joined: false,
@@ -416,7 +444,7 @@ export function roadStep(
       }
 
       // Only the innermost lane may go all the way round.
-      if (visit.entryLane < RING_LANES && visit.total > TAU + 0.12) {
+      if (visit.ring < RING_LANES && visit.total > TAU + 0.12) {
         result.fault = {
           id: "full_circle",
           serious: true,
@@ -443,13 +471,22 @@ export function roadStep(
     if (loc.side === "exit") {
       const turn = turnBetween(visit.entryArm, loc.arm);
       const lanes = ARMS[visit.entryArm].lanes;
-      if (!allowedTurns(lanes, visit.entryLane).includes(turn)) {
+      // The exit has to be one of the lane's options through the ring lane
+      // it went round in.
+      const rules = rulesFor(lanes, visit.entryLane, turn, visit.ring);
+      // Lane 4 goes straight on only once it has been right round.
+      const circled = rules.filter(
+        (rule) => !rule.fullCircle || visit.total > TAU,
+      );
+      if (!circled.length) {
         result.fault = {
           id: "wrong_exit",
           serious: true,
           lane: visit.entryLane,
           lanes,
           turn,
+          ring: visit.ring,
+          ...(rules.length ? { circle: true } : {}),
         };
         return result;
       }
@@ -462,7 +499,7 @@ export function roadStep(
       // A lane change on the roundabout has been dealt with already.
       if (!visit.told) {
         ref.leaving = {
-          lanes: exitLanes(lanes, visit.entryLane, turn, ARMS[loc.arm].lanes),
+          lanes: exitLanes(lanes, visit.entryLane, turn, visit.ring),
           from: visit.entryLane,
           drift: 0,
         };
@@ -483,6 +520,7 @@ export function roadStep(
           id: "exit_lane",
           serious: true,
           lane: ref.leaving.from,
+          exitLanes: ref.leaving.lanes,
         };
         ref.leaving = null;
         return result;

@@ -1,7 +1,8 @@
 /**
  * What the learner reads when they make a mistake: the rule, in plain words,
- * and what to do instead. The board's answer to `miss-tips.ts`. Every rule here
- * is in the NTSA Kenya Learner Driver Handbook, Unit 3.
+ * and what to do instead. The board's answer to `miss-tips.ts`. The rules are
+ * the NTSA Kenya Learner Driver Handbook, Unit 3, and the lane options the way
+ * Perez's Model Town Board tutorial teaches them (`LANE_OPTIONS`).
  */
 import { lanesForTurn, type Turn } from "./geometry";
 import type { Fault, FaultId } from "./referee";
@@ -12,6 +13,8 @@ export const RULES_SOURCE = "Kenya Learner Driver Handbook, NTSA";
  * up, not a line of the handbook, so it is never credited to the handbook.
  */
 export const BLOCK_SOURCE = "How driving instructors set the board";
+/** Where the lane options' ring lanes and exit lanes come from. */
+export const OPTIONS_SOURCE = "Perez's Model Town Board tutorial";
 
 export type FaultTip = {
   id: FaultId;
@@ -50,25 +53,39 @@ function laneList(lanes: number[]): string {
 function approachAdvice(lanes: number, turn: Turn): string {
   const all = lanesForTurn(lanes, turn);
   const longWay = turn === "left" || (turn === "straight" && lanes === 4);
-  const usual = longWay && all.length > 1 ? all.filter((n) => n !== lanes) : all;
+  const usual =
+    longWay && all.length > 1 ? all.filter((n) => n !== lanes) : all;
   const extra =
     usual.length < all.length
-      ? ` Lane ${lanes} can also do it, the long way round.`
+      ? ` Lane ${lanes} can also do it, once round the island first.`
       : "";
   return `approach in ${laneList(usual)}.${extra}`;
 }
 
+/** One lane's options, in the words of the owner's rule sheet. */
 export function laneRule(lanes: number, lane: number): string {
-  if (lane <= 1) return "Lane 1 goes straight or left.";
-  if (lane === 2) return "Lane 2 only goes straight.";
-  if (lanes === 4 && lane === 3) return "Lane 3 goes straight or right.";
-  if (lanes === 4) {
-    return "Lane 4 turns right, comes back, turns left the long way round, or goes straight after going round.";
+  if (lane <= 1) {
+    return "Lane 1 has two options: go straight (0°) or turn left (90°). Maintain lane 1 to exit.";
   }
-  return "Lane 3 goes straight, turns right into lane 3 or lane 4, comes back into lane 3, or turns left the long way round.";
+  if (lane === 2) {
+    return "Lane 2 has one option: go straight (0°). Maintain lane 2 to exit.";
+  }
+  if (lanes === 4 && lane === 3) {
+    return "Lane 3 has two options: go straight (0°) or turn right (90°). Maintain lane 3 to exit; turning right onto the minor road you exit into lane 2 (minus 1).";
+  }
+  if (lanes === 4) {
+    return "Lane 4 has four options: turn right (90°), U-turn (180°), Q-turn (270°) and go straight (360°) after a full loop. Maintain lane 4 to exit.";
+  }
+  return "Lane 3 has five options: go straight (0°) or turn right (90°) into lane 3, maintaining lane 3; or shift to lane 4 to turn right (90°) into lane 4, U-turn (180°) or Q-turn (270°).";
 }
 
-const RULES: Record<FaultId, { title: string; rule: string }> = {
+/** Which lane to leave in, the rule the exit-lane fault points to. */
+const EXIT_RULE =
+  "Maintain your lane to exit. From lane 3 or 4 of the major road onto the minor road, exit lane = entry lane minus 1.";
+
+type RuleWords = { title: string; rule: string; source?: string };
+
+const RULES: Record<FaultId, RuleWords> = {
   kerb: {
     title: "You hit the kerb",
     rule: "Stay off the kerb. No driving or stopping on it.",
@@ -87,7 +104,7 @@ const RULES: Record<FaultId, { title: string; rule: string }> = {
   },
   roundabout_lane_change: {
     title: "Lane change on the roundabout",
-    rule: "No changing lanes on the roundabout. Go round in the lane you came in.",
+    rule: "No changing lanes on the roundabout. Go round in your option's lane until your exit.",
   },
   roundabout_stop: {
     title: "Keep moving",
@@ -135,7 +152,8 @@ const RULES: Record<FaultId, { title: string; rule: string }> = {
   },
   exit_lane: {
     title: "Wrong lane leaving the roundabout",
-    rule: "Leave the roundabout in the lane you came round in.",
+    rule: EXIT_RULE,
+    source: OPTIONS_SOURCE,
   },
   u_turn_lane: {
     title: "Wrong lane to turn back",
@@ -162,12 +180,23 @@ function reasonFor(fault: Fault): string {
     case "solid_line":
       return "You crossed a continuous white line between two lanes, or drove along on top of it. Near the roundabout the lane lines are continuous, on the way in and on the way out. That means stay in your lane there. Change lanes further from the roundabout, where the lines are broken.";
     case "roundabout_lane_change":
-      return `You moved out of your lane inside the roundabout. Choose your lane before you enter, go round in it, and leave it only at your exit. Lane ${fault.lane ?? 1} on the road is lane ${fault.lane ?? 1} on the roundabout, counting from the outside.`;
+      return `You moved out of your lane inside the roundabout. Choose your lane before you enter, go round in it, and leave it only at your exit. Lane ${fault.lane ?? 1} on the road goes round in lane ${fault.lane ?? 1} of the roundabout, counting from the outside. The one exception is lane 3 of the three-lane road: to turn right into lane 4, come back or turn left, it goes round in the fourth lane, beside the island, and joins it on the way in.`;
     case "roundabout_stop":
       return "There is no stopping or waiting on the roundabout. Keep moving until you've taken your exit.";
     case "wrong_exit": {
       const lanes = fault.lanes ?? 4;
       const turn = fault.turn ?? "straight";
+      if (fault.circle) {
+        const short = turn === "left" ? "turn left" : "go straight on";
+        const lanesFor = turn === "left" ? "lane 1" : "lane 1, 2 or 3";
+        return `The ${turn === "left" ? "Q-turn (270°)" : "go straight (360°)"} from the innermost lane is made after a full loop. Pass the exit the first time, go on round beside the island, and leave at it the second time. To ${short} the short way, approach in ${lanesFor}.`;
+      }
+      if (lanes === 3 && fault.lane === 3 && fault.ring === 3) {
+        return `${laneRule(lanes, 3)} You went round in the third lane, so you could only go straight or turn right into lane 3.`;
+      }
+      if (lanes === 3 && fault.lane === 3 && fault.ring === 4) {
+        return `${laneRule(lanes, 3)} You went round in the fourth lane, so going straight on was not one of your options.`;
+      }
       return `${laneRule(lanes, fault.lane ?? 1)} To ${TURN_VERB[turn]}, ${approachAdvice(lanes, turn)}`;
     }
     case "wrong_destination": {
@@ -180,7 +209,7 @@ function reasonFor(fault: Fault): string {
     case "centre_line":
       return "You crossed the continuous yellow centre line into the lane coming the other way. A continuous yellow line means stay on your side: no overtaking and no turning across it. You may cross only where the yellow line is broken.";
     case "full_circle":
-      return `You went all the way round after entering in lane ${fault.lane ?? 1}. Only the innermost lane, lane 4, may make a full circle. In the other lanes, take your exit the first time you reach it.`;
+      return `You went all the way round after entering in lane ${fault.lane ?? 1}. Only the innermost lane, lane 4, may make a full circle (360°). Lanes 3, 2 and 1 take their exit the first time they reach it.`;
     case "collision":
       return fault.block
         ? "You drove into the upside-down car. An instructor turns a car over to close that way, so you may not touch it or squeeze past it. Look for it before you set off, then take the next correct route: the shortest one that is still open, without using the parking area unless nothing else is left."
@@ -192,7 +221,7 @@ function reasonFor(fault: Fault): string {
     case "stop_line":
       return "You drove over the stop line without stopping. A stop line means stop every time, look both ways, and go only when the road is clear.";
     case "exit_lane":
-      return `You came round in lane ${fault.lane ?? 1} but left the roundabout in a different lane. Leaving in the wrong lane is one of the common mistakes the handbook names. Hold your lane off the roundabout, then change lanes further on, where the lines are broken.`;
+      return `You left the roundabout in the wrong lane, one of the common mistakes.${fault.exitLanes?.length ? ` That way out from lane ${fault.lane ?? 1} leaves in ${laneList(fault.exitLanes)}.` : ""} Maintain your lane to exit. From lane 3 or 4 of the major road onto the minor road, use the minus 1 rule: lane 3 exits into lane 2, lane 4 into lane 3. Lane 3 of the minor road, shifted to lane 4, comes back into lane 3. Change lanes only further on, where the lines are broken.`;
     case "u_turn_lane":
       return `To turn back through a gap in the central reserve, be in lane ${fault.lane ?? 4}, the lane beside the reserve, before you reach the gap. Finish the turn in the lane beside the reserve on the other side, then change lanes where the lines are broken.`;
     case "crossing_stop":
@@ -229,10 +258,13 @@ export function faultRule(id: FaultId): string {
 export const FOUR_LANE_TABLE: readonly { lane: number; does: string }[] = [
   { lane: 1, does: "Two options: go straight (0°) or turn left (90°)." },
   { lane: 2, does: "One option: go straight (0°)." },
-  { lane: 3, does: "Two options: go straight (0°) or turn right (90°)." },
+  {
+    lane: 3,
+    does: "Two options: go straight (0°) or turn right (90°). Maintain lane 3 to exit; turning right you exit into lane 2 of the minor road (minus 1).",
+  },
   {
     lane: 4,
-    does: "Four options: turn right (90°), come back (180°), turn left the long way round (270°), or go straight after going round (360°).",
+    does: "Four options: turn right (90°), U-turn (180°), Q-turn (270°), and go straight (360°) after a full loop. Maintain lane 4 to exit; onto the minor road you exit into lane 3 (minus 1).",
   },
 ];
 
@@ -241,6 +273,6 @@ export const THREE_LANE_TABLE: readonly { lane: number; does: string }[] = [
   { lane: 2, does: "One option: go straight (0°)." },
   {
     lane: 3,
-    does: "Five options: go straight (0°), turn right into lane 3 (90°), turn right into lane 4 (90°), come back into lane 3 (180°), or turn left into lane 3 and move to lane 4 where the line is broken (270°).",
+    does: "Five options. Maintain lane 3 to go straight (0°) or turn right (90°) into lane 3. Shift to lane 4 to turn right (90°) into lane 4, U-turn (180°) back onto the minor road, or Q-turn (270°) onto the road on the left.",
   },
 ];

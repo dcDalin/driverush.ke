@@ -192,7 +192,7 @@ const BLOCKED_TASKS: readonly RouteChallenge[] = [
     id: "blocked-exit",
     block: "exit",
     title: "An exit is blocked",
-    prompt: `Reach the bottom of the two-way road. The upside-down cars mean the roundabout's exit to it is blocked. ${FIND_IT}`,
+    prompt: `You are in lane 3 at the continuous lines, and you are asked to come back down this road. Lane 3 only goes straight or right, and the upside-down cars mean the exit straight ahead is blocked. ${FIND_IT}`,
   }),
   blockedTask({
     id: "blocked-gap",
@@ -307,7 +307,7 @@ export const BOARD_CHALLENGES: readonly BoardChallenge[] = [
   ),
   turnChallenge(
     "back",
-    "Come back",
+    "U-turn",
     "Go round the roundabout and come back down this road. Stop in the green box.",
     3,
     "back",
@@ -356,7 +356,7 @@ export const BOARD_CHALLENGES: readonly BoardChallenge[] = [
   ),
   turnChallenge(
     "three-lane-back",
-    "Come back on the three-lane road",
+    "U-turn on the three-lane road",
     "You are on the three-lane road. Go round the roundabout and come back down this road. Stop in the green box, in lane 3.",
     2,
     "back",

@@ -441,6 +441,9 @@ export function BoardLearn({
                         <span className="font-mono text-[11px] text-white/55">
                           {option.degrees}
                         </span>
+                        <span className="mt-0.5 block text-[12px] leading-snug text-white/60">
+                          {option.how}
+                        </span>
                         {!option.confirmed && (
                           <span className="mt-0.5 block text-[12px] font-semibold text-kenya-gold">
                             {UNSURE_NOTE}
@@ -506,7 +509,7 @@ export function BoardLearn({
             <div className="grid gap-3">
               <p className="m-0 text-[14px] leading-snug text-white/80">
                 {tab === "routes"
-                  ? "Rule 1: take the shortest correct route. Rule 2: if a continuous line blocks it, take the longest correct route. Rule 3: use the parking area only when there is no other route. Tap a route to watch it driven, a step at a time."
+                  ? "Rule 1: use the shortest correct route without parking. Rule 2: use the longest correct route if needed. Rule 3: parking is only a last option. Tap a route to watch it driven, a step at a time."
                   : "Parking and leaving a bay, forward and in reverse. Tap one to watch it, a step at a time."}
               </p>
               <ul className="m-0 grid list-none gap-1.5 p-0">

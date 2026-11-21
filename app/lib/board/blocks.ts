@@ -93,19 +93,19 @@ function build(): Block[] {
     ),
   });
 
-  // The right-hand exit of the roundabout, seen from the bottom of the board:
-  // all three lanes leaving for the two-way road.
+  // The exit straight ahead from the bottom of the board: all four lanes
+  // leaving for the top of the dual carriageway, short of the first gap.
   {
     const along = EXIT_FROM + 3;
-    const a = lanePoint("E", "exit", 1, along);
-    const b = lanePoint("E", "exit", ARMS.E.lanes, along);
+    const a = lanePoint("N", "exit", 1, along);
+    const b = lanePoint("N", "exit", ARMS.N.lanes, along);
     blocks.push({
       id: "exit",
-      what: "the exit on the right",
+      what: "the exit straight ahead",
       ...across(
         { x: (a.x + b.x) / 2, z: (a.z + b.z) / 2 },
-        laneBearing("E", "exit"),
-        ARMS.E.lanes * LANE_W,
+        laneBearing("N", "exit"),
+        ARMS.N.lanes * LANE_W,
       ),
     });
   }

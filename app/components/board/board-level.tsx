@@ -520,6 +520,9 @@ function LanesLevel({
                           <span className="font-mono text-[11px] text-white/55">
                             {car.option.degrees}
                           </span>
+                          <span className="mt-0.5 block text-[12px] leading-snug text-white/60">
+                            {car.option.how}
+                          </span>
                           {!car.option.confirmed && (
                             <span className="mt-0.5 block text-[12px] font-semibold text-kenya-gold">
                               {UNSURE_NOTE}

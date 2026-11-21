@@ -23,13 +23,15 @@ import {
   ARMS,
   ARM_ORDER,
   RING_OUTER_R,
+  TAU,
   bearingOf,
   dirOf,
-  exitLanes,
   laneBearing,
   lanePoint,
   locate,
+  ringLanes,
   ringRadius,
+  rulesFor,
   SOLID_ZONE,
   turnBetween,
   wrapPi,
@@ -60,9 +62,10 @@ export type DriveOptions = {
   guide?: (car: CarState) => { heading: number; along: number } | null;
   /**
    * Carry the car out of the roundabout. Pointing at an exit steers it into
-   * the exit lane with the number of the lane it came round in, which is the
-   * rule. For the levels that are judged kindly; elsewhere leaving in the
-   * right lane is the learner's to do.
+   * the exit lane its option leaves in (`LANE_OPTIONS`), and lane 4 is held
+   * past the straight-on exit until it has been once round. For the levels
+   * that are judged kindly; elsewhere leaving in the right lane is the
+   * learner's to do.
    */
   exitHold?: boolean;
   /**
@@ -86,6 +89,11 @@ export type AssistState = {
   entryLane: number | null;
   /** The road it came up, kept while it goes round. */
   entryArm?: ArmId | null;
+  /** The lane it came up that road in, kept while it goes round. */
+  fromLane?: number | null;
+  /** How far round the roundabout it has come, radians, and from where. */
+  circled?: number;
+  ringBearing?: number | null;
   /**
    * The ring lane it has settled in and is going round in. Turning out, the
    * car crosses the outer lanes; this stays the lane it came round in.
@@ -341,21 +349,36 @@ export function exitAhead(
     if (!downExit(knob, runs, loc.bearing)) continue;
     const turning = state?.leaving === id && state.leavingLane != null;
     const dir = dirOf(runs);
-    // The lanes the rule allows out of the lane it came round in. Still
+    // The lanes the rule allows out of the ring lane it came round in. Still
     // joining the ring, that is the lane it is joining, not the one it is
     // crossing on the way.
-    const ring = state?.entryLane ?? state?.roundLane ?? loc.lane;
     const from = state?.entryArm;
-    const allowed = turning
-      ? [state.leavingLane!]
-      : from
-        ? exitLanes(
-            ARMS[from].lanes,
-            ring,
-            turnBetween(from, id),
-            ARMS[id].lanes,
-          )
-        : [Math.min(ring, ARMS[id].lanes)];
+    const fromLane = state?.fromLane;
+    const ring =
+      state?.entryLane != null
+        ? joinRing(from, state.entryLane, exitTo)
+        : (state?.roundLane ?? loc.lane);
+    let allowed = [Math.min(ring, ARMS[id].lanes)];
+    if (turning) {
+      allowed = [state.leavingLane!];
+    } else if (from && fromLane != null) {
+      const rules = rulesFor(
+        ARMS[from].lanes,
+        fromLane,
+        turnBetween(from, id),
+        ring,
+      );
+      // Lane 4 goes straight on only once it has been right round: hold the
+      // ring past the exit the first time.
+      if (
+        rules.length &&
+        rules.every((rule) => rule.fullCircle) &&
+        (state?.circled ?? 0) < TAU
+      ) {
+        return "wait";
+      }
+      if (rules.length) allowed = rules.map((rule) => rule.exit);
+    }
     // Where the rule allows two, the task's lane, or else the one the knob
     // points down.
     const task = exitTo?.arm === id && allowed.includes(exitTo.lane);
@@ -440,12 +463,33 @@ export function stickBearing(stick: Stick, seat: Seat): number {
   return wrapPi(Math.atan2(stick.x, -stick.y) + AWAY[seat]);
 }
 
+/**
+ * The roundabout lane a car coming up `arm` in `lane` joins. Lane 3 of the
+ * three-lane road may go round in the third or the fourth: the one the task's
+ * exit needs, or else the third.
+ */
+function joinRing(
+  arm: ArmId | null | undefined,
+  lane: number,
+  exitTo?: DriveOptions["exitTo"],
+): number {
+  if (!arm) return lane;
+  const lanes = ARMS[arm].lanes;
+  if (exitTo) {
+    const rules = rulesFor(lanes, lane, turnBetween(arm, exitTo.arm));
+    const rule = rules.find((one) => one.exit === exitTo.lane) ?? rules[0];
+    if (rule) return rule.ring;
+  }
+  return ringLanes(lanes, lane)[0] ?? lane;
+}
+
 /** Where the lane the car is in would take it, if it has one. */
 function laneAhead(
   car: CarState,
   state: AssistState,
   knob: number | null,
   others: readonly { x: number; z: number }[],
+  exitTo?: DriveOptions["exitTo"],
 ): {
   /** Where to steer to hold the lane. */
   heading: number;
@@ -464,7 +508,10 @@ function laneAhead(
   if (loc.kind === "arm") {
     state.entryLane = loc.side === "approach" ? loc.lane : null;
     state.entryArm = loc.side === "approach" ? loc.arm : null;
+    state.fromLane = loc.side === "approach" ? loc.lane : null;
     state.roundLane = null;
+    state.circled = 0;
+    state.ringBearing = null;
     const toward = loc.side === "approach" ? -1 : 1;
     const runs = laneBearing(loc.arm, loc.side);
     const aim = lanePoint(
@@ -492,14 +539,22 @@ function laneAhead(
   }
 
   if (loc.kind === "ring") {
-    // On the way in, head for the ring lane with the approach lane's number.
-    // After that, hold whichever lane the car is in.
+    // How far round it has come, clockwise.
+    if (state.ringBearing != null) {
+      state.circled =
+        (state.circled ?? 0) +
+        Math.max(0, wrapPi(loc.bearing - state.ringBearing));
+    }
+    state.ringBearing = loc.bearing;
+    // On the way in, head for the ring lane its option goes round in. After
+    // that, hold whichever lane the car is in.
     let lane = loc.lane;
     if (state.entryLane != null) {
-      if (Math.abs(loc.r - ringRadius(state.entryLane)) < JOINED) {
+      const target = joinRing(state.entryArm, state.entryLane, exitTo);
+      if (Math.abs(loc.r - ringRadius(target)) < JOINED) {
         state.entryLane = null;
       } else {
-        lane = state.entryLane;
+        lane = target;
       }
     }
     if (state.entryLane == null) {
@@ -568,6 +623,7 @@ export function stickToInput(
         state,
         push < STICK_DEADZONE ? null : stickBearing(stick, options.seat),
         options.others ?? [],
+        options.exitTo,
       )
     : null;
   state.hold = 0;

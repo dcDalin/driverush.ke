@@ -1,8 +1,8 @@
 /**
  * The line a car follows when it does a turn properly: up its approach lane,
- * round the roundabout in the ring lane with the same number, and out in the
- * exit lane with that number. The tests point the joystick along these, and a
- * "show me the route" helper can draw them later.
+ * round the roundabout in the ring lane its option goes round in, and out in
+ * that option's exit lane (`LANE_OPTIONS`). The tests point the joystick along
+ * these, and a "show me the route" helper can draw them later.
  */
 import { RESERVE, U_TURN_GAPS } from "./full-board";
 import {
@@ -14,6 +14,7 @@ import {
   laneOffset,
   lanePoint,
   ringRadius,
+  rulesFor,
   type ArmId,
   type Turn,
   type Vec,
@@ -48,8 +49,12 @@ function joinAlong(armId: ArmId, roadLane: number, ringLane: number) {
 }
 
 /**
- * The whole route for one turn. `extraTurns` adds full circles of the
- * roundabout first, for testing what happens when a car keeps going round.
+ * The whole route for one turn. `way` picks the ring lane and exit lane where
+ * the lane has more than one option for the turn; left out, it is the lane's
+ * first option for it (or, for a turn the lane may not make, the ring lane with
+ * the lane's number). An option that goes once right round does so.
+ * `extraTurns` adds more full circles, for testing what happens when a car
+ * keeps going round.
  */
 export function lanePath(
   entry: ArmId,
@@ -58,12 +63,18 @@ export function lanePath(
   startAlong = 56,
   endAlong = 56,
   extraTurns = 0,
+  way?: { ring: number; exit: number },
 ): Vec[] {
   const exit = armForTurn(entry, turn);
-  const exitLane = Math.min(lane, ARMS[exit].lanes);
-  const radius = ringRadius(lane);
-  const joinIn = joinAlong(entry, lane, lane);
-  const joinOut = joinAlong(exit, exitLane, lane);
+  const rule = way
+    ? rulesFor(ARMS[entry].lanes, lane, turn, way.ring)[0]
+    : rulesFor(ARMS[entry].lanes, lane, turn)[0];
+  const ring = way?.ring ?? rule?.ring ?? lane;
+  const exitLane = way?.exit ?? rule?.exit ?? Math.min(lane, ARMS[exit].lanes);
+  const turns = extraTurns + (rule?.fullCircle ? 1 : 0);
+  const radius = ringRadius(ring);
+  const joinIn = joinAlong(entry, lane, ring);
+  const joinOut = joinAlong(exit, exitLane, ring);
 
   const points: Vec[] = [];
   for (let along = startAlong; along > joinIn; along -= STEP) {
@@ -75,7 +86,7 @@ export function lanePath(
   const from = bearingOf(a.x, a.z);
   let sweep = (bearingOf(b.x, b.z) - from) % TAU;
   if (sweep < 0) sweep += TAU;
-  sweep += TAU * extraTurns;
+  sweep += TAU * turns;
   const steps = Math.max(1, Math.ceil((sweep * radius) / STEP));
   for (let i = 0; i <= steps; i += 1) {
     const dir = dirOf(from + (sweep * i) / steps);

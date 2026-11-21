@@ -227,10 +227,10 @@ describe("the lane options line-up", () => {
       (c) => c.lane === 1 && c.option.turn === "straight",
     );
     if (!left || !straight) throw new Error("lane 1 has both");
-    // told to turn left, it goes straight on
+    // told to go straight on, it turns left
     const outcome = driveAlong(
-      queueChallenge(cars, left, {}),
-      straight.option.route.points,
+      queueChallenge(cars, straight, {}),
+      left.option.route.points,
     );
     expect(outcome.goal).toBe(false);
     expect(outcome.fault).toBeUndefined();

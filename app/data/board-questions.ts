@@ -4,10 +4,11 @@
  * Kenya Learner Driver Handbook (NTSA, 2016). They are not questions from any
  * test centre, and the page says so.
  *
- * Every answer names the handbook page it comes from. Where the handbook is
- * silent and the answer is a road rule a school should confirm, `confirm` is
- * set and the page says to ask an instructor. Don't add a question without one
- * or the other.
+ * Every answer names the handbook page it comes from, or Perez's Model Town
+ * Board tutorial where the handbook does not say which lane an option goes
+ * round in or leaves in. Where both are silent and the answer is a road rule a
+ * school should confirm, `confirm` is set and the page says to ask an
+ * instructor. Don't add a question without one or the other.
  */
 
 export type BoardTopicId =
@@ -50,6 +51,8 @@ const MSM = "Learner Driver Handbook, MSM technique, pp. 38 to 39";
 const SIGNS = "Learner Driver Handbook, Unit 2: traffic signs, p. 8";
 const ROAD_RULE =
   "Not in the handbook: a road rule to confirm with your school";
+/** Where the handbook stops short: which roundabout lane and exit lane each option uses. */
+const TUTORIAL = "Perez's Model Town Board animation tutorial, lane options";
 
 export const BOARD_QUESTIONS: readonly BoardQuestion[] = [
   // The board and its roads
@@ -104,7 +107,7 @@ export const BOARD_QUESTIONS: readonly BoardQuestion[] = [
   {
     topic: "board",
     q: "What does the yellow kerb mean?",
-    a: "No overlapping, no parking, no waiting and no stopping beside it.",
+    a: "No overtaking, no parking, no waiting and no stopping beside it.",
     source: unit3(10),
   },
   {
@@ -155,32 +158,32 @@ export const BOARD_QUESTIONS: readonly BoardQuestion[] = [
   {
     topic: "lanes",
     q: "You are on the four-lane road and want to turn left at the roundabout. Which lane?",
-    a: "Lane 1, which turns left at 90°. Lane 4 can also get there, but only the long way round, at 270°.",
+    a: "Lane 1, which turns left at 90°. Lane 4 can also get there, but only after going once all the way round, at 270°.",
     source: unit3(13),
   },
   {
     topic: "lanes",
     q: "You want to go straight across the roundabout from the four-lane road. Which lanes can you use?",
-    a: "Lanes 1, 2 or 3, at 0°. Lane 4 can too, but only after going once all the way round, at 360°.",
+    a: "Lanes 1, 2 or 3, at 0°. Lane 4 can too, but only after going once all the way round the roundabout, at 360°.",
     source: unit3(13),
   },
   {
     topic: "lanes",
-    q: "You want to turn right from the four-lane road. Which lanes?",
-    a: "Lane 3 or lane 4, at 90°.",
-    source: unit3(13),
+    q: "You want to turn right from the four-lane road. Which lanes, and which lane do you leave in?",
+    a: "Lane 3 or lane 4, at 90°. From lane 3 you go round in the roundabout's third lane and leave in the middle lane of the minor road. From lane 4 you go round in the innermost lane and leave in the minor road's third lane.",
+    source: TUTORIAL,
   },
   {
     topic: "lanes",
     q: "You want to go round the roundabout and come back down the four-lane road. Which lane?",
-    a: "Lane 4, the lane beside the central reserve. Coming back is 180°.",
+    a: "Lane 4, the lane beside the central reserve. Coming back is 180°, a U-turn, and you leave in lane 4.",
     source: unit3(13),
   },
   {
     topic: "lanes",
     q: "What are lane 4's four options on the four-lane road?",
-    a: "Turn right (90°), come back (180°), turn left the long way round (270°), or go straight after going round clockwise (360°).",
-    source: unit3(13),
+    a: "Turn right into the third lane of the minor road (90°), come back into lane 4 (180°), go once all the way round and then left into the third lane of the minor road (270°), or go once all the way round and then straight on (360°). All four use the innermost lane of the roundabout.",
+    source: TUTORIAL,
   },
   {
     topic: "lanes",
@@ -191,7 +194,7 @@ export const BOARD_QUESTIONS: readonly BoardQuestion[] = [
   {
     topic: "lanes",
     q: "You are on the three-lane road and want to turn left. Which lane?",
-    a: "Lane 1, at 90°. Lane 3 can also turn left, the long way round at 270°.",
+    a: "Lane 1, at 90°. Lane 3 can also turn left after going once all the way round, at 270°, through the roundabout's fourth lane.",
     source: unit3(13),
   },
   {
@@ -209,19 +212,19 @@ export const BOARD_QUESTIONS: readonly BoardQuestion[] = [
   {
     topic: "lanes",
     q: "You want to come back down the three-lane road. Which lane, and which lane do you come back in?",
-    a: "Lane 3, at 180°. You come back in lane 3.",
-    source: unit3(13),
+    a: "Lane 3, at 180°. You go round in the roundabout's fourth lane, beside the island, and come back in lane 3.",
+    source: TUTORIAL,
   },
   {
     topic: "lanes",
     q: "What are lane 3's five options on the three-lane road?",
-    a: "Go straight; turn right; turn right and enter lane 4 at 90°; come back into lane 3 at 180°; or turn left into lane 3 at 270° and move to lane 4 on the broken line.",
-    source: unit3(13),
+    a: "Go straight (0°) and turn right into lane 3 (90°), both through the roundabout's third lane. Then, through its fourth lane: turn right into lane 4 (90°), come back into lane 3 (180°), and go once all the way round and then left into lane 4 (270°).",
+    source: TUTORIAL,
   },
   {
     topic: "lanes",
     q: "How many degrees is each turn at the roundabout?",
-    a: "Straight on is 0°, left and right are 90°, coming back is 180°, the long way left is 270° and once all the way round is 360°.",
+    a: "Straight on is 0°, left and right are 90°, coming back is 180°, once round and then left is 270°, and once round and then straight on is 360°.",
     source: unit3(13),
   },
   {
@@ -296,8 +299,8 @@ export const BOARD_QUESTIONS: readonly BoardQuestion[] = [
   {
     topic: "roundabout",
     q: "Which lane do you leave the roundabout in?",
-    a: "The lane you came round in. Leaving in the wrong lane is one of the common mistakes.",
-    source: unit3(11),
+    a: "The lane your option leaves in. Mostly that is the number you went round in. Onto the three-lane road from the roundabout's fourth lane you leave in its third lane, and turning right from lane 3 of the four-lane road you leave in its middle lane. Leaving in the wrong lane is one of the common mistakes.",
+    source: TUTORIAL,
   },
   {
     topic: "roundabout",

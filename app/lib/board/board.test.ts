@@ -24,6 +24,9 @@ import {
   laneBearing,
   lanePoint,
   lanesForTurn,
+  laneRules,
+  ringLanes,
+  rulesFor,
   locate,
   ringRadius,
   turnBetween,
@@ -396,6 +399,22 @@ describe("the board's geometry", () => {
     expect(lanesForTurn(4, "right")).toEqual([3, 4]);
     expect(lanesForTurn(4, "back")).toEqual([4]);
     expect(OPTION_CODES[4]).toBe("2124");
+    // option counts spell the code
+    expect([1, 2, 3, 4].map((n) => laneRules(4, n).length).join("")).toBe(
+      "2124",
+    );
+    // right from lane 3 onto the minor road: out in its middle lane
+    expect(exitLanes(4, 3, "right")).toEqual([2]);
+    expect(ringLanes(4, 3, "right")).toEqual([3]);
+    // lane 4: right and left (270°) into the third lane, back into lane 4,
+    // and straight on only once round
+    expect(exitLanes(4, 4, "right")).toEqual([3]);
+    expect(exitLanes(4, 4, "left")).toEqual([3]);
+    expect(exitLanes(4, 4, "back")).toEqual([4]);
+    expect(rulesFor(4, 4, "straight")).toEqual([
+      { turn: "straight", ring: 4, exit: 4, degrees: 360, fullCircle: true },
+    ]);
+    expect(exitLanes(4, 2, "straight")).toEqual([2]);
   });
 
   it("follows the three-lane table, 215", () => {
@@ -405,12 +424,21 @@ describe("the board's geometry", () => {
       ["back", "left", "right", "straight"].sort(),
     );
     expect(OPTION_CODES[3]).toBe("215");
-    // lane 3's five options: right may enter lane 3 or lane 4
-    expect(exitLanes(3, 3, "right", 4)).toEqual([3, 4]);
-    expect(exitLanes(3, 3, "back", 3)).toEqual([3]);
-    expect(exitLanes(3, 3, "left", 4)).toEqual([3]);
-    expect(exitLanes(4, 4, "right", 3)).toEqual([3]);
-    expect(exitLanes(4, 2, "straight", 4)).toEqual([2]);
+    expect([1, 2, 3].map((n) => laneRules(3, n).length).join("")).toBe("215");
+    // lane 3's five options: the first two through the roundabout's third
+    // lane, the last three through its fourth
+    expect(laneRules(3, 3).map((r) => [r.turn, r.ring, r.exit])).toEqual([
+      ["straight", 3, 3],
+      ["right", 3, 3],
+      ["right", 4, 4],
+      ["back", 4, 3],
+      ["left", 4, 4],
+    ]);
+    expect(exitLanes(3, 3, "right")).toEqual([3, 4]);
+    expect(exitLanes(3, 3, "right", 4)).toEqual([4]);
+    expect(exitLanes(3, 3, "back", 3)).toEqual([]);
+    expect(exitLanes(3, 3, "left")).toEqual([4]);
+    expect(ringLanes(3, 3)).toEqual([3, 4]);
   });
 });
 
@@ -728,9 +756,9 @@ describe("serious mistakes end the attempt", () => {
       turn: "left",
     });
     const tip = faultTip(result.fault!);
-    expect(tip.reason).toContain("Lane 2 only goes straight");
+    expect(tip.reason).toContain("Lane 2 has one option: go straight");
     expect(tip.reason).toContain("approach in lane 1.");
-    expect(tip.reason).toContain("Lane 4 can also do it, the long way round");
+    expect(tip.reason).toContain("Lane 4 can also do it, once round the island first");
   });
 
   it("lane 1 turning right", () => {

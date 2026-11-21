@@ -90,6 +90,12 @@ export type Fault = {
   serious: boolean;
   /** The approach lane, for lane faults. */
   lane?: number;
+  /** The roundabout lane the car went round in, for exit faults. */
+  ring?: number;
+  /** Lane 4 left straight on without first going right round. */
+  circle?: boolean;
+  /** The lanes the car should have left the roundabout in. */
+  exitLanes?: number[];
   /** How many lanes that approach road has. */
   lanes?: number;
   /** The turn the car actually made. */

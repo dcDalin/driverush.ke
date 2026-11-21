@@ -203,28 +203,33 @@ const UNIT_DEFS: readonly {
     levels: [
       slides("roundabout-rules", "The roundabout rules", [
         {
-          title: "Go round clockwise",
-          note: "Traffic goes round the island clockwise, keeping left. You turn left onto the roundabout, never right.",
-          at: "roundabout",
-        },
-        {
-          title: "Give way to your right",
-          note: "Traffic already on the roundabout comes from your right, and it goes first. Join when there is a gap.",
-          at: "roundabout",
-        },
-        {
-          title: "No stopping, no changing lanes",
-          note: "Once you are on it, keep moving in the lane you came in on. No stopping, waiting, parking, overtaking or changing lanes on the roundabout.",
-          at: "roundabout",
-        },
-        {
-          title: "Only lane 4 goes all the way round",
-          note: "The lane beside the island is the only one that may make a full circle. Every other lane has to leave before it gets back to where it joined.",
+          title: "Three parts",
+          note: "The roundabout has three parts. The traffic island is the green part in the middle, which controls how vehicles move round it. The innermost lane, lane 4, runs beside it. The space is lanes 3, 2 and 1. Lanes are counted from the outermost to the innermost.",
           at: "island",
         },
         {
-          title: "Leave in the lane you came round in",
-          note: "At your exit, leave in the same lane you have been driving in. Do not drift across to another one on the way out.",
+          title: "Only the innermost lane goes all the way round",
+          note: "Lane 4 is the only lane that may make a full circle (360°) from the four-lane road, and the only one that may make a 270° turn from the three-lane road. Lanes 3, 2 and 1 may not make a full circle.",
+          at: "island",
+        },
+        {
+          title: "Keep left, go round clockwise",
+          note: "You turn left onto the roundabout and go round the island clockwise. Traffic already on it comes from your right and goes first: join when there is a gap.",
+          at: "roundabout",
+        },
+        {
+          title: "Five things you never do on it",
+          note: "No stopping, no changing lanes, no parking, no overtaking and no waiting. Once you are on it, keep moving in your lane until your exit.",
+          at: "roundabout",
+        },
+        {
+          title: "Maintain your lane to exit",
+          note: "Keep your lane round the roundabout and out. From lane 3 or 4 of the four-lane road onto the three-lane road, use the minus 1 rule: lane 3 exits into lane 2, lane 4 into lane 3. Lane 3 of the three-lane road shifts to lane 4 for its last three options.",
+          at: "roundabout",
+        },
+        {
+          title: "The common mistakes",
+          note: "Approaching the roundabout in the wrong lane, leaving it in the wrong lane, changing lanes on it, and getting the traffic lights wrong. Choose your lane before the continuous lines and you avoid the first three.",
           at: "roundabout",
         },
       ]),
@@ -234,11 +239,11 @@ const UNIT_DEFS: readonly {
       drive("left", "Turn left", "Easy"),
       drive("right", "Turn right", "Easy"),
       watch("wrong-lane", "In the wrong lane, with room to move", "Easy"),
-      watch("come-back", "Right round and back", "Medium"),
-      drive("back", "Come back", "Medium"),
+      watch("come-back", "U-turn, right round and back", "Medium"),
+      drive("back", "U-turn", "Medium"),
       drive("behind-red", "Behind the red car", "Medium"),
       drive("three-lane-right", "Right from the three-lane road", "Medium"),
-      drive("three-lane-back", "Come back on the three-lane road", "Hard"),
+      drive("three-lane-back", "U-turn on the three-lane road", "Hard"),
     ],
   },
   {
@@ -314,7 +319,7 @@ const UNIT_DEFS: readonly {
         "Medium",
       ),
       drive("blocked-lane", "A lane is blocked", "Medium"),
-      drive("blocked-exit", "An exit is blocked", "Medium"),
+      drive("blocked-exit", "An exit is blocked", "Hard"),
       drive("blocked-ring", "A lane on the roundabout is blocked", "Hard"),
       drive("blocked-gap", "The gap is blocked", "Hard"),
       drive("blocked-street", "The street is blocked", "Hard"),

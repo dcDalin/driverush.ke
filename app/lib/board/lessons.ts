@@ -8,13 +8,14 @@ import { isRouteTask, type BoardChallenge } from "./challenges";
 import { goalBox, type Box } from "./full-board";
 import {
   ARMS,
-  allowedTurns,
   armForTurn,
-  exitLanes,
   laneBearing,
   lanePoint,
+  laneRules,
   lanesForTurn,
+  rulesFor,
   type ArmId,
+  type LaneRule,
   type Turn,
 } from "./geometry";
 import {
@@ -40,7 +41,7 @@ export const TURN_LABEL: Record<Turn, string> = {
   left: "Turn left",
   straight: "Go straight",
   right: "Turn right",
-  back: "Come back",
+  back: "U-turn",
 };
 
 /** One colour per way out, the same everywhere a route is drawn. */
@@ -61,39 +62,70 @@ export const APPROACHES: readonly { arm: ArmId; label: string; road: string }[] 
     { arm: "E", label: "Right", road: "Three-lane road" },
   ];
 
-/**
- * The handbook's angle for each turn. Left and right are both 90°. The
- * innermost lane reaches the left exit and the straight-on exit the long way
- * round, which the handbook counts as 270° and 360°.
- */
+/** The usual angle for each turn. Left and right are both 90°. */
 export const TURN_DEGREES: Record<Turn, number> = {
   straight: 0,
   right: 90,
   back: 180,
   left: 90,
 };
-const LONG_WAY_DEGREES: Partial<Record<Turn, number>> = {
-  left: 270,
-  straight: 360,
-};
 
 export type LaneOption = {
   /** One per way through, for a list key. */
   id: string;
   turn: Turn;
+  /** The roundabout lane it goes round in. */
+  ringLane: number;
+  /** It goes once right round the island before it leaves. */
+  fullCircle: boolean;
   /** The lane of the road out that this way through ends in. */
   exitLane: number;
   label: string;
-  /** The handbook's angle for it, such as "90°". */
+  /** The angle schools count for it, such as "90°". */
   degrees: string;
+  /** How it goes through, as a driving school says it. */
+  how: string;
   color: string;
   route: Route;
   confirmed: boolean;
 };
 
+const ROAD_NAME: Record<number, string> = {
+  4: "the major road",
+  3: "the minor road",
+};
+
+/** The label for one option, in the owner's rule sheet's words. */
+function optionLabel(rule: LaneRule, outs: number): string {
+  if (rule.turn === "back") return "U-turn";
+  if (rule.turn === "left" && rule.fullCircle) return "Q-turn";
+  if (rule.turn === "straight" && rule.fullCircle) {
+    return "Go straight, after a full loop";
+  }
+  const base = TURN_LABEL[rule.turn];
+  return outs > 1 ? `${base}, into lane ${rule.exit}` : base;
+}
+
+/**
+ * How one option goes through, the way the rule sheet says it: "Maintain lane
+ * 3 to exit" or "Shift to lane 4 to exit into lane 4", and the lane it exits
+ * into. Off the major road onto the minor road from lane 3 or 4, that is one
+ * lane less (the "minus 1" rule).
+ */
+function optionHow(arm: ArmId, lane: number, rule: LaneRule): string {
+  const lanes = ARMS[arm].lanes;
+  const out = ARMS[armForTurn(arm, rule.turn)].lanes;
+  const road = ROAD_NAME[out] ?? "the road";
+  const keep =
+    rule.ring === lane ? `Maintain lane ${lane}` : `Shift to lane ${rule.ring}`;
+  const loop = rule.fullCircle ? " after a full loop" : "";
+  const minus = lanes === 4 && out === 3 && rule.exit < lane ? " (minus 1)" : "";
+  return `${keep} to exit${loop}, into lane ${rule.exit} of ${road}${minus}.`;
+}
+
 const optionCache = new Map<string, LaneOption[]>();
 
-/** Every turn one approach lane may make, each with the line a car follows. */
+/** Every option of one approach lane, each with the line a car follows. */
 export function laneOptions(arm: ArmId, lane: number): LaneOption[] {
   const key = `${arm}${lane}`;
   const cached = optionCache.get(key);
@@ -102,55 +134,41 @@ export function laneOptions(arm: ArmId, lane: number): LaneOption[] {
   const lead = followFrom(laneNode(arm, "approach", lane, "start"));
   const options: LaneOption[] = [];
   const lanes = ARMS[arm].lanes;
-  for (const turn of allowedTurns(lanes, lane)) {
-    const outs = exitLanes(lanes, lane, turn, ARMS[armForTurn(arm, turn)].lanes);
-    for (const exitLane of outs) {
-      const name = roundaboutWay(arm, lane, turn, exitLane);
-      const through = ["hold_lane", "ring", "exit"].map((maneuver) =>
-        net.edges.find(
-          (e) =>
-            e.maneuver === maneuver &&
-            (e.to === `${name}:on` ||
-              e.from === `${name}:on` ||
-              e.from === `${name}:off`) &&
-            (maneuver !== "ring" || e.to === `${name}:off`),
-        ),
-      );
-      if (through.some((e) => !e)) continue;
-      const last = through[2];
-      if (!last) continue;
-      const route = routeOf([
-        ...lead,
-        ...(through as NonNullable<(typeof through)[number]>[]),
-        ...followFrom(last.to, 26),
-      ]);
-      // The innermost lane reaches the left and straight-on exits the long
-      // way round, which the handbook counts as 270° and 360°.
-      const inner = lane === lanes && lane > 2;
-      const longWay =
-        inner && (turn === "left" || (turn === "straight" && lanes === 4));
-      const degrees =
-        (longWay ? LONG_WAY_DEGREES[turn] : undefined) ?? TURN_DEGREES[turn];
-      options.push({
-        id: name,
-        turn,
-        exitLane,
-        label:
-          outs.length > 1
-            ? `${TURN_LABEL[turn]}, into lane ${exitLane}`
-            : longWay
-              ? `${TURN_LABEL[turn]}, the long way round`
-              : TURN_LABEL[turn],
-        degrees: `${degrees}°`,
-        color: TURN_COLOR[turn],
-        route,
-        confirmed: route.confirmed,
-      });
-    }
+  for (const rule of laneRules(lanes, lane)) {
+    const { turn, exit: exitLane } = rule;
+    const name = roundaboutWay(arm, lane, turn, exitLane);
+    const through = ["hold_lane", "ring", "exit"].map((maneuver) =>
+      net.edges.find(
+        (e) =>
+          e.maneuver === maneuver &&
+          (e.to === `${name}:on` ||
+            e.from === `${name}:on` ||
+            e.from === `${name}:off`) &&
+          (maneuver !== "ring" || e.to === `${name}:off`),
+      ),
+    );
+    if (through.some((e) => !e)) continue;
+    const last = through[2];
+    if (!last) continue;
+    const route = routeOf([
+      ...lead,
+      ...(through as NonNullable<(typeof through)[number]>[]),
+      ...followFrom(last.to, 26),
+    ]);
+    options.push({
+      id: name,
+      turn,
+      ringLane: rule.ring,
+      fullCircle: rule.fullCircle ?? false,
+      exitLane,
+      label: optionLabel(rule, rulesFor(lanes, lane, turn).length),
+      degrees: `${rule.degrees}°`,
+      how: optionHow(arm, lane, rule),
+      color: TURN_COLOR[turn],
+      route,
+      confirmed: route.confirmed,
+    });
   }
-  // left first, then straight, right, back: the order of the exits
-  const order: Turn[] = ["left", "straight", "right", "back"];
-  options.sort((a, b) => order.indexOf(a.turn) - order.indexOf(b.turn));
   optionCache.set(key, options);
   return options;
 }
@@ -238,7 +256,7 @@ export const LESSONS: readonly Lesson[] = [
     id: "come-back",
     group: "routes",
     level: "Medium",
-    title: "Right round and back",
+    title: "U-turn, right round and back",
     ask: "From the bottom of the dual carriageway, come back the way you came.",
     from: `From ${DUAL_BOTTOM}, lane 3`,
     to: `To ${DUAL_BOTTOM}, lane 4`,
@@ -355,11 +373,11 @@ export const BLOCKED_ROUTES: readonly Lesson[] = [
   {
     id: "blocked-exit",
     group: "routes",
-    level: "Medium",
+    level: "Hard",
     title: "An exit is blocked",
-    ask: "From the top of the dual carriageway, reach the bottom of the two-way road. The roundabout's exit to it is blocked.",
-    from: `From ${DUAL_TOP}, lane 4`,
-    to: `To ${TWO_WAY_BOTTOM}`,
+    ask: "You are in lane 3 at the continuous lines and you are asked to come back down this road. The exit straight ahead is blocked.",
+    from: `At the continuous lines on ${DUAL_BOTTOM}, lane 3`,
+    to: `To ${DUAL_BOTTOM}, lane 1`,
     block: "exit",
   },
   {
@@ -440,20 +458,20 @@ export function lessonRoute(lesson: Lesson): Route | null {
   return lessonPlan(lesson)?.route ?? null;
 }
 
-/** The handbook's three route rules, in the order they are tried. */
+/** The three rules of the Model Town Board, in the order they are tried. */
 export const ROUTE_RULES: Record<Plan["rule"], { name: string; says: string }> =
   {
     shortest: {
       name: "Rule 1",
-      says: "The shortest correct route, without using the parking area.",
+      says: "Use the shortest correct route without parking.",
     },
     longest: {
       name: "Rule 2",
-      says: "The longest correct route. A continuous line blocks the short way from this lane, so you go the long way round, still without using the parking area.",
+      says: "Use the longest correct route if needed. Here a continuous line or a block closes the short way, so you go the long way round, still without parking.",
     },
     last_resort: {
       name: "Rule 3",
-      says: "The parking area, only because there is no other route.",
+      says: "Parking is only a last option. There is no other route, so this one goes through the parking area.",
     },
     parking: {
       name: "Parking",

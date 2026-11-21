@@ -187,6 +187,12 @@ export function beginChallenge(next: BoardChallenge, cb: Callbacks): void {
   taskRoute = isRouteTask(next) ? challengeRoute(next) : null;
   taskParking = taskParks(next);
   drive.reverse = isRouteTask(next) && next.reverse;
+  // Where the task ends in one lane, lane assist joins the roundabout lane
+  // that option goes round in and steers out into that lane.
+  drive.exitTo =
+    !isRouteTask(next) && next.goal.lane != null
+      ? { arm: next.goal.arm, lane: next.goal.lane }
+      : null;
   car.speed = 0;
   car.steer = 0;
   challenge = next;

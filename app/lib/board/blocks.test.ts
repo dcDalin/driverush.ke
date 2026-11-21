@@ -29,7 +29,7 @@ import {
   lessonPlan,
 } from "./lessons";
 import { createLineState, lineStep } from "./lines";
-import { planRoute, poseAt, type Route } from "./network";
+import { network, planRoute, poseAt, type Route } from "./network";
 import { PARKING_LAYOUTS, setParkingLayout } from "./parking-layouts";
 import type { Fault } from "./referee";
 import {
@@ -122,14 +122,17 @@ describe("the route finder, with a way closed", () => {
   });
 
   it("says there is no way when the only way is closed", () => {
-    // The left-hand exit is the only road to the three-lane road's left end.
+    // From the bottom, the exit straight ahead is the only road to the top of
+    // the dual carriageway.
     const exit = blockById("exit")!;
-    const plan = planRoute(
-      "N:in:1@116.70",
-      "side:south@215.90",
-      undefined,
-      closedEdges(exit),
-    );
+    const places = network().places;
+    const from = places.find(
+      (p) => p.label === "From the dual carriageway, bottom end, lane 2",
+    )!;
+    const to = places.find(
+      (p) => p.label === "To the dual carriageway, top end, lane 2",
+    )!;
+    const plan = planRoute(from.id, to.id, undefined, closedEdges(exit));
     expect(plan.route).toBeNull();
   });
 });

@@ -187,7 +187,7 @@ export function queueChallenge(
     // the box is part of the name: the line drawn to it is kept by this id
     id: `queue:${car.id}:${goal.alongMin}`,
     title: queueJob(car),
-    prompt: `Stay in lane ${car.lane}, go round, and stop in the green box in lane ${car.exit.lane} of the ${road} road.`,
+    prompt: `Stay in lane ${car.lane}, go ${car.option.fullCircle ? "once all the way round" : "round"} in lane ${car.option.ringLane} of the roundabout, and stop in the green box in lane ${car.exit.lane} of the ${road} road.`,
     start: { arm: car.arm, lane: car.lane, along: car.along },
     turn: car.option.turn,
     goal,

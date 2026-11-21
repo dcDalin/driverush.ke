@@ -112,6 +112,16 @@ describe("lane assist out of the roundabout", () => {
     const left = cars.find(
       (one) => one.lane === 1 && one.option.turn === "left",
     )!;
+    // the straight-on car in front of it is home already, out of the way
+    const ahead = cars.filter((c) => c.lane === 1 && c.slot < left.slot);
+    useBoardStore.setState((s) => ({
+      lanes: {
+        ...s.lanes!,
+        rest: Object.fromEntries(
+          ahead.map((c, k) => [c.id, { x: 500 + k * 10, z: 500, heading: 0 }]),
+        ),
+      },
+    }));
     useBoardStore.getState().pickCar(left.id);
     // up the road until the car is on the roundabout
     hold(0, -1, () => locate(car.x, car.z).kind === "ring");
@@ -133,8 +143,11 @@ describe("lane assist out of the roundabout", () => {
     // Driving straight out of an inner ring lane crosses the outer ring lanes
     // on the way to the mouth. The lane it turns off into must not slip with
     // them, or the car is dragged across to lane 2 against the knob.
+    // (Lane 4's straight on goes once round first, which "up" cannot steer.)
     const cars = queueCars("S");
-    for (const one of cars.filter((c) => c.option.turn === "straight")) {
+    for (const one of cars.filter(
+      (c) => c.option.turn === "straight" && c.option.degrees === "0°",
+    )) {
       useBoardStore.getState().exit();
       useBoardStore.getState().startLevel("four-lane");
       // the cars in front of it are home already, out of the way

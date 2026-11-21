@@ -27,15 +27,16 @@ import {
 import {
   ARMS,
   ARM_ORDER,
-  allowedTurns,
   armForTurn,
   bearingOf,
   dirOf,
-  exitLanes,
   lanePoint,
+  laneRules,
   locate,
+  rulesFor,
   wrapPi,
   type ArmId,
+  type LaneRule,
   type Side,
   type Turn,
   type Vec,
@@ -218,8 +219,18 @@ export function roundaboutWay(
   turn: Turn,
   exitLane: number,
 ): string {
-  const usual = Math.min(lane, ARMS[armForTurn(entry, turn)].lanes);
-  return `rb:${entry}${lane}:${turn}${exitLane === usual ? "" : `:${exitLane}`}`;
+  // Where a lane has two options for one turn, the second is named by its
+  // exit lane.
+  const usual = rulesFor(ARMS[entry].lanes, lane, turn)[0]?.exit;
+  return `rb:${entry}${lane}:${turn}${usual == null || exitLane === usual ? "" : `:${exitLane}`}`;
+}
+
+/** Which roundabout lane an option goes round in, and why, for the ring step. */
+function ringWhy(lanes: number, lane: number, rule: LaneRule): string {
+  if (rule.ring === lane) {
+    return `Lane ${lane} on the road goes round in lane ${rule.ring} of the roundabout, counting from the outside.`;
+  }
+  return `From lane ${lane} of the three-lane road, going straight or right into lane 3 uses the roundabout's third lane. Every other option uses its fourth lane, beside the island, so you go round in lane ${rule.ring}.`;
 }
 
 const EXIT_TITLE: Record<Turn, string> = {
@@ -506,82 +517,71 @@ function build(): Network {
     }
   }
 
-  // the roundabout: one way through for each turn a lane may make, and for
-  // each lane it may leave in
+  // the roundabout: one way through for each option of each lane
+  // (`LANE_OPTIONS`), round in that option's ring lane and out in its exit lane
   for (const entry of ARM_ORDER) {
     const arm = ARMS[entry];
     for (let n = 1; n <= arm.lanes; n += 1) {
-      for (const way of allowedTurns(arm.lanes, n)) {
+      for (const rule of laneRules(arm.lanes, n)) {
+        const way = rule.turn;
         const exit = armForTurn(entry, way);
-        const outs = exitLanes(arm.lanes, n, way, ARMS[exit].lanes);
-        for (const exitLane of outs) {
-          // softened once more, so the car comes onto the roundabout and off
-          // it in a curve and not at a corner
-          const path = soften([
-            ...lanePath(
-              entry,
-              n,
-              way,
-              SOLID_TO,
-              // the other lane out is steered for as the car leaves the ring
-              exitLane === outs[0] ? EXIT_FROM : EXIT_FROM - 8,
-            ),
-            lanePoint(exit, "exit", exitLane, EXIT_FROM),
-          ]);
-          const onRing = path.map((p) => locate(p.x, p.z).kind === "ring");
-          const i1 = onRing.indexOf(true);
-          const i2 = onRing.lastIndexOf(true);
-          const name = roundaboutWay(entry, n, way, exitLane);
-          const joined = node(
-            `${name}:on`,
-            path[i1],
-            bearingOf(path[i1].x - path[i1 - 1].x, path[i1].z - path[i1 - 1].z),
-          );
-          const left = node(
-            `${name}:off`,
-            path[i2],
-            bearingOf(path[i2 + 1].x - path[i2].x, path[i2 + 1].z - path[i2].z),
-          );
-          const longWay =
-            n === arm.lanes &&
-            (way === "left" || (way === "straight" && arm.lanes === 4));
-          edge(
-            last(laneId(entry, "approach", n)),
-            joined,
-            path.slice(0, i1 + 1),
-            {
-              maneuver: "hold_lane",
-              road: armRoad(entry),
-              lane: n,
-              title: `Hold lane ${n} into the roundabout`,
-              why: `The lane lines are continuous now, so no changing lanes. ${laneRule(arm.lanes, n)} ${GIVE_WAY_RING}`,
-            },
-          );
-          edge(joined, left, path.slice(i1, i2 + 1), {
-            maneuver: "ring",
-            road: "roundabout",
+        const exitLane = rule.exit;
+        // softened once more, so the car comes onto the roundabout and off
+        // it in a curve and not at a corner
+        const path = soften([
+          ...lanePath(entry, n, way, SOLID_TO, EXIT_FROM, 0, {
+            ring: rule.ring,
+            exit: exitLane,
+          }),
+          lanePoint(exit, "exit", exitLane, EXIT_FROM),
+        ]);
+        const onRing = path.map((p) => locate(p.x, p.z).kind === "ring");
+        const i1 = onRing.indexOf(true);
+        const i2 = onRing.lastIndexOf(true);
+        const name = roundaboutWay(entry, n, way, exitLane);
+        const joined = node(
+          `${name}:on`,
+          path[i1],
+          bearingOf(path[i1].x - path[i1 - 1].x, path[i1].z - path[i1 - 1].z),
+        );
+        const left = node(
+          `${name}:off`,
+          path[i2],
+          bearingOf(path[i2 + 1].x - path[i2].x, path[i2 + 1].z - path[i2].z),
+        );
+        edge(
+          last(laneId(entry, "approach", n)),
+          joined,
+          path.slice(0, i1 + 1),
+          {
+            maneuver: "hold_lane",
+            road: armRoad(entry),
             lane: n,
-            title: `Go round clockwise in lane ${n}`,
-            why: `No stopping and no changing lanes on the roundabout. Lane ${n} on the road is lane ${n} on the roundabout, counting from the outside.`,
-          });
-          const shift =
-            arm.lanes === 3 && n === 3 && way === "left"
-              ? " Then move to lane 4 where the line is broken."
-              : "";
-          edge(left, onArm(exit, "exit", exitLane, EXIT_FROM), path.slice(i2), {
-            maneuver: "exit",
-            road: armRoad(exit),
-            lane: exitLane,
-            // Whether the innermost lane must go once right round before it
-            // leaves straight on is for a driving school to say.
-            confirmed: !(longWay && way === "straight"),
-            title: EXIT_TITLE[way],
-            why:
-              way === "back"
-                ? `Only the innermost lane may go all the way round. Signal left and leave in lane ${exitLane}.`
-                : `Left is the first exit, straight on the second, right the third. Signal left as you leave, in lane ${exitLane}.${shift}`,
-          });
-        }
+            title: `Hold lane ${n} into the roundabout`,
+            why: `The lane lines are continuous now, so no changing lanes. ${laneRule(arm.lanes, n)} ${GIVE_WAY_RING}`,
+          },
+        );
+        edge(joined, left, path.slice(i1, i2 + 1), {
+          maneuver: "ring",
+          road: "roundabout",
+          lane: rule.ring,
+          title: rule.fullCircle
+            ? `Go once right round, clockwise in lane ${rule.ring}`
+            : `Go round clockwise in lane ${rule.ring}`,
+          why: `No stopping and no changing lanes on the roundabout. ${ringWhy(arm.lanes, n, rule)}`,
+        });
+        edge(left, onArm(exit, "exit", exitLane, EXIT_FROM), path.slice(i2), {
+          maneuver: "exit",
+          road: armRoad(exit),
+          lane: exitLane,
+          title: EXIT_TITLE[way],
+          why:
+            way === "back"
+              ? `Only the innermost lane may go all the way round. Signal left and leave in lane ${exitLane}.`
+              : rule.fullCircle
+                ? `Only lane ${rule.ring} may go all the way round: past this exit once, right round the island, then off at it the second time. Signal left and leave in lane ${exitLane}.`
+                : `Left is the first exit, straight on the second, right the third. Signal left as you leave, in lane ${exitLane}.${exitLane < rule.ring ? ` Onto the three-lane road you leave one lane further out than you went round in.` : ""}`,
+        });
       }
     }
   }
