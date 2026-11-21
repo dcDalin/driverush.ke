@@ -614,6 +614,11 @@ export const useBoardStore = create<BoardState>()(
         beginChallenge(challenge, { onFault, onSmall, onDeviation, onGoal });
         // Judged kindly, the car is also carried out of the roundabout.
         drive.exitHold = gentle() !== null;
+        // Where the rule allows two exit lanes, it steers for the task's one.
+        drive.exitTo =
+          !isRouteTask(challenge) && challenge.goal.lane != null
+            ? { arm: challenge.goal.arm, lane: challenge.goal.lane }
+            : null;
         judging.forgiveLanes = gentle() === "free";
         // A car from a line-up is told its option: its line is on the table.
         const run = get().lanes;

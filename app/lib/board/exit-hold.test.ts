@@ -1,9 +1,9 @@
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { useBoardStore } from "../board-store";
-import { locate } from "./geometry";
-import { exitAhead } from "./joystick";
-import { queueCars } from "./lane-queue";
+import { bearingOf, locate, type ArmId } from "./geometry";
+import { createAssist, exitAhead } from "./joystick";
+import { queueCars, queueGoal } from "./lane-queue";
 import { car, drive, loadPhysics, stick, tick } from "./runtime";
 
 function hold(x: number, y: number, until: () => boolean, most = 30) {
@@ -13,6 +13,64 @@ function hold(x: number, y: number, until: () => boolean, most = 30) {
     tick(1 / 60);
     if (useBoardStore.getState().phase !== "driving") return;
   }
+}
+
+/**
+ * Take one car of a line-up home the way a thumb does: point a few metres on
+ * along its painted line, and let go in the box. The cars in front of it are
+ * home already, out of the way.
+ */
+function driveHome(level: string, arm: ArmId, id: string) {
+  const cars = queueCars(arm);
+  const one = cars.find((c) => c.id === id)!;
+  useBoardStore.getState().exit();
+  useBoardStore.getState().startLevel(level);
+  const ahead = cars.filter((c) => c.lane === one.lane && c.slot < one.slot);
+  const rest = Object.fromEntries(
+    ahead.map((c, k) => [c.id, { x: 500 + k * 10, z: 500, heading: 0 }]),
+  );
+  useBoardStore.setState((s) => ({ lanes: { ...s.lanes!, rest } }));
+  useBoardStore.getState().pickCar(one.id);
+  const goal = queueGoal(cars, one, Object.keys(rest));
+  // the painted line, a point every half metre
+  const line = one.option.route.points;
+  const points = [line[0]];
+  for (let k = 1; k < line.length; k += 1) {
+    const a = line[k - 1];
+    const b = line[k];
+    const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / 0.5));
+    for (let j = 1; j <= n; j += 1) {
+      points.push({
+        x: a.x + ((b.x - a.x) * j) / n,
+        z: a.z + ((b.z - a.z) * j) / n,
+      });
+    }
+  }
+  for (let i = 0; i < 90 * 60; i += 1) {
+    const now = useBoardStore.getState();
+    if (now.lanes?.picked == null || now.phase !== "driving") break;
+    const at = locate(car.x, car.z);
+    const home =
+      at.kind === "arm" &&
+      at.arm === goal.arm &&
+      at.side === "exit" &&
+      at.along > (goal.alongMin + goal.alongMax) / 2 - 1;
+    let near = 0;
+    for (let k = 1; k < points.length; k += 1) {
+      const d = Math.hypot(points[k].x - car.x, points[k].z - car.z);
+      if (d < Math.hypot(points[near].x - car.x, points[near].z - car.z)) {
+        near = k;
+      }
+    }
+    const aim = points[Math.min(points.length - 1, near + 12)];
+    const knob = bearingOf(aim.x - car.x, aim.z - car.z);
+    // seated south, up on the knob is north
+    stick.x = home ? 0 : Math.sin(knob);
+    stick.y = home ? 0 : -Math.cos(knob);
+    tick(1 / 60);
+  }
+  const after = useBoardStore.getState();
+  return { fault: after.fault, home: after.lanes?.rest[one.id] != null, goal };
 }
 
 beforeAll(() => loadPhysics());
@@ -95,6 +153,39 @@ describe("lane assist out of the roundabout", () => {
         one.lane,
       );
     }
+  });
+
+  it("takes every car of both line-ups home along its line", () => {
+    for (const [level, arm] of [
+      ["four-lane", "S"],
+      ["three-lane", "W"],
+    ] as const) {
+      for (const one of queueCars(arm)) {
+        const { fault, home, goal } = driveHome(level, arm, one.id);
+        expect(fault, one.id).toBeNull();
+        expect(home, one.id).toBe(true);
+        const at = locate(car.x, car.z);
+        expect(at.kind === "arm" && at.lane, one.id).toBe(goal.lane);
+      }
+    }
+  });
+
+  it("leaves in the lane it is joining, not one it crosses on the way", () => {
+    // Lane 3 of the three-lane road turning left: its exit comes up while the
+    // car is still crossing ring lane 2 on its way in to lane 3, level with
+    // the line of exit lane 2. It must wait for lane 3, not turn off into 2.
+    const state = { ...createAssist(), entryLane: 3, entryArm: "W" as const };
+    const at = { x: -13.2, z: -2.6, heading: 1.1, speed: 6, steer: 0 };
+    expect(locate(at.x, at.z)).toMatchObject({ kind: "ring", lane: 2 });
+    expect(exitAhead(at, (43 * Math.PI) / 180, state)).toBe("wait");
+  });
+
+  it("goes into lane 4 when the rule allows lane 3 or lane 4", () => {
+    const { fault, home } = driveHome("three-lane", "W", "rb:W3:right:4");
+    expect(fault).toBeNull();
+    expect(home).toBe(true);
+    const at = locate(car.x, car.z);
+    expect(at.kind === "arm" && at.lane).toBe(4);
   });
 
   it("asks for nothing while the knob lies along the ring", () => {

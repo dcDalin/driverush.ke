@@ -23,11 +23,14 @@ import {
   RING_OUTER_R,
   bearingOf,
   dirOf,
+  exitLanes,
   laneBearing,
   lanePoint,
   locate,
   ringRadius,
+  turnBetween,
   wrapPi,
+  type ArmId,
 } from "./geometry";
 import { network } from "./network";
 
@@ -59,12 +62,20 @@ export type DriveOptions = {
    * right lane is the learner's to do.
    */
   exitHold?: boolean;
+  /**
+   * The road and lane the task ends in. Where the rule allows two exit lanes,
+   * `exitHold` steers for this one: the two are too close in angle to tell
+   * apart by the knob.
+   */
+  exitTo?: { arm: ArmId; lane: number } | null;
 };
 
 /** What the assist remembers between steps. */
 export type AssistState = {
   /** The lane the car came up the road in, until it has joined the ring. */
   entryLane: number | null;
+  /** The road it came up, kept while it goes round. */
+  entryArm?: ArmId | null;
   /** How long the knob has been held back with the car at rest. */
   backTime: number;
   /** How firmly the lane is being held this step, 0 to 1. For the scene. */
@@ -165,18 +176,46 @@ export function exitAhead(
   car: CarState,
   knob: number,
   state?: AssistState,
+  exitTo?: DriveOptions["exitTo"],
 ): number | "wait" | null {
   const loc = locate(car.x, car.z);
   if (loc.kind !== "ring") return null;
   for (const id of ARM_ORDER) {
     const runs = laneBearing(id, "exit");
     if (Math.abs(wrapPi(knob - runs)) > EXIT_CONE) continue;
-    const turning = state?.leaving === id && state.leavingLane != null;
-    const lane = turning
-      ? state.leavingLane!
-      : Math.min(loc.lane, ARMS[id].lanes);
-    const mouth = lanePoint(id, "exit", lane, RING_OUTER_R);
     const dir = dirOf(runs);
+    const turning = state?.leaving === id && state.leavingLane != null;
+    // The lanes the rule allows out of the lane it came round in. Still
+    // joining the ring, that is the lane it is joining, not the one it is
+    // crossing on the way.
+    const ring = state?.entryLane ?? loc.lane;
+    const from = state?.entryArm;
+    const allowed = turning
+      ? [state.leavingLane!]
+      : from
+        ? exitLanes(
+            ARMS[from].lanes,
+            ring,
+            turnBetween(from, id),
+            ARMS[id].lanes,
+          )
+        : [Math.min(ring, ARMS[id].lanes)];
+    // Where the rule allows two, the task's lane, or else the one the knob
+    // points down.
+    const task = exitTo?.arm === id && allowed.includes(exitTo.lane);
+    let lane = task ? exitTo.lane : allowed[0];
+    let best = Infinity;
+    for (const one of task ? [] : allowed) {
+      const aim = lanePoint(id, "exit", one, RING_OUTER_R + EXIT_AIM);
+      const miss = Math.abs(
+        wrapPi(bearingOf(aim.x - car.x, aim.z - car.z) - knob),
+      );
+      if (miss < best) {
+        best = miss;
+        lane = one;
+      }
+    }
+    const mouth = lanePoint(id, "exit", lane, RING_OUTER_R);
     const dx = car.x - mouth.x;
     const dz = car.z - mouth.z;
     if (Math.hypot(dx, dz) > EXIT_NEAR) continue;
@@ -229,6 +268,7 @@ function laneAhead(
 
   if (loc.kind === "arm") {
     state.entryLane = loc.side === "approach" ? loc.lane : null;
+    state.entryArm = loc.side === "approach" ? loc.arm : null;
     const toward = loc.side === "approach" ? -1 : 1;
     const aim = lanePoint(
       loc.arm,
@@ -399,7 +439,7 @@ export function stickToInput(
   // Asked for an exit: the ring is held until the car is level with the exit
   // lane, and then that lane is steered for.
   if (options.exitHold && lane) {
-    const out = exitAhead(car, knob, state);
+    const out = exitAhead(car, knob, state, options.exitTo);
     if (out === "wait") {
       target = lane.heading;
       cap = Math.min(lane.cap, EXIT_SPEED);
