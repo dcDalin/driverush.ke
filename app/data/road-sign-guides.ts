@@ -387,6 +387,7 @@ export const SIGN_GUIDES: Record<string, SignGuide> = {
     ],
     mistakes: [
       "Overtaking a vehicle that has slowed or stopped near the crossing. It has probably stopped for someone you can't see, who may step out in front of you.",
+      "Not stopping for someone already on the crossing. Pedestrians on it have right of way, so stop and let them get to the other side.",
       "Stopping on the stripes in slow traffic. Hold back so the crossing stays clear for people on foot.",
       "Waving a pedestrian across without checking the other lane. A boda boda or matatu coming past may not stop, and the person trusts your signal.",
     ],
@@ -650,7 +651,7 @@ export const SIGN_GUIDES: Record<string, SignGuide> = {
     looks:
       "A red eight sided sign with the word STOP in large white capital letters across the middle. It has no picture, only the word and the colour.",
     where:
-      "It stands at junctions where you can't see far enough along the main road to judge it safely while still moving: blind corners, junctions at the bottom of a hill, and minor roads joining a busy highway. A white stop line is usually painted across your lane at the point where you must halt.",
+      "It stands at a junction where you join a two-way traffic road, usually one where you can't see far enough along it to judge it safely while still moving: blind corners, junctions at the bottom of a hill, and minor roads joining a busy highway. A white stop line is usually painted across your lane at the point where you must halt.",
     confusedWith: [
       {
         code: "R.2",
@@ -667,20 +668,22 @@ export const SIGN_GUIDES: Record<string, SignGuide> = {
     ],
     mistakes: [
       "Slowing to a crawl and rolling over the line. The wheels must stop turning, at the line, before you look and move off.",
+      "Looking only one way. Look right, left and right again, because in Kenya the nearest traffic comes from your right.",
       "Stopping well back and then pulling out without looking again. If your view is blocked from the line, creep forward and stop once more where you can see.",
       "Going because another driver flashes you. A matatu or lorry flashing its lights may not have seen the boda boda overtaking it.",
     ],
-    remember: "Eight sides, one word, no exceptions. Wheels still, then look.",
+    remember:
+      "Eight sides, one word, no exceptions. Wheels still, then look right, left and right again.",
   },
   "R.2": {
     looks:
-      "A plain white triangle with a thick red border, turned so one point faces down and the flat side is on top. There's no symbol or writing inside.",
+      "A red triangle with its point facing down and the flat side on top: a thick red band around a plain white middle, with no symbol or writing inside.",
     where:
       "You'll find it where a minor road joins a main road, at the entry to many roundabouts, and at slip roads where you merge onto a faster road. It's used where you can see clearly enough to judge the traffic without stopping every time, and a broken line is often painted across your lane at the edge of the main road.",
     confusedWith: [
       {
         code: "R.1",
-        how: "R.1 is a red octagon with STOP on it and needs a full stop every time. R.2 only needs you to stop if traffic is coming. Treating R.2 like STOP can cause rear end bumps behind you; treating STOP like R.2 can cause a side impact.",
+        how: "R.1 is a red octagon with STOP on it and needs a full stop every time. R.2 needs you to slow down, and to stop only if necessary. Treating R.2 like STOP can cause rear end bumps behind you; treating STOP like R.2 can cause a side impact.",
       },
       {
         code: "W.27",

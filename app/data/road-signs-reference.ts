@@ -185,12 +185,12 @@ export const SIGN_CATEGORIES: SignCategory[] = [
       {
         name: "STOP",
         meaning:
-          "Full stop at the line, every time. Then move off only when it is clear.",
+          "Full stop at the line, every time. Look right, left and right again, and move off only when it is clear.",
       },
       {
         name: "GIVE WAY",
         meaning:
-          "Do not enter the junction or roundabout until you will not make other traffic slow.",
+          "Slow down, or stop if necessary. Do not enter until you will not make other traffic slow.",
       },
       {
         name: "No entry",

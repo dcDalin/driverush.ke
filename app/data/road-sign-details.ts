@@ -43,7 +43,7 @@ export const SIGN_DETAILS: Record<string, string> = {
   "W.16":
     "The road passes below a rocky slope. Rocks may already be on the road or could come down, especially after heavy rain.",
   "W.17":
-    "A pedestrian crossing is coming up and people may be on the road. The sign gives you time to slow down before you reach it.",
+    "A pedestrian crossing is coming up, and pedestrians on it have right of way. The sign gives you time to slow down before you reach it, and to stop for anyone crossing.",
   "W.18":
     "Children may cross here, usually near a school or playground. They're small, hard to see between parked vehicles, and may run out without looking.",
   "W.19":
@@ -77,9 +77,9 @@ export const SIGN_DETAILS: Record<string, string> = {
   "W.32":
     "The road crosses a railway with no barrier to stop you. Only your own eyes and ears will tell you a train is coming.",
   "R.1":
-    "The only eight-sided sign on the road, so you can recognise it even when it's faded. It's an order, and it applies every time, even when the road looks empty.",
+    "A red eight-sided sign with white letters, the only one of its shape, so you can recognise it even when it's faded. It stands where you join a two-way traffic road. Stop every time, even when the road looks empty, then look right, left and right again.",
   "R.2":
-    "A triangle standing on its point, the opposite way up from a warning sign. It means the road you're on is the minor one at this junction.",
+    "A red triangle with its point facing down, the opposite way up from a warning sign. It means the road you're on is the minor one at this junction: slow down, or stop if necessary, and go only when it's safe.",
   "M.1":
     "A blue disc with a white arrow is an order, not advice. The arrow may point left or right, depending on the road layout ahead.",
   "M.2":
