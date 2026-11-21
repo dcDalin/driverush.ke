@@ -186,6 +186,13 @@ export const ROAD_CONE = (30 * Math.PI) / 180;
 export const RING_CONE_IN = (55 * Math.PI) / 180;
 export const RING_CONE_OUT = (38 * Math.PI) / 180;
 /**
+ * Outward with no exit close by: a thumb held still while the ring bends
+ * round soon points outward of it. That is a lagging thumb, not a request
+ * (leaving the ring between exits only crosses its lanes, which ends the
+ * attempt), so the lane is held as far out as it is in.
+ */
+export const RING_CONE_WIDE = RING_CONE_IN;
+/**
  * In the outer lane with the knob pointing down an exit close by, the car is
  * leaving: the ring lets go sooner. Holding on, a tight first exit is taken
  * late and wide. Leaving the outer lane crosses no other lane of the ring.
@@ -202,9 +209,14 @@ const CONE_EDGE = (8 * Math.PI) / 180;
  * lets go altogether, whatever the lines say (the referee judges that), and
  * takes the lane again once the thumb is back within `TAKE_BACK` of it.
  */
-const TAKE_ROAD = (18 * Math.PI) / 180;
-/** Outward on the roundabout: a steady push out is leaving it. */
+// Past the lane's cone: a sloppy thumb, 20 or 25 degrees off, is held (or
+// moved over a lane where the lines are broken), and never let drift across
+// the road into the kerb. Users found 18 degrees far too touchy.
+const TAKE_ROAD = (32 * Math.PI) / 180;
+/** Outward on the roundabout, pointing down an exit close by: leaving it. */
 const TAKE_RING_OUT = (22 * Math.PI) / 180;
+/** Outward on the roundabout with no exit close by: well past any lag. */
+const TAKE_RING_WIDE = (62 * Math.PI) / 180;
 const TAKE_TIME = 0.2;
 const TAKE_BACK = (8 * Math.PI) / 180;
 /** Seconds the thumb is smoothed over, for telling a push from a shake. */
@@ -217,7 +229,7 @@ const RING_REACH = 0.5;
 const JOINED = 0.9;
 
 /** Leaning the knob this far past the middle of its lane asks for the next lane. */
-const LANE_ASK = (15 * Math.PI) / 180;
+const LANE_ASK = (20 * Math.PI) / 180;
 /** For this long, seconds: a wobble is not a request. */
 const LANE_DWELL = 0.25;
 /** Leaning on after one change, this long again asks for the lane after. */
@@ -573,7 +585,14 @@ function laneAhead(
       lane = state.roundLane ?? loc.lane;
     }
     const r = ringRadius(lane);
-    const leaving = lane === 1 && knob != null && exitNear(car, knob);
+    // Pointing down an exit close by is asking to leave; any other outward
+    // push is a thumb lagging behind the bend, and the lane is held through it.
+    const asking = knob != null && exitNear(car, knob);
+    const outCone = !asking
+      ? RING_CONE_WIDE
+      : lane === 1
+        ? RING_CONE_LEAVE
+        : RING_CONE_OUT;
     // Aim a short way round the lane: short enough on the tight inner lanes
     // that the car doesn't cut the corner on its way in.
     const dir = dirOf(loc.bearing + Math.min(reach, r * RING_REACH) / r);
@@ -581,10 +600,10 @@ function laneAhead(
       heading: bearingOf(dir.x * r - car.x, dir.z * r - car.z),
       // Clockwise: the lane runs a quarter turn on from the car's bearing.
       along: loc.bearing + Math.PI / 2,
-      left: leaving ? RING_CONE_LEAVE : RING_CONE_OUT,
+      left: outCone,
       // clockwise, so left is out: pointing in, across the island, is how a
       // thumb follows the bend, and never takes the car
-      takeLeft: TAKE_RING_OUT,
+      takeLeft: asking ? TAKE_RING_OUT : TAKE_RING_WIDE,
       takeRight: Infinity,
       right: RING_CONE_IN,
       cap: Math.sqrt(BEND_GRIP * r),

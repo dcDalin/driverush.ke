@@ -144,13 +144,20 @@ export function widestDriveSpan(): number {
 }
 
 /**
- * Metres across the screen that show the whole roundabout and the mouths of
- * its roads. On a phone the drive's close view is about 23 m, under half the
- * ring, so the exits are off screen just when the learner needs them.
+ * Metres across the screen on and near the roundabout. On a phone the drive's
+ * close view is about 23 m, under half the ring, so the next exit is off
+ * screen just when the learner needs it. This draws out a little past that:
+ * the car's part of the ring and the island, not the whole of it.
  */
-// Only a metre of each road's mouth either side: any wider and the car is
-// hard to pick out on a phone (owner, 2026-11-21).
-export const RING_VIEW = 2 * RING_R + 2;
+// The whole ring (2 * RING_R + 2) made the car too small to steer on a
+// phone; the owner asked for "just a little" zoom out (2026-11-21).
+export const RING_VIEW = 31;
+/**
+ * Drawn out, the view looks this share of the way from the car to the
+ * roundabout's middle, so the island and the exits ahead come into view
+ * while the car stays well inside the screen.
+ */
+export const RING_AIM = 0.3;
 /** The view starts backing off this far from the roundabout's centre... */
 const RING_PULL_FROM = RING_R + 10;
 /** ...and shows the whole of it this close in. */

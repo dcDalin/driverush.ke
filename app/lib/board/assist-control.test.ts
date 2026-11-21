@@ -202,7 +202,7 @@ function pushFrom(angle: number, at: number) {
 }
 
 describe("a thumb that keeps pushing gets the car", () => {
-  for (const angle of [20, 30]) {
+  for (const angle of [25, 30]) {
     it(`changes lane where the lines are broken, pushing ${angle}°`, () => {
       drive.assist = true;
       const { samples, pushedAt } = pushFrom(angle, 55);
@@ -211,7 +211,11 @@ describe("a thumb that keeps pushing gets the car", () => {
       expect(after, "never changed lane").not.toBeNull();
       expect(after!).toBeLessThan(2);
     });
+  }
 
+  // A sloppy thumb 20 to 25 degrees off is held at the continuous lines;
+  // only a push past the lane's cone takes the car across them.
+  for (const angle of [40, 50]) {
     it(`leaves its lane at the continuous lines, pushing ${angle}°`, () => {
       const times: (number | null)[] = [];
       for (const assist of [false, true]) {
@@ -225,7 +229,7 @@ describe("a thumb that keeps pushing gets the car", () => {
       expect(on, `assist on never left the lane (off: ${off})`).not.toBeNull();
       // no more than a moment behind a car with assist off: the push has to
       // be told from a shake, so a gentle push takes a little longer
-      expect(on! - off!).toBeLessThan(angle >= 30 ? 0.6 : 1);
+      expect(on! - off!).toBeLessThan(0.6);
     });
   }
 
@@ -263,15 +267,15 @@ describe("a thumb that keeps pushing gets the car", () => {
 
   it("lets go of the road at the continuous lines within a moment", () => {
     drive.assist = true;
-    const { samples, pushedAt } = pushFrom(30, SOLID_ZONE - 1);
+    const { samples, pushedAt } = pushFrom(40, SOLID_ZONE - 1);
     const freed = samples.find((s) => s.t > pushedAt! && s.hold === 0);
     expect(freed, "the lane was never let go").toBeDefined();
     expect(freed!.t - pushedAt!).toBeLessThan(0.6);
   });
 
-  it("never hovers between lanes under a steady 25° push", () => {
+  it("never hovers between lanes under a steady 40° push", () => {
     drive.assist = true;
-    const { samples, pushedAt } = pushFrom(25, SOLID_ZONE - 1);
+    const { samples, pushedAt } = pushFrom(40, SOLID_ZONE - 1);
     // between lanes: 0.9 to 2.7 m off the middle of lane 2
     let longest = 0;
     let span = 0;
@@ -282,6 +286,51 @@ describe("a thumb that keeps pushing gets the car", () => {
       longest = Math.max(longest, span);
     }
     expect(longest).toBeLessThan(1);
+  });
+});
+
+describe("a sloppy thumb is not a push", () => {
+  for (const angle of [20, 25]) {
+    it(`keeps its lane at the continuous lines, leaning ${angle}°`, () => {
+      drive.assist = true;
+      const { samples, pushedAt, fault } = pushFrom(angle, SOLID_ZONE - 1);
+      expect(pushedAt).not.toBeNull();
+      expect(fault?.id).not.toBe("solid_line");
+      // up to the roundabout's edge, where the approach ends
+      const after = samples.filter((s) => s.t >= pushedAt! && s.z > 23);
+      const worst = Math.max(...after.map((s) => offLane("S", 2, s)));
+      expect(worst, `strayed ${worst.toFixed(2)} m`).toBeLessThan(1.2);
+    });
+  }
+
+  it("keeps its ring lane with a thumb lagging behind the bend", () => {
+    drive.assist = true;
+    const wobble = shaky(15, 1.5, 11);
+    // the thumb turns with the ring, but behind it and a little wide, so it
+    // points outward of the lane all the way round
+    let knob: number | null = null;
+    let held = 0;
+    let onRing = 0;
+    const { fault, samples } = run(
+      task("S", 2, 50),
+      (t) => {
+        const r = Math.hypot(car.x, car.z);
+        const want =
+          r < 22.4
+            ? bearingOf(car.x, car.z) + Math.PI / 2
+            : laneBearing("S", "approach");
+        knob = knob == null ? want : knob + wrapPi(want - knob) * (STEP / 0.4);
+        if (r < 22.4) {
+          held += view.hold;
+          onRing += 1;
+        }
+        return knob - 10 * DEG + wobble(t);
+      },
+      12,
+    );
+    expect(fault?.id).not.toBe("roundabout_lane_change");
+    expect(samples.some((s) => Math.hypot(s.x, s.z) < 22.4)).toBe(true);
+    expect(held / onRing).toBeGreaterThan(0.9);
   });
 });
 

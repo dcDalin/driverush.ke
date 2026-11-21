@@ -45,6 +45,7 @@ import {
   finish,
   marks,
   picks,
+  RING_AIM,
   RING_VIEW,
   ringPull,
   setWake,
@@ -1368,8 +1369,8 @@ function Scene({
       cam.driveSpan === null ? cam.inSpan : asDriveSpan(cam.driveSpan);
     const carIn =
       (inSpan / 2 / Math.tan(halfH)) * lerp(1, REVERSE_CLOSER, r.tight);
-    // The whole roundabout, never further than the backed-off view, and
-    // never closer than the learner's own zoom: it only ever draws out.
+    // A little more of the roundabout, never further than the backed-off
+    // view, and never closer than the learner's own zoom: it only draws out.
     const ringIn = Math.min(farOut, RING_VIEW / 2 / Math.tan(halfH));
     const nearIn = lerp(carIn, Math.max(carIn, ringIn), r.ring);
     const depthIn = (2 * nearIn * Math.tan(halfV)) / Math.sin(TILT_IN);
@@ -1388,9 +1389,10 @@ function Scene({
       0.03,
       0.3,
     );
-    // Drawn out, it looks at the roundabout's middle instead of the car, so
-    // the whole ring sits in the clear part of the screen.
-    const ringAim = ringIn > carIn ? r.ring : 0;
+    // Drawn out, it looks a little way from the car toward the roundabout's
+    // middle, so the island and the exits ahead are in the clear part of the
+    // screen and the car is never pushed off its edge.
+    const ringAim = ringIn > carIn ? r.ring * RING_AIM : 0;
     const inX = lerp(at.x + ahead.x * 4, 0, ringAim) - away.x * lift * depthIn;
     const inZ = lerp(at.z + ahead.z * 4, 0, ringAim) - away.z * lift * depthIn;
 

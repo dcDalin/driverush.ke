@@ -76,8 +76,10 @@ describe("the roundabout's yellow cross", () => {
 });
 
 describe("the drive's view on the roundabout", () => {
-  it("shows the whole ring", () => {
-    expect(RING_VIEW).toBeGreaterThan(2 * RING_R);
+  it("draws out only a little past the phone's close view", () => {
+    // the close view on a phone is 23 m; the whole ring made the car too small
+    expect(RING_VIEW).toBeGreaterThan(23);
+    expect(RING_VIEW).toBeLessThan(2 * RING_R);
   });
 
   it("draws all the way out on the ring and not at all up the road", () => {
