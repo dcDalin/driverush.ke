@@ -73,6 +73,7 @@ export type Sponsor = {
 const HELTZ_DIR = "/assets/board/sponsors/heltz";
 const TOPGEAR_DIR = "/assets/board/sponsors/topgear";
 const BLIXEN_DIR = "/assets/board/sponsors/blixen";
+const AA_DIR = "/assets/board/sponsors/aa";
 const ALL_CARS: readonly BoardCarId[] = [
   "saloon",
   "hatchback",
@@ -191,6 +192,40 @@ export const SPONSORS: readonly Sponsor[] = [
     },
     // Their own site, as lettered on their cars (owner, 2026-11-22).
     url: "https://www.bads.co.ke",
+    // Live since 2026-11-22: the owner approved its pictures.
+    live: true,
+  },
+  {
+    id: "aa",
+    school: "AA Driving School",
+    colors: { paint: "#fbd91f", ink: "#046240" },
+    logo: {
+      full: `${AA_DIR}/logo.png`,
+      mono: `${AA_DIR}/logo-mono.png`,
+    },
+    // Their own dark green car with its yellow squares, copied from photos
+    // of it (scripts/sponsor-art/aa).
+    livery: { base: "#0d3b2a", cars: everyCar(AA_DIR) },
+    // As on their saloons: yellow in a black frame, the L, a black band.
+    topBoard: {
+      src: `${AA_DIR}/topboard.webp`,
+      width: 1.35,
+      height: 0.45,
+      cut: 0.02,
+      edge: "#141414",
+    },
+    room: {
+      banner: {
+        hi: `${AA_DIR}/banner-hi.webp`,
+        lo: `${AA_DIR}/banner-lo.webp`,
+      },
+      posters: {
+        logo: `${AA_DIR}/poster-logo.webp`,
+        lessons: `${AA_DIR}/poster-lessons.webp`,
+      },
+    },
+    // AA Kenya's own site, as on their adverts.
+    url: "https://www.aakenya.co.ke",
     // Live since 2026-11-22: the owner approved its pictures.
     live: true,
   },
