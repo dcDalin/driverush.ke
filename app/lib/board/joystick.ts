@@ -86,6 +86,11 @@ export type AssistState = {
   entryLane: number | null;
   /** The road it came up, kept while it goes round. */
   entryArm?: ArmId | null;
+  /**
+   * The ring lane it has settled in and is going round in. Turning out, the
+   * car crosses the outer lanes; this stays the lane it came round in.
+   */
+  roundLane?: number | null;
   /** How long the knob has been held back with the car at rest. */
   backTime: number;
   /** How firmly the lane is being held this step, 0 to 1. For the scene. */
@@ -299,6 +304,8 @@ const EXIT_NEAR = 24;
 const EXIT_CONE = (50 * Math.PI) / 180;
 /** And this far outward of the way the ring runs, so a knob along it is not asking. */
 const EXIT_OUTWARD = (10 * Math.PI) / 180;
+/** An exit mouth this far round behind the car is still the one it is leaving by. */
+const EXIT_PAST = (25 * Math.PI) / 180;
 /** The car turns off once it is this close to the line of the exit lane, metres. */
 const EXIT_LEVEL = 2.4;
 /** Turning off, it aims this far on down the exit lane from where it is. */
@@ -321,7 +328,15 @@ export function exitAhead(
 ): number | "wait" | null {
   const loc = locate(car.x, car.z);
   if (loc.kind !== "ring") return null;
-  for (const id of ARM_ORDER) {
+  // The exit it is already turning off into comes first, so a wobble toward
+  // another road does not take the turn away from it.
+  const order = state?.leaving
+    ? [
+        state.leaving as ArmId,
+        ...ARM_ORDER.filter((id) => id !== state.leaving),
+      ]
+    : ARM_ORDER;
+  for (const id of order) {
     const runs = laneBearing(id, "exit");
     if (!downExit(knob, runs, loc.bearing)) continue;
     const turning = state?.leaving === id && state.leavingLane != null;
@@ -329,7 +344,7 @@ export function exitAhead(
     // The lanes the rule allows out of the lane it came round in. Still
     // joining the ring, that is the lane it is joining, not the one it is
     // crossing on the way.
-    const ring = state?.entryLane ?? loc.lane;
+    const ring = state?.entryLane ?? state?.roundLane ?? loc.lane;
     const from = state?.entryArm;
     const allowed = turning
       ? [state.leavingLane!]
@@ -359,7 +374,9 @@ export function exitAhead(
     const mouth = lanePoint(id, "exit", lane, RING_OUTER_R);
     const dx = car.x - mouth.x;
     const dz = car.z - mouth.z;
-    if (Math.hypot(dx, dz) > EXIT_NEAR) continue;
+    if (Math.hypot(dx, dz) > EXIT_NEAR || exitBehind(mouth, loc.bearing)) {
+      continue;
+    }
     // How far down the exit lane's line the car is, and how far off to its side.
     const along = dx * dir.x + dz * dir.z;
     const side = Math.abs(dx * -dir.z + dz * dir.x);
@@ -401,8 +418,21 @@ function exitNear(car: CarState, knob: number): boolean {
   return ARM_ORDER.some((id) => {
     if (!downExit(knob, laneBearing(id, "exit"), bearing)) return false;
     const mouth = lanePoint(id, "exit", 1, RING_OUTER_R);
-    return Math.hypot(car.x - mouth.x, car.z - mouth.z) <= EXIT_NEAR;
+    return (
+      Math.hypot(car.x - mouth.x, car.z - mouth.z) <= EXIT_NEAR &&
+      !exitBehind(mouth, bearing)
+    );
   });
+}
+
+/**
+ * Has the car, at `bearing` round the ring, already gone past this exit's
+ * mouth? Going clockwise the bearing grows, so an exit whose mouth lies at a
+ * smaller bearing is behind it. A car turning out may run a little past the
+ * line of the mouth: that much is still ahead.
+ */
+function exitBehind(mouth: { x: number; z: number }, bearing: number): boolean {
+  return wrapPi(bearingOf(mouth.x, mouth.z) - bearing) < -EXIT_PAST;
 }
 
 /** The world direction the knob is pointing, for a learner at `seat`. */
@@ -434,6 +464,7 @@ function laneAhead(
   if (loc.kind === "arm") {
     state.entryLane = loc.side === "approach" ? loc.lane : null;
     state.entryArm = loc.side === "approach" ? loc.arm : null;
+    state.roundLane = null;
     const toward = loc.side === "approach" ? -1 : 1;
     const runs = laneBearing(loc.arm, loc.side);
     const aim = lanePoint(
@@ -470,6 +501,13 @@ function laneAhead(
       } else {
         lane = state.entryLane;
       }
+    }
+    if (state.entryLane == null) {
+      // settled in a lane: that is the lane it goes round in
+      if (Math.abs(loc.r - ringRadius(loc.lane)) < JOINED) {
+        state.roundLane = loc.lane;
+      }
+      lane = state.roundLane ?? loc.lane;
     }
     const r = ringRadius(lane);
     const leaving = lane === 1 && knob != null && exitNear(car, knob);
