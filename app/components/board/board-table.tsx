@@ -1091,13 +1091,15 @@ function Scene({
     };
   }, [gl, tier, table, invalidate]);
 
-  // The school's paint goes on the learner's own car when it is the saloon
-  // (the one with a wrap template), never on a line-up car with its own colour.
-  const livery =
-    sponsor?.livery && driven === "saloon" && models && !paint
-      ? sponsor.livery
-      : null;
-  const wrapUrl = livery ? (tier === "low" ? livery.lo : livery.hi) : null;
+  // The school's paint goes on the learner's own car when the school has art
+  // for it, never on a line-up car with its own colour.
+  const carPaint = (models && !paint && sponsor?.livery?.cars[driven]) || null;
+  const livery = carPaint && sponsor?.livery ? sponsor.livery : null;
+  const wrapUrl = carPaint
+    ? tier === "low"
+      ? carPaint.lo
+      : carPaint.hi
+    : null;
   const [wrap, setWrap] = React.useState<THREE.Texture | null>(null);
   React.useEffect(() => {
     if (!wrapUrl) return;

@@ -1,11 +1,13 @@
 {
-  "note": "Written by scripts/build-car-wrap.mjs. Pixels in the saloon's wrap template.",
+  "note": "Written by scripts/build-car-wrap.mjs. Pixels in the saloon's wrap template; landmarks in metres, in the car's frame (nose -z, driver's right +x).",
+  "car": "saloon",
   "atlas": {
     "width": 2048,
     "height": 1024
   },
   "scale": 230,
-  "car": {
+  "pad": 24,
+  "box": {
     "length": 4.252,
     "width": 1.606,
     "height": 0.873,
@@ -56,6 +58,59 @@
       "y": 417,
       "w": 978,
       "h": 369
+    }
+  },
+  "landmarks": {
+    "wheels": {
+      "front": {
+        "z": -1.026,
+        "y": 0.319,
+        "r": 0.399
+      },
+      "rear": {
+        "z": 1.318,
+        "y": 0.319,
+        "r": 0.399
+      }
+    },
+    "sill": 0.349,
+    "belt": 0.856,
+    "screen": {
+      "front": -0.699,
+      "rear": 1.1
+    },
+    "roof": {
+      "z0": -0.739,
+      "z1": 1.041,
+      "x0": -0.673,
+      "x1": 0.673,
+      "y": 1.223,
+      "clear": true
+    },
+    "bonnet": {
+      "z0": -2.099,
+      "z1": -0.699,
+      "x0": -0.794,
+      "x1": 0.794,
+      "y": 0.844
+    },
+    "trims": [
+      {
+        "y0": 0.322,
+        "y1": 0.395
+      }
+    ],
+    "door": {
+      "z0": -0.577,
+      "z1": 0.869,
+      "y0": 0.369,
+      "y1": 0.679
+    },
+    "wing": {
+      "z0": -1.305,
+      "z1": -0.747,
+      "y0": 0.648,
+      "y1": 0.628
     }
   }
 }

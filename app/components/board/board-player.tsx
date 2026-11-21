@@ -9,7 +9,7 @@ import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router";
 import { useShallow } from "zustand/react/shallow";
 
-import { BOARD_CARS, resolveCar } from "~/lib/board/cars";
+import { BOARD_CARS, resolveCar, type BoardCarId } from "~/lib/board/cars";
 import { useVisitSponsor } from "~/lib/board/sponsor-visit";
 import {
   SponsorCredit,
@@ -789,12 +789,15 @@ export function BoardGame() {
   const assist = s.settings.assist ?? true;
   // Drawn once a visit, so a random car stays the same from task to task.
   const [carRoll] = React.useState(() => Math.random());
-  // A sponsoring school's paint only fits the saloon.
+  // With a sponsoring school, a learner who has not chosen a car gets one the
+  // school has paint for.
   const sponsor = useVisitSponsor();
   const boardCar = resolveCar(
     s.settings.car,
     carRoll,
-    sponsor?.livery ? "saloon" : undefined,
+    sponsor?.livery
+      ? (Object.keys(sponsor.livery.cars) as BoardCarId[])
+      : undefined,
   );
   React.useEffect(() => {
     drive.seat = seat;
@@ -1583,7 +1586,9 @@ export function BoardGame() {
             footerSlot={
               <SponsorReadyCard
                 sponsor={sponsor}
-                ready={s.queue.length > 0 && s.runClean.length === s.queue.length}
+                ready={
+                  s.queue.length > 0 && s.runClean.length === s.queue.length
+                }
               />
             }
             onDrill={() => s.start(s.runFaulted)}

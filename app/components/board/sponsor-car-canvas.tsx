@@ -12,14 +12,20 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 import { carFromGltf } from "~/components/board/car-glb";
 import { loadWrap, wearWrap } from "~/components/board/board-sponsor";
-import { BOARD_CARS } from "~/lib/board/cars";
-
-const SALOON = BOARD_CARS.find((c) => c.id === "saloon")!.src;
+import { BOARD_CARS, type BoardCarId } from "~/lib/board/cars";
 
 export type CarView = { heading: number; tilt: number; dist: number };
 
-function Car({ wrapUrl, base }: { wrapUrl: string | null; base: string }) {
-  const gltf = useLoader(GLTFLoader, SALOON, (loader) =>
+function Car({
+  src,
+  wrapUrl,
+  base,
+}: {
+  src: string;
+  wrapUrl: string | null;
+  base: string;
+}) {
+  const gltf = useLoader(GLTFLoader, src, (loader) =>
     loader.setMeshoptDecoder(MeshoptDecoder),
   );
   const invalidate = useThree((s) => s.invalidate);
@@ -73,10 +79,12 @@ function Aim({ view }: { view: CarView }) {
 }
 
 export default function SponsorCarCanvas({
+  car = "saloon",
   wrapUrl,
   base,
   view,
 }: {
+  car?: BoardCarId;
   wrapUrl: string | null;
   base: string;
   view: CarView;
@@ -99,7 +107,12 @@ export default function SponsorCarCanvas({
         <meshStandardMaterial color="#1b1c1f" roughness={0.95} />
       </mesh>
       <React.Suspense fallback={null}>
-        <Car wrapUrl={wrapUrl} base={base} />
+        <Car
+          key={car}
+          src={BOARD_CARS.find((c) => c.id === car)!.src}
+          wrapUrl={wrapUrl}
+          base={base}
+        />
       </React.Suspense>
       <OrbitControls
         makeDefault

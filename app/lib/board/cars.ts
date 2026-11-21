@@ -5,7 +5,7 @@
  * The models are built by `scripts/build-board-cars.mjs`.
  */
 export const BOARD_CARS = [
-  // `?v=2`: the saloon gained its wrap template (scripts/build-car-wrap.mjs).
+  // `?v=2`: every car gained its wrap template (scripts/build-car-wrap.mjs).
   // A new address, so no cache hands out the old one. Keep public/sw.js's
   // BOARD_FILES in step.
   {
@@ -13,8 +13,8 @@ export const BOARD_CARS = [
     label: "Saloon",
     src: "/assets/board/cars/saloon.glb?v=2",
   },
-  { id: "suv", label: "SUV", src: "/assets/board/cars/suv.glb" },
-  { id: "pickup", label: "Pickup", src: "/assets/board/cars/pickup.glb" },
+  { id: "suv", label: "SUV", src: "/assets/board/cars/suv.glb?v=2" },
+  { id: "pickup", label: "Pickup", src: "/assets/board/cars/pickup.glb?v=2" },
 ] as const;
 
 export type BoardCarId = (typeof BOARD_CARS)[number]["id"];
@@ -31,18 +31,20 @@ export function resolveCar(
   setting: BoardCarSetting | undefined,
   roll: number,
   /**
-   * The car to give a learner who has not chosen one: the saloon, when a
-   * sponsoring school's paint is waiting for it.
+   * The cars a learner who has not chosen may be given: the ones the visit's
+   * sponsoring school has paint for. Left out, any car.
    */
-  prefer?: BoardCarId,
+  allowed?: readonly BoardCarId[],
 ): BoardCarId {
   if (setting && setting !== "random" && IDS.includes(setting)) return setting;
-  if (prefer) return prefer;
+  const pool = allowed?.filter((id) => IDS.includes(id)).length
+    ? allowed.filter((id) => IDS.includes(id))
+    : IDS;
   const at = Math.min(
-    IDS.length - 1,
-    Math.max(0, Math.floor(roll * IDS.length)),
+    pool.length - 1,
+    Math.max(0, Math.floor(roll * pool.length)),
   );
-  return IDS[at];
+  return pool[at];
 }
 
 /** The cars the learner is not driving, for the others on the board. */

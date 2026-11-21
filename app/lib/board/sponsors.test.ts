@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { resolveCar } from "~/lib/board/cars";
 import { inPeriod, pickSponsor, type Sponsor } from "~/lib/board/sponsors";
 
 const school = (id: string, extra: Partial<Sponsor> = {}): Sponsor => ({
@@ -70,5 +71,28 @@ describe("pickSponsor", () => {
     expect(pickSponsor({ roll: 0, now, list: none, fallback: "a" })?.id).toBe(
       "a",
     );
+  });
+});
+
+describe("the car a learner gets with a sponsoring school", () => {
+  it("keeps the car the learner picked, painted or not", () => {
+    expect(resolveCar("pickup", 0.1, ["saloon"])).toBe("pickup");
+  });
+
+  it("gives 'Surprise me' only cars the school has paint for", () => {
+    for (const roll of [0, 0.3, 0.6, 0.99]) {
+      expect(["saloon", "suv"]).toContain(
+        resolveCar("random", roll, ["saloon", "suv"]),
+      );
+    }
+    expect(resolveCar(undefined, 0.99, ["suv"])).toBe("suv");
+  });
+
+  it("gives any car with no school, or a school with no paint", () => {
+    const seen = new Set(
+      [0, 0.4, 0.8].map((roll) => resolveCar("random", roll, [])),
+    );
+    expect(seen.size).toBe(3);
+    expect(resolveCar("random", 0.99)).toBe("pickup");
   });
 });

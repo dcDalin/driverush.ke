@@ -1,0 +1,6 @@
+{
+  "note": "Heltz Driving Academy: their own car, copied from the photo of it (scripts/sponsor-art/heltz/reference.jpg). See heltz/design.mjs.",
+  "design": "heltz/design.mjs",
+  "fonts": ["RubikMonoOne-Regular.ttf", "Righteous-Regular.ttf"],
+  "colors": { "base": "#f6f6f3" }
+}

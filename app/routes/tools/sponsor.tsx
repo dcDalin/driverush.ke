@@ -11,6 +11,7 @@ import { Link, useSearchParams } from "react-router";
 import type { Route } from "./+types/sponsor";
 
 import { fullBoardSvg } from "~/lib/board/full-board";
+import { BOARD_CARS, type BoardCarId } from "~/lib/board/cars";
 import { SPONSORS, sponsorById } from "~/lib/board/sponsors";
 import { cn } from "~/lib/utils";
 
@@ -106,11 +107,15 @@ export default function SponsorTool() {
   const sponsor = sponsorById(params.get("id")) ?? SPONSORS[0] ?? null;
   const [view, setView] = React.useState(VIEWS[2].view);
   const [overlay, setOverlay] = React.useState(false);
+  const [car, setCar] = React.useState<BoardCarId>("saloon");
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
 
   if (!sponsor) return <p>No schools in `app/lib/board/sponsors.ts` yet.</p>;
-  const wrapFull = sponsor.livery?.hi.replace(/wrap-\d+\.webp$/, "wrap.png");
+  const paint = sponsor.livery?.cars[car];
+  // The full-size picture beside the board's copies, for checking.
+  const wrapFull = paint?.hi.replace(/-\d+\.webp$/, ".png");
+  const template = `/assets/board/sponsors/${car}-template.svg`;
 
   return (
     <div>
@@ -145,9 +150,25 @@ export default function SponsorTool() {
 
       {sponsor.livery && (
         <>
+          <div className="mt-6 flex flex-wrap items-center gap-2">
+            <span className="font-mono text-[11px] uppercase tracking-widest text-ink-3">
+              Car
+            </span>
+            {BOARD_CARS.map((c) => (
+              <Button
+                key={c.id}
+                size="sm"
+                variant={c.id === car ? "ink" : "paper"}
+                onClick={() => setCar(c.id)}
+              >
+                {c.label}
+                {sponsor.livery?.cars[c.id] ? "" : " (no paint)"}
+              </Button>
+            ))}
+          </div>
           <Section
             title="Car paint, flat"
-            note="The school's art on the saloon's wrap template. Turn on the template to see where the bodywork, glass and the safe boxes for lettering fall."
+            note="The school's art on this car's wrap template. Turn on the template to see where the bodywork, glass and the safe boxes for lettering fall."
           >
             <label className="mb-2 flex items-center gap-2 text-[14px]">
               <input
@@ -165,7 +186,7 @@ export default function SponsorTool() {
               />
               {overlay && (
                 <img
-                  src="/assets/board/sponsors/saloon-template.svg"
+                  src={template}
                   alt=""
                   className="absolute inset-0 h-full w-full opacity-60 mix-blend-multiply"
                 />
@@ -173,12 +194,8 @@ export default function SponsorTool() {
             </div>
             <p className="mt-2 text-[13px] text-ink-2">
               Template for the school's designer:{" "}
-              <a
-                href="/assets/board/sponsors/saloon-template.svg"
-                download
-                className="underline"
-              >
-                saloon-template.svg
+              <a href={template} download className="underline">
+                {car}-template.svg
               </a>{" "}
               (2048 by 1024 pixels).
             </p>
@@ -204,7 +221,8 @@ export default function SponsorTool() {
               {mounted && (
                 <React.Suspense fallback={null}>
                   <SponsorCarCanvas
-                    wrapUrl={sponsor.livery.hi}
+                    car={car}
+                    wrapUrl={paint?.hi ?? null}
                     base={sponsor.livery.base}
                     view={view}
                   />

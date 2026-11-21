@@ -7,12 +7,17 @@
  * the real test" card name it. One school everywhere sells better than a mix,
  * and is simpler to count.
  *
- * Adding a school: draw its car into the saloon's wrap template
- * (`public/assets/board/sponsors/saloon-template.svg`), put its files in
- * `public/assets/board/sponsors/<id>/`, run `node scripts/build-sponsor-art.mjs`,
- * and add an entry here. Check it on `/tools/sponsor?id=<id>` before setting
- * `live`.
+ * Adding a school: give it a brand file in `scripts/sponsor-art/` (its own
+ * design copied from its real car, or one of our styles; or its designer's
+ * art on each car's template, `public/assets/board/sponsors/<car>-template.svg`),
+ * run `npm run build:sponsors`, and add an entry here. Check it on
+ * `/tools/sponsor?id=<id>` before setting `live`.
  */
+
+import type { BoardCarId } from "~/lib/board/cars";
+
+/** A school's paint for one car, at two sizes (phones that struggle get `lo`). */
+export type CarPaint = { hi: string; lo: string };
 
 export type Sponsor = {
   id: string;
@@ -23,11 +28,11 @@ export type Sponsor = {
   /** Logos with transparent backgrounds. `mono` is white, for brass and board paint. */
   logo: { full: string; mono: string };
   /**
-   * The car's paint, drawn into the saloon's wrap template. `hi` and `lo` are
-   * the same picture at two sizes (phones that struggle get `lo`); `base` is
-   * the body colour shown while it loads or if it fails.
+   * The school's paint for each board car it has art for, drawn into that
+   * car's wrap template; `base` is the body colour shown while it loads or
+   * if it fails.
    */
-  livery?: { hi: string; lo: string; base: string };
+  livery?: { base: string; cars: Partial<Record<BoardCarId, CarPaint>> };
   /** The school's site or WhatsApp link, for "Book lessons". */
   url?: string;
   /** Shown to everyone. A school that is not live only shows with `?sponsor=`. */
@@ -42,21 +47,32 @@ export type Sponsor = {
   emailMatch?: string[];
 };
 
-const HELZ_DIR = "/assets/board/sponsors/helz";
+const HELTZ_DIR = "/assets/board/sponsors/heltz";
+const paintOf = (dir: string, car: BoardCarId): CarPaint => ({
+  hi: `${dir}/${car}-2048.webp`,
+  lo: `${dir}/${car}-1024.webp`,
+});
 
 export const SPONSORS: readonly Sponsor[] = [
   {
-    id: "helz",
-    school: "Helz Driving Academy",
-    colors: { paint: "#f39200", ink: "#1d3fbf" },
-    logo: { full: `${HELZ_DIR}/logo.png`, mono: `${HELZ_DIR}/logo-mono.png` },
+    id: "heltz",
+    school: "Heltz Driving Academy",
+    colors: { paint: "#f4a20c", ink: "#1d2fc2" },
+    logo: {
+      full: `${HELTZ_DIR}/logo.png`,
+      mono: `${HELTZ_DIR}/logo-mono.png`,
+    },
+    // Their own car, copied from a photo of it (scripts/sponsor-art/heltz).
     livery: {
-      hi: `${HELZ_DIR}/wrap-1024.webp`,
-      lo: `${HELZ_DIR}/wrap-512.webp`,
-      base: "#f4f4f1",
+      base: "#f6f6f3",
+      cars: {
+        saloon: paintOf(HELTZ_DIR, "saloon"),
+        suv: paintOf(HELTZ_DIR, "suv"),
+        pickup: paintOf(HELTZ_DIR, "pickup"),
+      },
     },
     // Not live until the school has agreed and paid: reachable only with
-    // ?sponsor=helz, for showing them their car.
+    // ?sponsor=heltz, for showing them their car.
     live: false,
   },
 ];

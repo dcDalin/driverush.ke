@@ -44,7 +44,7 @@ const SCALE = Number(process.env.SCALE ?? 1);
  * taken with the learner's car in that school's paint and its logo on the
  * table, and saved as `<card>-<id>.png`, for the school's sales deck and
  * socials. The site's own cards are never taken this way.
- *   SPONSOR=helz SCALE=2 DEV_URL=http://localhost:5190 npm run build:og -- board-3d
+ *   SPONSOR=heltz SCALE=2 DEV_URL=http://localhost:5190 npm run build:og -- board-3d
  */
 const SPONSOR = process.env.SPONSOR ?? "";
 const fileOf = (card) => (SPONSOR ? `${card.id}-${SPONSOR}` : card.id);
