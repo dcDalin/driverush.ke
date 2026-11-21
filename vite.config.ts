@@ -50,7 +50,26 @@ function boardOfflineList(): Plugin {
   };
 }
 
+/**
+ * The release every PostHog event and error is stamped with: the commit Vercel
+ * is building, or `dev`. Set on `process.env` here because Vite reads `VITE_*`
+ * variables from it after loading this file.
+ */
+process.env.VITE_APP_VERSION ??= (
+  process.env.VERCEL_GIT_COMMIT_SHA ?? "dev"
+).slice(0, 7);
+
+/**
+ * Source maps are only built when they will be sent to PostHog error tracking
+ * (`scripts/upload-sourcemaps.mjs` uploads them, then deletes them so they are
+ * never served).
+ */
+const UPLOAD_SOURCEMAPS = Boolean(process.env.POSTHOG_CLI_API_KEY);
+
 export default defineConfig({
+  build: {
+    sourcemap: UPLOAD_SOURCEMAPS,
+  },
   plugins: [
     // MDX must run before reactRouter so .mdx files are JSX by the time the
     // router plugin sees them. `frontmatter` is exported as a named export so

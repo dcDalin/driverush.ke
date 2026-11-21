@@ -32,6 +32,8 @@ const INTERNAL_PATH_RE = /^\/tools(\/|$)/;
  */
 export const APP_ENV = import.meta.env.PROD ? "production" : "development";
 
+const APP_VERSION: string = import.meta.env.VITE_APP_VERSION ?? "dev";
+
 let client: PostHog | undefined;
 
 /**
@@ -56,7 +58,12 @@ export function initPostHog(): PostHog | undefined {
   }
 
   posthog.init(TOKEN, {
-    api_host: HOST,
+    // In production events go through our own domain (`/ingest`, rewritten
+    // to PostHog in `vercel.json`), so ad blockers that block posthog.com
+    // don't silently drop a share of learners. `ui_host` keeps the toolbar
+    // and replay links pointing at PostHog itself.
+    api_host: import.meta.env.PROD ? "/ingest" : HOST,
+    ui_host: HOST.replace(".i.posthog.com", ".posthog.com"),
     // Pins the SDK's default behaviours (SPA pageviews via history_change,
     // strict replay minimum duration, head script injection so SSR hydration
     // stays clean). Bumping this date changes defaults — do it deliberately.
@@ -91,7 +98,13 @@ export function initPostHog(): PostHog | undefined {
       return event;
     },
     loaded: (ph) => {
-      ph.register({ app_env: APP_ENV, display_mode: displayMode() });
+      ph.register({
+        app_env: APP_ENV,
+        // The commit this build came from (see `vite.config.ts`), so a spike
+        // in errors or a drop in a funnel can be tied to the deploy.
+        app_version: APP_VERSION,
+        display_mode: displayMode(),
+      });
     },
   });
 

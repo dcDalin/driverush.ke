@@ -32,12 +32,22 @@ so every learner is anonymous — person profiles carry the learner state instea
 | Learner person properties | `app/lib/use-learner-analytics.ts`                      | Syncs localStorage progress → PostHog person properties. Mounted in `app/root.tsx`.                                                                               |
 | Error capture             | `app/root.tsx` (`ErrorBoundary`) + `capture_exceptions` | React render errors, uncaught errors, unhandled rejections.                                                                                                       |
 | SSR bundling              | `vite.config.ts` (`ssr.noExternal`)                     | Keeps the browser-only SDK out of Node's resolver.                                                                                                                |
+| Ad-blocker proxy          | `vercel.json` (`rewrites`) + `api_host: "/ingest"`      | Production sends events to `driverush.ke/ingest/*`, rewritten to PostHog. Dev talks to PostHog directly. A host without these rewrites (the Dockerfile) loses events. |
+| Release tag               | `vite.config.ts` (`VITE_APP_VERSION`)                   | Short commit SHA from `VERCEL_GIT_COMMIT_SHA`, registered as `app_version` on every event.                                                                        |
+| Readable stack traces     | `scripts/upload-sourcemaps.mjs` (runs after `build`)    | Uploads client source maps to error tracking, then deletes them. Off until `POSTHOG_CLI_API_KEY` is set.                                                          |
 
 Environment (`.env`, and whatever hosts production):
 
 ```
 VITE_PUBLIC_POSTHOG_PROJECT_TOKEN=phc_…
 VITE_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
+```
+
+Build-time only, on Vercel, for source maps (never in `.env`, never `VITE_`):
+
+```
+POSTHOG_CLI_API_KEY=phx_…      personal API key, scope "error tracking: write"
+POSTHOG_CLI_PROJECT_ID=12345   the number in the project's URL
 ```
 
 ## What comes for free
@@ -55,6 +65,9 @@ Two filters are applied at the source:
 
 - `/tools/*` and `/design` traffic is dropped in `before_send` — internal surfaces never inflate funnels.
 - Every event carries `app_env` (`production` | `development`), so localhost can be excluded with one filter.
+
+Every event also carries `app_version` (the deploy's commit), `display_mode`
+(`standalone` when opened from the home screen) and `learner_stage`.
 
 ## Event taxonomy
 
@@ -80,6 +93,38 @@ else is a bug — the file _is_ the taxonomy.
 `sign_graded` by `sign_code` where `result = missed` is the "which signs does Kenya
 get wrong" report.
 
+### Model Town Board
+
+| Event                     | Fires when                                                 | Key properties                                                                     |
+| ------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `board_level_started`     | A course level opens, from the list or Continue            | `level`, `number`, `kind`, `unit`                                                  |
+| `board_level_completed`   | A level is read, watched or passed for the first time      | `level`, `number`, `kind`, `unit`                                                  |
+| `board_started`           | A round or drill starts                                    | `challenges`, `scope`                                                              |
+| `board_faulted`           | The referee calls a mistake                                | `challenge_id`, `rule`, `severity`, `fault_number`                                 |
+| `board_challenge_passed`  | A task is passed                                           | `challenge_id`, `clean`, `faults`, `stars`, `seconds`, `tries`, `score`, `best`    |
+| `board_challenge_missed`  | Stopped in the box after leaving the route                 | `challenge_id`, `rule`, `tries`, `seconds`                                         |
+| `board_abandoned`         | Left a round before the end                                | `challenge_id`, `phase`, `task`, `of`, `tries`, `moved`, `off_route`               |
+| `board_completed`         | A round finishes                                           | `challenges`, `clean`, `fault_count`                                               |
+| `board_hint_used`         | A hint is used on a task                                   | `challenge_id`, `kind`                                                             |
+| `board_learn_opened`      | Learn mode opens                                           |                                                                                    |
+| `board_lesson_viewed`     | A lesson route or board feature is looked at               | `kind`, `lesson_id`                                                                |
+
+`board_faulted` broken down by `rule` is the "which rules trip people up"
+report; `board_level_started` → `board_level_completed` by `number` shows the
+level where the course loses people.
+
+### Navigation, sharing, installing
+
+| Event                     | Fires when                                    | Key properties                     |
+| ------------------------- | --------------------------------------------- | ---------------------------------- |
+| `nav_tab_clicked`         | A bottom-bar tab is tapped                    | `tab`, `from`                      |
+| `share_opened`            | Share is tapped, before a channel is picked   | `kind`, `surface`                  |
+| `share_completed`         | A share is sent                               | `kind`, `channel`                  |
+| `share_landing_viewed`    | Someone opens a shared link                   | `kind`, `valid`                    |
+| `install_prompt_shown`    | The add-to-home-screen card appears           | `platform`, `surface`              |
+| `install_prompt_answered` | It is answered                                | `platform`, `surface`, `outcome`   |
+| `app_installed`           | The browser reports an install                |                                    |
+
 ### Monetisation and contact
 
 | Event                                                                         | Fires when                                                    |
@@ -98,7 +143,9 @@ anyone who gets a sign into mastery gets a profile.
 
 On mount, route change and tab focus, once past `visitor`, it writes:
 
-`signs_mastered_pelican`, `signs_mastered_3d`, `learner_stage`, and
+`signs_mastered_pelican`, `signs_mastered_3d`, `board_levels_done`,
+`board_levels_total`, `board_readiness` (0 to 100, the course page's figure),
+`board_mock_best_clean`, `practice_streak_days`, `learner_stage`, and
 `first_seen_at` (set once).
 
 `learner_stage` is also a **super property**, registered for _everyone_
@@ -106,6 +153,9 @@ including anonymous visitors (super properties don't create a profile), so any
 trend or funnel can be broken down by it without a join:
 
 `visitor` → `sampler` → `practising` → `committed`
+
+Whichever half is further along sets it: any board level or mastered sign
+makes a `sampler`, 5 of either `practising`, 26 levels or 40 signs `committed`.
 
 The properties are read from the same localStorage the app already uses. If a
 store's persisted shape changes, update the readers in that file.
@@ -115,9 +165,18 @@ store's persisted shape changes, update the readers in that file.
 Nothing below exists yet — these are the dashboards to create once the MCP
 connector is authorised (or by hand in the UI).
 
-**Activation funnel** (the core question: does a visitor start memorising?)
+**Board activation funnel** (the core question: does a visitor drive?)
+`$pageview` (`/`) → `board_level_started` (number 1) → `board_level_completed`
+(number 1) → `board_level_started` (number 2). Break down by `utm_source`,
+`$device_type` and `display_mode`.
+
+**Where the course loses people**
+`board_level_completed` broken down by `number`, and `board_abandoned` by
+`challenge_id` and `phase`.
+
+**Signs activation funnel**
 `$pageview` (`/`) → `pelican_started` OR `signs3d_started` → `pelican_completed`
-OR `signs3d_completed`. Break down by `utm_source` and device.
+OR `signs3d_completed`.
 
 **Which signs are hardest**
 `sign_graded` where `result = missed`, broken down by `sign_code`.
@@ -129,8 +188,9 @@ Compare `pelican_started` and `signs3d_started` volumes, and retention on each.
 PostHog retention on `pelican_started` OR `signs3d_started`, split by
 `learner_stage`.
 
-**Model Town Board demand**
-`$pageview` on `/model-town-board`.
+**Installed app**
+`install_prompt_shown` → `install_prompt_answered` (`outcome = accepted`), and
+retention split by `display_mode`.
 
 **Friction**
 
@@ -168,6 +228,8 @@ users") when reading production numbers.
   real server mutation ships.
 - **No `identify()`.** Nothing identifies a learner yet. When accounts land,
   call `identify()` at login/signup; the anonymous history links automatically.
+- **Proxy is Vercel-only.** The `/ingest` rewrites live in `vercel.json`. If
+  the site ever moves to the Docker image, add the same proxy there.
 - **Bundle cost.** PostHog is ~76 kB gzipped in its own chunk, loaded eagerly so
   the first paint is measured.
 - **Feature flags / experiments** are available through the provider

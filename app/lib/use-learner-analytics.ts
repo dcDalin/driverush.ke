@@ -5,7 +5,8 @@
  * There are no accounts, so without this every learner is a shapeless anonymous
  * id and questions like "do people who know 20 signs come back?" can't be asked.
  * These properties make them segmentable instead: break trends down by
- * `learner_stage`, build cohorts on `signs_mastered_pelican`.
+ * `learner_stage`, build cohorts on `board_levels_done` or
+ * `signs_mastered_pelican`.
  *
  * Cost control: the project runs `person_profiles: 'identified_only'`, and
  * `setPersonProperties` is what creates a profile. We therefore hold off until
@@ -16,7 +17,7 @@
  * pageview.
  *
  * Deliberately reads the persisted JSON rather than importing the zustand
- * stores: this runs from the root component, and importing the stores there
+ * stores (the curriculum is only names and order, so it is cheap to import): this runs from the root component, and importing the stores there
  * would drag their dependency graphs into the entry chunk.
  */
 import * as React from "react";
@@ -30,11 +31,36 @@ import {
   type SignProgress,
 } from "./pelican-progress";
 import { liveStreak, readPracticeStreak } from "./practice-streak";
+import {
+  COURSE_LEVELS,
+  doneCount,
+  readiness,
+  type CourseProgress,
+} from "./board/curriculum";
 
 const FIRST_SEEN_KEY = "driverush:first-seen";
+/** Where `board-store.ts` keeps the board course's saved state. */
+const BOARD_KEY = "driverush:board";
 
 function readProgress(key: string): SignProgress {
   return parsePersistedProgress(window.localStorage.getItem(key));
+}
+
+function readCourse(): CourseProgress {
+  try {
+    const state = (
+      JSON.parse(window.localStorage.getItem(BOARD_KEY) || "{}") as {
+        state?: CourseProgress;
+      }
+    ).state;
+    return {
+      learned: Array.isArray(state?.learned) ? state.learned : [],
+      bestStars: state?.bestStars ?? {},
+      mockBest: state?.mockBest,
+    };
+  } catch {
+    return { learned: [], bestStars: {} };
+  }
 }
 
 function masteredSigns(progress: SignProgress): number {
@@ -42,15 +68,18 @@ function masteredSigns(progress: SignProgress): number {
 }
 
 /**
- * Coarse lifecycle bucket. Low cardinality on purpose — it's registered as a
- * super property, so it lands on every event and shows up as a breakdown.
+ * Coarse lifecycle bucket across both halves of the app: board levels done
+ * (the main product) and signs mastered. Low cardinality on purpose: it's
+ * registered as a super property, so it lands on every event and shows up as
+ * a breakdown. Whichever half is further along sets the stage.
  */
 function learnerStage(
   signsMastered: number,
+  boardLevelsDone: number,
 ): "visitor" | "sampler" | "practising" | "committed" {
-  if (signsMastered >= 40) return "committed";
-  if (signsMastered >= 5) return "practising";
-  if (signsMastered > 0) return "sampler";
+  if (signsMastered >= 40 || boardLevelsDone >= 26) return "committed";
+  if (signsMastered >= 5 || boardLevelsDone >= 5) return "practising";
+  if (signsMastered > 0 || boardLevelsDone > 0) return "sampler";
   return "visitor";
 }
 
@@ -60,13 +89,24 @@ function buildProfile(): LearnerProfile {
   const pelican = readProgress(TRAINER_STORAGE_KEYS.pelican);
   const signs3d = readProgress(TRAINER_STORAGE_KEYS["3d"]);
 
+  const course = readCourse();
+
   const pelicanMastered = masteredSigns(pelican);
   const signs3dMastered = masteredSigns(signs3d);
+  const boardLevelsDone = doneCount(course);
 
   return {
     signs_mastered_pelican: pelicanMastered,
     signs_mastered_3d: signs3dMastered,
-    learner_stage: learnerStage(pelicanMastered + signs3dMastered),
+    board_levels_done: boardLevelsDone,
+    board_levels_total: COURSE_LEVELS.length,
+    /** 0 to 100: the same "ready for the test" figure the course page shows. */
+    board_readiness: readiness(course),
+    board_mock_best_clean: course.mockBest?.clean ?? 0,
+    learner_stage: learnerStage(
+      pelicanMastered + signs3dMastered,
+      boardLevelsDone,
+    ),
     practice_streak_days: liveStreak(readPracticeStreak()).days,
   };
 }
