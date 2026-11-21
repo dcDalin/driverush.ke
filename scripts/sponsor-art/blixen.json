@@ -1,0 +1,11 @@
+{
+  "note": "Blixen Auto Driving School (B.A.D.S): their own silver and orange car, copied from the photos of it (scripts/sponsor-art/blixen/reference-*.jpg) and their logo. See blixen/design.mjs.",
+  "design": "blixen/design.mjs",
+  "fonts": [
+    "Poppins-Medium.ttf",
+    "Poppins-Bold.ttf",
+    "Poppins-ExtraBold.ttf",
+    "Michroma-Regular.ttf"
+  ],
+  "colors": { "base": "#c9ccd1" }
+}

@@ -41,7 +41,9 @@ to date when an asset or an agreement changes. No personal contact details here.
   - **Agreement and artwork:** _to fill in: who at Heltz agreed, when, and where their artwork files are kept_
 - **Top Gear Driving School** (added 2026-11-21): copied from three photos of their cars and their logo, supplied by the owner (`scripts/sponsor-art/topgear/reference-*.{png,jpg}`, `logo.jpg`). The TG mark is traced from their logo. Their door lettering has no free match, so its letters are drawn to the photo's shapes.
   - **Agreement and artwork:** _to fill in: who at Top Gear agreed, when, and where their artwork files are kept_
-- **Typefaces standing in for the schools' lettering** (all SIL Open Font License, files and licences in `scripts/sponsor-art/fonts/`): Rubik Mono One and Righteous (Heltz); Anton, Alfa Slab One and Arvo Bold (Top Gear). Only pictures made with them are shipped, never the font files.
+- **Blixen Auto Driving School (B.A.D.S)** (added 2026-11-22): copied from photos of their cars and their logo, supplied by the owner (`scripts/sponsor-art/blixen/reference-*.jpg`, `logo.jpg`). The photos were cropped to the cars and the roof board before they were added, so no person appears in them. Their steering-wheel logo and the big BADS are traced from their logo. Their phone number is on the paint as on their cars, and the board links to their site, bads.co.ke (owner, 2026-11-22).
+  - **Agreement and artwork:** _to fill in: who at Blixen agreed, when, and where their artwork files are kept_
+- **Typefaces standing in for the schools' lettering** (all SIL Open Font License, files and licences in `scripts/sponsor-art/fonts/`): Rubik Mono One and Righteous (Heltz); Anton, Alfa Slab One and Arvo Bold (Top Gear); Poppins and Michroma (Blixen). Only pictures made with them are shipped, never the font files.
 - **If a school's sponsorship ends:** set `live: false` in `app/lib/board/sponsors.ts` (or remove its entry) and delete its folder in `public/assets/board/sponsors/`.
 
 ## Voice clips

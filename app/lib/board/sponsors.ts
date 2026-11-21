@@ -72,6 +72,7 @@ export type Sponsor = {
 
 const HELTZ_DIR = "/assets/board/sponsors/heltz";
 const TOPGEAR_DIR = "/assets/board/sponsors/topgear";
+const BLIXEN_DIR = "/assets/board/sponsors/blixen";
 const ALL_CARS: readonly BoardCarId[] = [
   "saloon",
   "hatchback",
@@ -157,6 +158,40 @@ export const SPONSORS: readonly Sponsor[] = [
     },
     // Live since 2026-11-22: the owner approved its pictures. It takes turns
     // with the other live schools (`pickSponsor`).
+    live: true,
+  },
+  {
+    id: "blixen",
+    school: "Blixen Auto Driving School",
+    colors: { paint: "#f05a23", ink: "#1f2646" },
+    logo: {
+      full: `${BLIXEN_DIR}/logo.png`,
+      mono: `${BLIXEN_DIR}/logo-mono.png`,
+    },
+    // Their own silver and orange car, copied from photos of it
+    // (scripts/sponsor-art/blixen).
+    livery: { base: "#c9ccd1", cars: everyCar(BLIXEN_DIR) },
+    // As on their car: white, B.A.D.S in red with the L, a thin dark frame.
+    topBoard: {
+      src: `${BLIXEN_DIR}/topboard.webp`,
+      width: 1.35,
+      height: 0.45,
+      cut: 0.02,
+      edge: "#3a3b3f",
+    },
+    room: {
+      banner: {
+        hi: `${BLIXEN_DIR}/banner-hi.webp`,
+        lo: `${BLIXEN_DIR}/banner-lo.webp`,
+      },
+      posters: {
+        logo: `${BLIXEN_DIR}/poster-logo.webp`,
+        lessons: `${BLIXEN_DIR}/poster-lessons.webp`,
+      },
+    },
+    // Their own site, as lettered on their cars (owner, 2026-11-22).
+    url: "https://www.bads.co.ke",
+    // Live since 2026-11-22: the owner approved its pictures.
     live: true,
   },
 ];
