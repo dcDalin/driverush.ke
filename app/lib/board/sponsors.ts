@@ -33,6 +33,14 @@ export type Sponsor = {
    * if it fails.
    */
   livery?: { base: string; cars: Partial<Record<BoardCarId, CarPaint>> };
+  /**
+   * The school's pictures for the classroom walls (`~/lib/board/room`): a
+   * banner (3.2 x 0.6 m, two sizes) and framed posters.
+   */
+  room?: {
+    banner: { hi: string; lo: string };
+    posters: { logo: string; lessons: string };
+  };
   /** The school's site or WhatsApp link, for "Book lessons". */
   url?: string;
   /** Shown to everyone. A school that is not live only shows with `?sponsor=`. */
@@ -69,6 +77,16 @@ export const SPONSORS: readonly Sponsor[] = [
         saloon: paintOf(HELTZ_DIR, "saloon"),
         suv: paintOf(HELTZ_DIR, "suv"),
         pickup: paintOf(HELTZ_DIR, "pickup"),
+      },
+    },
+    room: {
+      banner: {
+        hi: `${HELTZ_DIR}/banner-2048.webp`,
+        lo: `${HELTZ_DIR}/banner-1024.webp`,
+      },
+      posters: {
+        logo: `${HELTZ_DIR}/poster-logo.webp`,
+        lessons: `${HELTZ_DIR}/poster-lessons.webp`,
       },
     },
     // Live for everyone since 2026-11-21 (owner's call).
@@ -151,6 +169,7 @@ export function pickSponsor({
 /** Where a school shows, for counting. */
 export type SponsorPlace =
   | "car"
+  | "room"
   | "plate"
   | "board"
   | "loader"

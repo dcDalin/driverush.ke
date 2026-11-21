@@ -91,6 +91,32 @@ async function paintFor(id, brand, fonts, car, styleName) {
 }
 
 /**
+ * A school's pictures for the classroom walls: `banner-2048.webp` and
+ * `banner-1024.webp` (3.2 x 0.6 m on the wall), and `poster-<id>.webp`.
+ */
+async function roomArt(brand, fonts, dir) {
+  if (!brand.design || option("style")) return;
+  const design = await import(pathToFileURL(path.join(SRC, brand.design)).href);
+  if (design.banner) {
+    const svg = Buffer.from(design.banner({ fonts }));
+    for (const size of [2048, 1024]) {
+      await sharp(svg, { density: 72 })
+        .resize(size, Math.round((size * 384) / 2048), { fit: "fill" })
+        .flatten({ background: "#ffffff" })
+        .webp({ quality: 88, effort: 6 })
+        .toFile(path.join(dir, `banner-${size}.webp`));
+    }
+  }
+  for (const poster of design.posters?.({ fonts }) ?? []) {
+    await sharp(Buffer.from(poster.svg), { density: 72 })
+      .resize({ width: 640 })
+      .flatten({ background: "#ffffff" })
+      .webp({ quality: 88, effort: 6 })
+      .toFile(path.join(dir, `poster-${poster.id}.webp`));
+  }
+}
+
+/**
  * Where a school's paint is drawn: its own design (`design` in its brand
  * file, a copy of its real car), or one of our styles.
  */
@@ -145,6 +171,10 @@ for (const id of schools) {
         .toFile(path.join(dir, `${car}-${size}.webp`));
     }
   }
+
+  // The classroom's walls (app/lib/board/room.ts): a banner and posters, when
+  // the school's design draws them.
+  await roomArt(brand, fonts, dir);
 
   writeFileSync(
     path.join(dir, "logo.png"),

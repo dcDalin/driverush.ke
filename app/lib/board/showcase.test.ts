@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   SHOW_OUT,
+  overFrame,
   SHOW_TOTAL,
   showcaseCamera,
   showcasePose,
@@ -54,5 +55,27 @@ describe("the opening close-up", () => {
     expect(skipTo(SHOW_TOTAL)).toBe(SHOW_OUT);
     expect(skipTo(0.2)).toBe(0.2);
     expect(skipTo(0)).toBe(0);
+  });
+
+  it("rises over the table's frame when it stands outside it", () => {
+    const frame = { x0: -10, x1: 10, z0: -10, z1: 10, top: 2.2 };
+    // over the table: no lift needed
+    expect(overFrame({ x: 0, z: 0 }, 0, 5, frame)).toBe(0);
+    // 20 m out from a car 5 m from the edge: well above the frame's top
+    const lift = overFrame({ x: 0, z: 5 }, 0, 20, frame);
+    expect(lift).toBeGreaterThan(2.2);
+    const narrow = showcasePose({
+      left: 2,
+      seatAngle: 0,
+      car: { x: 0, z: 5 },
+      aspect: 0.46,
+      halfV,
+      frame,
+    });
+    const cam = showcaseCamera(narrow);
+    // the sight line at the frame's edge clears its top
+    const atEdge =
+      narrow.target.y + ((cam.y - narrow.target.y) * 5) / (cam.z - 5);
+    expect(atEdge).toBeGreaterThan(frame.top);
   });
 });

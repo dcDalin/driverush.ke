@@ -20,8 +20,11 @@ export const SHOW_SPIN = 3.2;
 export const SHOW_OUT = 0.9;
 export const SHOW_TOTAL = SHOW_IN + SHOW_SPIN + SHOW_OUT;
 
-/** Low enough to see the doors and their lettering. */
-const TILT = (24 * Math.PI) / 180;
+/**
+ * Low, nearly level: the car side-on, and behind it, as the camera turns, the
+ * classroom's walls with the school's banner at the table's height.
+ */
+const TILT = (7 * Math.PI) / 180;
 /** What the close-up frames, in metres: the car and a little road round it. */
 const FRAME_ACROSS = 6;
 const FRAME_DEEP = 4.5;
@@ -58,12 +61,19 @@ export function showcasePose({
   car,
   aspect,
   halfV,
+  frame,
 }: {
   left: number;
   seatAngle: number;
   car: { x: number; z: number };
   aspect: number;
   halfV: number;
+  /**
+   * The table's frame: its outer edge and its top. When the camera stands
+   * outside it (a tall phone screen stands it further back), it rises just
+   * enough to see the car over the frame.
+   */
+  frame?: { x0: number; x1: number; z0: number; z1: number; top: number };
 }): ShowcasePose {
   const t = SHOW_TOTAL - clamp(left, 0, SHOW_TOTAL);
   const weight =
@@ -77,14 +87,60 @@ export function showcasePose({
   // there the width decides.
   const tanV = Math.tan(halfV);
   const tanH = tanV * Math.max(0.1, aspect);
-  const dist = Math.max(FRAME_DEEP / (2 * tanV), FRAME_ACROSS / (2 * tanH));
+  let dist = Math.max(FRAME_DEEP / (2 * tanV), FRAME_ACROSS / (2 * tanH));
+  const angle = seatAngle + spun * 2 * Math.PI;
+  let tilt = TILT;
+  if (frame) {
+    const lift = overFrame(car, angle, dist * Math.cos(tilt), frame);
+    if (lift > dist * Math.sin(tilt)) {
+      const across = dist * Math.cos(tilt);
+      tilt = Math.atan2(lift, across);
+      dist = Math.hypot(lift, across);
+    }
+  }
   return {
     weight,
-    angle: seatAngle + spun * 2 * Math.PI,
-    tilt: TILT,
+    angle,
+    tilt,
     dist,
     target: { x: car.x, y: TARGET_Y, z: car.z },
   };
+}
+
+/** Clearance over the frame's top, in metres. */
+const OVER = 0.5;
+
+/**
+ * How high above the car's middle the camera must stand, `across` metres out
+ * at `angle`, to see the car over the table's frame. 0 while the camera is
+ * still over the table.
+ */
+export function overFrame(
+  car: { x: number; z: number },
+  angle: number,
+  across: number,
+  frame: { x0: number; x1: number; z0: number; z1: number; top: number },
+): number {
+  const dx = Math.sin(angle);
+  const dz = Math.cos(angle);
+  // How far from the car, this way, the frame's outer edge is.
+  const toEdge = Math.min(
+    dx > 1e-9
+      ? (frame.x1 - car.x) / dx
+      : dx < -1e-9
+        ? (frame.x0 - car.x) / dx
+        : Infinity,
+    dz > 1e-9
+      ? (frame.z1 - car.z) / dz
+      : dz < -1e-9
+        ? (frame.z0 - car.z) / dz
+        : Infinity,
+  );
+  if (across <= toEdge) return 0;
+  // The sight line passes the edge at frame.top + OVER, so it rises by that
+  // over toEdge metres, and in step all the way out to the camera.
+  const rise = frame.top + OVER - TARGET_Y;
+  return (rise * across) / Math.max(toEdge, 0.5);
 }
 
 /** Cutting the close-up short: glide straight out, never a jump, never longer. */

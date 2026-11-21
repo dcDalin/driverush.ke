@@ -74,6 +74,11 @@ import {
 } from "~/components/board/route-ribbon";
 import { SHARED, carFromGltf } from "~/components/board/car-glb";
 import {
+  buildRoom,
+  hangSchool,
+  type Room,
+} from "~/components/board/board-room";
+import {
   PLATE,
   boardLogo,
   loadImage,
@@ -490,6 +495,8 @@ type Table = {
   surface: THREE.MeshStandardMaterial;
   /** The brass plates on the frame: south, west, north, east. */
   plates: THREE.Mesh[];
+  /** The classroom round the table (board-room.ts). */
+  room: Room;
 };
 
 function buildTable(tier: BoardTier): Table {
@@ -706,7 +713,11 @@ function buildTable(tier: BoardTier): Table {
   put(raise(disc(ISLAND_R), 0.3), kerb);
   put(raise(disc(ISLAND_R - 0.5), 0.34), green);
 
-  return { group, top, surface, plates };
+  // The classroom round it: walls, a school's branding, a few desks.
+  const room = buildRoom(CX, CZ);
+  group.add(room.group);
+
+  return { group, top, surface, plates, room };
 }
 
 /** Free everything a built object holds on the graphics card. */
@@ -931,6 +942,15 @@ type Rig = {
   show: number;
 };
 
+/** The table's frame, which the opening close-up looks over (showcase.ts). */
+const SHOWCASE_FRAME = {
+  x0: BOUNDS.x0 - FRAME,
+  x1: BOUNDS.x1 + FRAME,
+  z0: BOUNDS.z0 - FRAME,
+  z1: BOUNDS.z1 + FRAME,
+  top: 2.2,
+};
+
 /** Shadow reach round the car during the opening close-up, in metres. */
 const CLOSE_UP_SHADOW = 10;
 
@@ -982,6 +1002,18 @@ function Scene({
     let alive = true;
     let logoMesh: THREE.Mesh | null = null;
     let engraved: THREE.Texture | null = null;
+    // The school's banner and posters on the classroom walls.
+    let hung: THREE.Texture[] = [];
+    hangSchool(table.room, sponsor, tier === "low")
+      .then((textures) => {
+        if (!alive) return textures.forEach((t) => t.dispose());
+        hung = textures;
+        if (textures.length) sponsorShown(sponsor, "room");
+        invalidate();
+      })
+      .catch(() => {
+        // The frames stay plain.
+      });
     const brass = table.plates[0].material as THREE.MeshStandardMaterial;
     const plain = brass.map;
     loadImage(sponsor.logo.mono)
@@ -1005,6 +1037,7 @@ function Scene({
       });
     return () => {
       alive = false;
+      hung.forEach((t) => t.dispose());
       if (logoMesh) {
         table.group.remove(logoMesh);
         dispose(logoMesh);
@@ -1019,7 +1052,7 @@ function Scene({
         });
       }
     };
-  }, [sponsor, table, invalidate]);
+  }, [sponsor, table, tier, invalidate]);
 
   // The room the paint and the varnish reflect. Phones that struggle go without.
   React.useEffect(() => {
@@ -1662,6 +1695,7 @@ function Scene({
         car,
         aspect,
         halfV,
+        frame: SHOWCASE_FRAME,
       });
       const at = showcaseCamera(pose);
       closeUp = pose.weight;

@@ -393,3 +393,100 @@ export function logo({ fonts, mono }) {
   const h = 470;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${lettering(fonts, { x: 40, y: 30, w: w - 80, h: h - 60 }, { mono, id: "logo" })}</svg>`;
 }
+
+// ---- the classroom's walls (app/lib/board/room.ts) ---------------------------------
+
+/** The splash, as traced, placed with its middle at (cx, cy), `w` wide. */
+function splashAt(cx, cy, w) {
+  const svg = readFileSync(path.join(HERE, "splash.svg"), "utf8");
+  const [, sw, sh] = /width="(\d+)" height="(\d+)"/.exec(svg).map(Number);
+  const inner = /<g id="splash"[\s\S]*?<\/g>/.exec(svg)[0];
+  const k = w / sw;
+  return `<g transform="translate(${cx - (sw * k) / 2} ${cy - (sh * k) / 2}) scale(${k})">${inner}</g>`;
+}
+
+/** Their gold block with the two red stripes leaning back at its edge. */
+function goldBlock(x, w, h, stripeW) {
+  const c = COLORS;
+  const lean = h * 0.08;
+  const stripe = (at) =>
+    `<polygon points="${at + lean},0 ${at + lean + stripeW},0 ${at + stripeW},${h} ${at},${h}" fill="${c.red}"/>`;
+  return [
+    `<polygon points="${x + lean},0 ${w},0 ${w},${h} ${x},${h}" fill="${c.gold}"/>`,
+    stripe(x),
+    stripe(x + stripeW * 3.2),
+  ].join("");
+}
+
+/** The scatter over white, in pixels: their car's pattern at `pxPerMetre`. */
+function scatterFill(w, h, pxPerMetre) {
+  const k = pxPerMetre;
+  return `<g transform="scale(${k})"><rect width="${w / k}" height="${h / k}" fill="url(#heltz-scatter)"/></g>`;
+}
+
+/**
+ * The wall banner (3.2 x 0.6 m): their car's side laid flat. White with the
+ * scatter, HELTZ and DRIVING ACADEMY, and the gold front with its two red
+ * stripes and the splash, at the right-hand end as on the photo.
+ */
+export function banner({ fonts }) {
+  const w = 2048;
+  const h = 384;
+  const c = COLORS;
+  const goldAt = 1490;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <defs>${scatter(c)}</defs>
+    <rect width="${w}" height="${h}" fill="${c.white}"/>
+    ${scatterFill(w, h, 640)}
+    ${goldBlock(goldAt, w, h, 26)}
+    ${splashAt(1820, 150, 300)}
+    ${lettering(fonts, { x: 70, y: 46, w: goldAt - 120, h: h - 92 }, { id: "banner", align: "right" })}
+  </svg>`;
+}
+
+/**
+ * Two framed posters (0.52 x 0.72 m): their logo on white, and an invitation
+ * to learn with them. No promises about passing.
+ */
+export function posters({ fonts }) {
+  const w = 1024;
+  const h = 1418;
+  const c = COLORS;
+  const tag = fonts["Righteous-Regular.ttf"];
+  // A line of text centred across the poster, smaller if it would not fit
+  // inside the margins.
+  const centred = (text, y, wanted, fill) => {
+    const a = aspectOf(tag, text, 0.02);
+    const height = Math.min(wanted, (w - 160) / a);
+    const width = height * a;
+    return `<path d="${line(tag, text, { x: (w - width) / 2, y, height, tracking: 0.02 })}" fill="${fill}"/>`;
+  };
+  const frameDefs = `<defs>${scatter(c)}</defs>`;
+  const logoPoster = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    ${frameDefs}
+    <rect width="${w}" height="${h}" fill="${c.white}"/>
+    ${scatterFill(w, h, 1400)}
+    <rect x="60" y="430" width="${w - 120}" height="430" rx="24" fill="${c.white}" opacity="0.94"/>
+    ${lettering(fonts, { x: 100, y: 470, w: w - 200, h: 350 }, { id: "poster-logo" })}
+    <g transform="translate(0 ${h - 260})">${goldBlock(0, w, 260, 30)}</g>
+  </svg>`;
+  const lessons = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    ${frameDefs}
+    <rect width="${w}" height="${h}" fill="${c.gold}"/>
+    <polygon points="0,0 ${w},0 ${w},${h * 0.56} 0,${h * 0.64}" fill="${c.white}"/>
+    ${scatterFill(w, h * 0.5, 1400)}
+    <rect x="50" y="90" width="${w - 100}" height="250" rx="24" fill="${c.white}" opacity="0.94"/>
+    ${centred("LEARN TO DRIVE", 120, 92, c.blue)}
+    ${centred("WITH", 250, 70, c.blue)}
+    <rect x="50" y="370" width="${w - 100}" height="380" rx="24" fill="${c.white}" opacity="0.94"/>
+    ${lettering(fonts, { x: 90, y: 400, w: w - 180, h: 320 }, { id: "poster-lessons" })}
+    ${splashAt(w * 0.78, h * 0.72, 300)}
+    ${centred("BOOK YOUR LESSONS", 1080, 80, c.navy)}
+    ${centred("TODAY", 1190, 80, c.navy)}
+    <rect x="0" y="${h - 60}" width="${w}" height="22" fill="${c.red}"/>
+  </svg>`;
+  return [
+    { id: "logo", svg: logoPoster },
+    { id: "lessons", svg: lessons },
+  ];
+}
