@@ -45,7 +45,7 @@ export const OG_CARDS: OgCard[] = [
   {
     id: "board",
     blurb: "The home page and the Model Town Board pages.",
-    alt: "The Model Town Board game: a yellow car coming up to four numbered lanes and the roundabout",
+    alt: "The Model Town Board game: a yellow car going round the roundabout, with a pale yellow cross marking each road",
   },
   {
     id: "pelican",
