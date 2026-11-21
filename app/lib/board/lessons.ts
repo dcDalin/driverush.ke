@@ -471,7 +471,7 @@ export const ROUTE_RULES: Record<Plan["rule"], { name: string; says: string }> =
     },
     last_resort: {
       name: "Rule 3",
-      says: "Parking is only a last option. There is no other route, so this one goes through the parking area.",
+      says: "Parking is only a last option: use the parking area only when there is no other route.",
     },
     parking: {
       name: "Parking",

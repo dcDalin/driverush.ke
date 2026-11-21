@@ -390,7 +390,7 @@ export const BOARD_QUESTIONS: readonly BoardQuestion[] = [
   {
     topic: "parking",
     q: "Which vehicles may use angle parking?",
-    a: "Small cars only, such as a saloon.",
+    a: "Strictly small cars only: saloons.",
     source: unit3(12),
   },
   {

@@ -125,7 +125,7 @@ export const BOARD_GUIDES: readonly BoardGuide[] = [
     name: "Parking",
     title: "Model Town Board parking: angle and flush",
     description:
-      "How to park on the Model Town Board: angle bays nose in and reverse out, flush boxes reverse in, and when you may use the parking zone.",
+      "Model Town Board parking: angle bays are for saloons, nose in and reverse out; flush boxes are on the left, reverse in. Parking is a last option.",
     lede: "The board has two kinds of parking, and a rule about when you may drive through the parking area at all.",
     blurb: "Angle and flush parking, and when to use the parking area.",
     published: "2026-11-11",

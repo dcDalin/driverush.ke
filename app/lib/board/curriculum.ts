@@ -157,7 +157,7 @@ const UNIT_DEFS: readonly {
       slides("lane-numbers", "Keep left and count your lane", [
         {
           title: "Keep left",
-          note: "In Kenya you drive on the left. On every road of the board, your side is the left-hand side of the line or the reserve down the middle.",
+          note: "In Kenya you drive on the left: keep left unless you are overtaking. On every road of the board, your side is the left-hand side of the line or the reserve down the middle.",
           at: "dual-carriageway",
         },
         { feature: "lane-numbers" },
@@ -180,7 +180,7 @@ const UNIT_DEFS: readonly {
       slides("changing-lanes", "Changing lanes", [
         {
           title: "Only where the lines are broken",
-          note: "You may change lanes only across a broken white line. Back from the roundabout the lines are broken, so that is where you get into the lane for your turn.",
+          note: "A white broken line means you may change lanes or overtake if the road is clear and safe. Back from the roundabout the lines are broken, so that is where you get into the lane for your turn.",
           at: "broken-lines",
         },
         {
@@ -190,7 +190,7 @@ const UNIT_DEFS: readonly {
         },
         {
           title: "Too late at the continuous lines",
-          note: "Once the lines are continuous you stay in your lane. If it is the wrong lane for your turn, do not cut across: go where your lane goes and take the long way round.",
+          note: "A white continuous line means no changing lanes and no overtaking: you stay in your lane. If it is the wrong lane for your turn, do not cut across: go where your lane goes and take the longest correct route.",
           at: "continuous-lines",
         },
       ]),
@@ -219,7 +219,7 @@ const UNIT_DEFS: readonly {
         },
         {
           title: "Five things you never do on it",
-          note: "No stopping, no changing lanes, no parking, no overtaking and no waiting. Once you are on it, keep moving in your lane until your exit.",
+          note: "No stopping, no changing lanes, no parking, no overtaking and no waiting. Once you are on it, keep moving in your lane until your exit. A brief pause is fine, but standing still for more than a few seconds costs a star.",
           at: "roundabout",
         },
         {
@@ -267,7 +267,7 @@ const UNIT_DEFS: readonly {
         [
           {
             title: "Get beside the reserve first",
-            note: "To turn back through a gap in the central reserve, be in the lane beside the reserve before you reach it. Move across where the lines are broken.",
+            note: "A gap in the central reserve is an exit from the main road, or a U-turn onto the other side. To turn back through it, be in the lane beside the reserve before you reach it. Move across where the lines are broken.",
             at: "u-turn-gap",
           },
           {
@@ -311,7 +311,7 @@ const UNIT_DEFS: readonly {
           },
           {
             title: "Take the next correct route",
-            note: "Look for the block before you set off. Then use the same three route rules on the roads that are still open: the shortest correct route, the long way round, and the parking area only as a last resort.",
+            note: "Look for the block before you set off. Then use the same three route rules on the roads that are still open: the shortest correct route without parking, the longest correct route if needed, and parking only as a last option.",
             at: "u-turn-gap",
             block: "gap",
           },
@@ -332,13 +332,23 @@ const UNIT_DEFS: readonly {
     levels: [
       slides("parking-rules", "The parking rules", [
         {
-          title: "Angle parking: nose in, reverse out",
-          note: "Drive into an angle bay forwards. To leave, reverse out, give way to anything in the aisle, then drive off forwards.",
+          title: "Angle parking: saloons, from the far end",
+          note: "Angle parking, also called ample or controlled parking, is strictly for small cars: saloons. Park from the farthest end, in the farthest free bay.",
           at: "angle-parking",
         },
         {
-          title: "Flush parking: drive past, reverse in",
-          note: "Drive just past the box, stop, and reverse into it. To leave, drive out forwards.",
+          title: "Angle parking: forward in, reverse out",
+          note: "Park by forward gear, nose first, and leave by reverse, giving way to anything in the aisle. On our board the aisle is two-way, with a way in and out at each end.",
+          at: "parking-aisle",
+        },
+        {
+          title: "Flush parking: on the left, uncontrolled",
+          note: "Flush parking, also called parallel parking, is on the left side of the road in the direction of traffic. It has no security, so it is uncontrolled. All vehicles may use it except tractors and trailers.",
+          at: "flush-parking",
+        },
+        {
+          title: "Flush parking: reverse in, drive out",
+          note: "Park from the farthest end by reverse: drive just past the box, stop, and reverse into it. It has an entry, but leave space for the exit. Leave by driving forward.",
           at: "flush-parking",
         },
         {
