@@ -152,7 +152,8 @@ const UNIT_DEFS: readonly {
   {
     id: "lanes",
     title: "Lanes",
-    blurb: "Count your lane from the kerb, and know where each one may go.",
+    blurb:
+      "Count your lanes from the kerb, and learn each lane's options: 2124 and 215.",
     levels: [
       slides("lane-numbers", "Keep left and count your lane", [
         {
@@ -199,7 +200,8 @@ const UNIT_DEFS: readonly {
   {
     id: "roundabout",
     title: "The roundabout",
-    blurb: "The rules on the roundabout, then every turn from both roads.",
+    blurb:
+      "Keep left, maintain your lane, mind the minus 1 rule, then every turn from both roads.",
     levels: [
       slides("roundabout-rules", "The roundabout rules", [
         {
@@ -249,7 +251,8 @@ const UNIT_DEFS: readonly {
   {
     id: "routes",
     title: "Routes",
-    blurb: "The three route rules, then routes across the whole board.",
+    blurb:
+      "Shortest without parking, longest if needed, parking last. Then routes across the board.",
     levels: [
       slides(
         "route-rules",
@@ -279,8 +282,8 @@ const UNIT_DEFS: readonly {
         "Medium",
       ),
       drive("turn-back", "Turn back", "Medium"),
-      watch("long-way-round", "Rule 2: the long way round", "Hard"),
-      drive("long-way-round", "The long way round", "Hard"),
+      watch("long-way-round", "Rule 2: the longest correct route", "Hard"),
+      drive("long-way-round", "The longest correct route", "Hard"),
       watch("right-to-two-way", "Right, then onto the two-way road", "Medium"),
       drive("to-two-way", "Right, then the two-way road", "Medium"),
       watch("street", "Down the street to the two-way road", "Medium"),
@@ -328,7 +331,8 @@ const UNIT_DEFS: readonly {
   {
     id: "parking",
     title: "Parking",
-    blurb: "Angle bays and flush boxes: in, and out again.",
+    blurb:
+      "Angle bays for saloons, flush boxes on the left: in, and out again.",
     levels: [
       slides("parking-rules", "The parking rules", [
         {

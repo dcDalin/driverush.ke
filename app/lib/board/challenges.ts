@@ -247,7 +247,7 @@ const ROUTE_TASKS: readonly RouteChallenge[] = [
   {
     id: "long-way-round",
     lesson: "long-way-round",
-    title: "The long way round",
+    title: "The longest correct route",
     prompt:
       "You are in lane 2 at the continuous lines, and you are asked to turn left. Lane 2 only goes straight. Take the longest correct route: go straight, turn back through the gap in the central reserve, then turn right at the roundabout. Stop in the green box.",
     reverse: false,

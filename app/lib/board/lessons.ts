@@ -247,7 +247,7 @@ export const LESSONS: readonly Lesson[] = [
     id: "long-way-round",
     group: "routes",
     level: "Hard",
-    title: "Rule 2: the long way round",
+    title: "Rule 2: the longest correct route",
     ask: "You are in lane 2 at the continuous lines and you are asked to turn left. Lane 2 only goes straight, so the short way is blocked.",
     from: `At the continuous lines on ${DUAL_BOTTOM}, lane 2`,
     to: `To ${THREE_LEFT}, lane 1`,

@@ -25,7 +25,7 @@ export const BOARD_LEVELS_DESCRIPTION =
 export const levelHref = (id: string) => `${BOARD_PLAY_PATH}?level=${id}`;
 
 /** Bump when the board's paint or a level's route changes, so pictures reload. */
-const LEVEL_PICTURES = "1";
+const LEVEL_PICTURES = "2";
 /** A level's picture: the flat board, zoomed to what the level uses. */
 export const levelPictureHref = (id: string) =>
   `${BOARD_LEVELS_PATH}/${id}.svg?v=${LEVEL_PICTURES}`;
