@@ -1,0 +1,12 @@
+{
+  "note": "Petanns Driving School (Petanns Kenya, 'Shule Ya Wakenya'): their own white, blue and orange car, copied from the photos of it (scripts/sponsor-art/petanns/reference-*.jpg) and their emblem. See petanns/design.mjs.",
+  "design": "petanns/design.mjs",
+  "fonts": [
+    "AlfaSlabOne-Regular.ttf",
+    "KaushanScript-Regular.ttf",
+    "Poppins-Medium.ttf",
+    "Poppins-Bold.ttf",
+    "Poppins-ExtraBold.ttf"
+  ],
+  "colors": { "base": "#f8f8f5" }
+}

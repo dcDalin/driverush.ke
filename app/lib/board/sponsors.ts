@@ -74,6 +74,7 @@ const HELTZ_DIR = "/assets/board/sponsors/heltz";
 const TOPGEAR_DIR = "/assets/board/sponsors/topgear";
 const BLIXEN_DIR = "/assets/board/sponsors/blixen";
 const AA_DIR = "/assets/board/sponsors/aa";
+const PETANNS_DIR = "/assets/board/sponsors/petanns";
 const ALL_CARS: readonly BoardCarId[] = [
   "saloon",
   "hatchback",
@@ -226,6 +227,38 @@ export const SPONSORS: readonly Sponsor[] = [
     },
     // AA Kenya's own site, as on their adverts.
     url: "https://www.aakenya.co.ke",
+    // Live since 2026-11-22: the owner approved its pictures.
+    live: true,
+  },
+  {
+    id: "petanns",
+    school: "Petanns Driving School",
+    colors: { paint: "#1568f0", ink: "#1b3f95" },
+    logo: {
+      full: `${PETANNS_DIR}/logo.png`,
+      mono: `${PETANNS_DIR}/logo-mono.png`,
+    },
+    // Their own white, blue and orange car, copied from photos of it
+    // (scripts/sponsor-art/petanns).
+    livery: { base: "#f8f8f5", cars: everyCar(PETANNS_DIR) },
+    // Their real cars carry no roof board: this one is ours, in their look.
+    topBoard: {
+      src: `${PETANNS_DIR}/topboard.webp`,
+      width: 1.35,
+      height: 0.45,
+      cut: 0.04,
+      edge: "#f4421a",
+    },
+    room: {
+      banner: {
+        hi: `${PETANNS_DIR}/banner-hi.webp`,
+        lo: `${PETANNS_DIR}/banner-lo.webp`,
+      },
+      posters: {
+        logo: `${PETANNS_DIR}/poster-logo.webp`,
+        lessons: `${PETANNS_DIR}/poster-lessons.webp`,
+      },
+    },
     // Live since 2026-11-22: the owner approved its pictures.
     live: true,
   },
