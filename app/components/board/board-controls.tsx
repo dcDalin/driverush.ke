@@ -12,15 +12,17 @@
  * a thumb. Above the band, drags and pinches still move the view.
  *
  * It writes straight into `board/runtime.ts`'s `stick` and moves the knob with a
- * transform, so driving never re-renders React. Arrow keys and WASD push the
- * resting knob on a computer, and holding Shift pushes it gently, for parking.
+ * transform, so driving never re-renders React. On a computer the arrow keys
+ * (and WASD) steer the car itself, as in a game: up to drive on, left and
+ * right to turn, down to brake and back up (`keyStick`). They move the resting
+ * knob, and holding Shift drives gently, for parking.
  */
 import * as React from "react";
 
 import "./board-controls.css";
 
-import { STICK_DEADZONE } from "~/lib/board/joystick";
-import { resetInput, stick, view } from "~/lib/board/runtime";
+import { keyStick, STICK_DEADZONE } from "~/lib/board/joystick";
+import { car, drive, resetInput, stick, view } from "~/lib/board/runtime";
 import { cn } from "~/lib/utils";
 
 type Dir = "left" | "right" | "up" | "down";
@@ -108,6 +110,7 @@ export function BoardControls({
       dragging.current = false;
       gentle.current = false;
       keys.left = keys.right = keys.up = keys.down = false;
+      drive.follow = drive.keyExit = false;
       if (knob.current) knob.current.dataset.held = "false";
       if (base.current) base.current.dataset.held = "false";
       place(0, 0);
@@ -118,14 +121,32 @@ export function BoardControls({
       return;
     }
 
-    const fromKeys = () => {
+    // The keys steer the car itself, so while one is held the knob follows
+    // the way the car points, every frame.
+    let frame = 0;
+    // When left or right went down: tapped is a lane change, held a turn.
+    let turnFrom = 0;
+    const follow = () => {
+      frame = 0;
+      drive.follow = drive.keyExit = false;
       if (dragging.current) return;
-      const x = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
-      const y = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
-      // Two keys at once would push further than one: keep it to the rim.
-      const reach = Math.hypot(x, y) || 1;
-      const push = gentle.current ? GENTLE : 1;
-      place((x / reach) * push, (y / reach) * push);
+      const at = keyStick(
+        keys,
+        car,
+        drive.seat,
+        gentle.current ? GENTLE : 1,
+        (performance.now() - turnFrom) / 1000,
+      );
+      place(at.x, at.y);
+      drive.follow = at.follow;
+      drive.keyExit = at.exit;
+      if (keys.up || keys.down || keys.left || keys.right) {
+        frame = requestAnimationFrame(follow);
+      }
+    };
+    const fromKeys = () => {
+      cancelAnimationFrame(frame);
+      follow();
     };
     const onKey = (down: boolean) => (e: KeyboardEvent) => {
       if (e.key === "Shift") {
@@ -145,7 +166,9 @@ export function BoardControls({
       const dir = KEYS[e.key];
       if (!dir) return;
       e.preventDefault();
+      const turning = keys.left || keys.right;
       keys[dir] = down;
+      if (!turning && (keys.left || keys.right)) turnFrom = performance.now();
       fromKeys();
     };
     const keyDown = onKey(true);
@@ -156,6 +179,7 @@ export function BoardControls({
     window.addEventListener("blur", release);
 
     return () => {
+      cancelAnimationFrame(frame);
       window.removeEventListener("keydown", keyDown);
       window.removeEventListener("keyup", keyUp);
       window.removeEventListener("blur", release);
@@ -193,6 +217,8 @@ export function BoardControls({
       pad.on("start", () => {
         if (!live.current) return;
         dragging.current = true;
+        // the thumb takes over from any key held
+        drive.follow = drive.keyExit = false;
         held(true);
       });
       pad.on("move", (e) => {
@@ -271,7 +297,7 @@ export function BoardControls({
         <div
           ref={zone}
           role="application"
-          aria-label="Joystick. Put your thumb anywhere along the bottom and push toward where you want the car to go, and let go to stop. The arrow keys or W, A, S and D work too. Hold Shift to go slowly."
+          aria-label="Joystick. Put your thumb anywhere along the bottom and push toward where you want the car to go, and let go to stop. On a computer, the up arrow drives on, left and right turn, and down brakes and backs up; W, A, S and D work too. Hold Shift to go slowly."
           className={cn(
             "board-stick-zone relative mx-auto h-full w-full max-w-[28rem] touch-none select-none",
             active && "pointer-events-auto",
@@ -279,7 +305,7 @@ export function BoardControls({
           onContextMenu={(e) => e.preventDefault()}
         />
       </div>
-      {/* The stick at rest: where to put a thumb, and the knob the keys push. */}
+      {/* The stick at rest: where to put a thumb, and the knob the keys move. */}
       <div className="flex size-[12.5rem] items-center justify-center">
         <div
           ref={base}

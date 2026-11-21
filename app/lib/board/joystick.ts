@@ -80,6 +80,18 @@ export type DriveOptions = {
   others?: readonly { x: number; z: number }[];
   /** The fastest the car may go forward here, metres a second, whatever the knob says. */
   cap?: number;
+  /**
+   * The up arrow alone: drive on along the road. With lane assist the lane is
+   * held whichever way the car points, as a thumb following the road holds
+   * it, round the roundabout too, until an exit is asked for (`keyStick`).
+   */
+  follow?: boolean;
+  /**
+   * The left arrow on the roundabout: leave at the next exit, helped into its
+   * lane as `exitHold` does. Keys cannot point at an exit lane the way a thumb
+   * can, so the timing of a key press alone would pick it.
+   */
+  keyExit?: boolean;
 };
 
 /** What the assist remembers between steps. */
@@ -152,6 +164,93 @@ const AWAY: Record<Seat, number> = {
   north: Math.PI,
   east: -Math.PI / 2,
 };
+
+/** The arrow keys held, on a computer. */
+export type Keys = {
+  up: boolean;
+  down: boolean;
+  left: boolean;
+  right: boolean;
+};
+
+/**
+ * Left or right, tapped, leans the knob this far off the car: past `LANE_ASK`
+ * and inside the road's cone, so on a road with broken lines it asks for the
+ * next lane.
+ */
+const KEY_LANE = (28 * Math.PI) / 180;
+/** Held on, it swings out to this: past `TAKE_ROAD`, so the car turns. */
+const KEY_TURN = (50 * Math.PI) / 180;
+/** A key held this long, seconds, is a turn rather than a lane change. */
+const KEY_TAP = 0.4;
+/** And the knob swings from one to the other over this long. */
+const KEY_SWING = 0.2;
+
+/**
+ * The arrow keys steer the car itself, the way a game does, wherever the
+ * learner stands: up drives on, left or right with it tapped changes lane
+ * and held turns, and down brakes and then backs up, its tail going left or
+ * right with left or right. Left and right alone do nothing. The keys become a knob
+ * position, worked out afresh every frame from the way the car points, so
+ * lane assist and everything after it treat keys and thumb alike. (The thumb
+ * stays "toward where you want to go on the screen".)
+ *
+ * Up alone follows the road (`follow`): lane assist holds the lane, onto the
+ * roundabout and round it. There, left (outward) is "leave at the next exit"
+ * (`exit`): the knob points down that exit road, as a thumb asking for it
+ * does, and the car is helped into the exit lane. Steered out by hand, which
+ * exit lane the car got depended on the moment the key went down.
+ */
+export function keyStick(
+  keys: Keys,
+  car: { x: number; z: number; heading: number },
+  seat: Seat,
+  push: number,
+  /** How long left or right has been held, seconds. */
+  turnHeld = Infinity,
+): Stick & { follow: boolean; exit: boolean } {
+  const go = (keys.up ? 1 : 0) - (keys.down ? 1 : 0);
+  if (go === 0) return { x: 0, y: 0, follow: false, exit: false };
+  // Bearings grow clockwise, so the car's left is the smaller bearing.
+  const turn = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+  const swing = Math.max(0, Math.min(1, (turnHeld - KEY_TAP) / KEY_SWING));
+  const lean = turn * (KEY_LANE + swing * (KEY_TURN - KEY_LANE));
+  let bearing = go > 0 ? car.heading + lean : car.heading + Math.PI - lean;
+  const out = go > 0 && turn < 0 ? nextExit(car.x, car.z) : null;
+  if (out) bearing = laneBearing(out, "exit");
+  const onScreen = bearing - AWAY[seat];
+  return {
+    x: Math.sin(onScreen) * push,
+    y: -Math.cos(onScreen) * push,
+    follow: go > 0 && turn === 0,
+    exit: out != null,
+  };
+}
+
+/**
+ * Past the middle of an exit, the car has missed it: the next one is asked
+ * for. Its own lanes are reached before the middle, going round.
+ */
+const MISSED = (5 * Math.PI) / 180;
+
+/** On the roundabout, the next exit road coming up. Null off the ring. */
+function nextExit(x: number, z: number): ArmId | null {
+  const loc = locate(x, z);
+  if (loc.kind !== "ring") return null;
+  let best: ArmId | null = null;
+  let nearest = Infinity;
+  for (const id of ARM_ORDER) {
+    const at = bearingOf(ARMS[id].out.x, ARMS[id].out.z);
+    // Round the ring is clockwise, the way bearings grow.
+    let ahead = wrapPi(at - loc.bearing + MISSED);
+    if (ahead < 0) ahead += 2 * Math.PI;
+    if (ahead < nearest) {
+      nearest = ahead;
+      best = id;
+    }
+  }
+  return best;
+}
 
 /** Down the parking aisle, and on into a bay, lane assist keeps to this. Metres a second. */
 export const AISLE_SPEED = 4;
@@ -714,7 +813,8 @@ export function stickToInput(
     ? laneAhead(
         car,
         state,
-        push < STICK_DEADZONE ? null : knob,
+        // following the road asks for no other lane and no exit
+        push < STICK_DEADZONE || options.follow ? null : knob,
         options.others ?? [],
         options.exitTo,
       )
@@ -801,12 +901,14 @@ export function stickToInput(
     if (state.free && Math.abs(steadyOff) < take - TAKE_BACK) {
       state.free = false;
     }
-    const hold = state.free
-      ? 0
-      : Math.max(
-          0,
-          Math.min(1, (cone + CONE_EDGE - Math.abs(off)) / (2 * CONE_EDGE)),
-        );
+    const hold = options.follow
+      ? 1
+      : state.free
+        ? 0
+        : Math.max(
+            0,
+            Math.min(1, (cone + CONE_EDGE - Math.abs(off)) / (2 * CONE_EDGE)),
+          );
     target = knob + hold * wrapPi(lane.heading - knob);
     cap = Math.min(cap, CAR.maxSpeed + hold * (lane.cap - CAR.maxSpeed));
     state.hold = hold;
@@ -816,7 +918,7 @@ export function stickToInput(
   }
   // Asked for an exit: the ring is held until the car is level with the exit
   // lane, and then that lane is steered for.
-  if (options.exitHold && lane) {
+  if ((options.exitHold || options.keyExit) && lane) {
     const out = exitAhead(car, knob, state, options.exitTo);
     if (out === "wait") {
       target = lane.heading;
