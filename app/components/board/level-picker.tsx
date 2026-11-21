@@ -232,7 +232,11 @@ function LevelCard({
                   aria-hidden
                   className={cn(
                     "font-mono text-[10px] font-bold uppercase tracking-widest",
-                    done ? "text-success-strong" : "text-neutral-strong",
+                    done
+                      ? "text-success-strong"
+                      : next
+                        ? "text-state-next-foreground"
+                        : "text-neutral-strong",
                   )}
                 >
                   {now ? "Playing" : STATE_WORD[state]}
