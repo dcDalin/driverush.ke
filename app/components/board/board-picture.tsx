@@ -13,14 +13,14 @@ import { cn } from "~/lib/utils";
 /** What the numbered discs on the whole-board picture point at, in order. */
 const LEGEND: { at: keyof typeof BOARD_LANDMARKS; text: string }[] = [
   { at: "dualCarriageway", text: "Dual carriageway, four lanes each way" },
-  { at: "uTurnGap", text: "Central reserve, with a gap for U-turns" },
+  { at: "uTurnGap", text: "Central reserve, with a gap: an exit or U-turn" },
   { at: "roundabout", text: "Roundabout, four lanes round the island" },
   {
     at: "threeLaneRoad",
     text: "Three-lane road with a double yellow centre line",
   },
   { at: "parking", text: "Controlled parking zone, with angle bays" },
-  { at: "street", text: "Street joining the two bigger roads" },
+  { at: "street", text: "Two-way street joining the two bigger roads" },
   { at: "twoWayRoad", text: "Two-way road" },
   { at: "crossing", text: "Pedestrian crossing" },
   { at: "flushParking", text: "Flush parking at the kerb" },
