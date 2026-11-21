@@ -1,0 +1,22 @@
+/*
+ * The floating stick nipplejs draws, made to look like the one drawn at rest
+ * (board-controls.tsx): a dark base with a faint rim and a gold-ringed knob.
+ * nipplejs sets sizes and opacity inline, so the knob's are overridden here.
+ */
+.board-stick-zone .back {
+  box-sizing: border-box;
+  border: 2px solid rgb(255 255 255 / 0.25);
+}
+
+.board-stick-zone .front {
+  box-sizing: border-box;
+  width: 64px !important;
+  height: 64px !important;
+  margin-left: -32px !important;
+  margin-top: -32px !important;
+  opacity: 1 !important;
+  border: 2px solid #f6c416;
+  box-shadow:
+    0 4px 0 rgb(0 0 0 / 0.55),
+    inset 0 2px 0 rgb(255 255 255 / 0.18);
+}

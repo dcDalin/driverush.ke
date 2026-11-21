@@ -5,11 +5,19 @@
  * at. `board/joystick.ts` turns that into steering and pedals, and holds the
  * lane you are in when lane assist is on.
  *
+ * The stick floats (nipplejs, "dynamic" mode): a thumb that lands anywhere in
+ * the band along the bottom of the screen gets a stick right under it, so it
+ * never has to find the middle of a drawn pad. While nobody is touching it,
+ * the stick is drawn at rest in the middle of the band, to show where to put
+ * a thumb. Above the band, drags and pinches still move the view.
+ *
  * It writes straight into `board/runtime.ts`'s `stick` and moves the knob with a
  * transform, so driving never re-renders React. Arrow keys and WASD push the
- * same knob on a computer, and holding Shift pushes it gently, for parking.
+ * resting knob on a computer, and holding Shift pushes it gently, for parking.
  */
 import * as React from "react";
+
+import "./board-controls.css";
 
 import { STICK_DEADZONE } from "~/lib/board/joystick";
 import { resetInput, stick, view } from "~/lib/board/runtime";
@@ -35,6 +43,17 @@ const KEYS: Record<string, Dir> = {
 /** How far the keys push the knob with Shift held: a crawl, for a parking bay. */
 const GENTLE = 0.45;
 
+/** Across the stick's base, pixels: the same as the one drawn at rest. */
+const STICK_SIZE = 144;
+/**
+ * A full push is this far from where the thumb landed, pixels. The drawn
+ * knob goes to the rim (72 px), but the old fixed pad gave full speed at
+ * 40 px, and a thumb should not have to travel much further than that.
+ */
+const FULL_PUSH = 48;
+
+type StickPad = ReturnType<typeof import("nipplejs").create>;
+
 export function BoardControls({
   active,
   reverse = false,
@@ -52,6 +71,9 @@ export function BoardControls({
   const base = React.useRef<HTMLDivElement>(null);
   const knob = React.useRef<HTMLDivElement>(null);
   const gear = React.useRef<HTMLParagraphElement>(null);
+  const zone = React.useRef<HTMLDivElement>(null);
+  const live = React.useRef(active);
+  live.current = active;
   const dragging = React.useRef(false);
   const gentle = React.useRef(false);
   const held = React.useRef<Record<Dir, boolean>>({
@@ -139,24 +161,52 @@ export function BoardControls({
     };
   }, [active, place]);
 
-  const follow = (e: React.PointerEvent<HTMLDivElement>) => {
-    const b = base.current;
-    const el = knob.current;
-    if (!b || !el) return;
-    const box = b.getBoundingClientRect();
-    const travel = (b.offsetWidth - el.offsetWidth) / 2 || 1;
-    place(
-      (e.clientX - (box.left + box.width / 2)) / travel,
-      (e.clientY - (box.top + box.height / 2)) / travel,
-    );
-  };
-  const drop = () => {
-    if (!dragging.current) return;
-    dragging.current = false;
-    if (knob.current) knob.current.dataset.held = "false";
-    if (base.current) base.current.dataset.held = "false";
-    place(0, 0);
-  };
+  // The floating stick. nipplejs reaches for `window` as it loads, so it is
+  // loaded here, in the browser, and only on the board.
+  React.useEffect(() => {
+    const el = zone.current;
+    if (!el) return;
+    let gone = false;
+    let pad: StickPad | undefined;
+    const held = (on: boolean) => {
+      // the resting stick steps aside while the floating one is out
+      if (base.current) base.current.dataset.held = on ? "true" : "false";
+    };
+    const drop = () => {
+      held(false);
+      if (!dragging.current) return;
+      dragging.current = false;
+      place(0, 0);
+    };
+    void import("nipplejs").then(({ create }) => {
+      if (gone) return;
+      pad = create({
+        zone: el,
+        mode: "dynamic",
+        size: STICK_SIZE,
+        color: { back: "rgba(23, 24, 27, 0.55)", front: "#2b2d33" },
+        fadeTime: 120,
+        threshold: 0,
+      });
+      pad.on("start", () => {
+        if (!live.current) return;
+        dragging.current = true;
+        held(true);
+      });
+      pad.on("move", (e) => {
+        if (!dragging.current || !live.current) return;
+        // nipplejs counts up as positive; the stick counts down
+        const k = STICK_SIZE / 2 / FULL_PUSH;
+        place(e.data.vector.x * k, -e.data.vector.y * k);
+      });
+      pad.on("end", drop);
+    });
+    return () => {
+      gone = true;
+      pad?.destroy();
+      drop();
+    };
+  }, [place]);
 
   // Reverse gear takes a moment of holding back to come in. Say so, so the
   // learner knows the car heard them, and say when it is in.
@@ -211,38 +261,28 @@ export function BoardControls({
         className="m-0 rounded-md border-2 border-[#17181b] bg-[#f6c416] px-3 py-1 text-center font-mono text-[11px] font-bold uppercase tracking-widest text-[#17181b] opacity-0 transition-opacity duration-150"
       />
 
-      {/* The pad is bigger than the drawn base, so a thumb doesn't have to aim. */}
-      <div
-        role="application"
-        aria-label="Joystick. Push toward where you want the car to go, and let go to stop. The arrow keys or W, A, S and D work too. Hold Shift to go slowly."
-        className={cn(
-          "flex size-[12.5rem] touch-none select-none items-center justify-center",
-          active && "pointer-events-auto",
-        )}
-        onPointerDown={(e) => {
-          try {
-            e.currentTarget.setPointerCapture(e.pointerId);
-          } catch {
-            // No capture (some webviews): the drag still works over the pad.
-          }
-          dragging.current = true;
-          if (knob.current) knob.current.dataset.held = "true";
-          if (base.current) base.current.dataset.held = "true";
-          follow(e);
-        }}
-        onPointerMove={(e) => {
-          if (dragging.current) follow(e);
-        }}
-        onPointerUp={drop}
-        onPointerCancel={drop}
-        onLostPointerCapture={drop}
-        onContextMenu={(e) => e.preventDefault()}
-      >
+      {/* Anywhere in this band, a thumb gets a stick right under it. On a
+          phone it is the whole width; on a wide screen, the middle. The band
+          sits in a plain block: nipplejs places its stick wrongly when the
+          zone's parent is a flex box. */}
+      <div className="absolute inset-x-0 bottom-0 h-[15rem]">
+        <div
+          ref={zone}
+          role="application"
+          aria-label="Joystick. Put your thumb anywhere along the bottom and push toward where you want the car to go, and let go to stop. The arrow keys or W, A, S and D work too. Hold Shift to go slowly."
+          className={cn(
+            "board-stick-zone relative mx-auto h-full w-full max-w-[28rem] touch-none select-none",
+            active && "pointer-events-auto",
+          )}
+          onContextMenu={(e) => e.preventDefault()}
+        />
+      </div>
+      {/* The stick at rest: where to put a thumb, and the knob the keys push. */}
+      <div className="flex size-[12.5rem] items-center justify-center">
         <div
           ref={base}
           data-held="false"
-          // Under a thumb the base goes faint, so the road shows through it.
-          className="relative flex size-36 items-center justify-center rounded-full border-2 border-white/30 bg-[#17181b]/70 shadow-[0_6px_0_rgba(0,0,0,0.45)] transition-colors duration-150 data-[held=true]:border-white/20 data-[held=true]:bg-[#17181b]/30 data-[held=true]:shadow-none"
+          className="relative flex size-36 items-center justify-center rounded-full border-2 border-white/30 bg-[#17181b]/70 shadow-[0_6px_0_rgba(0,0,0,0.45)] transition-opacity duration-100 data-[held=true]:opacity-0"
         >
           {/* Four ticks: the knob points at the screen, not at the car. */}
           <svg
