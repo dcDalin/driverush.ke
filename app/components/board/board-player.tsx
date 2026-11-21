@@ -653,6 +653,16 @@ function StuckChip({ onRestart }: { onRestart: () => void }) {
   );
 }
 
+/**
+ * Out of the way while the turn round the car plays (showcase.ts): the car's
+ * paint, the school's, is the thing to see. Faded and inert, then back.
+ */
+const awayForTurn = (showing: boolean) =>
+  cn(
+    "transition-[opacity,visibility] duration-300",
+    showing && "invisible opacity-0",
+  );
+
 const hudButton =
   "inline-flex size-11 items-center justify-center rounded-md border-2 border-white/15 bg-[#101114]/85 outline-none transition-colors hover:bg-white/15 focus-visible:border-white";
 const moreItem =
@@ -1059,33 +1069,40 @@ export function BoardGame() {
           {/* Everything said to the learner while driving stands in this one
               column, one under the other, so nothing lands on anything. */}
           {s.phase === "driving" ? (
-            <HudColumn>
-              <TaskCard
-                key={`${challenge.id}-${s.attempt}`}
-                place={
-                  level
-                    ? `Level ${level.n} of ${COURSE_LEVELS.length}`
-                    : `Task ${s.pos + 1} of ${s.queue.length}`
-                }
-                title={challenge.title}
-                prompt={challenge.prompt}
-              />
-              <TaskHint
-                challenge={challenge}
-                attempt={s.attempt}
-                onNextStep={() => s.hint("next_step")}
-                onShowMe={() => showTheWay("show_me")}
-                bare={warmup}
-              >
-                {s.notice && (
-                  <StarLost
-                    notice={s.notice}
-                    lesson={pickedCar != null || warmup}
-                  />
-                )}
-                <BoardSignCue active />
-              </TaskHint>
-            </HudColumn>
+            <div
+              className={cn(
+                "flex min-w-0 max-w-[19rem] flex-1",
+                awayForTurn(showing),
+              )}
+            >
+              <HudColumn>
+                <TaskCard
+                  key={`${challenge.id}-${s.attempt}`}
+                  place={
+                    level
+                      ? `Level ${level.n} of ${COURSE_LEVELS.length}`
+                      : `Task ${s.pos + 1} of ${s.queue.length}`
+                  }
+                  title={challenge.title}
+                  prompt={challenge.prompt}
+                />
+                <TaskHint
+                  challenge={challenge}
+                  attempt={s.attempt}
+                  onNextStep={() => s.hint("next_step")}
+                  onShowMe={() => showTheWay("show_me")}
+                  bare={warmup}
+                >
+                  {s.notice && (
+                    <StarLost
+                      notice={s.notice}
+                      lesson={pickedCar != null || warmup}
+                    />
+                  )}
+                  <BoardSignCue active />
+                </TaskHint>
+              </HudColumn>
+            </div>
           ) : (
             <span />
           )}
@@ -1182,6 +1199,7 @@ export function BoardGame() {
                 className={cn(
                   "flex items-center gap-2 rounded-md border-2 border-white/15 bg-[#101114]/85 px-2.5 py-1.5 font-mono text-[12px] font-bold",
                   sheetUp && "max-sm:hidden",
+                  awayForTurn(showing),
                 )}
               >
                 <Clock
@@ -1203,7 +1221,9 @@ export function BoardGame() {
               </div>
             )}
             {goalBox && (
-              <div className={cn(sheetUp && "max-sm:hidden")}>
+              <div
+                className={cn(sheetUp && "max-sm:hidden", awayForTurn(showing))}
+              >
                 <Minimap
                   svg={minimap}
                   live={s.phase === "driving"}
@@ -1230,7 +1250,8 @@ export function BoardGame() {
             sponsor={sponsor}
             lead="Car by"
             place="showcase"
-            className="dr-rise pointer-events-auto absolute inset-x-0 bottom-[calc(13.5rem+env(safe-area-inset-bottom))] z-30 mx-auto w-fit max-w-[calc(100%-2rem)] gap-2.5 rounded-md border border-white/15 bg-black/55 px-4 py-2.5 text-[15px] text-white backdrop-blur-sm"
+            // At the bottom edge, where the joystick was: clear of the car.
+            className="dr-rise pointer-events-auto absolute inset-x-0 bottom-[max(1.5rem,env(safe-area-inset-bottom))] z-30 mx-auto w-fit max-w-[calc(100%-2rem)] gap-2.5 rounded-md border border-white/15 bg-black/55 px-4 py-2.5 text-[15px] text-white backdrop-blur-sm"
           />
         )}
 
@@ -1285,19 +1306,23 @@ export function BoardGame() {
         challenge &&
         s.phase === "driving" &&
         !settingsOpen && (
-          <BoardFinishCue parks={taskParks(challenge)} onPeek={peek} />
+          <div className={awayForTurn(showing)}>
+            <BoardFinishCue parks={taskParks(challenge)} onPeek={peek} />
+          </div>
         )}
       {!unsupported && painted && s.mode === "drive" && (
-        <BoardControls
-          active={s.phase === "driving" && !held}
-          reverse={reverseTask}
-          quietHint={coaching && !warmup}
-          note={
-            reverseTask
-              ? "To reverse: stop, pull the joystick back and hold it. The back of the car goes where you point."
-              : undefined
-          }
-        />
+        <div className={awayForTurn(showing)}>
+          <BoardControls
+            active={s.phase === "driving" && !held && !showing}
+            reverse={reverseTask}
+            quietHint={coaching && !warmup}
+            note={
+              reverseTask
+                ? "To reverse: stop, pull the joystick back and hold it. The back of the car goes where you point."
+                : undefined
+            }
+          />
+        </div>
       )}
       {!unsupported &&
         painted &&
