@@ -552,6 +552,8 @@ function LanesLevel({
             ? "border-[#f6c416]/70 bg-white/5 text-white hover:bg-white/10"
             : chipOff,
           "flex w-full items-center gap-3 disabled:hover:bg-white/5",
+          // On a phone the panel has half the screen: one line per car.
+          compact && "max-sm:min-h-10 max-sm:py-1.5",
           !canTake && !isHome && "opacity-55",
         )}
       >
@@ -562,13 +564,15 @@ function LanesLevel({
         />
         <span className="min-w-0 flex-1">
           {compact && (
-            <span className="block font-mono text-[10px] font-bold uppercase tracking-widest text-white/55">
+            <span className="block font-mono text-[10px] font-bold uppercase tracking-widest text-white/55 max-sm:mr-1.5 max-sm:inline">
               Lane {car.lane}
             </span>
           )}
-          {car.option.label}{" "}
-          <span className="font-mono text-[11px] text-white/55">
-            {car.option.degrees}
+          <span className={cn(compact && "max-sm:truncate")}>
+            {car.option.label}{" "}
+            <span className="font-mono text-[11px] text-white/55">
+              {car.option.degrees}
+            </span>
           </span>
           {!compact && (
             <span className="mt-0.5 block text-[12px] leading-snug text-white/60">
@@ -576,7 +580,13 @@ function LanesLevel({
             </span>
           )}
           {!car.option.confirmed && (
-            <span className="mt-0.5 block text-[12px] font-semibold text-kenya-gold">
+            <span
+              className={cn(
+                "mt-0.5 block text-[12px] font-semibold text-kenya-gold",
+                // The full list under "Where each lane may go" still says it.
+                compact && "max-sm:hidden",
+              )}
+            >
               {UNSURE_NOTE}
             </span>
           )}
@@ -600,18 +610,18 @@ function LanesLevel({
   };
 
   return (
-    <div className="grid gap-3">
+    <div className="grid gap-3 max-sm:gap-2">
       {allHome && (
         <LevelDone level={level}>
           Every car is home. Level {level.n} done.
         </LevelDone>
       )}
       {!allHome && (
-        <div className="grid gap-2 rounded-md border-2 border-[#f6c416] bg-white/5 p-3">
-          <p className={eyebrow}>Do this</p>
-          <p className="m-0 text-[14.5px] font-semibold leading-snug text-white">
-            Drive each car to its place. Tap a car marked Drive, here or on the
-            table.
+        <div className="grid gap-2 rounded-md border-2 border-[#f6c416] bg-white/5 p-3 max-sm:gap-1.5 max-sm:p-2.5">
+          <p className={cn(eyebrow, "max-sm:hidden")}>Do this</p>
+          <p className="m-0 text-[14.5px] font-semibold leading-snug text-white max-sm:text-[14px]">
+            Drive each car to its place. Tap a car marked Drive
+            <span className="max-sm:hidden">, here or on the table</span>.
           </p>
           <div className="flex items-center justify-between gap-3">
             <p aria-live="polite" className={eyebrow}>
@@ -634,9 +644,12 @@ function LanesLevel({
       )}
 
       {ready.length > 0 && (
-        <section aria-label="Cars you can drive now" className="grid gap-1.5">
-          <p className={eyebrow}>Drive now</p>
-          <ul className="m-0 grid list-none gap-1.5 p-0">
+        <section
+          aria-label="Cars you can drive now"
+          className="grid gap-1.5 max-sm:gap-1"
+        >
+          <p className={cn(eyebrow, "max-sm:hidden")}>Drive now</p>
+          <ul className="m-0 grid list-none gap-1.5 p-0 max-sm:gap-1">
             {ready.map((car) => (
               <li key={car.id}>{carRow(car, true)}</li>
             ))}
@@ -902,7 +915,7 @@ export function BoardLevel({
         </header>
 
         <FootSlot.Provider value={foot}>
-          <div className="mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5 pb-4">
+          <div className="mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5 pb-4 max-sm:mt-2 max-sm:pb-3">
             {level.kind === "slides" ? (
               <SlidesLevel
                 level={level}
