@@ -62,6 +62,9 @@ export function useSkipAhead({
       <DialogContent
         titlebarLabel="Skip ahead?"
         closeAriaLabel="Close"
+        // The dialog's stamp shadow outranks a `shadow-none` class; flat here,
+        // like every other button and card in the game.
+        style={{ boxShadow: "none" }}
         className={cn(
           "rounded-soft border shadow-none",
           dark && "dark border-white/20 bg-background text-ink",
