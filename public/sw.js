@@ -237,6 +237,29 @@ async function networkFirst(request, isPage) {
   }
 }
 
+/**
+ * The routes the app asks for before moving to a page it has not loaded
+ * (`/__manifest?paths=…&version=…`). The query is the whole answer: which
+ * pages, for which build. So only that exact answer may come from the cache.
+ * Another one would tell the app the page does not exist ("No route
+ * matches"). Without it, the app is told to load the page whole, which the
+ * page cache or `/offline.html` then answers.
+ */
+async function routes(request) {
+  try {
+    const response = await fetch(request);
+    await put(PAGES, request, response);
+    return response;
+  } catch {
+    const hit = await caches.match(request);
+    if (hit) return hit;
+    return new Response(null, {
+      status: 204,
+      headers: { "X-Remix-Reload-Document": "true" },
+    });
+  }
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
@@ -255,8 +278,12 @@ self.addEventListener("fetch", (event) => {
   }
   // Only this worker reads the game's list, and it keeps its own copy.
   if (url.pathname === GAME_LIST) return;
+  if (url.pathname === "/__manifest") {
+    event.respondWith(routes(request));
+    return;
+  }
   // The data a page loads when it is moved to without a full load.
-  if (url.pathname.endsWith(".data") || url.pathname === "/__manifest") {
+  if (url.pathname.endsWith(".data")) {
     event.respondWith(networkFirst(request, false));
     return;
   }

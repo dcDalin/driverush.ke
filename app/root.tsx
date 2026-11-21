@@ -34,7 +34,8 @@ import {
   usePageviews,
 } from "~/lib/analytics";
 import { shouldMeasure } from "~/lib/bot-traffic";
-import { useFreshBuild } from "~/lib/fresh-build";
+import { loadWhole, shouldLoadWhole, useFreshBuild } from "~/lib/fresh-build";
+import { TrafficLoader } from "~/components/brand/traffic-loader";
 import { GA_MEASUREMENT_ID, gaHeadScript } from "~/lib/ga";
 import { useLearnerAnalytics } from "~/lib/use-learner-analytics";
 // Catches the browser's install prompt from the first load.
@@ -235,11 +236,26 @@ export default function App() {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  // A real page this build could not find after a move: load it whole
+  // instead of saying it is missing (see `shouldLoadWhole`).
+  const reloading = React.useMemo(() => shouldLoadWhole(error), [error]);
   React.useEffect(() => {
+    if (reloading) {
+      loadWhole();
+      return;
+    }
     void initAnalytics().then(() => {
       getPostHog()?.captureException(error);
     });
-  }, [error]);
+  }, [error, reloading]);
+
+  if (reloading) {
+    return (
+      <main className="grid min-h-[60vh] place-items-center">
+        <TrafficLoader size="md" aria-label="Loading the page" />
+      </main>
+    );
+  }
 
   let message = "Oops!";
   let details = "An unexpected error occurred.";

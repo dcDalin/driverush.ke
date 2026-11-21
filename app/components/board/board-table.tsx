@@ -762,6 +762,27 @@ const withMeshopt = (loader: GLTFLoader) => {
 };
 
 /**
+ * Asks once more, after a short wait, when a car's model fails to arrive. A
+ * phone on a weak line drops the odd download ("Load failed" on iPhones), and
+ * without the driven car's model the whole board shows its failure screen.
+ */
+class SturdyGLTFLoader extends GLTFLoader {
+  override load(
+    url: string,
+    onLoad: Parameters<GLTFLoader["load"]>[1],
+    onProgress?: Parameters<GLTFLoader["load"]>[2],
+    onError?: Parameters<GLTFLoader["load"]>[3],
+  ): void {
+    super.load(url, onLoad, onProgress, () => {
+      window.setTimeout(
+        () => super.load(url, onLoad, onProgress, onError),
+        1500,
+      );
+    });
+  }
+}
+
+/**
  * A car with a soft shadow under it, ready to be placed on the table. With a
  * downloaded model it is that car; with none it is the one built in code.
  */
@@ -1974,13 +1995,13 @@ type SceneProps = BoardTableProps & { shadow: number; onSlow: () => void };
  */
 function SceneWithCars(props: SceneProps) {
   const drivenUrl = srcOf(props.car);
-  const [driven] = useLoader(GLTFLoader, [drivenUrl], withMeshopt);
+  const [driven] = useLoader(SturdyGLTFLoader, [drivenUrl], withMeshopt);
   const [others, setOthers] = React.useState<
     Partial<Record<BoardCarId, THREE.Object3D>>
   >({});
   React.useEffect(() => {
     let alive = true;
-    const loader = new GLTFLoader();
+    const loader = new SturdyGLTFLoader();
     withMeshopt(loader);
     for (const entry of BOARD_CARS) {
       if (entry.src === drivenUrl) continue;

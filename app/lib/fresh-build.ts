@@ -83,3 +83,46 @@ export function useFreshBuild(): void {
     void check();
   }, [page, check]);
 }
+
+/** The address a "No route matches" reload was last made for. */
+const RELOADED_404 = "driverush:reloaded-404";
+
+/**
+ * A move inside the app that ends on "No route matches", on a page the server
+ * has. React Router finds pages it has not loaded yet by asking the server
+ * (`/__manifest`). After a deploy, or when an old page comes back from the
+ * browser's back cache, it can give up on that and call a real page missing.
+ * A whole load lets the server decide: a real page opens, a missing one comes
+ * back as the server's own "Road closed", which is then not reloaded again.
+ * Never true while rendering on the server or for the document's own address.
+ */
+export function shouldLoadWhole(error: unknown): boolean {
+  if (typeof window === "undefined") return false;
+  const response = error as { status?: unknown; internal?: unknown } | null;
+  if (response?.status !== 404 || response.internal !== true) return false;
+  const here = window.location.pathname;
+  const entry = performance.getEntriesByType?.("navigation")[0];
+  if (!entry) return false;
+  let loaded: string;
+  try {
+    loaded = new URL(entry.name).pathname;
+  } catch {
+    return false;
+  }
+  if (loaded === here) return false;
+  try {
+    return window.sessionStorage.getItem(RELOADED_404) !== here;
+  } catch {
+    return true;
+  }
+}
+
+/** Loads the address whole, once (see `shouldLoadWhole`). */
+export function loadWhole(): void {
+  try {
+    window.sessionStorage.setItem(RELOADED_404, window.location.pathname);
+  } catch {
+    // The document's own address still stops a second reload.
+  }
+  window.location.reload();
+}
