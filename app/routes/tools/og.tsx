@@ -425,25 +425,30 @@ const STILL_CARS = [
 ] as const;
 
 const STILL = {
-  // The moment the game is about: four numbered lanes and the roundabout
-  // ahead, and a lane to choose. Seen from behind the car, as on a phone.
-  // Wide enough for the whole roundabout and its cross (2026-11-21).
+  // The roundabout as a phone shows it while driving round: the whole ring,
+  // its pale cross and every road's mouth, with the yellow car going round in
+  // lane 2 towards the first exit (owner, 2026-11-21). A landscape picture
+  // needs a little more width than the phone's 47 m to fit the ring top to
+  // bottom. Seen from the south, as on a phone.
   seat: "south",
-  x: -3,
-  z: 24,
-  span: 76,
-  car: { x: -8.4, z: 38, heading: 8 },
-  steer: 0.25,
-  // on the roundabout instead, with `?at=<degrees>`
-  bearing: 205,
+  x: 0,
+  z: 3,
+  span: 54,
+  // On the ring at this bearing, in degrees. `?carx=` stands it on a road
+  // instead (the earlier picture: `x=-3&z=24&span=76&carx=-8.4`).
+  onRing: true,
+  bearing: 215,
   lane: 2,
+  car: { x: -8.4, z: 38, heading: 8 },
+  // a right lock to follow ring lane 2 round the island
+  steer: 0.17,
 };
 
 /**
  * Not a social card either: the picture of the board game, shown wherever
  * there is a way into it (`board-thumb.tsx`), and inside the board's social
  * card above. It is the game's own table, at its best quality, with the
- * yellow car coming up to the roundabout. Captured by the same script, then
+ * yellow car going round the roundabout. Captured by the same script, then
  * compressed into `public/assets/board/poster.jpg`.
  */
 function Board3D() {
@@ -457,9 +462,10 @@ function Board3D() {
   const span = num("span", STILL.span);
   const bearing = (num("at", STILL.bearing) * Math.PI) / 180;
   const seat = (params.get("seat") ?? STILL.seat) as Seat;
-  // `carx`, `carz` and `carh` (degrees) stand the car somewhere else, and
-  // `at` puts it on the roundabout.
-  const onRing = params.get("at") !== null;
+  // `at` puts the car on the roundabout at that bearing; `carx`, `carz` and
+  // `carh` (degrees) stand it on a road instead.
+  const onRing =
+    params.get("at") !== null || (STILL.onRing && params.get("carx") === null);
   const carX = onRing ? null : num("carx", STILL.car.x);
   const carZ = num("carz", STILL.car.z);
   const carH = (num("carh", STILL.car.heading) * Math.PI) / 180;
