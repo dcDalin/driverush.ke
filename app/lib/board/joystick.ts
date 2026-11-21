@@ -23,7 +23,6 @@ import {
   ARMS,
   ARM_ORDER,
   RING_OUTER_R,
-  TAU,
   bearingOf,
   dirOf,
   laneBearing,
@@ -62,10 +61,10 @@ export type DriveOptions = {
   guide?: (car: CarState) => { heading: number; along: number } | null;
   /**
    * Carry the car out of the roundabout. Pointing at an exit steers it into
-   * the exit lane its option leaves in (`LANE_OPTIONS`), and lane 4 is held
-   * past the straight-on exit until it has been once round. For the levels
-   * that are judged kindly; elsewhere leaving in the right lane is the
-   * learner's to do.
+   * the exit lane its option leaves in (`LANE_OPTIONS`). It only ever helps
+   * with the exit the thumb asks for: it never holds the car round against
+   * it. For the levels that are judged kindly; elsewhere leaving in the
+   * right lane is the learner's to do.
    */
   exitHold?: boolean;
   /**
@@ -91,9 +90,6 @@ export type AssistState = {
   entryArm?: ArmId | null;
   /** The lane it came up that road in, kept while it goes round. */
   fromLane?: number | null;
-  /** How far round the roundabout it has come, radians, and from where. */
-  circled?: number;
-  ringBearing?: number | null;
   /**
    * The ring lane it has settled in and is going round in. Turning out, the
    * car crosses the outer lanes; this stays the lane it came round in.
@@ -118,6 +114,15 @@ export type AssistState = {
   lean?: number;
   /** Just changed lane, and the knob still leans on: the next change waits longer. */
   again?: boolean;
+  /**
+   * The knob smoothed over `SMOOTH_TIME`, as a unit vector: what the thumb
+   * means, with the shake taken out. Null while let go.
+   */
+  steadyX?: number | null;
+  steadyZ?: number | null;
+  /** How long the thumb has pushed past the take angle, and whether it has the car. */
+  pushing?: number;
+  free?: boolean;
   /** The exit road the car has begun to turn off onto, with `exitHold`. */
   leaving?: string | null;
   /**
@@ -188,6 +193,22 @@ export const RING_CONE_OUT = (38 * Math.PI) / 180;
 const RING_CONE_LEAVE = (15 * Math.PI) / 180;
 /** The cone's edge is soft, so the assist fades rather than snaps. */
 const CONE_EDGE = (8 * Math.PI) / 180;
+
+/**
+ * Lane assist helps, the joystick decides. Within the cones above, the assist
+ * holds the lane, so a shaky or slightly-off thumb stays in it. A thumb that
+ * keeps pushing further off than this, smoothed over `SMOOTH_TIME` so a shake
+ * does not count, for `TAKE_TIME`, is the learner taking the car: the assist
+ * lets go altogether, whatever the lines say (the referee judges that), and
+ * takes the lane again once the thumb is back within `TAKE_BACK` of it.
+ */
+const TAKE_ROAD = (18 * Math.PI) / 180;
+/** Outward on the roundabout: a steady push out is leaving it. */
+const TAKE_RING_OUT = (22 * Math.PI) / 180;
+const TAKE_TIME = 0.2;
+const TAKE_BACK = (8 * Math.PI) / 180;
+/** Seconds the thumb is smoothed over, for telling a push from a shake. */
+const SMOOTH_TIME = 0.3;
 /** Sideways grip the assist drives within on the roundabout, m/s². */
 const BEND_GRIP = 3.2;
 /** On the roundabout the assist looks this share of the lane's radius ahead. */
@@ -368,15 +389,6 @@ export function exitAhead(
         turnBetween(from, id),
         ring,
       );
-      // Lane 4 goes straight on only once it has been right round: hold the
-      // ring past the exit the first time.
-      if (
-        rules.length &&
-        rules.every((rule) => rule.fullCircle) &&
-        (state?.circled ?? 0) < TAU
-      ) {
-        return "wait";
-      }
       if (rules.length) allowed = rules.map((rule) => rule.exit);
     }
     // Where the rule allows two, the task's lane, or else the one the knob
@@ -498,6 +510,9 @@ function laneAhead(
   /** How far the knob may point left and right of that and still be held. */
   left: number;
   right: number;
+  /** How far a steady push off the lane, to each side, takes the car. */
+  takeLeft: number;
+  takeRight: number;
   cap: number;
   /** The point on the lane being steered for. */
   aim: { x: number; z: number };
@@ -510,8 +525,6 @@ function laneAhead(
     state.entryArm = loc.side === "approach" ? loc.arm : null;
     state.fromLane = loc.side === "approach" ? loc.lane : null;
     state.roundLane = null;
-    state.circled = 0;
-    state.ringBearing = null;
     const toward = loc.side === "approach" ? -1 : 1;
     const runs = laneBearing(loc.arm, loc.side);
     const aim = lanePoint(
@@ -533,19 +546,14 @@ function laneAhead(
       along: runs,
       left: ROAD_CONE,
       right: ROAD_CONE,
+      takeLeft: TAKE_ROAD,
+      takeRight: TAKE_ROAD,
       cap: CAR.maxSpeed,
       aim,
     };
   }
 
   if (loc.kind === "ring") {
-    // How far round it has come, clockwise.
-    if (state.ringBearing != null) {
-      state.circled =
-        (state.circled ?? 0) +
-        Math.max(0, wrapPi(loc.bearing - state.ringBearing));
-    }
-    state.ringBearing = loc.bearing;
     // On the way in, head for the ring lane its option goes round in. After
     // that, hold whichever lane the car is in.
     let lane = loc.lane;
@@ -574,6 +582,10 @@ function laneAhead(
       // Clockwise: the lane runs a quarter turn on from the car's bearing.
       along: loc.bearing + Math.PI / 2,
       left: leaving ? RING_CONE_LEAVE : RING_CONE_OUT,
+      // clockwise, so left is out: pointing in, across the island, is how a
+      // thumb follows the bend, and never takes the car
+      takeLeft: TAKE_RING_OUT,
+      takeRight: Infinity,
       right: RING_CONE_IN,
       cap: Math.sqrt(BEND_GRIP * r),
       aim: { x: dir.x * r, z: dir.z * r },
@@ -599,6 +611,8 @@ function laneAhead(
         along: lane.heading,
         left: ROAD_CONE,
         right: ROAD_CONE,
+        takeLeft: TAKE_ROAD,
+        takeRight: TAKE_ROAD,
         cap: lane.road === "aisle" ? AISLE_SPEED : CAR.maxSpeed,
         aim: { x: lane.a.x + dir.x * ahead, z: lane.a.z + dir.z * ahead },
       };
@@ -606,6 +620,31 @@ function laneAhead(
   }
 
   return null;
+}
+
+/**
+ * The knob smoothed over `SMOOTH_TIME`: a shake about one way averages out, a
+ * push held one way comes through in a moment. Null while let go.
+ */
+function steadyKnob(state: AssistState, knob: number | null): number | null {
+  if (knob == null) {
+    state.steadyX = null;
+    state.steadyZ = null;
+    state.pushing = 0;
+    state.free = false;
+    return null;
+  }
+  const x = Math.sin(knob);
+  const z = -Math.cos(knob);
+  if (state.steadyX == null || state.steadyZ == null) {
+    state.steadyX = x;
+    state.steadyZ = z;
+  } else {
+    const k = Math.min(1, STEP / SMOOTH_TIME);
+    state.steadyX += (x - state.steadyX) * k;
+    state.steadyZ += (z - state.steadyZ) * k;
+  }
+  return bearingOf(state.steadyX, state.steadyZ);
 }
 
 export function stickToInput(
@@ -616,6 +655,10 @@ export function stickToInput(
   state: AssistState,
 ): void {
   const push = Math.min(1, Math.hypot(stick.x, stick.y));
+  const steady = steadyKnob(
+    state,
+    push < STICK_DEADZONE ? null : stickBearing(stick, options.seat),
+  );
   // Keep the assist's memory of the approach lane fresh even when coasting.
   const lane = options.assist
     ? laneAhead(
@@ -701,10 +744,21 @@ export function stickToInput(
   if (lane) {
     const off = wrapPi(knob - lane.along);
     const cone = off < 0 ? lane.left : lane.right;
-    const hold = Math.max(
-      0,
-      Math.min(1, (cone + CONE_EDGE - Math.abs(off)) / (2 * CONE_EDGE)),
-    );
+    // A steady push well past the lane is the learner's: let go altogether.
+    const steadyOff = wrapPi((steady ?? knob) - lane.along);
+    const take = steadyOff < 0 ? lane.takeLeft : lane.takeRight;
+    state.pushing =
+      Math.abs(steadyOff) > take ? (state.pushing ?? 0) + STEP : 0;
+    if (state.pushing > TAKE_TIME) state.free = true;
+    if (state.free && Math.abs(steadyOff) < take - TAKE_BACK) {
+      state.free = false;
+    }
+    const hold = state.free
+      ? 0
+      : Math.max(
+          0,
+          Math.min(1, (cone + CONE_EDGE - Math.abs(off)) / (2 * CONE_EDGE)),
+        );
     target = knob + hold * wrapPi(lane.heading - knob);
     cap = Math.min(cap, CAR.maxSpeed + hold * (lane.cap - CAR.maxSpeed));
     state.hold = hold;

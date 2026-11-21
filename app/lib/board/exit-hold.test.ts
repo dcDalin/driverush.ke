@@ -53,6 +53,10 @@ function driveHome(
       });
     }
   }
+  // Where along the line the thumb has got to. It follows the line in order,
+  // so a line that comes round past the same place twice (a full loop) is not
+  // skipped ahead on the first time past.
+  let along = 0;
   for (let i = 0; i < 90 * 60; i += 1) {
     const now = useBoardStore.getState();
     if (now.lanes?.picked == null || now.phase !== "driving") break;
@@ -62,13 +66,14 @@ function driveHome(
       at.arm === goal.arm &&
       at.side === "exit" &&
       at.along > (goal.alongMin + goal.alongMax) / 2 - 1;
-    let near = 0;
-    for (let k = 1; k < points.length; k += 1) {
+    let near = along;
+    for (let k = along + 1; k < Math.min(points.length, along + 40); k += 1) {
       const d = Math.hypot(points[k].x - car.x, points[k].z - car.z);
       if (d < Math.hypot(points[near].x - car.x, points[near].z - car.z)) {
         near = k;
       }
     }
+    along = near;
     const aim = points[Math.min(points.length - 1, near + 12)];
     // a thumb can be held a steady `bias` degrees off, and wobble about it
     const t = i / 60;
@@ -180,6 +185,36 @@ describe("lane assist out of the roundabout", () => {
         one.lane,
       );
     }
+  });
+
+  it("lets a once-round car take the exit it points at on the first pass", () => {
+    // The learner is in control: pointing straight up the road ahead, the
+    // lane 4 car is helped out there on its first pass instead of being held
+    // round. The referee says why that is wrong; the assist does not stop it.
+    const cars = queueCars("S");
+    const one = cars.find((c) => c.id === "rb:S4:straight")!;
+    useBoardStore.getState().exit();
+    useBoardStore.getState().startLevel("four-lane");
+    const ahead = cars.filter((c) => c.lane === one.lane && c.slot < one.slot);
+    useBoardStore.setState((s) => ({
+      lanes: {
+        ...s.lanes!,
+        rest: Object.fromEntries(
+          ahead.map((c, k) => [c.id, { x: 500 + k * 10, z: 500, heading: 0 }]),
+        ),
+      },
+    }));
+    useBoardStore.getState().pickCar(one.id);
+    let reachedTop = false;
+    hold(0, -1, () => {
+      const at = locate(car.x, car.z);
+      if (at.kind === "arm" && at.arm === "N" && at.side === "exit") {
+        reachedTop = true;
+      }
+      return reachedTop || useBoardStore.getState().fault != null;
+    });
+    const after = useBoardStore.getState();
+    expect(reachedTop || after.fault?.id === "wrong_exit").toBe(true);
   });
 
   it("takes every car of both line-ups home along its line", () => {

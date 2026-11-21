@@ -1422,6 +1422,10 @@ describe("leaving the route breaks no rule, but it is not a pass", () => {
     const s = roam("long-way-round", { aside: 3.6 });
     expect(s.phase).toBe("fault");
     expect(s.missed).toBe(false);
-    expect(s.fault?.id).toMatch(/exit_lane|roundabout_lane_change|wrong_exit/);
+    // The car goes where the thumb points, so the first rule it breaks may
+    // be a continuous line on the way in.
+    expect(s.fault?.id).toMatch(
+      /exit_lane|roundabout_lane_change|wrong_exit|solid_line/,
+    );
   });
 });
