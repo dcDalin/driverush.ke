@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   SHOW_OUT,
+  overCars,
   overFrame,
   SHOW_TOTAL,
   showcaseCamera,
@@ -77,5 +78,33 @@ describe("the opening close-up", () => {
     const atEdge =
       narrow.target.y + ((cam.y - narrow.target.y) * 5) / (cam.z - 5);
     expect(atEdge).toBeGreaterThan(frame.top);
+  });
+
+  it("looks over a car standing beside the one it shows, and only there", () => {
+    const car = { x: 0, z: 0 };
+    // one lane over, pointing the same way (along z)
+    const beside = [{ x: 3.5, z: 0, heading: 0 }];
+    const toward = Math.PI / 2;
+    const dist = 11;
+    const steep = overCars(car, toward, dist, beside);
+    // the sight line to the shown car's sills clears the standing car's top
+    const edge = 3.5 - 0.9 - 0.2;
+    expect(0.3 + edge * Math.tan(steep)).toBeGreaterThanOrEqual(2.2 - 1e-9);
+    // from the open side, and with nothing standing, the view stays low
+    expect(overCars(car, -toward, dist, beside)).toBe(0);
+    expect(overCars(car, toward, dist, [])).toBe(0);
+    // a car further out than the camera stands is behind it
+    expect(overCars(car, toward, 2, beside)).toBe(0);
+  });
+
+  it("eases up to a standing car and down again, never a jump", () => {
+    const car = { x: 0, z: 0 };
+    const beside = [{ x: 3.5, z: 0, heading: 0 }];
+    let last = overCars(car, 0, 11, beside);
+    for (let a = 0.02; a <= Math.PI; a += 0.02) {
+      const now = overCars(car, a, 11, beside);
+      expect(Math.abs(now - last)).toBeLessThan(0.05);
+      last = now;
+    }
   });
 });

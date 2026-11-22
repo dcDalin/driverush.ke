@@ -2026,7 +2026,6 @@ function Scene({
     // The opening close-up, blended over the seat's view: the seat's view
     // keeps running underneath, so going back to it is seamless.
     let closeUp = 0;
-    let closeDist = 0;
     if (r.show > 0) {
       const pose = showcasePose({
         left: r.show,
@@ -2035,10 +2034,11 @@ function Scene({
         aspect,
         halfV,
         frame: SHOWCASE_FRAME,
+        // The cars standing by: the camera looks over them, upright or not.
+        cars: view.others.length ? view.others : challenge?.otherCars,
       });
       const at = showcaseCamera(pose);
       closeUp = pose.weight;
-      closeDist = pose.dist;
       camX = lerp(camX, at.x, closeUp);
       camY = lerp(camY, at.y, closeUp);
       camZ = lerp(camZ, at.z, closeUp);
@@ -2048,16 +2048,12 @@ function Scene({
     }
     state.camera.position.set(camX, camY, camZ);
     state.camera.lookAt(aimX, aimY, aimZ);
-    // A car taken from a line-up has its turn to itself: the cars standing
-    // where the camera goes round it are out of sight until it is over.
-    const clear = closeUp > 0.35 ? closeDist + 3 : 0;
+    // A car still waiting for its paint stays out of sight (`dress`). The
+    // rest stand where they are through the turn round the car: the turn
+    // shows the board as it is (owner, 2026-11-22).
     others.forEach((other, i) => {
       if (!challenge?.otherCars[i]?.school) return;
-      other.visible =
-        !other.userData.waiting &&
-        (!clear ||
-          Math.hypot(other.position.x - car.x, other.position.z - car.z) >
-            clear);
+      other.visible = !other.userData.waiting;
     });
 
     // The sun's shadows are spent on the part of the board in view: closed in

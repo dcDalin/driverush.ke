@@ -68,6 +68,7 @@ export function showcasePose({
   aspect,
   halfV,
   frame,
+  cars,
 }: {
   left: number;
   seatAngle: number;
@@ -80,6 +81,12 @@ export function showcasePose({
    * enough to see the car over the frame.
    */
   frame?: { x0: number; x1: number; z0: number; z1: number; top: number };
+  /**
+   * The other cars standing on the table (a lane lesson's line-up). They stay
+   * where they are for the turn, which shows the board as it is (owner,
+   * 2026-11-22): passing one, the camera rises to look over it.
+   */
+  cars?: readonly Standing[];
 }): ShowcasePose {
   const t = SHOW_TOTAL - clamp(left, 0, SHOW_TOTAL);
   const weight =
@@ -97,6 +104,7 @@ export function showcasePose({
   let dist = Math.max(FRAME_DEEP / (2 * tanV), FRAME_ACROSS / (2 * tanH));
   const angle = seatAngle + spun * 2 * Math.PI;
   let tilt = TILT + RISE * Math.sin(Math.PI * round);
+  if (cars?.length) tilt = Math.max(tilt, overCars(car, angle, dist, cars));
   if (frame) {
     const lift = overFrame(car, angle, dist * Math.cos(tilt), frame);
     if (lift > dist * Math.sin(tilt)) {
@@ -112,6 +120,62 @@ export function showcasePose({
     dist,
     target: { x: car.x, y: TARGET_Y, z: car.z },
   };
+}
+
+/** A car standing on the table: where its middle is and which way it points. */
+export type Standing = { x: number; z: number; heading: number };
+
+/** A standing car's top, with a school's name board on its roof (metres). */
+const CAR_TOP = 2.2;
+/** The lowest part of the shown car the camera must still see: its sills. */
+const SILL = 0.3;
+const HALF_LONG = 2.1;
+const HALF_WIDE = 0.9;
+/** The steepest the camera looks down to clear a car right beside it. */
+const STEEPEST = (56 * Math.PI) / 180;
+/** A car this far off the line of sight (radians) is fully in the way... */
+const IN_THE_WAY = (28 * Math.PI) / 180;
+/** ...and one this far off it is not in the way at all. */
+const OUT_OF_THE_WAY = (72 * Math.PI) / 180;
+
+/**
+ * How steeply the camera must look down, `dist` metres out at `angle`, to
+ * see the car over the cars standing between it and the camera. It eases up
+ * and down as the camera passes each one, so the turn stays smooth. 0 with
+ * nothing in the way.
+ */
+export function overCars(
+  car: { x: number; z: number },
+  angle: number,
+  dist: number,
+  cars: readonly Standing[],
+): number {
+  let need = 0;
+  for (const other of cars) {
+    const dx = other.x - car.x;
+    const dz = other.z - car.z;
+    const away = Math.hypot(dx, dz);
+    if (away < 0.5) continue;
+    const bearing = Math.atan2(dx, dz);
+    // How much of it lies toward the shown car, given the way it points.
+    const turned = bearing - other.heading;
+    const reach =
+      Math.abs(Math.cos(turned)) * HALF_LONG +
+      Math.abs(Math.sin(turned)) * HALF_WIDE;
+    const edge = Math.max(0.8, away - reach - 0.2);
+    // Further out than the camera stands: behind it, not in the way.
+    if (edge >= dist) continue;
+    const off = Math.abs(
+      Math.atan2(Math.sin(angle - bearing), Math.cos(angle - bearing)),
+    );
+    const inWay =
+      1 -
+      smooth(clamp((off - IN_THE_WAY) / (OUT_OF_THE_WAY - IN_THE_WAY), 0, 1));
+    if (inWay <= 0) continue;
+    const steep = Math.min(STEEPEST, Math.atan2(CAR_TOP - SILL, edge));
+    need = Math.max(need, steep * inWay);
+  }
+  return need;
 }
 
 /** Clearance over the frame's top, in metres. */
