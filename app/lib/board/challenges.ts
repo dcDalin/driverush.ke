@@ -69,6 +69,11 @@ export type TurnChallenge = TaskBase & {
   start: { arm: ArmId; lane: number; along: number };
   turn: Turn;
   goal: BoardGoal;
+  /**
+   * The one lane option this car must drive, in a lane options lesson: any
+   * other way through, even one its lane may take, ends the attempt.
+   */
+  option?: { ring: number; fullCircle: boolean };
 };
 
 export type RouteChallenge = TaskBase & {

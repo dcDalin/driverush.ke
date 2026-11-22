@@ -211,7 +211,7 @@ const UNIT_DEFS: readonly {
         },
         {
           title: "Only the innermost lane goes all the way round",
-          note: "Lane 4 is the only lane that may make a full circle (360°) from the four-lane road, and the only one that may make a 270° turn from the three-lane road. Lanes 3, 2 and 1 may not make a full circle.",
+          note: "Lane 4 is the only lane that may make a full circle (360°) from the four-lane road, and the only one that may make a 270° turn from the three-lane road. Lanes 3, 2 and 1 may not make a full circle, and lane 4 goes round once only, never twice.",
           at: "island",
         },
         {

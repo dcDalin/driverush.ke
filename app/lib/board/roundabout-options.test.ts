@@ -272,6 +272,7 @@ describe("the referee follows the table", () => {
       task("W", 3, "back", 3),
       lanePath("W", 3, "back", 62, 56, 0, { ring: 3, exit: 3 }),
     );
-    expect(outcome.fault).toMatchObject({ id: "wrong_exit", ring: 3 });
+    // ring lane 3's last exit is the right turn: it is stopped going past it
+    expect(outcome.fault).toMatchObject({ id: "missed_exit", ring: 3 });
   });
 });

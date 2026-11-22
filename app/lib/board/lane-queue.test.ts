@@ -253,20 +253,25 @@ describe("the lane options line-up", () => {
     playLesson("W", (front) => front[front.length - 1]);
   });
 
-  it("a car taken out of another exit its lane may take has left its route", () => {
+  it("stops a car taken out of another exit its lane may take", () => {
     const cars = queueCars("S");
     const left = cars.find((c) => c.lane === 1 && c.option.turn === "left");
     const straight = cars.find(
       (c) => c.lane === 1 && c.option.turn === "straight",
     );
     if (!left || !straight) throw new Error("lane 1 has both");
-    // told to go straight on, it turns left
+    // told to go straight on, it turns left: a lesson car drives its own
+    // option and no other (owner, 2026-11-22)
     const outcome = driveAlong(
       queueChallenge(cars, straight, {}),
       left.option.route.points,
     );
     expect(outcome.goal).toBe(false);
-    expect(outcome.fault).toBeUndefined();
-    expect(outcome.deviation?.id).toBe("wrong_destination");
+    expect(outcome.fault).toMatchObject({
+      id: "wrong_option",
+      lane: 1,
+      turn: "left",
+      asked: "straight",
+    });
   });
 });

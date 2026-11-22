@@ -4,7 +4,7 @@
  * the NTSA Kenya Learner Driver Handbook, Unit 3, and the lane options the way
  * Perez's Model Town Board tutorial teaches them (`LANE_OPTIONS`).
  */
-import { lanesForTurn, type Turn } from "./geometry";
+import { lanesForTurn, rulesFor, type LaneRule, type Turn } from "./geometry";
 import type { Fault, FaultId } from "./referee";
 
 export const RULES_SOURCE = "Kenya Learner Driver Handbook, NTSA";
@@ -79,6 +79,33 @@ export function laneRule(lanes: number, lane: number): string {
   return "Lane 3 has five options: go straight (0°) or turn right (90°) into lane 3, maintaining lane 3; or shift to lane 4 to turn right (90°) into lane 4, U-turn (180°) or Q-turn (270°).";
 }
 
+/** One option in a sentence, with the degrees schools count for it. */
+function optionWords(rule: LaneRule, outs: number): string {
+  const into = outs > 1 ? ` into lane ${rule.exit}` : "";
+  const name =
+    rule.turn === "back"
+      ? "make the U-turn"
+      : rule.turn === "left" && rule.fullCircle
+        ? "make the Q-turn"
+        : rule.turn === "straight" && rule.fullCircle
+          ? "go straight after a full loop"
+          : `${TURN_VERB[rule.turn]}${into}`;
+  return `${name} (${rule.degrees}°)`;
+}
+
+/** The option a lane makes for one turn in one roundabout lane, in words. */
+function optionFor(
+  lanes: number,
+  lane: number,
+  turn: Turn,
+  ring: number | undefined,
+): string {
+  const rule = rulesFor(lanes, lane, turn, ring)[0];
+  return rule
+    ? optionWords(rule, rulesFor(lanes, lane, turn).length)
+    : TURN_VERB[turn];
+}
+
 /** Which lane to leave in, the rule the exit-lane fault points to. */
 const EXIT_RULE =
   "Maintain your lane to exit. From lane 3 or 4 of the major road onto the minor road, exit lane = entry lane minus 1.";
@@ -129,6 +156,16 @@ const RULES: Record<FaultId, RuleWords> = {
   full_circle: {
     title: "All the way round",
     rule: "Only lane 4, the innermost lane, may make a full circle.",
+  },
+  missed_exit: {
+    title: "Past your last exit",
+    rule: "Leave at your option's exit. Only the innermost lane goes once round first, and never twice.",
+    source: OPTIONS_SOURCE,
+  },
+  wrong_option: {
+    title: "Not this car's option",
+    rule: "Drive the option the car was given: its turn, its roundabout lane and its exit lane.",
+    source: OPTIONS_SOURCE,
   },
   collision: {
     title: "You hit the red car",
@@ -214,6 +251,28 @@ function reasonFor(fault: Fault): string {
       return "You crossed the continuous yellow centre line into the lane coming the other way. A continuous yellow line means stay on your side: no overtaking and no turning across it. You may cross only where the yellow line is broken.";
     case "full_circle":
       return `You went all the way round after entering in lane ${fault.lane ?? 1}. Only the innermost lane, lane 4, may make a full circle (360°). Lanes 3, 2 and 1 take their exit the first time they reach it.`;
+    case "missed_exit": {
+      const lanes = fault.lanes ?? 4;
+      const lane = fault.lane ?? 1;
+      const inner = (fault.ring ?? lane) === 4;
+      return `You went on round past the last exit your lane may take. ${laneRule(lanes, lane)} ${
+        inner
+          ? "The innermost lane goes once round the island only for the Q-turn (270°) and the 360°, and leaves the next time it reaches that exit. It never goes round twice."
+          : "Lanes 1 to 3 take their exit the first time they reach it, and never go all the way round."
+      } Count the exits as you go: left is the first, straight the second, right the third.`;
+    }
+    case "wrong_option": {
+      const lanes = fault.lanes ?? 4;
+      const lane = fault.lane ?? 1;
+      const asked = optionFor(
+        lanes,
+        lane,
+        fault.asked ?? "straight",
+        fault.askedRing,
+      );
+      const did = optionFor(lanes, lane, fault.turn ?? "straight", fault.ring);
+      return `This car was given lane ${lane}'s option to ${asked}, but you drove the option to ${did}. Both are options of lane ${lane}, but in this lesson each car shows one, so only its own counts. ${laneRule(lanes, lane)}`;
+    }
     case "collision":
       return fault.block
         ? "You drove into the upside-down car. An instructor turns a car over to close that way, so you may not touch it or squeeze past it. Look for it before you set off, then take the next correct route: the shortest one that is still open, without using the parking area unless nothing else is left."

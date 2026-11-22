@@ -251,6 +251,7 @@ export function queueChallenge(
     start: { arm: car.arm, lane: car.lane, along: car.along },
     turn: car.option.turn,
     goal,
+    option: { ring: car.option.ringLane, fullCircle: car.option.fullCircle },
     otherCars: queueStanding(cars, rest, car.id),
   };
 }

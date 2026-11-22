@@ -313,6 +313,50 @@ export function lanesForTurn(lanes: number, turn: Turn): number[] {
   return out;
 }
 
+// ---- degrees round the roundabout --------------------------------------------
+
+/**
+ * How far round, clockwise, from the middle of the road in to the middle of the
+ * road out: a quarter turn for left, half for straight, three quarters for
+ * right, and the whole circle to come back. A car leaves before it reaches the
+ * middle of the road out, since that road's way out is the half before it.
+ */
+export function turnSweep(turn: Turn): number {
+  return { left: 0.5, straight: 1, right: 1.5, back: 2 }[turn] * Math.PI;
+}
+
+/**
+ * How far round one option goes, loop included: 90° to 360° of sweep, plus a
+ * whole circle for the Q-turn and the 360°.
+ */
+export function optionSweep(rule: LaneRule): number {
+  return turnSweep(rule.turn) + (rule.fullCircle ? TAU : 0);
+}
+
+/**
+ * How many full loops a car made before leaving by `turn`, from how far round
+ * it had come from the middle of its road in. It always leaves less than a
+ * quarter circle before the middle of the road out, so rounding is safe.
+ */
+export function loopsAt(turn: Turn, progress: number): number {
+  return Math.round((progress - turnSweep(turn)) / TAU) || 0;
+}
+
+/**
+ * The furthest round one approach lane may go in one roundabout lane: the
+ * sweep of its last exit. Past the middle of that road there is no exit left.
+ */
+export function lastExitSweep(
+  lanes: number,
+  lane: number,
+  ring: number,
+): number {
+  const sweeps = laneRules(lanes, lane)
+    .filter((rule) => rule.ring === ring)
+    .map(optionSweep);
+  return sweeps.length ? Math.max(...sweeps) : 0;
+}
+
 /** The option code for a road: how many options each lane has, kerb lane first. */
 export const OPTION_CODES: Record<number, string> = { 4: "2124", 3: "215" };
 

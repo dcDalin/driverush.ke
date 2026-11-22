@@ -762,8 +762,9 @@ describe("serious mistakes end the attempt", () => {
   });
 
   it("lane 1 turning right", () => {
+    // stopped on the roundabout once past the straight exit, its last
     const result = proper(task("right", 1), 1);
-    expect(result.fault).toMatchObject({ id: "wrong_exit", lane: 1 });
+    expect(result.fault).toMatchObject({ id: "missed_exit", lane: 1 });
   });
 
   it("a legal turn that isn't the one asked for", () => {
@@ -787,17 +788,18 @@ describe("serious mistakes end the attempt", () => {
       challenge,
       follower(challenge, lanePath("S", 2, "straight", 56, 56, 1)),
     );
-    expect(result.fault).toMatchObject({ id: "full_circle", lane: 2 });
+    expect(result.fault).toMatchObject({ id: "missed_exit", lane: 2 });
   });
 
-  it("but lane 4 may go round and round", () => {
+  it("and lane 4 not round more than its option", () => {
+    // a U-turn is 180°: going round again first is past its last exit
     const challenge = task("back", 4);
     const result = play(
       challenge,
-      follower(challenge, lanePath("S", 4, "back", 56, 56, 2)),
+      follower(challenge, lanePath("S", 4, "back", 56, 56, 1)),
     );
-    expect(result.fault).toBeUndefined();
-    expect(result.goal).toBe(true);
+    expect(result.fault).toMatchObject({ id: "missed_exit", lane: 4, ring: 4 });
+    expect(result.goal).toBe(false);
   });
 
   it("driving against the traffic", () => {

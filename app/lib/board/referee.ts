@@ -34,7 +34,10 @@ export type SeriousFaultId =
   | "wrong_destination"
   | "wrong_way"
   | "centre_line"
+  /** No longer judged: `missed_exit` stops a car sooner. Kept for saved runs. */
   | "full_circle"
+  | "missed_exit"
+  | "wrong_option"
   | "collision"
   | "past_end"
   | "off_route"
@@ -69,6 +72,8 @@ export const STOPS_ALWAYS: ReadonlySet<FaultId> = new Set<FaultId>([
   "exit_lane",
   "u_turn_lane",
   "full_circle",
+  "missed_exit",
+  "wrong_option",
   "wrong_lane",
 ]);
 
@@ -93,6 +98,8 @@ export type Fault = {
   lane?: number;
   /** The roundabout lane the car went round in, for exit faults. */
   ring?: number;
+  /** The roundabout lane the car's option goes round in, in a lane lesson. */
+  askedRing?: number;
   /** Lane 4 left straight on without first going right round. */
   circle?: boolean;
   /** The lanes the car should have left the roundabout in. */
@@ -180,6 +187,27 @@ export function refStep(
   }
   ref.offRoute = 0;
   if (loc.kind === "ring") return result;
+
+  // A car of a lane options lesson drives its own option and no other: its
+  // exit, and its roundabout lane where the lane has two for that exit.
+  const option = challenge.option;
+  if (
+    road.exited &&
+    option &&
+    (road.exited.arm !== challenge.goal.arm || road.exited.ring !== option.ring)
+  ) {
+    result.fault = {
+      id: "wrong_option",
+      serious: true,
+      lane: road.exited.entryLane,
+      lanes: ARMS[road.exited.entryArm].lanes,
+      turn: road.exited.turn,
+      ring: road.exited.ring,
+      asked: challenge.turn,
+      askedRing: option.ring,
+    };
+    return result;
+  }
 
   // A legal exit, but not the one the task asked for.
   if (road.exited && road.exited.arm !== challenge.goal.arm) {

@@ -5,7 +5,8 @@
  *
  * It ends the attempt for crossing or driving along a continuous line,
  * changing lanes on the roundabout, leaving it by an exit its lane cannot
- * take or in the wrong lane, going all the way round from an outer lane,
+ * take or in the wrong lane, going on round past the last exit its lane's
+ * options allow (the degrees the lane options count),
  * turning back through a gap from the wrong lane, driving against the
  * traffic, and running a stop line. It takes a star for bumping a kerb, the
  * reserve or the island, and for standing on the roundabout, on a pedestrian
@@ -23,10 +24,13 @@ import {
   RING_LANE_W,
   RING_OUTER_R,
   TAU,
+  bearingOf,
   dirOf,
   exitLanes,
   laneBearing,
+  lastExitSweep,
   locate,
+  loopsAt,
   ringLanes,
   rulesFor,
   turnBetween,
@@ -55,6 +59,13 @@ type RingVisit = {
   /** How far round it had come when it reached its ring lane. */
   joinedAt: number;
   total: number;
+  /**
+   * How far round it has come from the middle of the road it came in on,
+   * clockwise, in radians: the degrees the lane options count.
+   */
+  progress: number;
+  /** Its first step on the roundabout has set where `progress` starts. */
+  started: boolean;
   lastBearing: number | null;
   /** The car has reached its ring lane. */
   joined: boolean;
@@ -124,7 +135,14 @@ export type RoadResult = {
   frame: boolean;
   loc: Location;
   /** The car has just left the roundabout, by an exit its lane may take. */
-  exited?: { entryArm: ArmId; entryLane: number; arm: ArmId; turn: Turn };
+  exited?: {
+    entryArm: ArmId;
+    entryLane: number;
+    arm: ArmId;
+    turn: Turn;
+    /** The roundabout lane it went round in. */
+    ring: number;
+  };
 };
 
 export type RoadOptions = {
@@ -173,6 +191,11 @@ const SETTLE = 0.5;
 const LINE_GRACE = 0.3;
 /** One bump, one star: leaning on a kerb doesn't keep costing. */
 const BUMP_COOLDOWN = 1.5;
+/**
+ * This far past the middle of the road its last option leaves by, a car on the
+ * roundabout has gone past every exit its lane may take.
+ */
+const PAST_EXIT = (12 * Math.PI) / 180;
 /** The lane a car leaves the roundabout in is judged over this many metres. */
 const LEAVING_REACH = 9;
 /** The middle of the car this near the middle of a crossing is on its bars. */
@@ -496,6 +519,8 @@ export function roadStep(
         rings: rings.length ? rings : [lane],
         joinedAt: 0,
         total: 0,
+        progress: 0,
+        started: false,
         lastBearing: null,
         joined: false,
         left: false,
@@ -523,6 +548,13 @@ export function roadStep(
       if (visit.lastBearing != null) {
         step = Math.max(0, wrapPi(loc.bearing - visit.lastBearing));
         visit.total += step;
+        visit.progress += step;
+      } else if (!visit.started) {
+        // Where it came on, measured from the middle of its road in.
+        const { out } = ARMS[visit.entryArm];
+        // A car cutting in may come on a little before the middle of it.
+        visit.progress = wrapPi(loc.bearing - bearingOf(out.x, out.z));
+        visit.started = true;
       }
       visit.lastBearing = loc.bearing;
 
@@ -536,12 +568,18 @@ export function roadStep(
         return result;
       }
 
-      // Only the innermost lane may go all the way round.
-      if (visit.ring < RING_LANES && visit.total > TAU + 0.12) {
+      // Past the last exit its options allow: lanes 1 to 3 never go all the
+      // way round, and the innermost lane goes once round at most, for the
+      // Q-turn and the 360°.
+      const lanes = ARMS[visit.entryArm].lanes;
+      const last = lastExitSweep(lanes, visit.entryLane, visit.ring);
+      if (last > 0 && visit.progress > last + PAST_EXIT) {
         result.fault = {
-          id: "full_circle",
+          id: "missed_exit",
           serious: true,
           lane: visit.entryLane,
+          lanes,
+          ring: visit.ring,
         };
       }
     }
@@ -567,10 +605,24 @@ export function roadStep(
       // The exit has to be one of the lane's options through the ring lane
       // it went round in.
       const rules = rulesFor(lanes, visit.entryLane, turn, visit.ring);
-      // Lane 4 goes straight on only once it has been right round.
+      // Each option goes round a set number of times: once for the Q-turn
+      // and the 360°, never for the rest.
+      const loops = loopsAt(turn, visit.progress);
       const circled = rules.filter(
-        (rule) => !rule.fullCircle || visit.total > TAU,
+        (rule) => (rule.fullCircle ? 1 : 0) === loops,
       );
+      // One turn in one roundabout lane is one option: more loops than it
+      // makes is going on past the exit, fewer is leaving too soon.
+      if (rules.length && !circled.length && loops > 0) {
+        result.fault = {
+          id: "missed_exit",
+          serious: true,
+          lane: visit.entryLane,
+          lanes,
+          ring: visit.ring,
+        };
+        return result;
+      }
       if (!circled.length) {
         result.fault = {
           id: "wrong_exit",
@@ -588,6 +640,7 @@ export function roadStep(
         entryLane: visit.entryLane,
         arm: loc.arm,
         turn,
+        ring: visit.ring,
       };
       // A lane change on the roundabout has been dealt with already.
       if (!visit.told) {
