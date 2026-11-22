@@ -49,6 +49,22 @@ export function BoardCarPicks({
       ref={root}
       className="pointer-events-none absolute inset-0 z-10 overflow-hidden"
     >
+      {/*
+        Two layers. Seen side-on the lanes are closer on screen than a thumb
+        is wide, so one car's roomy tap area lies over the number of the car
+        in the next lane: the numbers go on top of every tap area, and a tap
+        on a number always takes that car.
+      */}
+      {cars.map((car) => (
+        <div
+          key={car.id}
+          aria-hidden
+          data-pick={car.id}
+          onClick={() => onPick(car.id)}
+          style={{ visibility: "hidden" }}
+          className="pointer-events-auto absolute left-0 top-0 h-11 w-8"
+        />
+      ))}
       {cars.map((car) => (
         <button
           key={car.id}
@@ -57,7 +73,7 @@ export function BoardCarPicks({
           onClick={() => onPick(car.id)}
           aria-label={`Drive the lane ${car.lane} car: ${car.option.label}`}
           style={{ visibility: "hidden" }}
-          className="pointer-events-auto absolute left-0 top-0 flex min-h-11 min-w-8 flex-col items-center justify-end pb-0.5 outline-none"
+          className="pointer-events-auto absolute left-0 top-0 flex flex-col items-center pb-0.5 outline-none"
         >
           <span className="rounded-md border-2 border-[#17181b] bg-[#f6c416] px-1.5 py-0.5 font-mono text-[11px] font-bold leading-none text-[#17181b]">
             {car.lane}
