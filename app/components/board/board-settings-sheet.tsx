@@ -6,6 +6,7 @@ import * as React from "react";
 
 import {
   BOARD_CARS,
+  CAR_THUMB_SIZE,
   CC_BY,
   type BoardCarId,
   type BoardCarSetting,
@@ -16,7 +17,8 @@ import { useBoardStore, type BoardQuality } from "~/lib/board-store";
 import { useVisitSponsor } from "~/lib/board/sponsor-visit";
 import { cn } from "~/lib/utils";
 
-import { RoadIcon, SoundIcon } from "~/components/brand/icons";
+import { Icon } from "~/components/brand/icon";
+import { RoadIcon, ShuffleIcon, SoundIcon } from "~/components/brand/icons";
 import { SettingSection, ToggleRow } from "~/components/brand/setting-controls";
 import { Button } from "~/components/ui/button";
 import { SponsorCredit } from "~/components/board/sponsor-credit";
@@ -39,9 +41,18 @@ const SEAT_LABEL: Record<Seat, string> = {
 /** The board, small, as it lies on the table: the bottom side nearest. */
 const TABLE = fullBoardSvg({ numbers: false });
 
-const CAR_CHOICES: { value: BoardCarSetting; label: string }[] = [
-  { value: "random", label: "Surprise me" },
-  ...BOARD_CARS.map((car) => ({ value: car.id, label: car.label })),
+/** `thumb`: the vehicle's picture. "Surprise me" has none, and shows an icon. */
+const CAR_CHOICES: {
+  value: BoardCarSetting;
+  label: string;
+  thumb: string | null;
+}[] = [
+  { value: "random", label: "Surprise me", thumb: null },
+  ...BOARD_CARS.map((car) => ({
+    value: car.id,
+    label: car.label,
+    thumb: car.thumb,
+  })),
 ];
 const CAR_LABEL = Object.fromEntries(
   BOARD_CARS.map((car) => [car.id, car.label]),
@@ -163,10 +174,33 @@ export function BoardSettingsSheet({
                   onClick={() => setSetting({ car: choice.value })}
                   className={cn(
                     CHOICE,
+                    "flex flex-col p-0",
                     choice.value === carChoice ? CHOICE_ON : CHOICE_OFF,
                   )}
                 >
-                  {choice.label}
+                  {/* The picture keeps its own plain ground, chosen or not:
+                      the cars are gold, and would be lost on the gold of a
+                      chosen button. */}
+                  <span
+                    aria-hidden
+                    className="flex h-[4.75rem] w-full items-end justify-center bg-surface px-2 pt-2 pb-1.5 text-ink"
+                  >
+                    {choice.thumb ? (
+                      <img
+                        src={choice.thumb}
+                        alt=""
+                        width={CAR_THUMB_SIZE.width}
+                        height={CAR_THUMB_SIZE.height}
+                        loading="lazy"
+                        decoding="async"
+                        draggable={false}
+                        className="h-full w-full object-contain object-bottom"
+                      />
+                    ) : (
+                      <Icon icon={ShuffleIcon} size={34} className="mb-2.5" />
+                    )}
+                  </span>
+                  <span className="w-full px-2 py-1.5">{choice.label}</span>
                 </button>
               ))}
             </div>

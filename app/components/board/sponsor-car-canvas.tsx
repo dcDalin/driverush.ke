@@ -129,6 +129,7 @@ export default function SponsorCarCanvas({
   view,
   roll = false,
   steer = false,
+  bare = false,
 }: {
   car?: BoardCarId;
   wrapUrl: string | null;
@@ -140,6 +141,11 @@ export default function SponsorCarCanvas({
   roll?: boolean;
   /** Swing the front wheels from lock to lock. */
   steer?: boolean;
+  /**
+   * The car alone on a clear background, with no ground under it: for the
+   * small pictures in the car menu (`/tools/car-thumb`).
+   */
+  bare?: boolean;
 }) {
   return (
     <Canvas
@@ -151,13 +157,15 @@ export default function SponsorCarCanvas({
         gl.toneMappingExposure = 0.95;
       }}
     >
-      <color attach="background" args={["#4f4c47"]} />
+      {!bare && <color attach="background" args={["#4f4c47"]} />}
       <hemisphereLight args={["#ffffff", "#6b6155", 1.4]} />
       <directionalLight position={[6, 10, 4]} intensity={2.2} />
-      <mesh rotation-x={-Math.PI / 2} position-y={-0.001}>
-        <planeGeometry args={[14, 14]} />
-        <meshStandardMaterial color="#1b1c1f" roughness={0.95} />
-      </mesh>
+      {!bare && (
+        <mesh rotation-x={-Math.PI / 2} position-y={-0.001}>
+          <planeGeometry args={[14, 14]} />
+          <meshStandardMaterial color="#1b1c1f" roughness={0.95} />
+        </mesh>
+      )}
       <React.Suspense fallback={null}>
         <Car
           key={car}

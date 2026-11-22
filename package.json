@@ -5,6 +5,7 @@
   "scripts": {
     "build:cars": "node scripts/build-real-cars.mjs && node scripts/build-car-wrap.mjs",
     "build:car-wrap": "node scripts/build-car-wrap.mjs",
+    "build:car-thumbs": "node scripts/build-car-thumbs.mjs",
     "build:sponsors": "node scripts/build-sponsor-art.mjs",
     "render:sponsor": "node scripts/render-sponsor-car.mjs",
     "build": "react-router build && node scripts/upload-sourcemaps.mjs",

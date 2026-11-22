@@ -1,3 +1,6 @@
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import { CAR } from "./car";
@@ -15,6 +18,15 @@ import { BOARD_CHALLENGES } from "./challenges";
 import { taskUsesAngleBay } from "./lessons";
 
 describe("board cars", () => {
+  it("has a picture of every car for the menu, saved for offline", () => {
+    const sw = readFileSync(path.resolve("public/sw.js"), "utf8");
+    for (const car of BOARD_CARS) {
+      const file = car.thumb.split("?")[0];
+      expect(existsSync(path.resolve(`public${file}`)), car.id).toBe(true);
+      expect(sw, car.id).toContain(`"${car.thumb}"`);
+    }
+  });
+
   it("gives the car the learner chose, whatever the roll", () => {
     for (const car of BOARD_CARS) {
       expect(resolveCar(car.id, 0)).toBe(car.id);

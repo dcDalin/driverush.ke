@@ -40,10 +40,14 @@ export const BOARD_CARS = [
   // every wheel true on its axle, round and standing on the road.
   // A new address, so no cache hands out an old one. Keep public/sw.js's
   // BOARD_FILES in step.
+  // `thumb`: its small picture for the car menu, taken off the model by
+  // `npm run build:car-thumbs`. Take them again when a model changes, and
+  // give them a new `?v=` here and in sw.js.
   {
     id: "saloon",
     label: "Saloon",
     src: "/assets/board/cars/saloon.glb?v=6",
+    thumb: "/assets/board/cars/thumbs/saloon.webp?v=1",
     size: CAR_SIZE,
     model: {
       by: "Armored Wave",
@@ -55,6 +59,7 @@ export const BOARD_CARS = [
     id: "hatchback",
     label: "Hatchback",
     src: "/assets/board/cars/hatchback.glb?v=6",
+    thumb: "/assets/board/cars/thumbs/hatchback.webp?v=1",
     size: CAR_SIZE,
     model: {
       by: "snowcappedandescrash",
@@ -66,6 +71,7 @@ export const BOARD_CARS = [
     id: "wagon",
     label: "Wagon",
     src: "/assets/board/cars/wagon.glb?v=6",
+    thumb: "/assets/board/cars/thumbs/wagon.webp?v=1",
     size: CAR_SIZE,
     model: {
       by: "tnikita",
@@ -77,6 +83,7 @@ export const BOARD_CARS = [
     id: "pickup",
     label: "Pickup",
     src: "/assets/board/cars/pickup.glb?v=6",
+    thumb: "/assets/board/cars/thumbs/pickup.webp?v=1",
     size: CAR_SIZE,
     model: {
       by: "David_Holiday",
@@ -88,6 +95,7 @@ export const BOARD_CARS = [
     id: "suv",
     label: "SUV",
     src: "/assets/board/cars/suv.glb?v=6",
+    thumb: "/assets/board/cars/thumbs/suv.webp?v=1",
     size: CAR_SIZE,
     model: {
       by: "Daniel Zhabotinsky",
@@ -101,6 +109,7 @@ export const BOARD_CARS = [
     id: "van",
     label: "Van",
     src: "/assets/board/cars/van.glb?v=2",
+    thumb: "/assets/board/cars/thumbs/van.webp?v=1",
     size: { length: 4.74, width: 1.85, wheelbase: 2.55, height: 1.92 },
     big: true,
     model: {
@@ -113,6 +122,7 @@ export const BOARD_CARS = [
     id: "lorry",
     label: "Lorry",
     src: "/assets/board/cars/lorry.glb?v=2",
+    thumb: "/assets/board/cars/thumbs/lorry.webp?v=1",
     // Its axles are 3.2 m apart, but it steers by a car's wheelbase: a
     // cab-over lorry's front wheels turn further than a car's, and the turn
     // through a gap in the central reserve is laid out for a car's circle.
@@ -126,6 +136,9 @@ export const BOARD_CARS = [
     },
   },
 ] as const;
+
+/** The size every `thumb` is saved at: scripts/build-car-thumbs.mjs. */
+export const CAR_THUMB_SIZE = { width: 320, height: 166 } as const;
 
 /** The licence most of the models are shared under, which asks for a credit. */
 export const CC_BY = "https://creativecommons.org/licenses/by/4.0/";

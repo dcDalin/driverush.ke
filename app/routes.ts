@@ -95,5 +95,7 @@ export default [
     // Outside the dashboard layout on purpose: `?card=<id>` must render the
     // card alone so a 1200×630 screenshot contains nothing else.
     route("og", "routes/tools/og.tsx"),
+    // The same, for the small car pictures in the board's car menu.
+    route("car-thumb", "routes/tools/car-thumb.tsx"),
   ]),
 ] satisfies RouteConfig;
