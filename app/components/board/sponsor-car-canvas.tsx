@@ -4,13 +4,14 @@
  * what a learner at the table sees. Loaded lazily: all of three is in here.
  */
 import * as React from "react";
-import { Canvas, useLoader, useThree } from "@react-three/fiber";
+import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 import { carFromGltf } from "~/components/board/car-glb";
+import type { CarModel } from "~/components/board/car-model";
 import {
   loadPicture,
   loadWrap,
@@ -27,11 +28,15 @@ function Car({
   wrapUrl,
   base,
   topBoard,
+  roll,
+  steer,
 }: {
   src: string;
   wrapUrl: string | null;
   base: string;
   topBoard: TopBoard | null;
+  roll: boolean;
+  steer: boolean;
 }) {
   const gltf = useLoader(GLTFLoader, src, (loader) =>
     loader.setMeshoptDecoder(MeshoptDecoder),
@@ -78,6 +83,20 @@ function Car({
       texture?.dispose();
     };
   }, [holder, topBoard, invalidate]);
+  // The wheels, turned the way the board turns them (board-table.tsx): each
+  // about its own axle at walking pace, the front pair swung lock to lock.
+  // A wheel that is not true on its axle shows here at once.
+  useFrame((state, dt) => {
+    const model = holder.userData.model as CarModel;
+    if (roll) {
+      for (const wheel of model.userData.wheels) {
+        const radius = (wheel.userData.radius as number | undefined) ?? 0.32;
+        wheel.rotation.x -= (1.4 * Math.min(dt, 0.05)) / radius;
+      }
+    }
+    const lock = steer ? Math.sin(state.clock.elapsedTime * 1.2) * 0.45 : 0;
+    for (const hub of model.userData.steering) hub.rotation.y = -lock;
+  });
   return <primitive object={holder} />;
 }
 
@@ -108,6 +127,8 @@ export default function SponsorCarCanvas({
   base,
   topBoard = null,
   view,
+  roll = false,
+  steer = false,
 }: {
   car?: BoardCarId;
   wrapUrl: string | null;
@@ -115,6 +136,10 @@ export default function SponsorCarCanvas({
   /** The school's roof board, if it has one. */
   topBoard?: TopBoard | null;
   view: CarView;
+  /** Turn the wheels, to check them. */
+  roll?: boolean;
+  /** Swing the front wheels from lock to lock. */
+  steer?: boolean;
 }) {
   return (
     <Canvas
@@ -140,6 +165,8 @@ export default function SponsorCarCanvas({
           wrapUrl={wrapUrl}
           base={base}
           topBoard={topBoard}
+          roll={roll}
+          steer={steer}
         />
       </React.Suspense>
       <OrbitControls

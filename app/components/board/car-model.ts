@@ -285,7 +285,10 @@ export type CarModel = THREE.Group & {
   userData: {
     /** The tail lamps, so the scene can light them when the car brakes. */
     tail: THREE.MeshStandardMaterial;
-    /** All four wheels. Turn each about its `x` to roll it. */
+    /**
+     * All four wheels. Turn each about its `x` to roll it. A wheel with a
+     * radius of its own carries it as `userData.radius`.
+     */
     wheels: THREE.Group[];
     /** The front pair. Turn each about its `y` to steer it. */
     steering: THREE.Group[];

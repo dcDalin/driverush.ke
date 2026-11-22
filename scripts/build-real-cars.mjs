@@ -81,18 +81,25 @@ const TEXTURE_SIZE = 512;
  *   tail    rear lamps
  *   wheel   tyres, rims and brakes; split into four by which corner they sit at
  */
-/** The Probox's tyres and rims share materials with its bodywork and lamps. */
+/**
+ * The Probox's tyres and rims share materials with its bodywork and lamps.
+ * Cast wide: it must catch the whole tyre, tread and all. What it catches
+ * beyond the tyre, `trueWheels` hands back to the body.
+ */
 const proboxWheel = ([x, y, z]) =>
   Math.abs(x + 0.945) > 0.55 &&
-  y < 0.66 &&
-  (Math.hypot(y - 0.31, z - 0.72) < 0.34 ||
-    Math.hypot(y - 0.31, z - 3.29) < 0.34);
+  y < 0.72 &&
+  (Math.hypot(y - 0.31, z - 0.72) < 0.39 ||
+    Math.hypot(y - 0.31, z - 3.29) < 0.39);
 
-/** The Hilux's tyres and rims share materials with its flares and bumpers (cm). */
+/**
+ * The Hilux's tyres and rims share materials with its flares and bumpers
+ * (cm). Cast wide, like the Probox's.
+ */
 const hiluxWheel = ([x, y, z]) =>
   Math.abs(x + 77) > 45 &&
-  y < 82 &&
-  (Math.hypot(y - 44, z + 2) < 34.5 || Math.hypot(y - 44, z - 287) < 34.5);
+  y < 88 &&
+  (Math.hypot(y - 44, z + 2) < 40 || Math.hypot(y - 44, z - 287) < 40);
 
 /** The lorry's axles: front and rear, by how far along the model they sit. */
 const lorryAxle = ([, , z]) =>
@@ -221,22 +228,6 @@ const CARS = {
       [/\|Glass_basic_white$/, "glass"],
       [/\|Default_1[12]$/, "tail"],
       [/\|(PL1_0|Pl2_0|Default_9|Default_10|Targa_[01])$/, "drop"], // plates
-    ],
-  },
-  // Isuzu Elf truck XYZ by ann_fenek, CC BY 4.0: an Elf with a minibus body.
-  // True to size.
-  minibus: {
-    dir: "minibus",
-    nose: "+x",
-    // The model's own length; the width leaves room for its mirrors.
-    fit: { length: 6.14, width: 2.6 },
-    rules: [
-      // A Maya model: one plain material for each kind of surface.
-      [/^pasted__pasted__pasted__pasted__pCylinder1_/, "wheel"],
-      // Its cream top and green skirt both take paint.
-      [/\|lambert(3|5)$/, "paint"],
-      [/\|lambert8$/, "glass"],
-      [/\|lambert11$/, "tail"],
     ],
   },
 };
@@ -750,6 +741,15 @@ async function build(id, car) {
     (z - centre[2]) * scale,
   ];
   for (const part of parts) part.positions = part.positions.map(place);
+  // Across the car, the middle is the bodywork's: a mirror or an aerial on
+  // one side only must not push the whole car off its line.
+  {
+    const paintBox = boxOf(of("paint").flatMap((p) => p.positions));
+    const off = (paintBox.min[0] + paintBox.max[0]) / 2;
+    for (const part of parts) {
+      part.positions = part.positions.map(([x, y, z]) => [x - off, y, z]);
+    }
+  }
 
   // Wheels: every wheel triangle goes to the corner it sits at.
   const wheels = { fl: [], fr: [], rl: [], rr: [] };
@@ -783,6 +783,10 @@ async function build(id, car) {
       }
     }
   }
+
+  // Each wheel on its own true axle, round, upright and standing on the road,
+  // the same distance either side of the car (`trueWheels`).
+  const axles = trueWheels(id, wheels, parts);
 
   // ---- the document ----
   const doc = new Document();
@@ -899,10 +903,8 @@ async function build(id, car) {
 
   let radius = 0;
   for (const [key, list] of Object.entries(wheels)) {
-    if (!list.length) throw new Error(`${id}: no wheel at ${key}`);
-    const b = boxOf(list.flatMap((p) => p.positions));
-    const origin = b.min.map((v, k) => (v + b.max[k]) / 2);
-    radius = Math.max(radius, b.size[1] / 2);
+    const { origin, radius: own } = axles[key];
+    radius = Math.max(radius, own);
     const byMat = new Map();
     for (const part of list) {
       const l = byMat.get(part.material) ?? [];
@@ -915,7 +917,8 @@ async function build(id, car) {
         primitive(join(l), ownMaterial(source), origin),
       ),
       origin,
-    );
+      // Its own radius: the board rolls each wheel by it.
+    ).setExtras({ radius: Number(own.toFixed(4)) });
   }
   root.setExtras({ wheelRadius: Number(radius.toFixed(3)), smooth: true });
 
@@ -941,6 +944,31 @@ async function build(id, car) {
           (car.simplifyError ?? 0.004) * (mesh.getName() === "paint" ? 0.5 : 1),
       });
     }
+  }
+  // Thinning can wear a tyre's tread down by a few millimetres. Each wheel is
+  // measured again as it now is, and stood on the road by that.
+  {
+    let widest = 0;
+    for (const node of doc.getRoot().listNodes()) {
+      if (!/^wheel_/.test(node.getName())) continue;
+      const points = [];
+      for (const prim of node.getMesh().listPrimitives()) {
+        const at = prim.getAttribute("POSITION");
+        const indices = prim.getIndices();
+        const count = indices ? indices.getCount() : at.getCount();
+        for (let i = 0; i < count; i += 1) {
+          points.push(at.getElement(indices ? indices.getScalar(i) : i, []));
+        }
+      }
+      // About its own axle, which is its node's origin.
+      const own = tyreRadius(points, { y: 0, z: 0 });
+      const [x, , z] = node.getTranslation();
+      node.setTranslation([x, own, z]);
+      node.setExtras({ radius: Number(own.toFixed(4)) });
+      widest = Math.max(widest, own);
+    }
+    radius = widest;
+    root.setExtras({ wheelRadius: Number(radius.toFixed(3)), smooth: true });
   }
   for (const mesh of doc.getRoot().listMeshes()) {
     for (const prim of mesh.listPrimitives()) creaseNormals(doc, buffer, prim);
@@ -989,6 +1017,439 @@ async function build(id, car) {
       `${id}: ${Math.round(kb)} kB is over the ${BUDGET_KB} kB budget`,
     );
   }
+}
+
+// ---- true wheels ------------------------------------------------------------------
+
+/** A repeatable stand-in for chance, so a build always comes out the same. */
+function seeded(seed) {
+  let n = seed >>> 0;
+  return () => {
+    n = (Math.imul(n, 1664525) + 1013904223) >>> 0;
+    return n / 4294967296;
+  };
+}
+
+/** The circle through three points of the side view (y, z), or null. */
+function circleOf([y1, z1], [y2, z2], [y3, z3]) {
+  const d = 2 * (y1 * (z2 - z3) + y2 * (z3 - z1) + y3 * (z1 - z2));
+  if (Math.abs(d) < 1e-9) return null;
+  const s1 = y1 * y1 + z1 * z1;
+  const s2 = y2 * y2 + z2 * z2;
+  const s3 = y3 * y3 + z3 * z3;
+  const y = (s1 * (z2 - z3) + s2 * (z3 - z1) + s3 * (z1 - z2)) / d;
+  const z = (s1 * (y3 - y2) + s2 * (y1 - y3) + s3 * (y2 - y1)) / d;
+  return { y, z, r: Math.hypot(y1 - y, z1 - z) };
+}
+
+const SECTORS = 36;
+const sectorOf = (y, z, c) =>
+  Math.floor(
+    ((Math.atan2(y - c.y, z - c.z) + Math.PI) / (2 * Math.PI)) * SECTORS,
+  ) % SECTORS;
+
+/**
+ * Where a wheel's axle really is, seen from the side. A wheel is rings about
+ * its axle (the tread, the rim, the hub), so the centre that the most points
+ * sit in rings about, all the way round, is the axle. The middle of the
+ * wheel's box is not: one stray part moves it.
+ */
+function axleOf(all, random) {
+  // Only the surfaces that face outward from the axle (the tread, the rim's
+  // barrel, a disc's edge): a wheel's flat faces fill the side view, and any
+  // circle drawn across them would look like a ring.
+  const points = [];
+  for (let i = 0; i < all.length; i += 3) {
+    const [a, b, c] = [all[i], all[i + 1], all[i + 2]];
+    const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+    const w = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+    const n = [
+      u[1] * w[2] - u[2] * w[1],
+      u[2] * w[0] - u[0] * w[2],
+      u[0] * w[1] - u[1] * w[0],
+    ];
+    const l = Math.hypot(...n);
+    if (l > 1e-12 && Math.abs(n[0]) / l < 0.3) points.push(a, b, c);
+  }
+  if (points.length < 9) points.push(...all);
+  const box = boxOf(all);
+  const size = Math.max(box.size[1], box.size[2]);
+  const near = size * 0.012;
+  let best = null;
+  for (let i = 0; i < 900; i += 1) {
+    const pick = () => points[Math.floor(random() * points.length)];
+    const [a, b, c] = [pick(), pick(), pick()];
+    const circle = circleOf([a[1], a[2]], [b[1], b[2]], [c[1], c[2]]);
+    if (!circle || circle.r < size * 0.15 || circle.r > size * 0.7) continue;
+    const seen = new Set();
+    let count = 0;
+    for (const p of points) {
+      if (
+        Math.abs(Math.hypot(p[1] - circle.y, p[2] - circle.z) - circle.r) < near
+      ) {
+        count += 1;
+        seen.add(sectorOf(p[1], p[2], circle));
+      }
+    }
+    const score = seen.size * 1e6 + count;
+    if (!best || score > best.score) best = { ...circle, score };
+  }
+  if (!best) throw new Error("no ring found in a wheel");
+  // Settle it on every point of that ring.
+  const ring = points.filter(
+    (p) => Math.abs(Math.hypot(p[1] - best.y, p[2] - best.z) - best.r) < near,
+  );
+  return circleThrough(ring) ?? { y: best.y, z: best.z };
+}
+
+/** The circle that best passes through points of the side view, by least squares. */
+function circleThrough(ring) {
+  let sy = 0;
+  let sz = 0;
+  let syy = 0;
+  let szz = 0;
+  let syz = 0;
+  let sy3 = 0;
+  let sz3 = 0;
+  let syzz = 0;
+  let syyz = 0;
+  for (const [, y, z] of ring) {
+    sy += y;
+    sz += z;
+    syy += y * y;
+    szz += z * z;
+    syz += y * z;
+    sy3 += y * y * y;
+    sz3 += z * z * z;
+    syzz += y * z * z;
+    syyz += y * y * z;
+  }
+  const m = [
+    [syy, syz, sy],
+    [syz, szz, sz],
+    [sy, sz, ring.length],
+  ];
+  const v = [-(sy3 + syzz), -(syyz + sz3), -(syy + szz)];
+  const det = (q) =>
+    q[0][0] * (q[1][1] * q[2][2] - q[1][2] * q[2][1]) -
+    q[0][1] * (q[1][0] * q[2][2] - q[1][2] * q[2][0]) +
+    q[0][2] * (q[1][0] * q[2][1] - q[1][1] * q[2][0]);
+  const d = det(m);
+  if (ring.length < 6 || Math.abs(d) < 1e-12) return null;
+  const col = (k) => m.map((row, i) => row.map((x, j) => (j === k ? v[i] : x)));
+  return { y: -det(col(0)) / d / 2, z: -det(col(1)) / d / 2 };
+}
+
+/**
+ * A wheel's axle and its tyre's radius. The axle is found from its rings,
+ * then settled on the tyre's own tread, the biggest and truest of them.
+ */
+function wheelCircle(points, random) {
+  let axle = axleOf(points, random);
+  let radius = tyreRadius(points, axle);
+  for (let pass = 0; pass < 3; pass += 1) {
+    const tread = points.filter((p) => {
+      const r = Math.hypot(p[1] - axle.y, p[2] - axle.z);
+      return r > radius * 0.94 && r < radius + 0.004;
+    });
+    const settled = circleThrough(tread);
+    if (!settled) break;
+    axle = settled;
+    radius = tyreRadius(points, axle);
+  }
+  return { axle, radius };
+}
+
+/**
+ * Points along every edge of a wheel's triangles (`points` is three to a
+ * triangle). A tyre drawn with few sides has few corners: its edges say
+ * where its surface is between them.
+ */
+function alongEdges(points) {
+  const out = [];
+  for (let i = 0; i < points.length; i += 3) {
+    for (let e = 0; e < 3; e += 1) {
+      const a = points[i + e];
+      const b = points[i + ((e + 1) % 3)];
+      for (let s = 0; s < 10; s += 1) {
+        const t = s / 10;
+        out.push([
+          a[0] + (b[0] - a[0]) * t,
+          a[1] + (b[1] - a[1]) * t,
+          a[2] + (b[2] - a[2]) * t,
+        ]);
+      }
+    }
+  }
+  return out;
+}
+
+/** How far out a wheel reaches in each direction about an axle. */
+function reachRound(points, axle) {
+  const reach = new Array(SECTORS).fill(0);
+  for (const p of alongEdges(points)) {
+    const k = sectorOf(p[1], p[2], axle);
+    reach[k] = Math.max(reach[k], Math.hypot(p[1] - axle.y, p[2] - axle.z));
+  }
+  return reach;
+}
+
+/**
+ * The tyre's radius about an axle: the furthest out that the wheel still goes
+ * all the way round. A mudflap or a piece of arch further out does not.
+ */
+function tyreRadius(points, axle) {
+  const samples = alongEdges(points);
+  const radii = samples.map((p) => Math.hypot(p[1] - axle.y, p[2] - axle.z));
+  const sectors = samples.map((p) => sectorOf(p[1], p[2], axle));
+  const furthest = Math.max(...radii);
+  for (let r = furthest; r > furthest * 0.4; r -= 0.002) {
+    // A tyre of few sides dips between its corners: a band that deep.
+    const band = Math.max(0.008, r * 0.05);
+    const seen = new Set();
+    radii.forEach((own, i) => {
+      if (own <= r + 0.001 && own > r - band) seen.add(sectors[i]);
+    });
+    if (seen.size >= SECTORS - 2) {
+      // How far out it reaches in most directions, not in its furthest one:
+      // a valve or a scrap of mudflap must not make the tyre seem bigger.
+      const reach = new Array(SECTORS).fill(0);
+      radii.forEach((own, i) => {
+        if (own <= r + 0.001)
+          reach[sectors[i]] = Math.max(reach[sectors[i]], own);
+      });
+      reach.sort((p, q) => p - q);
+      return reach[Math.floor(SECTORS * 0.85)];
+    }
+  }
+  throw new Error("a wheel with no tyre all the way round");
+}
+
+/** Which way a wheel's axle points: the direction it is thinnest in. */
+function axisOf(tris) {
+  // About the wheel's own middle (by area): measured about any other point,
+  // a hub or a brake set to one side would read as a lean.
+  const centre = [0, 0, 0];
+  let whole = 0;
+  for (const [a, b, d] of tris) {
+    const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+    const w = [d[0] - a[0], d[1] - a[1], d[2] - a[2]];
+    const area =
+      Math.hypot(
+        u[1] * w[2] - u[2] * w[1],
+        u[2] * w[0] - u[0] * w[2],
+        u[0] * w[1] - u[1] * w[0],
+      ) / 2;
+    whole += area;
+    for (let k = 0; k < 3; k += 1) {
+      centre[k] += (area * (a[k] + b[k] + d[k])) / 3;
+    }
+  }
+  for (let k = 0; k < 3; k += 1) centre[k] /= whole;
+  const c = [
+    [0, 0, 0],
+    [0, 0, 0],
+    [0, 0, 0],
+  ];
+  let total = 0;
+  for (const tri of tris) {
+    const [a, b, d] = tri;
+    const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+    const w = [d[0] - a[0], d[1] - a[1], d[2] - a[2]];
+    const area =
+      Math.hypot(
+        u[1] * w[2] - u[2] * w[1],
+        u[2] * w[0] - u[0] * w[2],
+        u[0] * w[1] - u[1] * w[0],
+      ) / 2;
+    const p = [0, 1, 2].map((k) => (a[k] + b[k] + d[k]) / 3 - centre[k]);
+    total += area;
+    for (let i = 0; i < 3; i += 1) {
+      for (let j = 0; j < 3; j += 1) c[i][j] += area * p[i] * p[j];
+    }
+  }
+  const mul = (q, x) =>
+    q.map((row) => row[0] * x[0] + row[1] * x[1] + row[2] * x[2]);
+  const unit = (x) => {
+    const l = Math.hypot(...x);
+    return x.map((k) => k / l);
+  };
+  const strongest = (q, start) => {
+    let x = unit(start);
+    for (let i = 0; i < 300; i += 1) x = unit(mul(q, x));
+    return x;
+  };
+  for (const row of c) for (let j = 0; j < 3; j += 1) row[j] /= total;
+  const v1 = strongest(c, [0.1, 1, 0.3]);
+  const l1 = mul(c, v1).reduce((sum, x, i) => sum + x * v1[i], 0);
+  const rest = c.map((row, i) => row.map((x, j) => x - l1 * v1[i] * v1[j]));
+  const v2 = strongest(rest, [0.3, 0.2, 1]);
+  const axis = unit([
+    v1[1] * v2[2] - v1[2] * v2[1],
+    v1[2] * v2[0] - v1[0] * v2[2],
+    v1[0] * v2[1] - v1[1] * v2[0],
+  ]);
+  return axis[0] < 0 ? axis.map((k) => -k) : axis;
+}
+
+/** Turn a point about `centre` so that `axis` comes to lie along x. */
+function squareTo(axis, centre) {
+  // Rodrigues: about (axis x X), by the angle between them.
+  const k = [0, axis[2], -axis[1]];
+  const sin = Math.hypot(...k);
+  const cos = axis[0];
+  if (sin < 1e-9) return (p) => p;
+  const u = k.map((x) => x / sin);
+  return (p) => {
+    const q = [p[0] - centre[0], p[1] - centre[1], p[2] - centre[2]];
+    const dot = u[0] * q[0] + u[1] * q[1] + u[2] * q[2];
+    const cross = [
+      u[1] * q[2] - u[2] * q[1],
+      u[2] * q[0] - u[0] * q[2],
+      u[0] * q[1] - u[1] * q[0],
+    ];
+    return [0, 1, 2].map(
+      (i) => centre[i] + q[i] * cos + cross[i] * sin + u[i] * dot * (1 - cos),
+    );
+  };
+}
+
+/** A wheel may be this far out, in metres or degrees, and no further. */
+const WHEEL_TRUE = { round: 0.006, tilt: 0.4 };
+
+/**
+ * Makes each of a car's four wheels true, in place, and says where its axle
+ * is and how big it is: { fl: { origin, radius }, ... }.
+ *
+ *   - its axle is found from its own rings, not from its box
+ *   - anything further out than its tyre (a piece of arch, a mudflap) goes
+ *     back to the body, so it neither spins nor moves the axle
+ *   - a wheel modelled leaning is stood square, so it can spin without wobble
+ *   - a pair is the same size, at the same place along the car and the same
+ *     distance either side of it
+ *   - every tyre stands on the road
+ *
+ * It throws if a wheel is still not round or square after that: the car's
+ * rules have caught something that is not a wheel.
+ */
+function trueWheels(id, wheels, parts) {
+  const random = seeded(20261122);
+  const found = {};
+  for (const [key, list] of Object.entries(wheels)) {
+    if (!list.length) throw new Error(`${id}: no wheel at ${key}`);
+    let points = list.flatMap((p) => p.positions);
+    let axle;
+    let radius;
+    try {
+      ({ axle, radius } = wheelCircle(points, random));
+    } catch (error) {
+      throw new Error(`${id}: wheel ${key}: ${error.message}`);
+    }
+    // Strays: back to the body.
+    // Well clear of the tyre: a stray is a hand's width out, not a hair's.
+    const reach = radius + Math.max(0.006, radius * 0.05);
+    for (const part of [...list]) {
+      const keep = [];
+      const stray = [];
+      for (let i = 0; i < part.positions.length; i += 3) {
+        const out = [0, 1, 2].some(
+          (k) =>
+            Math.hypot(
+              part.positions[i + k][1] - axle.y,
+              part.positions[i + k][2] - axle.z,
+            ) > reach,
+        );
+        (out ? stray : keep).push(i);
+      }
+      if (!stray.length) continue;
+      const pick = (starts, from) =>
+        from && starts.flatMap((i) => [from[i], from[i + 1], from[i + 2]]);
+      parts.push({
+        ...part,
+        as: "body",
+        positions: pick(stray, part.positions),
+        normals: pick(stray, part.normals),
+        uvs: pick(stray, part.uvs),
+      });
+      part.positions = pick(keep, part.positions);
+      part.normals = pick(keep, part.normals);
+      part.uvs = pick(keep, part.uvs);
+    }
+    wheels[key] = list.filter((p) => p.positions.length);
+    points = wheels[key].flatMap((p) => p.positions);
+    ({ axle, radius } = wheelCircle(points, random));
+
+    // Stood square: its axle along the car's cross axis.
+    const box = boxOf(points);
+    const centre = [(box.min[0] + box.max[0]) / 2, axle.y, axle.z];
+    const tris = [];
+    for (let i = 0; i < points.length; i += 3)
+      tris.push(points.slice(i, i + 3));
+    const axis = axisOf(tris);
+    const tilt = (Math.acos(Math.min(1, axis[0])) * 180) / Math.PI;
+    if (tilt > 0.05) {
+      const square = squareTo(axis, centre);
+      for (const part of wheels[key])
+        part.positions = part.positions.map(square);
+      points = wheels[key].flatMap((p) => p.positions);
+      ({ axle, radius } = wheelCircle(points, random));
+    }
+    const squared = boxOf(points);
+    found[key] = {
+      x: (squared.min[0] + squared.max[0]) / 2,
+      y: axle.y,
+      z: axle.z,
+      radius,
+      was: tilt,
+    };
+  }
+
+  // A pair is one size, level along the car, and even either side of it.
+  const out = {};
+  for (const end of ["f", "r"]) {
+    const left = found[`${end}l`];
+    const right = found[`${end}r`];
+    const radius = (left.radius + right.radius) / 2;
+    const z = (left.z + right.z) / 2;
+    const out0 = (Math.abs(left.x) + Math.abs(right.x)) / 2;
+    for (const [side, one] of [
+      ["l", left],
+      ["r", right],
+    ]) {
+      const key = `${end}${side}`;
+      // Standing on the road, which is y = 0.
+      const origin = [side === "l" ? -out0 : out0, radius, z];
+      const grow = radius / one.radius;
+      const move = ([x, y, zz]) => [
+        origin[0] + (x - one.x) * grow,
+        origin[1] + (y - one.y) * grow,
+        origin[2] + (zz - one.z) * grow,
+      ];
+      for (const part of wheels[key]) part.positions = part.positions.map(move);
+      out[key] = { origin, radius };
+    }
+  }
+
+  // Checked, not trusted.
+  for (const [key, { origin, radius }] of Object.entries(out)) {
+    const points = wheels[key].flatMap((p) => p.positions);
+    const sectors = reachRound(points, { y: origin[1], z: origin[2] });
+    const runout = Math.max(...sectors) - Math.min(...sectors);
+    const tris = [];
+    for (let i = 0; i < points.length; i += 3)
+      tris.push(points.slice(i, i + 3));
+    const axis = axisOf(tris);
+    const tilt = (Math.acos(Math.min(1, axis[0])) * 180) / Math.PI;
+    // A tyre drawn with few sides is a polygon: its corners and flats differ
+    // by a little more than a fine one's.
+    const allowed = Math.max(WHEEL_TRUE.round, radius * 0.05);
+    if (runout > allowed || tilt > WHEEL_TRUE.tilt) {
+      throw new Error(
+        `${id}: wheel ${key} is not true (out of round by ${(runout * 1000).toFixed(0)} mm, axle leaning ${tilt.toFixed(1)}°). Its rules catch something that is not the wheel.`,
+      );
+    }
+  }
+  return out;
 }
 
 /**
@@ -1073,11 +1534,16 @@ async function borrowedWheels(id, car, all, parts) {
   const wMid = wBox.min.map((v, k) => (v + wBox.max[k]) / 2);
   const wRadius = wBox.size[1] / 2;
 
+  // One tyre size for all four, as on a real car: the one that fills most of
+  // the bigger arch, kept inside the smaller one.
+  const fill = car.tyreFill ?? 0.86;
+  const radius = Math.min(
+    Math.max(arches.f.half, arches.r.half) * fill,
+    Math.min(arches.f.half, arches.r.half) * 0.97,
+  );
   const out = [];
   for (const end of ["f", "r"]) {
     const a = arches[end];
-    // The tyre fills most of the arch; the arch's curve is centred on the axle.
-    const radius = a.half * (car.tyreFill ?? 0.86);
     const s = radius / wRadius;
     const centreY = a.top - a.half;
     const halfWidth = (wBox.size[0] * s) / 2;

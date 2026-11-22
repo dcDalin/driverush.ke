@@ -151,6 +151,10 @@ export function carFromGltf(
     const hub = new THREE.Group();
     hub.position.copy(wheel.position);
     const spin = new THREE.Group();
+    // Its own radius (scripts/build-real-cars.mjs measures each tyre): the
+    // board rolls a wheel by it, so none slips against the road.
+    const own = wheel.userData.radius;
+    spin.userData.radius = typeof own === "number" ? own : wheelRadius;
     wheel.position.set(0, 0, 0);
     hub.add(spin);
     spin.add(wheel);

@@ -1003,9 +1003,12 @@ const MAX_STEER_SHOWN = 0.45;
 function rollWheels(holder: THREE.Object3D, distance: number) {
   const model = holder.userData.model as CarModel;
   const radius = model.userData.wheelRadius ?? WHEEL_RADIUS;
-  const turn = Math.min(distance / radius, MAX_ROLL);
   // The nose points down -z, so rolling forward turns the top of the wheel that way.
-  for (const wheel of model.userData.wheels) wheel.rotation.x -= turn;
+  for (const wheel of model.userData.wheels) {
+    // Each by its own radius: a smaller wheel turns faster over the same road.
+    const own = (wheel.userData.radius as number | undefined) ?? radius;
+    wheel.rotation.x -= Math.min(distance / own, MAX_ROLL);
+  }
 }
 
 const PARKED_PAINTS = ["#2456b4", "#dfe3e8", "#2f3238", "#1f7a4d"];

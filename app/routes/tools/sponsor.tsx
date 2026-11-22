@@ -11,7 +11,7 @@ import { Link, useSearchParams } from "react-router";
 import type { Route } from "./+types/sponsor";
 
 import { fullBoardSvg } from "~/lib/board/full-board";
-import { BOARD_CARS, type BoardCarId } from "~/lib/board/cars";
+import { BOARD_CARS, sizeOf, type BoardCarId } from "~/lib/board/cars";
 import { SPONSORS, sponsorById } from "~/lib/board/sponsors";
 import { cn } from "~/lib/utils";
 
@@ -108,6 +108,17 @@ export default function SponsorTool() {
   const [view, setView] = React.useState(VIEWS[2].view);
   const [overlay, setOverlay] = React.useState(false);
   const [car, setCar] = React.useState<BoardCarId>("saloon");
+  // The wheels turning and steering, to check them on each car.
+  // A long vehicle is looked at from further back.
+  const carView = React.useMemo(
+    () => ({
+      ...view,
+      dist: view.dist * Math.max(1, sizeOf(car).length / 4.3),
+    }),
+    [view, car],
+  );
+  const [roll, setRoll] = React.useState(false);
+  const [steer, setSteer] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
 
@@ -216,6 +227,24 @@ export default function SponsorTool() {
                 </Button>
               ))}
             </div>
+            <div className="mb-3 flex flex-wrap gap-x-5 gap-y-1 text-[14px]">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={roll}
+                  onChange={(e) => setRoll(e.target.checked)}
+                />
+                Turn the wheels
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={steer}
+                  onChange={(e) => setSteer(e.target.checked)}
+                />
+                Steer left and right
+              </label>
+            </div>
             <div className="aspect-[4/3] w-full max-w-3xl border-2 border-ink sm:aspect-[16/9]">
               {mounted && (
                 <React.Suspense fallback={null}>
@@ -224,7 +253,9 @@ export default function SponsorTool() {
                     wrapUrl={paint?.hi ?? null}
                     base={sponsor.livery.base}
                     topBoard={sponsor.topBoard ?? null}
-                    view={view}
+                    view={carView}
+                    roll={roll}
+                    steer={steer}
                   />
                 </React.Suspense>
               )}

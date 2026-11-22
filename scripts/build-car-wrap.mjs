@@ -37,16 +37,7 @@ const ROOT = process.cwd();
 const OUT = path.join(ROOT, "public/assets/board/sponsors");
 const CARS = process.argv.slice(2).length
   ? process.argv.slice(2)
-  : [
-      "saloon",
-      "hatchback",
-      "wagon",
-      "pickup",
-      "suv",
-      "van",
-      "lorry",
-      "minibus",
-    ];
+  : ["saloon", "hatchback", "wagon", "pickup", "suv", "van", "lorry"];
 
 /**
  * What the measuring below cannot tell from a vehicle's shape alone.

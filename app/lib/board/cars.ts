@@ -36,14 +36,14 @@ const CAR_SIZE: CarSize = {
 export const BOARD_CARS = [
   // `model`: who made it, and its page. A CC BY model must be credited where
   // the cars are chosen (board-settings-sheet); the others are credited too.
-  // `?v=5`: the realistic cars, each with the place of its roof board (the
-  // van and the lorry, added later, start at `?v=1`).
+  // `?v=6` (and `?v=2` for the three bigger vehicles, which started later):
+  // every wheel true on its axle, round and standing on the road.
   // A new address, so no cache hands out an old one. Keep public/sw.js's
   // BOARD_FILES in step.
   {
     id: "saloon",
     label: "Saloon",
-    src: "/assets/board/cars/saloon.glb?v=5",
+    src: "/assets/board/cars/saloon.glb?v=6",
     size: CAR_SIZE,
     model: {
       by: "Armored Wave",
@@ -54,7 +54,7 @@ export const BOARD_CARS = [
   {
     id: "hatchback",
     label: "Hatchback",
-    src: "/assets/board/cars/hatchback.glb?v=5",
+    src: "/assets/board/cars/hatchback.glb?v=6",
     size: CAR_SIZE,
     model: {
       by: "snowcappedandescrash",
@@ -65,7 +65,7 @@ export const BOARD_CARS = [
   {
     id: "wagon",
     label: "Wagon",
-    src: "/assets/board/cars/wagon.glb?v=5",
+    src: "/assets/board/cars/wagon.glb?v=6",
     size: CAR_SIZE,
     model: {
       by: "tnikita",
@@ -76,7 +76,7 @@ export const BOARD_CARS = [
   {
     id: "pickup",
     label: "Pickup",
-    src: "/assets/board/cars/pickup.glb?v=5",
+    src: "/assets/board/cars/pickup.glb?v=6",
     size: CAR_SIZE,
     model: {
       by: "David_Holiday",
@@ -87,7 +87,7 @@ export const BOARD_CARS = [
   {
     id: "suv",
     label: "SUV",
-    src: "/assets/board/cars/suv.glb?v=5",
+    src: "/assets/board/cars/suv.glb?v=6",
     size: CAR_SIZE,
     model: {
       by: "Daniel Zhabotinsky",
@@ -100,7 +100,7 @@ export const BOARD_CARS = [
   {
     id: "van",
     label: "Van",
-    src: "/assets/board/cars/van.glb?v=1",
+    src: "/assets/board/cars/van.glb?v=2",
     size: { length: 4.74, width: 1.85, wheelbase: 2.55, height: 1.92 },
     big: true,
     model: {
@@ -112,7 +112,7 @@ export const BOARD_CARS = [
   {
     id: "lorry",
     label: "Lorry",
-    src: "/assets/board/cars/lorry.glb?v=1",
+    src: "/assets/board/cars/lorry.glb?v=2",
     // Its axles are 3.2 m apart, but it steers by a car's wheelbase: a
     // cab-over lorry's front wheels turn further than a car's, and the turn
     // through a gap in the central reserve is laid out for a car's circle.
@@ -122,22 +122,6 @@ export const BOARD_CARS = [
     model: {
       by: "igbalabdrahmane",
       page: "https://sketchfab.com/3d-models/isuzu-truck-434367858e7240b2b93db7bedb431157",
-      ccBy: true,
-    },
-  },
-  {
-    id: "minibus",
-    label: "Minibus",
-    src: "/assets/board/cars/minibus.glb?v=1",
-    // Like the lorry, it steers more tightly than its axles (3.2 m apart)
-    // would give, to get through the gaps in the central reserve. Wider and
-    // longer than the lorry, it needs a little more: at 2.6 it clipped the
-    // reserve on "The gap is blocked" (board.test.ts drives it).
-    size: { length: 6.14, width: 2.1, wheelbase: 2.4, height: 3.05 },
-    big: true,
-    model: {
-      by: "ann_fenek",
-      page: "https://sketchfab.com/3d-models/isuzu-elf-truck-xyz-ee9e569d3fea439cb41166d07aeb7cca",
       ccBy: true,
     },
   },
