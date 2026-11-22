@@ -5,6 +5,7 @@
  * goes through React.
  */
 import type { CarInput, CarState } from "./car";
+import type { BoardCarId } from "./cars";
 import { isRouteTask, type BoardChallenge } from "./challenges";
 import { challengeRoute, taskParks, taskStart } from "./lessons";
 import { bearingOf, wrapPi } from "./geometry";
@@ -42,6 +43,23 @@ export const car: CarState = { x: 0, z: 0, heading: 0, speed: 0, steer: 0 };
 export const stick: Stick = { x: 0, y: 0 };
 /** Where the learner stands, and whether lane assist is on. Set by the store. */
 export const drive: DriveOptions = { seat: "south", assist: true };
+
+/** The vehicle being driven: the physics gives it its own size. */
+let vehicle: BoardCarId = "saloon";
+
+/**
+ * The learner's vehicle is now this one (the scene says, as it does the
+ * seat). A drive already set up is set up again at the new size: the vehicle
+ * only changes while the car is standing on its start line.
+ */
+export function setVehicle(id: BoardCarId) {
+  if (id === vehicle) return;
+  vehicle = id;
+  if (engine && physics && challenge) {
+    physics = engine.createPhysics(challenge, car, vehicle);
+    view.others = physics.poses;
+  }
+}
 
 /**
  * How the drive is judged. On the no-fail first drive a breach of lane
@@ -172,7 +190,7 @@ export function loadPhysics(): Promise<void> {
   loading ??= import("./physics").then((mod) => {
     engine = mod;
     if (driving && challenge && !physics) {
-      physics = mod.createPhysics(challenge, car);
+      physics = mod.createPhysics(challenge, car, vehicle);
       view.others = physics.poses;
     }
   });
@@ -209,7 +227,7 @@ export function beginChallenge(next: BoardChallenge, cb: Callbacks): void {
   callbacks = cb;
   ref = createRef();
   assist = createAssist();
-  physics = engine ? engine.createPhysics(next, car) : null;
+  physics = engine ? engine.createPhysics(next, car, vehicle) : null;
   view.others = physics
     ? physics.poses
     : next.otherCars.map(({ x, z, heading }) => ({ x, z, heading }));
@@ -252,7 +270,7 @@ export function setBack(metres: number): boolean {
   ref = structuredClone(snap.ref);
   routeRef = structuredClone(snap.routeRef);
   assist = { ...snap.assist };
-  physics = engine.createPhysics(challenge, car);
+  physics = engine.createPhysics(challenge, car, vehicle);
   view.others = physics.poses;
   view.braking = false;
   view.reversing = false;

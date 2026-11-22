@@ -54,13 +54,16 @@ export const TURN_COLOR: Record<Turn, string> = {
 export const ROUTE_COLOR = "#fde047";
 export const REVERSE_COLOR = "#f87171";
 
-export const APPROACHES: readonly { arm: ArmId; label: string; road: string }[] =
-  [
-    { arm: "S", label: "Bottom", road: "Dual carriageway" },
-    { arm: "N", label: "Top", road: "Dual carriageway" },
-    { arm: "W", label: "Left", road: "Three-lane road" },
-    { arm: "E", label: "Right", road: "Three-lane road" },
-  ];
+export const APPROACHES: readonly {
+  arm: ArmId;
+  label: string;
+  road: string;
+}[] = [
+  { arm: "S", label: "Bottom", road: "Dual carriageway" },
+  { arm: "N", label: "Top", road: "Dual carriageway" },
+  { arm: "W", label: "Left", road: "Three-lane road" },
+  { arm: "E", label: "Right", road: "Three-lane road" },
+];
 
 /** The usual angle for each turn. Left and right are both 90°. */
 export const TURN_DEGREES: Record<Turn, number> = {
@@ -119,7 +122,8 @@ function optionHow(arm: ArmId, lane: number, rule: LaneRule): string {
   const keep =
     rule.ring === lane ? `Maintain lane ${lane}` : `Shift to lane ${rule.ring}`;
   const loop = rule.fullCircle ? " after a full loop" : "";
-  const minus = lanes === 4 && out === 3 && rule.exit < lane ? " (minus 1)" : "";
+  const minus =
+    lanes === 4 && out === 3 && rule.exit < lane ? " (minus 1)" : "";
   return `${keep} to exit${loop}, into lane ${rule.exit} of ${road}${minus}.`;
 }
 
@@ -501,7 +505,9 @@ export function challengeRoute(challenge: BoardChallenge): Route | null {
         ? trimRoute(
             whole,
             lesson.from.startsWith("From ") ? START_IN : 0,
-            lesson.to.startsWith("To ") ? whole.length - STOP_SHORT : whole.length,
+            lesson.to.startsWith("To ")
+              ? whole.length - STOP_SHORT
+              : whole.length,
           )
         : null;
     taskCache.set(key, route);
@@ -552,6 +558,16 @@ export function taskParks(challenge: BoardChallenge): boolean {
   return Boolean(lesson && !lesson.to.startsWith("To "));
 }
 
+/**
+ * Does the task start or end in an angle parking bay? Those bays are for
+ * small cars: a learner driving a lorry or a van is handed a car for it.
+ */
+export function taskUsesAngleBay(challenge: BoardChallenge): boolean {
+  if (!isRouteTask(challenge)) return false;
+  const lesson = LESSONS.find((one) => one.id === challenge.lesson);
+  return lesson?.from === ANGLE_BAY || lesson?.to === ANGLE_BAY;
+}
+
 /** Where a task's car starts, and the way it faces. */
 export function taskStart(challenge: BoardChallenge): {
   x: number;
@@ -580,7 +596,12 @@ export function taskGoalBox(challenge: BoardChallenge): Box {
   if (!route) return { x0: -2, x1: 2, z0: -2, z1: 2 };
   const end = route.points[route.points.length - 1];
   if (taskParks(challenge)) {
-    return { x0: end.x - 2.4, x1: end.x + 2.4, z0: end.z - 2.4, z1: end.z + 2.4 };
+    return {
+      x0: end.x - 2.4,
+      x1: end.x + 2.4,
+      z0: end.z - 2.4,
+      z1: end.z + 2.4,
+    };
   }
   const tail = route.points.filter(
     (_, i) => route.at[i] >= route.length - ROAD_BOX,

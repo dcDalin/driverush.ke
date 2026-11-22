@@ -9,7 +9,13 @@ import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router";
 import { useShallow } from "zustand/react/shallow";
 
-import { BOARD_CARS, resolveCar, type BoardCarId } from "~/lib/board/cars";
+import {
+  BOARD_CARS,
+  SMALL_CARS,
+  isBig,
+  resolveCar,
+  type BoardCarId,
+} from "~/lib/board/cars";
 import { startRound, useVisitSponsor } from "~/lib/board/sponsor-visit";
 import {
   SponsorCredit,
@@ -35,6 +41,7 @@ import {
   challengeRoute,
   taskGoalBox,
   taskParks,
+  taskUsesAngleBay,
 } from "~/lib/board/lessons";
 import { distanceNear, poseAt, stepPoints } from "~/lib/board/network";
 import {
@@ -44,6 +51,7 @@ import {
   hasMoved,
   isShowing,
   setPaused,
+  setVehicle,
   subscribeShowing,
 } from "~/lib/board/runtime";
 import type { Fault } from "~/lib/board/referee";
@@ -849,6 +857,21 @@ export function BoardGame() {
     [s.lanes],
   );
   const pickedCar = lineUp?.find((one) => one.id === s.lanes?.picked) ?? null;
+  // The vehicle on the start line. Angle parking bays are for small cars: a
+  // learner in a lorry or a van is handed a car for a task that uses one
+  // (owner, 2026-11-22), one the school has paint for.
+  const askedCar = pickedCar?.car ?? boardCar;
+  const handedCar =
+    challenge !== null && taskUsesAngleBay(challenge) && isBig(askedCar);
+  const drivenCar = handedCar
+    ? resolveCar(
+        "random",
+        carRoll,
+        SMALL_CARS.filter((id) => !sponsor?.livery || sponsor.livery.cars[id]),
+      )
+    : askedCar;
+  // Before the drive is set up for the eye: the physics goes by its size.
+  React.useLayoutEffect(() => setVehicle(drivenCar), [drivenCar]);
   const lanesRest = s.lanes?.rest;
   const frontCars = React.useMemo(
     () => (lineUp && lanesRest ? pickable(lineUp, Object.keys(lanesRest)) : []),
@@ -1003,7 +1026,7 @@ export function BoardGame() {
           attempt={s.attempt}
           quality={s.settings.quality}
           seat={seat}
-          car={pickedCar?.car ?? boardCar}
+          car={drivenCar}
           paint={pickedCar?.paint}
           extraCars={standingCars}
           learning={offClock}
@@ -1104,7 +1127,11 @@ export function BoardGame() {
                       : `Task ${s.pos + 1} of ${s.queue.length}`
                   }
                   title={challenge.title}
-                  prompt={challenge.prompt}
+                  prompt={
+                    handedCar
+                      ? `${challenge.prompt} Angle bays are for small cars, so you have a car for this one.`
+                      : challenge.prompt
+                  }
                 />
                 <TaskHint
                   challenge={challenge}
@@ -1264,7 +1291,7 @@ export function BoardGame() {
       {!unsupported &&
         showing &&
         s.mode === "drive" &&
-        sponsor?.livery?.cars[pickedCar?.car ?? boardCar] && (
+        sponsor?.livery?.cars[drivenCar] && (
           <SponsorCredit
             sponsor={sponsor}
             lead="Car by"

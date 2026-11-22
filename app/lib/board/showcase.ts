@@ -32,6 +32,8 @@ const TILT = (7 * Math.PI) / 180;
  * bonnet and roof as well as the sides.
  */
 const RISE = (11 * Math.PI) / 180;
+/** A car's length: what the framing below is for (metres). */
+const CAR_LONG = 4.2;
 /** What the close-up frames, in metres: the car, filling most of the screen. */
 const FRAME_ACROSS = 5.4;
 const FRAME_DEEP = 3.9;
@@ -69,6 +71,7 @@ export function showcasePose({
   halfV,
   frame,
   cars,
+  size,
 }: {
   left: number;
   seatAngle: number;
@@ -87,6 +90,11 @@ export function showcasePose({
    * 2026-11-22): passing one, the camera rises to look over it.
    */
   cars?: readonly Standing[];
+  /**
+   * The shown vehicle's size, where it is not a car: the camera stands back
+   * far enough for a lorry to fill the screen as a car does.
+   */
+  size?: { length: number; height: number };
 }): ShowcasePose {
   const t = SHOW_TOTAL - clamp(left, 0, SHOW_TOTAL);
   const weight =
@@ -101,7 +109,12 @@ export function showcasePose({
   // there the width decides.
   const tanV = Math.tan(halfV);
   const tanH = tanV * Math.max(0.1, aspect);
-  let dist = Math.max(FRAME_DEEP / (2 * tanV), FRAME_ACROSS / (2 * tanH));
+  // A longer or taller vehicle is framed with the same margins as a car.
+  const across =
+    FRAME_ACROSS + Math.max(0, (size?.length ?? CAR_LONG) - CAR_LONG);
+  const deep =
+    FRAME_DEEP + Math.max(0, (size?.height ?? CAR_HEIGHT) - CAR_HEIGHT);
+  let dist = Math.max(deep / (2 * tanV), across / (2 * tanH));
   const angle = seatAngle + spun * 2 * Math.PI;
   let tilt = TILT + RISE * Math.sin(Math.PI * round);
   if (cars?.length) tilt = Math.max(tilt, overCars(car, angle, dist, cars));
@@ -122,11 +135,23 @@ export function showcasePose({
   };
 }
 
-/** A car standing on the table: where its middle is and which way it points. */
-export type Standing = { x: number; z: number; heading: number };
+/**
+ * A vehicle standing on the table: where its middle is, which way it points
+ * and, where it is not a car, how big it is.
+ */
+export type Standing = {
+  x: number;
+  z: number;
+  heading: number;
+  length?: number;
+  width?: number;
+  /** To its roof, without a name board. */
+  height?: number;
+};
 
-/** A standing car's top, with a school's name board on its roof (metres). */
-const CAR_TOP = 2.2;
+/** A car's height, and what a school's name board adds to it (metres). */
+const CAR_HEIGHT = 1.5;
+const BOARD_ON_TOP = 0.7;
 /** The lowest part of the shown car the camera must still see: its sills. */
 const SILL = 0.3;
 const HALF_LONG = 2.1;
@@ -160,8 +185,10 @@ export function overCars(
     // How much of it lies toward the shown car, given the way it points.
     const turned = bearing - other.heading;
     const reach =
-      Math.abs(Math.cos(turned)) * HALF_LONG +
-      Math.abs(Math.sin(turned)) * HALF_WIDE;
+      Math.abs(Math.cos(turned)) *
+        (other.length ? other.length / 2 : HALF_LONG) +
+      Math.abs(Math.sin(turned)) * (other.width ? other.width / 2 : HALF_WIDE);
+    const top = (other.height ?? CAR_HEIGHT) + BOARD_ON_TOP;
     const edge = Math.max(0.8, away - reach - 0.2);
     // Further out than the camera stands: behind it, not in the way.
     if (edge >= dist) continue;
@@ -172,7 +199,7 @@ export function overCars(
       1 -
       smooth(clamp((off - IN_THE_WAY) / (OUT_OF_THE_WAY - IN_THE_WAY), 0, 1));
     if (inWay <= 0) continue;
-    const steep = Math.min(STEEPEST, Math.atan2(CAR_TOP - SILL, edge));
+    const steep = Math.min(STEEPEST, Math.atan2(top - SILL, edge));
     need = Math.max(need, steep * inWay);
   }
   return need;

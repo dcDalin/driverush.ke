@@ -19,7 +19,13 @@ import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.j
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 
-import { BOARD_CARS, carsBeside, type BoardCarId } from "~/lib/board/cars";
+import {
+  BOARD_CARS,
+  modelBeside,
+  parkedModel,
+  sizeOf,
+  type BoardCarId,
+} from "~/lib/board/cars";
 import { isRouteTask, type BoardChallenge } from "~/lib/board/challenges";
 import {
   BOUNDS,
@@ -1334,6 +1340,19 @@ function Scene({
     [],
   );
 
+  // How big each vehicle on the table is, for the camera's turn round the car.
+  const drivenSize = React.useMemo(() => sizeOf(driven), [driven]);
+  const otherSizes = React.useMemo(
+    () =>
+      (challenge?.otherCars ?? []).map((other, i) => {
+        const { length, width, height } = sizeOf(
+          modelBeside(driven, other.car, i),
+        );
+        return { length, width, height };
+      }),
+    [challenge, driven],
+  );
+
   // Only the driven car's own model: the other models arrive later, and
   // their coming must not rebuild this car.
   const drivenModel = models?.[driven];
@@ -1356,9 +1375,8 @@ function Scene({
   const lineLivery = (models && sponsor?.livery) || null;
   const lineModels = React.useMemo(() => {
     const ids = new Set<BoardCarId>();
-    const beside = carsBeside(driven);
     (challenge?.otherCars ?? []).forEach((other, i) => {
-      if (other.school) ids.add(other.car ?? beside[i % beside.length]);
+      if (other.school) ids.add(modelBeside(driven, other.car, i));
     });
     (extraCars ?? []).forEach((extra) => {
       if (extra.school) ids.add(extra.car);
@@ -1431,16 +1449,15 @@ function Scene({
 
   const others = React.useMemo(
     () =>
-      (challenge?.otherCars ?? []).map((other, i) => {
-        const beside = carsBeside(driven);
-        return carOnTable(
+      (challenge?.otherCars ?? []).map((other, i) =>
+        carOnTable(
           other.paint ?? CAR_COLORS.red,
           other.plate ?? "KCZ 718M",
           tier,
-          models?.[other.car ?? beside[i % beside.length]],
+          models?.[modelBeside(driven, other.car, i)],
           other.flipped,
-        );
-      }),
+        ),
+      ),
     [challenge, tier, models, driven],
   );
   React.useEffect(
@@ -1463,7 +1480,7 @@ function Scene({
         PARKED_PAINTS[i % PARKED_PAINTS.length],
         PARKED_PLATES[i % PARKED_PLATES.length],
         tier,
-        models?.[BOARD_CARS[i % BOARD_CARS.length].id],
+        models?.[parkedModel(i, spot.flush)],
       );
       parkedCar.position.set(spot.x, 0, spot.z);
       parkedCar.rotation.y = -spot.heading;
@@ -1537,11 +1554,10 @@ function Scene({
         tier === "low",
       );
     };
-    const beside = carsBeside(driven);
     (challenge?.otherCars ?? []).forEach((other, i) => {
       const holder = others[i];
       if (other.school && holder) {
-        dress(holder, other.car ?? beside[i % beside.length]);
+        dress(holder, modelBeside(driven, other.car, i));
       }
     });
     (extraCars ?? []).forEach((extra, i) => {
@@ -2035,7 +2051,11 @@ function Scene({
         halfV,
         frame: SHOWCASE_FRAME,
         // The cars standing by: the camera looks over them, upright or not.
-        cars: view.others.length ? view.others : challenge?.otherCars,
+        cars: (view.others.length
+          ? view.others
+          : (challenge?.otherCars ?? [])
+        ).map((other, i) => ({ ...other, ...otherSizes[i] })),
+        size: drivenSize,
       });
       const at = showcaseCamera(pose);
       closeUp = pose.weight;

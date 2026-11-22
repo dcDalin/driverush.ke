@@ -1282,7 +1282,7 @@ export type ParkedBays = {
 /** Where a car stands in each of the given bays, for dressing the board. */
 export function parkedSpots(
   bays: ParkedBays,
-): { x: number; z: number; heading: number }[] {
+): { x: number; z: number; heading: number; flush?: boolean }[] {
   const depth = AISLE.x0 - PARK.x0;
   // the middle of bay `k` in each row, between two leaning lines
   const left = (k: number) => ({
@@ -1303,6 +1303,8 @@ export function parkedSpots(
       x: (SIDE.x0 + FLUSH.x1) / 2,
       z: FLUSH.z0 + (n - 0.5) * box,
       heading: 0,
+      // A flush box takes a long vehicle; an angle bay does not.
+      flush: true,
     })),
   ];
 }

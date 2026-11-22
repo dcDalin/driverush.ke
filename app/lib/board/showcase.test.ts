@@ -97,6 +97,30 @@ describe("the opening close-up", () => {
     expect(overCars(car, toward, 2, beside)).toBe(0);
   });
 
+  it("looks down more steeply over a lorry than over a car", () => {
+    const car = { x: 0, z: 0 };
+    const beside = { x: 3.6, z: 0, heading: 0 };
+    const overCar = overCars(car, Math.PI / 2, 11, [beside]);
+    const overLorry = overCars(car, Math.PI / 2, 11, [
+      { ...beside, length: 6, width: 2, height: 2.3 },
+    ]);
+    expect(overLorry).toBeGreaterThan(overCar);
+  });
+
+  it("stands further back from a long vehicle, so it fits the screen", () => {
+    const pose = (size?: { length: number; height: number }) =>
+      showcasePose({
+        left: 3,
+        seatAngle: 0,
+        car: { x: 0, z: 0 },
+        aspect: 1.6,
+        halfV,
+        size,
+      });
+    expect(pose({ length: 6, height: 2.3 }).dist).toBeGreaterThan(pose().dist);
+    expect(pose({ length: 4.2, height: 1.5 }).dist).toBeCloseTo(pose().dist);
+  });
+
   it("eases up to a standing car and down again, never a jump", () => {
     const car = { x: 0, z: 0 };
     const beside = [{ x: 3.5, z: 0, heading: 0 }];

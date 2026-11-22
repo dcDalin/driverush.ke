@@ -9,7 +9,7 @@
  */
 import { CAR } from "./car";
 import type { OtherCar, TurnChallenge } from "./challenges";
-import { BOARD_CARS, type BoardCarId } from "./cars";
+import { BOARD_CARS, SMALL_CARS, isBig, sizeOf, type BoardCarId } from "./cars";
 import {
   ARMS,
   armForTurn,
@@ -40,15 +40,22 @@ export type QueueCar = {
   start: QueuePose;
 };
 
+/** The front car's nose waits where the continuous lines begin. */
+const NOSE = SOLID_TO + 0.1;
 /**
  * The front car waits behind the painted lane number, its nose where the
- * continuous lines begin.
+ * continuous lines begin. This is where a car's middle is; a longer vehicle's
+ * is further back.
  */
-export const QUEUE_FRONT = SOLID_TO + CAR.length / 2 + 0.1;
+export const QUEUE_FRONT = NOSE + CAR.length / 2;
 /** From one car to the one behind it, middle to middle, where there is room. */
 export const QUEUE_GAP = 6.4;
-/** The last car's middle stays this far in from the end of the board. */
-const END_ROOM = CAR.length / 2 + 0.7;
+/** Bumper to bumper, where there is room. */
+const BETWEEN = QUEUE_GAP - CAR.length;
+/** Closer than this, bumper to bumper, a line is too tight to stand in. */
+const TIGHTEST = 0.8;
+/** The last vehicle's tail stays this far in from the end of the board. */
+const TAIL_ROOM = 0.7;
 
 /**
  * A paint for every car on the longest line-up, easy to tell apart on tarmac.
@@ -69,25 +76,73 @@ const PAINTS = [
 
 const cache = new Map<ArmId, QueueCar[]>();
 
+/**
+ * Which model stands in each place of each lane's line, and how far apart
+ * they stand bumper to bumper. Vehicles differ in length: a line that would
+ * not fit its road with a long one in it gets a car there instead.
+ */
+function lineModels(
+  arm: ArmId,
+  counts: readonly number[],
+): { models: BoardCarId[][]; between: number } {
+  const room = ARMS[arm].length - TAIL_ROOM - NOSE;
+  let n = 0;
+  const models = counts.map((count) =>
+    Array.from({ length: count }, () => {
+      const id = BOARD_CARS[n % BOARD_CARS.length].id;
+      n += 1;
+      return id;
+    }),
+  );
+  const spare = (line: readonly BoardCarId[]) =>
+    line.length > 1
+      ? (room - line.reduce((sum, id) => sum + sizeOf(id).length, 0)) /
+        (line.length - 1)
+      : Infinity;
+  let small = 0;
+  for (const line of models) {
+    while (spare(line) < TIGHTEST) {
+      // The longest one gives its place to a car.
+      let longest = 0;
+      line.forEach((id, i) => {
+        if (sizeOf(id).length > sizeOf(line[longest]).length) longest = i;
+      });
+      if (!isBig(line[longest]) && sizeOf(line[longest]).length <= CAR.length) {
+        break;
+      }
+      line[longest] = SMALL_CARS[small % SMALL_CARS.length];
+      small += 1;
+    }
+  }
+  // One spacing for the whole road, set by its tightest line.
+  const between = Math.min(BETWEEN, ...models.map(spare));
+  return { models, between };
+}
+
 /** Every car of the lesson on one road, kerb lane first, front car first. */
 export function queueCars(arm: ArmId): QueueCar[] {
   const cached = cache.get(arm);
   if (cached) return cached;
   const cars: QueueCar[] = [];
   const heading = laneBearing(arm, "approach");
-  // The three-lane road is short for five cars in a line: they close up.
-  let longest = 1;
-  for (let lane = 1; lane <= ARMS[arm].lanes; lane += 1) {
-    longest = Math.max(longest, laneOptions(arm, lane).length);
-  }
-  const gap = Math.min(
-    QUEUE_GAP,
-    (ARMS[arm].length - END_ROOM - QUEUE_FRONT) / Math.max(1, longest - 1),
+  const lanes = Array.from({ length: ARMS[arm].lanes }, (_, i) =>
+    laneOptions(arm, i + 1),
   );
-  for (let lane = 1; lane <= ARMS[arm].lanes; lane += 1) {
-    laneOptions(arm, lane).forEach((option, slot) => {
+  // The three-lane road is short for five cars in a line: they close up.
+  const { models, between } = lineModels(
+    arm,
+    lanes.map((options) => options.length),
+  );
+  lanes.forEach((options, at) => {
+    const lane = at + 1;
+    // Where the next vehicle's nose goes.
+    let nose = NOSE;
+    options.forEach((option, slot) => {
       const n = cars.length;
-      const along = QUEUE_FRONT + slot * gap;
+      const car = models[at][slot];
+      const length = sizeOf(car).length;
+      const along = nose + length / 2;
+      nose += length + between;
       cars.push({
         id: option.id,
         arm,
@@ -96,13 +151,13 @@ export function queueCars(arm: ArmId): QueueCar[] {
         option,
         exit: { arm: armForTurn(arm, option.turn), lane: option.exitLane },
         paint: PAINTS[n % PAINTS.length],
-        car: BOARD_CARS[n % BOARD_CARS.length].id,
+        car,
         plate: `KD${String.fromCharCode(65 + n)} ${100 + n * 37}${String.fromCharCode(74 + n)}`,
         along,
         start: { ...lanePoint(arm, "approach", lane, along), heading },
       });
     });
-  }
+  });
   cache.set(arm, cars);
   return cars;
 }

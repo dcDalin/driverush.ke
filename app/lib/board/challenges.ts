@@ -20,7 +20,7 @@ import {
   type Turn,
 } from "./geometry";
 import { blockById } from "./blocks";
-import type { BoardCarId } from "./cars";
+import { isBig, parkedModel, type BoardCarId } from "./cars";
 import { parkedCars } from "./parking-layouts";
 
 export type OtherCar = {
@@ -129,7 +129,15 @@ const redAt = lanePoint(redArm, "exit", 1, RED_ALONG);
  */
 const parked = {
   get otherCars(): OtherCar[] {
-    return parkedCars().map((spot) => ({ ...spot, color: "red" as const }));
+    return parkedCars().map(({ flush, ...spot }, i) => ({
+      ...spot,
+      color: "red" as const,
+      // A long vehicle in the flush box, where the board has any: named, so
+      // the scene and the physics agree on its size.
+      ...(flush && isBig(parkedModel(i, true))
+        ? { car: parkedModel(i, true) }
+        : {}),
+    }));
   },
 };
 

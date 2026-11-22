@@ -1,6 +1,32 @@
+import { CAR } from "./car";
+
+/** A vehicle's size on the board, in metres. */
+export type CarSize = {
+  length: number;
+  width: number;
+  /** Front axle to rear axle: a longer one turns in a wider circle. */
+  wheelbase: number;
+  /** To the roof, without a school's name board. */
+  height: number;
+};
+
+/** The size the five cars share: they differ in looks only. */
+const CAR_SIZE: CarSize = {
+  length: CAR.length,
+  width: CAR.width,
+  wheelbase: CAR.wheelbase,
+  height: 1.5,
+};
+
 /**
- * The cars the learner can drive on the board. They differ in looks only:
- * every one is scaled to the same footprint, so the rules treat them alike.
+ * The vehicles the learner can drive on the board. The five cars differ in
+ * looks only: each is scaled to the same footprint. A bigger vehicle is true
+ * to its own size (`size`), and the board's physics, line-ups and camera go
+ * by that (owner, 2026-11-22).
+ *
+ * `big`: too long for an angle parking bay, which is for small cars. Such a
+ * vehicle is never parked in one, and its driver is handed a car for an
+ * angle parking task.
  *
  * The models are free ones made by others and cut down by
  * `scripts/build-real-cars.mjs` (who made each: docs/asset-rights.md), then
@@ -17,6 +43,7 @@ export const BOARD_CARS = [
     id: "saloon",
     label: "Saloon",
     src: "/assets/board/cars/saloon.glb?v=5",
+    size: CAR_SIZE,
     model: {
       by: "Armored Wave",
       page: "https://sketchfab.com/3d-models/2014-toyota-corolla-e180-eu-with-interior-36f95efb0585464cae43a25a3b3392e8",
@@ -27,6 +54,7 @@ export const BOARD_CARS = [
     id: "hatchback",
     label: "Hatchback",
     src: "/assets/board/cars/hatchback.glb?v=5",
+    size: CAR_SIZE,
     model: {
       by: "snowcappedandescrash",
       page: "https://sketchfab.com/3d-models/2016-nissan-note-3929336debbf45a8a2e4096f1fdf5baa",
@@ -37,6 +65,7 @@ export const BOARD_CARS = [
     id: "wagon",
     label: "Wagon",
     src: "/assets/board/cars/wagon.glb?v=5",
+    size: CAR_SIZE,
     model: {
       by: "tnikita",
       page: "https://sketchfab.com/3d-models/toyota-probox-1b48dd220c69495e8f278376fb7a3add",
@@ -47,6 +76,7 @@ export const BOARD_CARS = [
     id: "pickup",
     label: "Pickup",
     src: "/assets/board/cars/pickup.glb?v=5",
+    size: CAR_SIZE,
     model: {
       by: "David_Holiday",
       page: "https://sketchfab.com/3d-models/toyota-hilux-417915f419f945c8a424b2a7943eb25a",
@@ -57,6 +87,7 @@ export const BOARD_CARS = [
     id: "suv",
     label: "SUV",
     src: "/assets/board/cars/suv.glb?v=5",
+    size: CAR_SIZE,
     model: {
       by: "Daniel Zhabotinsky",
       page: "https://sketchfab.com/3d-models/urban-10-low-poly-model-2866efdfa943484391ef8313768e074d",
@@ -73,6 +104,24 @@ export type BoardCarId = (typeof BOARD_CARS)[number]["id"];
 export type BoardCarSetting = BoardCarId | "random";
 
 const IDS: readonly BoardCarId[] = BOARD_CARS.map((car) => car.id);
+
+type Entry = { id: BoardCarId; size: CarSize; big?: boolean };
+const ENTRIES: readonly Entry[] = BOARD_CARS;
+
+/** How big a vehicle is. An id that is not on the list is a car's size. */
+export function sizeOf(id: BoardCarId | undefined): CarSize {
+  return ENTRIES.find((car) => car.id === id)?.size ?? CAR_SIZE;
+}
+
+/** Too long for an angle parking bay. */
+export function isBig(id: BoardCarId | undefined): boolean {
+  return ENTRIES.find((car) => car.id === id)?.big === true;
+}
+
+/** The vehicles that fit an angle parking bay: the cars. */
+export const SMALL_CARS: readonly BoardCarId[] = ENTRIES.filter(
+  (car) => !car.big,
+).map((car) => car.id);
 
 /**
  * The car for this visit. `roll` is a number from 0 up to (not including) 1,
@@ -98,7 +147,37 @@ export function resolveCar(
   return pool[at];
 }
 
+const BIG_CARS: readonly BoardCarId[] = ENTRIES.filter((car) => car.big).map(
+  (car) => car.id,
+);
+
+/**
+ * Which model stands parked in the `i`th taken bay. An angle bay takes a
+ * small car; a flush box, the long vehicles where there are any.
+ */
+export function parkedModel(i: number, flush = false): BoardCarId {
+  const pool = flush && BIG_CARS.length ? BIG_CARS : SMALL_CARS;
+  return pool[i % pool.length];
+}
+
 /** The cars the learner is not driving, for the others on the board. */
 export function carsBeside(driven: BoardCarId): BoardCarId[] {
   return IDS.filter((id) => id !== driven);
+}
+
+/**
+ * Which model the `i`th other car on the table is: its own where the task
+ * says, or else the next of the ones the learner is not driving. The scene
+ * and the physics both ask here, so a car is as big as it looks.
+ */
+export function modelBeside(
+  driven: BoardCarId,
+  own: BoardCarId | undefined,
+  i: number,
+): BoardCarId {
+  if (own) return own;
+  // A big vehicle is on the table only where the task names it: the spaces
+  // the unnamed cars stand in (bays, blocked roads) are a car's size.
+  const beside = SMALL_CARS.filter((id) => id !== driven);
+  return beside[i % beside.length];
 }

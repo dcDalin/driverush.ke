@@ -12,6 +12,7 @@
 import Matter from "matter-js";
 
 import { CAR, type CarInput, type CarState } from "./car";
+import { modelBeside, sizeOf, type BoardCarId, type CarSize } from "./cars";
 import type { BoardChallenge } from "./challenges";
 import { BOUNDS, kerbSegments, onTarmac, reserves } from "./full-board";
 import { ISLAND_R } from "./geometry";
@@ -55,6 +56,8 @@ export type OtherPose = { x: number; z: number; heading: number };
 export type Physics = {
   engine: Matter.Engine;
   player: Matter.Body;
+  /** The driven vehicle's wheelbase: a long one turns in a wider circle. */
+  wheelbase: number;
   others: Matter.Body[];
   /** Where the other cars are now. Read by the scene. */
   poses: OtherPose[];
@@ -80,14 +83,16 @@ function carBody(
   z: number,
   heading: number,
   label: string,
+  /** How big it is: a lorry takes up a lorry's room. */
+  size: CarSize,
   /** An upside-down car stays where the instructor put it. */
   fixed = false,
 ) {
   return Bodies.rectangle(
     x * SCALE,
     z * SCALE,
-    CAR.width * SCALE,
-    CAR.length * SCALE,
+    size.width * SCALE,
+    size.length * SCALE,
     {
       label,
       isStatic: fixed,
@@ -159,19 +164,27 @@ function scenery(): Matter.Body[] {
   return bodies;
 }
 
-export function createPhysics(challenge: BoardChallenge, car: CarState) {
+export function createPhysics(
+  challenge: BoardChallenge,
+  car: CarState,
+  /** The vehicle being driven. Left out, a car. */
+  driven: BoardCarId = "saloon",
+) {
   const engine = Engine.create({ gravity: { x: 0, y: 0 } });
-  const player = carBody(car.x, car.z, car.heading, "player");
-  const others = challenge.otherCars.map((other) =>
-    other.flipped
-      ? carBody(other.x, other.z, other.heading, "block", true)
-      : carBody(other.x, other.z, other.heading, "car"),
-  );
+  const size = sizeOf(driven);
+  const player = carBody(car.x, car.z, car.heading, "player", size);
+  const others = challenge.otherCars.map((other, i) => {
+    const its = sizeOf(modelBeside(driven, other.car, i));
+    return other.flipped
+      ? carBody(other.x, other.z, other.heading, "block", its, true)
+      : carBody(other.x, other.z, other.heading, "car", its);
+  });
   Composite.add(engine.world, [player, ...others, ...scenery()]);
 
   const physics: Physics = {
     engine,
     player,
+    wheelbase: size.wheelbase,
     others,
     poses: challenge.otherCars.map(({ x, z, heading }) => ({ x, z, heading })),
     contacts: [],
@@ -285,7 +298,7 @@ function driveCar(physics: Physics, input: CarInput): void {
     if (physics.backoff <= 0) physics.stalled = 0;
   }
   physics.touching = false;
-  const yaw = (rolling / CAR.wheelbase) * Math.tan(physics.steer);
+  const yaw = (rolling / physics.wheelbase) * Math.tan(physics.steer);
 
   // Matter measures speed per step, not per second.
   Body.setVelocity(player, {
