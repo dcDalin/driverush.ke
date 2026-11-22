@@ -350,7 +350,14 @@ export default function heltz({ k, fonts }) {
   // The lettering, between the rear wheel and the gold, in the doors' clear
   // band: as wide as on their car if the band is tall enough, never stretched.
   const zFront = zAt(NAME.to);
-  const zBack = Math.min(zAt(NAME.from), L.wheels.rear.z);
+  // On their car it starts just over the rear wheel. A van's wheels stand
+  // taller, and its arch would cut the lettering's end off: there it stops
+  // at the arch's front edge.
+  const tallArch = L.wheels.rear.r > 0.45;
+  const zBack = Math.min(
+    zAt(NAME.from),
+    tallArch ? L.wheels.rear.z - L.wheels.rear.r - 0.04 : L.wheels.rear.z,
+  );
   const name = ["left", "right"]
     .map((view) => {
       const b = boxPx(k, view, zFront, L.door.y1, zBack, L.door.y0 + 0.01);

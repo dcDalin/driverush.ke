@@ -113,7 +113,11 @@ export const BOARD_CARS = [
     id: "lorry",
     label: "Lorry",
     src: "/assets/board/cars/lorry.glb?v=1",
-    size: { length: 6, width: 1.94, wheelbase: 3.2, height: 2.35 },
+    // Its axles are 3.2 m apart, but it steers by a car's wheelbase: a
+    // cab-over lorry's front wheels turn further than a car's, and the turn
+    // through a gap in the central reserve is laid out for a car's circle.
+    // With 3.2 it clipped the reserve there (board.test.ts drives it).
+    size: { length: 6, width: 1.94, wheelbase: 2.6, height: 2.35 },
     big: true,
     model: {
       by: "igbalabdrahmane",

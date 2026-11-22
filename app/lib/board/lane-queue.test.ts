@@ -1,6 +1,7 @@
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { CAR } from "./car";
+import { sizeOf } from "./cars";
 import type { TurnChallenge } from "./challenges";
 import { goalBox } from "./full-board";
 import {
@@ -27,6 +28,7 @@ import {
   car,
   drive,
   loadPhysics,
+  setVehicle,
   stick,
   stopDriving,
   tick,
@@ -109,6 +111,8 @@ function playLesson(arm: ArmId, choose: (front: QueueCar[]) => QueueCar): void {
   while (Object.keys(rest).length < cars.length) {
     const next = choose(pickable(cars, Object.keys(rest)));
     const challenge = queueChallenge(cars, next, rest);
+    // Each is driven at its own size: a lorry takes a lorry's room.
+    setVehicle(next.car);
     const outcome = driveAlong(challenge, next.option.route.points);
     expect(outcome.fault, `${next.id} fault`).toBeUndefined();
     expect(outcome.small, `${next.id} small faults`).toEqual([]);
@@ -120,6 +124,7 @@ function playLesson(arm: ArmId, choose: (front: QueueCar[]) => QueueCar): void {
 beforeAll(() => loadPhysics());
 beforeEach(() => {
   stopDriving();
+  setVehicle("saloon");
   drive.seat = "south";
   drive.assist = true;
 });
@@ -146,7 +151,20 @@ describe("the lane options line-up", () => {
           side: "approach",
           lane: one.lane,
         });
-        expect(one.along + CAR.length / 2).toBeLessThan(ARMS[arm].length - 0.5);
+        // its tail is on the board, whatever its length
+        expect(one.along + sizeOf(one.car).length / 2).toBeLessThan(
+          ARMS[arm].length - 0.5,
+        );
+        // and its nose clear of the one in front of it in its lane
+        const ahead = cars.find(
+          (c) => c.lane === one.lane && c.slot === one.slot - 1,
+        );
+        if (ahead) {
+          expect(
+            one.along - sizeOf(one.car).length / 2,
+            `${one.id} behind ${ahead.id}`,
+          ).toBeGreaterThan(ahead.along + sizeOf(ahead.car).length / 2 + 0.5);
+        }
         expect(allowedTurns(ARMS[arm].lanes, one.lane)).toContain(
           one.option.turn,
         );
@@ -162,6 +180,12 @@ describe("the lane options line-up", () => {
       }
       expect(new Set(cars.map((c) => c.paint)).size).toBe(cars.length);
     }
+    // the long vehicles take their places in a line-up too
+    const models = (["S", "W"] as const).flatMap((arm) =>
+      queueCars(arm).map((c) => c.car),
+    );
+    expect(models).toContain("van");
+    expect(models).toContain("lorry");
   });
 
   it("marks every standing car as one that wears the school's paint", () => {

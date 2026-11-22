@@ -36,7 +36,7 @@ import {
 } from "./geometry";
 import { SEATS, stickBearing, type Seat } from "./joystick";
 import { lanePath, turnBackPath } from "./lane-paths";
-import { challengeRoute, taskParks } from "./lessons";
+import { challengeRoute, taskParks, taskUsesAngleBay } from "./lessons";
 import { distanceNear, network, poseAt, type Route } from "./network";
 import {
   PARKING_LAYOUTS,
@@ -54,6 +54,7 @@ import {
   car,
   drive,
   loadPhysics,
+  setVehicle,
   stick,
   stopDriving,
   tick,
@@ -169,11 +170,7 @@ type Follow = {
  * the line from the car. If the route starts in another lane, they change to
  * it first.
  */
-function follower(
-  challenge: TurnChallenge,
-  path: Vec[],
-  options: Follow = {},
-) {
+function follower(challenge: TurnChallenge, path: Vec[], options: Follow = {}) {
   let nearest = 0;
   const first = locate(path[0].x, path[0].z);
   const wantLane = first.kind === "arm" ? first.lane : null;
@@ -285,8 +282,8 @@ function proper(
   }
   const path =
     challenge.start.arm === "S"
-        ? lanePath("S", lane, challenge.turn)
-        : fromLane(challengeRoute(challenge)?.points ?? [], lane);
+      ? lanePath("S", lane, challenge.turn)
+      : fromLane(challengeRoute(challenge)?.points ?? [], lane);
   return play(challenge, follower(challenge, path, options));
 }
 
@@ -308,6 +305,7 @@ const SHIPPED_LANES: Record<string, number> = {
 beforeAll(() => loadPhysics());
 beforeEach(() => {
   stopDriving();
+  setVehicle("saloon");
   drive.seat = "south";
   drive.assist = true;
 });
@@ -758,7 +756,9 @@ describe("serious mistakes end the attempt", () => {
     const tip = faultTip(result.fault!);
     expect(tip.reason).toContain("Lane 2 has one option: go straight");
     expect(tip.reason).toContain("approach in lane 1.");
-    expect(tip.reason).toContain("Lane 4 can also do it, once round the island first");
+    expect(tip.reason).toContain(
+      "Lane 4 can also do it, once round the island first",
+    );
   });
 
   it("lane 1 turning right", () => {
@@ -933,7 +933,6 @@ describe("lane discipline ends the attempt", () => {
 });
 
 describe("small mistakes cost a star and the drive goes on", () => {
-
   it("stopping on the roundabout", () => {
     const challenge = task("straight", 2);
     const onward = follower(challenge, lanePath("S", 2, "straight"));
@@ -1048,7 +1047,10 @@ function routeFollower(
     }
 
     const here = poseAt(route, progress);
-    const aim = poseAt(route, Math.min(route.length, progress + (here.reversing ? 3 : 4.5)));
+    const aim = poseAt(
+      route,
+      Math.min(route.length, progress + (here.reversing ? 3 : 4.5)),
+    );
     let bearing = bearingOf(aim.x - car.x, aim.z - car.z);
     if (options.aside && progress >= (options.asideFrom ?? 0)) {
       const side = poseAt(route, Math.min(route.length, progress + 6));
@@ -1112,8 +1114,12 @@ describe("the parked cars move, and the bay to take with them", () => {
         const start = route.points[0];
         // no parked car stands where the task starts or ends
         for (const other of task.otherCars) {
-          expect(Math.hypot(other.x - end.x, other.z - end.z)).toBeGreaterThan(3);
-          expect(Math.hypot(other.x - start.x, other.z - start.z)).toBeGreaterThan(3);
+          expect(Math.hypot(other.x - end.x, other.z - end.z)).toBeGreaterThan(
+            3,
+          );
+          expect(
+            Math.hypot(other.x - start.x, other.z - start.z),
+          ).toBeGreaterThan(3);
         }
         const result = play(task, routeFollower(task, route), 240);
         expect(result.fault, task.id).toBeUndefined();
@@ -1163,8 +1169,7 @@ describe("no stopping on a pedestrian crossing", () => {
 
 describe("no stopping beside a yellow kerb, but a brief pause is fine", () => {
   const task = ROUTE_TASKS.find((c) => c.id === "down-the-street")!;
-  const inStreet = () =>
-    car.z > ROADS.STREET.z0 && car.z < ROADS.STREET.z1;
+  const inStreet = () => car.z > ROADS.STREET.z0 && car.z < ROADS.STREET.z1;
   const stopLine = () => {
     const net = network();
     const edge = net.edges.find(
@@ -1220,6 +1225,23 @@ describe("tasks away from the roundabout", () => {
     for (const challenge of ROUTE_TASKS) {
       it(`passes "${challenge.title}", assist ${assist ? "on" : "off"}`, () => {
         drive.assist = assist;
+        const route = challengeRoute(challenge)!;
+        const result = play(challenge, routeFollower(challenge, route), 240);
+        expect(result.fault, challenge.id).toBeUndefined();
+        expect(result.small, challenge.id).toEqual([]);
+        expect(result.goal, challenge.id).toBe(true);
+      });
+    }
+  }
+
+  // The van and the lorry are true to size: longer, and the lorry turns in a
+  // wider circle. Every task they are given must still be drivable. (A task
+  // that uses an angle bay is driven in a car instead.)
+  for (const vehicle of ["van", "lorry"] as const) {
+    for (const challenge of ROUTE_TASKS) {
+      if (taskUsesAngleBay(challenge)) continue;
+      it(`passes "${challenge.title}" in the ${vehicle}`, () => {
+        setVehicle(vehicle);
         const route = challengeRoute(challenge)!;
         const result = play(challenge, routeFollower(challenge, route), 240);
         expect(result.fault, challenge.id).toBeUndefined();
