@@ -12,7 +12,7 @@ import { dequantize } from "@gltf-transform/functions";
 import { MeshoptDecoder } from "meshoptimizer";
 import { describe, expect, it } from "vitest";
 
-import { BOARD_CARS } from "~/lib/board/cars";
+import { BOARD_CARS, isBig } from "~/lib/board/cars";
 
 const ROOT = process.cwd();
 
@@ -96,11 +96,15 @@ describe.each(BOARD_CARS.map((c) => c.id))("the %s's wrap template", (car) => {
     expect(L.wheels.front.z).toBeLessThan(L.wheels.rear.z);
     expect(L.wheels.front.z).toBeGreaterThan(zmin);
     expect(L.wheels.rear.z).toBeLessThan(zmax);
-    // the windscreen is behind the front wheel
-    expect(L.screen.front).toBeGreaterThan(L.wheels.front.z);
-    // the doors' clear band: between the arches, tall enough for a name
+    // the windscreen is behind the front wheel, but for a van or a lorry,
+    // whose driver sits over it
+    const cabOver = isBig(car);
+    if (!cabOver) expect(L.screen.front).toBeGreaterThan(L.wheels.front.z);
+    // the doors' clear band: between the arches, tall enough for a name. On
+    // a lorry it is the side of the load body, which runs past the rear wheel.
     expect(L.door.z0).toBeGreaterThan(L.wheels.front.z);
-    expect(L.door.z1).toBeLessThan(L.wheels.rear.z);
+    if (car !== "lorry") expect(L.door.z1).toBeLessThan(L.wheels.rear.z);
+    expect(L.door.z1).toBeLessThan(zmax);
     expect(L.door.y0).toBeGreaterThanOrEqual(L.sill);
     expect(L.door.y1).toBeLessThanOrEqual(L.belt);
     expect(L.door.y1 - L.door.y0).toBeGreaterThan(0.2);

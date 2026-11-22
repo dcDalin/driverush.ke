@@ -94,6 +94,10 @@ const hiluxWheel = ([x, y, z]) =>
   y < 82 &&
   (Math.hypot(y - 44, z + 2) < 34.5 || Math.hypot(y - 44, z - 287) < 34.5);
 
+/** The lorry's axles: front and rear, by how far along the model they sit. */
+const lorryAxle = ([, , z]) =>
+  Math.abs(z + 2.005) < 0.34 || Math.abs(z - 1.19) < 0.34;
+
 const CARS = {
   // 2014 Toyota Corolla E180 by Armored Wave, CC BY 4.0.
   saloon: {
@@ -141,7 +145,10 @@ const CARS = {
       [/\|body1$/, "paint"],
       [/\|Translucent_Glass_Gray$/, "glass"],
       [/\|tail1$/, "tail"],
-      [/\|(light1|Turn_Signal_Reflector|Color_C01|material_4|window1)$/, "body"],
+      [
+        /\|(light1|Turn_Signal_Reflector|Color_C01|material_4|window1)$/,
+        "body",
+      ],
       [/./, "drop"],
     ],
   },
@@ -171,6 +178,49 @@ const CARS = {
       ],
       [/^Urban10_Brakelights_/, "tail"],
       [/\|Urban10_bodymat$/, "paint"],
+    ],
+  },
+  // Low Poly 2013 Toyota HiAce by Alvin.Woodly, CC BY 4.0. True to size: a
+  // van is longer and narrower than the cars (owner, 2026-11-22).
+  van: {
+    dir: "van",
+    nose: "+z",
+    // The model's own size: 4.74 m long, 1.84 m across the body (2.29 m
+    // across the mirrors, which is what `width` has to let through).
+    fit: { length: 4.74, width: 2.29 },
+    rules: [
+      [/^(front|rear) (left|right) wheel/, "wheel"],
+      [/\|base$/, "paint"],
+      [/\|(window|glass|glass_with_squares)$/, "glass"],
+      [/\|(brake_lights|tail_light_glass)$/, "tail"],
+    ],
+  },
+  // Isuzu truck by igbalabdrahmane, CC BY 4.0: a light lorry with a box body.
+  // True to size.
+  lorry: {
+    dir: "lorry",
+    nose: "+z",
+    fit: { length: 6.0, width: 1.95 },
+    rules: [
+      // A drawing-office model: its parts are told apart by their materials.
+      // The tyres share a rubber with the mudguards, the rear rims a chrome
+      // with the mirrors and trim: only what sits at an axle is a wheel.
+      [/\|Mold-Tech-14153_1$/, "wheel", lorryAxle],
+      [/\|Chrome_bright$/, "wheel"],
+      [
+        /\|Chrome_bright_2$/,
+        "wheel",
+        ([, y, z]) => y < 0.6 && lorryAxle([0, y, z]),
+      ],
+      // The cab, the canvas cover and the drop sides under it all take paint:
+      // the cover's sides are where a school's name goes.
+      [
+        /\|(Bombay_Blue_741795|Paint_-_metallic_blue|Paint_-_metallic_jet_black)$/,
+        "paint",
+      ],
+      [/\|Glass_basic_white$/, "glass"],
+      [/\|Default_1[12]$/, "tail"],
+      [/\|(PL1_0|Pl2_0|Default_9|Default_10|Targa_[01])$/, "drop"], // plates
     ],
   },
 };
@@ -674,7 +724,10 @@ async function build(id, car) {
     ground,
     (box.min[2] + box.max[2]) / 2,
   ];
-  const scale = Math.min(FIT.length / box.size[2], FIT.width / box.size[0]);
+  // A car is scaled to the cars' shared footprint; a bigger vehicle to its
+  // own real size (`fit`).
+  const fit = car.fit ?? FIT;
+  const scale = Math.min(fit.length / box.size[2], fit.width / box.size[0]);
   const place = ([x, y, z]) => [
     (x - centre[0]) * scale,
     (y - centre[1]) * scale,
@@ -888,7 +941,10 @@ async function build(id, car) {
     textureCompress({
       encoder: sharp,
       targetFormat: "webp",
-      resize: [car.textureSize ?? TEXTURE_SIZE, car.textureSize ?? TEXTURE_SIZE],
+      resize: [
+        car.textureSize ?? TEXTURE_SIZE,
+        car.textureSize ?? TEXTURE_SIZE,
+      ],
       quality: 80,
     }),
     quantize({

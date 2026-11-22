@@ -40,7 +40,15 @@ const ROOT = process.cwd();
 const SRC = path.join(ROOT, "scripts/sponsor-art");
 const FONTS = path.join(SRC, "fonts");
 const ASSETS = path.join(ROOT, "public/assets/board/sponsors");
-export const CARS = ["saloon", "hatchback", "wagon", "pickup", "suv"];
+export const CARS = [
+  "saloon",
+  "hatchback",
+  "wagon",
+  "pickup",
+  "suv",
+  "van",
+  "lorry",
+];
 
 function option(name) {
   const i = process.argv.indexOf(`--${name}`);

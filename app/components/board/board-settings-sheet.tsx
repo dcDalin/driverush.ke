@@ -171,8 +171,9 @@ export function BoardSettingsSheet({
               ))}
             </div>
             <p className="m-0 text-[12.5px] leading-snug text-ink-2">
-              The cars only look different. They are the same size and drive the
-              same way. Surprise me picks one each time you visit.
+              The five cars are the same size and drive the same way. The van
+              and the lorry are bigger and need more room to turn. Surprise me
+              picks one each time you visit.
             </p>
             {open && sponsor?.livery?.cars[car] && (
               <SponsorCredit sponsor={sponsor} lead="Car by" place="credit" />

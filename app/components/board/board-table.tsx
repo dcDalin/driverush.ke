@@ -2282,7 +2282,7 @@ type SceneProps = BoardTableProps & { shadow: number; onSlow: () => void };
 
 /**
  * Fetches the driven car's model, then draws the scene with it. The other
- * models (about 1 MB in all) follow in the background; until each arrives,
+ * models (about 1.5 MB in all) follow in the background; until each arrives,
  * the cars that need it wear the driven car's shape in their own colours.
  */
 function SceneWithCars(props: SceneProps) {

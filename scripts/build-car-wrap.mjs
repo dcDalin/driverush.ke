@@ -37,7 +37,18 @@ const ROOT = process.cwd();
 const OUT = path.join(ROOT, "public/assets/board/sponsors");
 const CARS = process.argv.slice(2).length
   ? process.argv.slice(2)
-  : ["saloon", "hatchback", "wagon", "pickup", "suv"];
+  : ["saloon", "hatchback", "wagon", "pickup", "suv", "van", "lorry"];
+
+/**
+ * What the measuring below cannot tell from a vehicle's shape alone.
+ *
+ * `cabRear`: a lorry's cab ends here (metres along, in the car's frame) and
+ * its load body begins. A school's paint is laid out against the wheels, the
+ * window line and the sills, as on its real car: on a lorry the load body's
+ * side stands in for the doors, so its bottom edge is the "sill" and its top
+ * the "belt", and the name board stands on the cab's roof, not the load.
+ */
+const SHAPES = { lorry: { cabRear: -1.6 } };
 
 /** The template picture, in pixels. Schools draw at this size. */
 const ATLAS = { width: 2048, height: 2048 };
@@ -142,7 +153,7 @@ const r3 = (n) => Math.round(n * 1000) / 1000;
  * Where a design can rely on things being, measured from this car's own
  * shape: so one design fits a long low saloon and a tall short SUV alike.
  */
-function landmarks(doc, paintTris, bodyTris) {
+function landmarks(doc, paintTris, bodyTris, shape = {}) {
   const nodes = doc.getRoot().listNodes();
   const root = nodes.find((n) => n.getExtras()?.wheelRadius);
   const wheelR = root?.getExtras().wheelRadius ?? 0.32;
@@ -154,7 +165,12 @@ function landmarks(doc, paintTris, bodyTris) {
 
   const box = boxOf(paintTris);
   const length = box.max[2] - box.min[2];
-  const sideTris = paintTris.filter(facesSide);
+  const loadAt = shape.cabRear;
+  const onLoad = (t) => loadAt !== undefined && centroid(t)[2] > loadAt;
+  // A lorry is measured on its load body's sides.
+  const sideTris = paintTris.filter(
+    (t) => facesSide(t) && (loadAt === undefined || onLoad(t)),
+  );
   const sill = Math.min(...sideTris.flatMap((t) => t.map((p) => p[1])));
 
   // Glass: its own node on the realistic cars; on the low-poly ones, the
@@ -172,21 +188,28 @@ function landmarks(doc, paintTris, bodyTris) {
   const glassSides = glass.filter(
     (t) => facesSide(t) && centroid(t)[1] >= high,
   );
-  const belt = Math.min(...glassSides.flatMap((t) => t.map((p) => p[1])));
-  const glassBox = boxOf(glass.filter((t) => centroid(t)[1] >= belt - 0.05));
+  const windowLine = Math.min(...glassSides.flatMap((t) => t.map((p) => p[1])));
+  // On a lorry, the top of the load body's sides.
+  const belt =
+    loadAt === undefined
+      ? windowLine
+      : Math.max(...sideTris.flatMap((t) => t.map((p) => p[1]))) - 0.08;
+  const glassBox = boxOf(
+    glass.filter((t) => centroid(t)[1] >= windowLine - 0.05),
+  );
   const screen = { front: r3(glassBox.min[2]), rear: r3(glassBox.max[2]) };
 
   // Roof: upward bodywork above the windows. Clear unless rails or racks
   // cover a good part of it.
   const roofTris = paintTris.filter(
-    (t) => facesUp(t) && centroid(t)[1] > belt + 0.15,
+    (t) => facesUp(t) && centroid(t)[1] > windowLine + 0.15,
   );
   const roofBox = boxOf(roofTris);
   const roofArea = roofTris.reduce((s, t) => s + areaOf(t), 0);
   const inRoof = (t) => {
     const [x, y, z] = centroid(t);
     return (
-      y > belt + 0.15 &&
+      y > windowLine + 0.15 &&
       x >= roofBox.min[0] &&
       x <= roofBox.max[0] &&
       z >= roofBox.min[2] &&
@@ -198,21 +221,26 @@ function landmarks(doc, paintTris, bodyTris) {
     .reduce((s, t) => s + areaOf(t), 0);
   // Where a school's name board stands (app/components/board/top-board.ts):
   // on the flat of the roof, over the front seats.
-  const flat = boxOf(
-    roofTris.filter((t) => centroid(t)[1] > roofBox.max[1] - 0.07),
-  );
+  // On a lorry, the cab's roof.
+  const boardRoof =
+    loadAt === undefined
+      ? roofTris
+      : paintTris.filter(
+          (t) => facesUp(t) && !onLoad(t) && centroid(t)[1] > windowLine + 0.15,
+        );
+  const boardTop = boxOf(boardRoof).max[1];
+  const flat = boxOf(boardRoof.filter((t) => centroid(t)[1] > boardTop - 0.07));
   // About half a metre behind the windscreen's top, as on a real school
   // car; less on a short cab.
-  const boardZ =
-    flat.min[2] + Math.min(0.5, (flat.max[2] - flat.min[2]) * 0.4);
-  const under = roofTris.filter(
+  const boardZ = flat.min[2] + Math.min(0.5, (flat.max[2] - flat.min[2]) * 0.4);
+  const under = boardRoof.filter(
     (t) =>
       Math.abs(centroid(t)[2] - boardZ) < 0.12 &&
       Math.abs(centroid(t)[0]) < 0.3,
   );
   const boardY = under.length
     ? Math.max(...under.flatMap((t) => t.map((p) => p[1])))
-    : roofBox.max[1];
+    : boardTop;
   const roof = {
     board: { z: r3(boardZ), y: r3(boardY) },
     z0: r3(roofBox.min[2]),
@@ -324,10 +352,14 @@ function landmarks(doc, paintTris, bodyTris) {
     };
   }
 
-  const doorZ = {
-    z0: r3(front.z + archR + 0.05),
-    z1: r3(rear.z - archR - 0.05),
-  };
+  const loadBox = loadAt === undefined ? null : boxOf(sideTris);
+  const doorZ = loadBox
+    ? // The length of the load body's side.
+      { z0: r3(loadBox.min[2] + 0.08), z1: r3(loadBox.max[2] - 0.08) }
+    : {
+        z0: r3(front.z + archR + 0.05),
+        z1: r3(rear.z - archR - 0.05),
+      };
   const door = { ...doorZ, ...clearBand(doorZ.z0, doorZ.z1, sill, belt) };
   // The front wing over the arch, for a mark there.
   const wingZ = {
@@ -490,7 +522,7 @@ async function wrapCar(id) {
       .setBuffer(doc.getRoot().listBuffers()[0]),
   );
 
-  const marks = landmarks(doc, paintTris, bodyTris);
+  const marks = landmarks(doc, paintTris, bodyTris, SHAPES[id]);
   // The board reads where a name board stands from the car's own file.
   const rootNode = nodes.find((n) => n.getExtras()?.wheelRadius);
   rootNode?.setExtras({ ...rootNode.getExtras(), roof: marks.roof.board });

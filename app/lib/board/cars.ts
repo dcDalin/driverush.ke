@@ -36,7 +36,8 @@ const CAR_SIZE: CarSize = {
 export const BOARD_CARS = [
   // `model`: who made it, and its page. A CC BY model must be credited where
   // the cars are chosen (board-settings-sheet); the others are credited too.
-  // `?v=5`: the realistic cars, each with the place of its roof board.
+  // `?v=5`: the realistic cars, each with the place of its roof board (the
+  // van and the lorry, added later, start at `?v=1`).
   // A new address, so no cache hands out an old one. Keep public/sw.js's
   // BOARD_FILES in step.
   {
@@ -91,6 +92,32 @@ export const BOARD_CARS = [
     model: {
       by: "Daniel Zhabotinsky",
       page: "https://sketchfab.com/3d-models/urban-10-low-poly-model-2866efdfa943484391ef8313768e074d",
+      ccBy: true,
+    },
+  },
+  // The two below are true to size (owner, 2026-11-22), measured off the
+  // built models: scripts/build-real-cars.mjs `fit`.
+  {
+    id: "van",
+    label: "Van",
+    src: "/assets/board/cars/van.glb?v=1",
+    size: { length: 4.74, width: 1.85, wheelbase: 2.55, height: 1.92 },
+    big: true,
+    model: {
+      by: "Alvin.Woodly",
+      page: "https://sketchfab.com/3d-models/low-poly-2013-toyota-hiace-f83b4ed4d8534efb81def77b6c1b642d",
+      ccBy: true,
+    },
+  },
+  {
+    id: "lorry",
+    label: "Lorry",
+    src: "/assets/board/cars/lorry.glb?v=1",
+    size: { length: 6, width: 1.94, wheelbase: 3.2, height: 2.35 },
+    big: true,
+    model: {
+      by: "igbalabdrahmane",
+      page: "https://sketchfab.com/3d-models/isuzu-truck-434367858e7240b2b93db7bedb431157",
       ccBy: true,
     },
   },

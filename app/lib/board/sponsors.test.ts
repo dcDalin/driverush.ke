@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveCar } from "~/lib/board/cars";
+import { BOARD_CARS, resolveCar } from "~/lib/board/cars";
 import {
   askedSchool,
   inPeriod,
@@ -150,6 +150,8 @@ describe("the car a learner gets with a sponsoring school", () => {
       [0, 0.4, 0.8].map((roll) => resolveCar("random", roll, [])),
     );
     expect(seen.size).toBe(3);
-    expect(resolveCar("random", 0.99)).toBe("suv");
+    expect(resolveCar("random", 0.99)).toBe(
+      BOARD_CARS[BOARD_CARS.length - 1].id,
+    );
   });
 });
