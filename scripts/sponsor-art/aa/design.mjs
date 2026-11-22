@@ -143,20 +143,157 @@ function squares(id, size, x0 = 0, y0 = 0) {
   return `<pattern id="${id}" width="${2 * q}" height="${2 * q}" patternUnits="userSpaceOnUse" patternTransform="translate(${x0} ${y0})"><rect width="${2 * q}" height="${2 * q}" fill="${c.body}"/><rect width="${q}" height="${q}" fill="${c.yellow}"/><rect x="${q}" y="${q}" width="${q}" height="${q}" fill="${c.yellow}"/></pattern>`;
 }
 
-// ---- the car ------------------------------------------------------------------------
+// ---- fitted to each vehicle ------------------------------------------------------------
 
-export default function aa({ k }) {
+/** Their logo's height over its width. */
+const LOGO_TALL = GREEN.h / GREEN.w;
+
+const poly = (pts, fill) =>
+  `<polygon points="${pts.map(([a, b]) => `${a.toFixed(4)},${b.toFixed(4)}`).join(" ")}" fill="${fill}"/>`;
+
+/**
+ * "AA DRIVING" over "SCHOOL", in their yellow on the dark green, as large as
+ * fits `box` (pixels) and set against its `align` edge.
+ */
+function nameBlock(fonts, box, { fill = COLORS.yellow, align = "left" } = {}) {
+  const heavy = fonts["Poppins-ExtraBold.ttf"];
+  const rows = ["AA DRIVING", "SCHOOL"];
+  const a = rows.map((t) => aspectOf(heavy, t, 0.02));
+  const gap = 0.3;
+  const h = Math.min(box.h / (2 + gap), box.w / Math.max(...a));
+  const top = box.y + (box.h - h * (2 + gap)) / 2;
+  return rows
+    .map((text, i) => {
+      const w = h * a[i];
+      const x =
+        align === "right"
+          ? box.x + box.w - w
+          : align === "center"
+            ? box.x + (box.w - w) / 2
+            : box.x;
+      const d = line(heavy, text, {
+        x,
+        y: top + i * h * (1 + gap),
+        height: h,
+        tracking: 0.02,
+      });
+      return `<path d="${d}" fill="${fill}"/>`;
+    })
+    .join("");
+}
+
+/**
+ * Their logo with the name beside it, filling a pixel box: the logo at the
+ * box's `nose` end (where the vehicle's front is, so it leads), the name
+ * after it. As a sign writer sets a fleet panel.
+ */
+function lockupBox(fonts, box, nose) {
+  const logoH = box.h;
+  const logoW = Math.min(logoH / LOGO_TALL, box.w * 0.38);
+  const lh = logoW * LOGO_TALL;
+  const gap = logoW * 0.16;
+  const nameW = box.w - logoW - gap;
+  const lx = nose === "left" ? box.x : box.x + box.w - logoW;
+  const nx = nose === "left" ? box.x + logoW + gap : box.x;
+  const name = nameBlock(
+    fonts,
+    { x: nx, y: box.y + (box.h - lh) / 2, w: nameW, h: lh },
+    { align: nose === "left" ? "left" : "right" },
+  );
+  return aaLogo(lx + logoW / 2, box.y + box.h / 2, logoW) + name;
+}
+
+/**
+ * For a roof, read from above with its top towards the nose: the logo
+ * leading, the name under it, centred across the roof.
+ */
+function roofStack(fonts, b) {
+  const logoW = Math.min(b.w * 0.62, (b.h * 0.42) / LOGO_TALL);
+  const logoH = logoW * LOGO_TALL;
+  const gap = logoH * 0.18;
+  const used = Math.min(b.h, logoH + gap + logoH * 0.9);
+  const y0 = b.y + (b.h - used) / 2;
+  return (
+    aaLogo(b.x + b.w / 2, y0 + logoH / 2, logoW) +
+    nameBlock(
+      fonts,
+      { x: b.x, y: y0 + logoH + gap, w: b.w, h: used - logoH - gap },
+      { fill: COLORS.green, align: "center" },
+    )
+  );
+}
+
+/** A "CAUTION / DRIVER UNDER INSTRUCTION" plate with a red L, as on their buses. */
+function cautionPlate(fonts, box) {
+  const c = COLORS;
+  const heavy = fonts["Poppins-ExtraBold.ttf"];
+  const bold = fonts["Poppins-Bold.ttf"];
+  const pad = box.h * 0.08;
+  const l = box.h - 2 * pad;
+  const tx = box.x + pad * 2 + l;
+  const tw = box.w - (tx - box.x) - pad * 1.5;
+  return [
+    `<rect x="${box.x.toFixed(1)}" y="${box.y.toFixed(1)}" width="${box.w.toFixed(1)}" height="${box.h.toFixed(1)}" fill="${c.black}"/>`,
+    `<rect x="${(box.x + pad * 0.4).toFixed(1)}" y="${(box.y + pad * 0.4).toFixed(1)}" width="${(box.w - pad * 0.8).toFixed(1)}" height="${(box.h - pad * 0.8).toFixed(1)}" fill="${c.yellow}"/>`,
+    lPlate(box.x + pad + l / 2, box.y + box.h / 2, l, { ground: c.yellow }),
+    fitted(
+      heavy,
+      "CAUTION",
+      { x: tx, y: box.y + pad, w: tw, h: (box.h - 2 * pad) * 0.5 },
+      0.03,
+      `fill="${c.black}"`,
+    ).svg,
+    fitted(
+      bold,
+      "DRIVER UNDER INSTRUCTION",
+      {
+        x: tx,
+        y: box.y + pad + (box.h - 2 * pad) * 0.6,
+        w: tw,
+        h: (box.h - 2 * pad) * 0.34,
+      },
+      0.02,
+      `fill="${c.black}"`,
+    ).svg,
+  ].join("");
+}
+
+/**
+ * A learner's plate on the back, on clear paint on the left half (as on
+ * their saloons, on the bumper's left), up to 20 cm across.
+ */
+function backPlate(k) {
+  const { L, box } = k;
+  const r = k.clearRect("back", box.xmin, 0, L.sill, L.belt, { inset: 0.02 });
+  if (!r) return "";
+  const size = Math.min(0.2, r.z1 - r.z0, r.y1 - r.y0);
+  if (size < 0.1) return "";
+  const s = k.scale("back");
+  // Towards the outer edge of that clear area, low, as theirs is.
+  const [px, py] = k.pt.back(r.z0 + size / 2 + 0.02, r.y0 + size / 2);
+  return k.pixels("back", lPlate(px, py, size * s));
+}
+
+/**
+ * AA's paint, fitted to the vehicle: their car's own layout on the cars, the
+ * same squares along the doors of the van with its tall side kept calm for
+ * their logo and name, and a fleet truck's layout on the lorry.
+ */
+export default function aa({ k, fonts }) {
+  if (k.kind === "lorry") return lorry(k, fonts);
+  return car(k, fonts);
+}
+
+function car(k, fonts) {
   const { L, box } = k;
   const c = COLORS;
   const far = 9;
+  const van = k.kind === "van";
   const rear = L.wheels.rear.z;
   const wb = rear - L.wheels.front.z;
   const zAt = (u) => rear - u * wb;
   const band = L.belt - L.sill;
   const yAt = (v) => L.belt - v * band;
-  const scaleOf = (view) => Math.abs(k.pt[view](1, 0)[0] - k.pt[view](0, 0)[0]);
-  const poly = (pts, fill) =>
-    `<polygon points="${pts.map(([a, b]) => `${a.toFixed(4)},${b.toFixed(4)}`).join(" ")}" fill="${fill}"/>`;
 
   // The squares line up with the window line on the sides, and with the
   // car's middle on top, so they meet the same way on every car.
@@ -167,50 +304,122 @@ export default function aa({ k }) {
   ].join("");
 
   const body = k.rect(-far, -far, far, far, c.body);
-  // The sides: squares above their lower edge, the dark green below it.
+  // The sides: squares above their lower edge, the dark green below it,
+  // up the pillars to the white roof. A van's band is three whole rows down
+  // from the window line, nose to tail, one clean band along its long flat
+  // side; its tall side above stays dark green for the logo.
   const edge = EDGE.map(([u, v]) => [zAt(u), yAt(v)]);
+  const vanRows = L.belt - 3 * SQUARE;
   const side = [
     body,
-    poly(
-      [
-        [box.zmax + far, edge[0][1]],
-        ...edge,
-        [box.zmin - far, yAt(0.2)],
-        [box.zmin - far, far],
-        [box.zmax + far, far],
-      ],
-      "url(#aa-side)",
-    ),
+    van
+      ? k.rect(-far, vanRows, far, L.belt + 0.005, "url(#aa-side)")
+      : poly(
+          [
+            [box.zmax + far, edge[0][1]],
+            ...edge,
+            [box.zmin - far, yAt(0.2)],
+            [box.zmin - far, far],
+            [box.zmax + far, far],
+          ],
+          "url(#aa-side)",
+        ),
+    // The white roof's edge, where the side curls over into it.
+    k.rect(L.screen.front, L.roof.y - 0.04, L.screen.rear, far, c.white),
   ].join("");
-  // The top: squares on the bonnet and the boot, a white roof between.
-  const top = [
-    k.rect(-far, -far, far, far, "url(#aa-top)"),
-    k.rect(L.screen.front, -far, L.screen.rear, far, c.white),
-  ].join("");
-  // The ends: a dark green front; squares over the bumper at the back.
-  const back = [body, k.rect(-far, yAt(0.6), far, far, "url(#aa-end)")].join(
-    "",
-  );
+  // The top: squares on the bonnet and the boot, a white roof between. A
+  // van's is white but for its short nose, in the body's green.
+  const top = van
+    ? [
+        k.rect(-far, -far, far, far, c.white),
+        k.rect(-far, -far, L.screen.front, far, c.body),
+      ].join("")
+    : [
+        k.rect(-far, -far, far, far, "url(#aa-top)"),
+        k.rect(L.screen.front, -far, L.screen.rear, far, c.white),
+      ].join("");
+  // The ends: a dark green front; squares over the bumper at the back. A
+  // van's band runs round both ends at the sides' height.
+  const back = van
+    ? [body, k.rect(-far, vanRows, far, L.belt + 0.005, "url(#aa-end)")].join(
+        "",
+      )
+    : [body, k.rect(-far, yAt(0.6), far, far, "url(#aa-end)")].join("");
+  const front = van ? back : body;
 
-  // Their logo on the front door, the same way round on both sides.
-  const logos = ["left", "right"]
-    .map((view) => {
-      const s = scaleOf(view);
-      const size = Math.min(DOOR_LOGO.size, (L.door.y1 - L.door.y0) * 0.62);
-      const z = Math.max(
-        zAt(DOOR_LOGO.at),
-        L.wheels.front.z + L.wheels.front.r + size / 2 + 0.06,
-      );
-      const [px, py] = k.pt[view](z, yAt(DOOR_LOGO.down));
-      return k.pixels(view, aaLogo(px, py, size * s));
-    })
-    .join("");
-  // A learner's plate at the back, on the bumper's left as on theirs.
-  const plate = (() => {
-    const s = scaleOf("back");
-    const [px, py] = k.pt.back(-k.width * 0.3, yAt(0.78));
-    return k.pixels("back", lPlate(px, py, 0.2 * s));
-  })();
+  // Their logo on the front door, the same way round on both sides: on the
+  // largest clear paint of that door (a moulding or a handle can split it),
+  // as near their spot on it as that allows, up to its size on their car.
+  const doorFrom = L.wheels.front.z + L.wheels.front.r + 0.04;
+  const doorTo = zAt(0.42);
+  const spot = k.clearRect("both", doorFrom, doorTo, L.sill, L.belt, {
+    inset: 0.015,
+  });
+  const logos = !spot
+    ? ""
+    : ["left", "right"]
+        .map((view) => {
+          const s = k.scale(view);
+          const size = Math.min(
+            DOOR_LOGO.size,
+            (spot.y1 - spot.y0) / LOGO_TALL,
+            spot.z1 - spot.z0,
+          );
+          const half = (size * LOGO_TALL) / 2;
+          const clampTo = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+          const z = clampTo(
+            zAt(DOOR_LOGO.at),
+            spot.z0 + size / 2,
+            spot.z1 - size / 2,
+          );
+          const y = clampTo(
+            yAt(DOOR_LOGO.down),
+            spot.y0 + half,
+            spot.y1 - half,
+          );
+          const [px, py] = k.pt[view](z, y);
+          return k.pixels(view, aaLogo(px, py, size * s));
+        })
+        .join("");
+
+  // A van: the logo and name large on the blank panel behind the side
+  // windows, high where it reads over traffic, lettering about 30 cm.
+  const panelArt = [];
+  if (van) {
+    const panel = k.clearRect(
+      "both",
+      L.wheels.front.z,
+      box.zmax,
+      L.belt + 0.06,
+      box.ymax,
+    );
+    if (panel && panel.y1 - panel.y0 > 0.35) {
+      for (const view of ["left", "right"]) {
+        const b = k.boxPx(view, panel.z0, panel.y1, panel.z1, panel.y0);
+        const capped = k.cap(b, 0.62 * k.scale(view));
+        panelArt.push(
+          k.pixels(
+            view,
+            lockupBox(fonts, capped, view === "left" ? "left" : "right"),
+          ),
+        );
+      }
+    }
+  }
+  // The long white roof of a van carries the logo and name for the camera
+  // above, behind the name board.
+  const roofArt =
+    van && L.roof.clear
+      ? k.onTopWith(
+          {
+            z0: L.roof.board.z + 0.55,
+            z1: L.roof.z1 - 0.2,
+            x0: L.roof.x0 + 0.18,
+            x1: L.roof.x1 - 0.18,
+          },
+          (b) => roofStack(fonts, b),
+        )
+      : "";
 
   return {
     defs,
@@ -218,10 +427,106 @@ export default function aa({ k }) {
       k.inView("left", side),
       k.inView("right", side),
       k.inView("top", top),
-      k.inView("front", body),
+      k.inView("front", front),
       k.inView("back", back),
-      logos,
-      plate,
+      van ? "" : logos,
+      ...panelArt,
+      roofArt,
+      backPlate(k),
+    ].join("\n"),
+  };
+}
+
+/**
+ * The lorry, as a fleet truck in AA's look: a dark green cab with a band of
+ * their squares low on it; a dark green box with two rows of squares along
+ * the drop-side rail at its foot and one along its top edge, their logo and
+ * the school's name large on the calm green between (letters about 40 cm a
+ * line), and a caution plate as on their buses at its rear end. The roofs
+ * are white, as theirs, the box's with the logo and name for the camera.
+ */
+function lorry(k, fonts) {
+  const { L, box } = k;
+  const c = COLORS;
+  const far = 9;
+  const cab = L.cab;
+  const load = L.load;
+  const rowTop = load.y1 - SQUARE;
+  const defs = [
+    // Rows ending flush on the rail's top, on the cab's window line and on
+    // the box's top edge, the columns on the box's front.
+    squares("aa-rail", SQUARE, load.z0.toFixed(3), load.rail.toFixed(3)),
+    squares("aa-crown", SQUARE, load.z0.toFixed(3), rowTop.toFixed(3)),
+    squares("aa-cab", SQUARE, cab.z0.toFixed(3), cab.belt.toFixed(3)),
+    squares("aa-cabend", SQUARE, 0, cab.belt.toFixed(3)),
+  ].join("");
+  const body = k.rect(-far, -far, far, far, c.body);
+  const side = [
+    body,
+    // The box: two rows on the rail, one on the top edge.
+    k.rect(
+      load.z0 - 0.02,
+      load.rail - 2 * SQUARE,
+      far,
+      load.rail,
+      "url(#aa-rail)",
+    ),
+    k.rect(load.z0 - 0.02, rowTop, far, far, "url(#aa-crown)"),
+    // The cab: two rows up to its window line.
+    k.rect(-far, cab.belt - 2 * SQUARE, cab.z1, cab.belt, "url(#aa-cab)"),
+    k.rect(-far, cab.top - 0.05, cab.z1, far, c.white),
+  ].join("");
+  const front = [
+    body,
+    k.rect(-far, cab.belt - 2 * SQUARE, far, cab.belt, "url(#aa-cabend)"),
+    k.rect(-far, cab.top - 0.05, far, far, c.white),
+  ].join("");
+
+  // The name panel on the box's calm middle: logo at the nose end.
+  const yLow = load.rail + 0.12;
+  const yHigh = rowTop - 0.12;
+  const zNose = load.z0 + 0.25;
+  const plateW = 1.15;
+  const zTail = load.z1 - plateW - 0.45;
+  const art = ["left", "right"].map((view) => {
+    const s = k.scale(view);
+    const b = k.boxPx(view, zNose, yHigh, zTail, yLow);
+    const lock = lockupBox(
+      fonts,
+      k.cap(b, 0.95 * s),
+      view === "left" ? "left" : "right",
+    );
+    const p = k.boxPx(
+      view,
+      load.z1 - 0.3 - plateW,
+      (yLow + yHigh) / 2 + 0.23,
+      load.z1 - 0.3,
+      (yLow + yHigh) / 2 - 0.23,
+    );
+    return k.pixels(view, lock + cautionPlate(fonts, p));
+  });
+
+  const top = [k.rect(-far, -far, far, far, c.white)].join("");
+  const roofArt = k.onTopWith(
+    {
+      z0: load.z0 + 0.5,
+      z1: load.z1 - 0.4,
+      x0: box.xmin + 0.2,
+      x1: box.xmax - 0.2,
+    },
+    (b) => roofStack(fonts, b),
+  );
+
+  return {
+    defs,
+    body: [
+      k.inView("left", side),
+      k.inView("right", side),
+      k.inView("top", top),
+      k.inView("front", front),
+      k.inView("back", body),
+      ...art,
+      roofArt,
     ].join("\n"),
   };
 }

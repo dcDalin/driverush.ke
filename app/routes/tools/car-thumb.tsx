@@ -7,6 +7,10 @@
  * Every vehicle is taken from the same place, so the van and the lorry come
  * out bigger than the six cars, as they are on the board.
  *
+ * `&school=<id>` paints it in that school's livery with its roof board, and
+ * `&heading=&tilt=&dist=` move the camera: the review sheets of the schools'
+ * paint are photographed this way too.
+ *
  * Internal: noindex, outside the tools layout so nothing else is in the shot.
  */
 import * as React from "react";
@@ -16,6 +20,7 @@ import type { Route } from "./+types/car-thumb";
 
 import { BOARD_CARS, type BoardCarId } from "~/lib/board/cars";
 import { CAR_COLORS } from "~/lib/board/full-board";
+import { sponsorById } from "~/lib/board/sponsors";
 
 import type { CarView } from "~/components/board/sponsor-car-canvas";
 
@@ -42,6 +47,16 @@ export default function CarThumb() {
   const wanted = params.get("car");
   const car: BoardCarId =
     BOARD_CARS.find((c) => c.id === wanted)?.id ?? BOARD_CARS[0].id;
+  const school = sponsorById(params.get("school"));
+  const number = (name: string, fallback: number) => {
+    const n = Number(params.get(name));
+    return params.has(name) && Number.isFinite(n) ? n : fallback;
+  };
+  const view: CarView = {
+    heading: number("heading", VIEW.heading),
+    tilt: number("tilt", VIEW.tilt),
+    dist: number("dist", VIEW.dist),
+  };
 
   return (
     <>
@@ -50,9 +65,10 @@ export default function CarThumb() {
         <React.Suspense fallback={null}>
           <SponsorCarCanvas
             car={car}
-            wrapUrl={null}
-            base={CAR_COLORS.player}
-            view={VIEW}
+            wrapUrl={school?.livery?.cars[car]?.hi ?? null}
+            base={school?.livery?.base ?? CAR_COLORS.player}
+            topBoard={school?.topBoard ?? null}
+            view={view}
             bare
           />
         </React.Suspense>

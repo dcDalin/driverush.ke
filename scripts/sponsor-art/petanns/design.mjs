@@ -189,6 +189,24 @@ export function lettering(fonts, box, { mono = false, motto = true } = {}) {
   ].join("");
 }
 
+/**
+ * Where `lettering` puts its parts in `box`: the name's left and top, its
+ * height, and KENYA's block (as drawn before the lean).
+ */
+function lockupGeometry(fonts, box, motto = true) {
+  const aName = aspectOf(fonts["AlfaSlabOne-Regular.ttf"], "PETANNS", 0.04);
+  const aKenya = aspectOf(fonts["Poppins-ExtraBold.ttf"], "KENYA", 0.04);
+  const blockH = 0.52;
+  const blockW = blockH * 0.62 * aKenya + blockH * 0.5;
+  const gap = 0.14;
+  const wide = aName + gap + blockW + 0.2;
+  const tall = 1 + (motto ? 0.46 : 0);
+  const h = Math.min(box.h / tall, box.w / wide);
+  const x = box.x + (box.w - wide * h) / 2 + 0.1 * h;
+  const y = box.y + (box.h - tall * h) / 2;
+  return { x, y, h, kenyaX: x + (aName + gap) * h, kenyaW: blockW * h };
+}
+
 /** A bare red L, `size` tall, its middle at (cx, cy): painted straight on. */
 function redL(cx, cy, size, fill = COLORS.red) {
   const s = size;
@@ -236,32 +254,116 @@ function phone(fonts, cx, cy, h) {
   ].join("");
 }
 
-// ---- the car ------------------------------------------------------------------------
+/** "Shule Ya Wakenya" alone, filling `box` (pixels), in their navy. */
+function motto(fonts, box, fill = COLORS.navy) {
+  return fitted(
+    fonts["KaushanScript-Regular.ttf"],
+    "“Shule Ya Wakenya”",
+    box,
+    0.01,
+    `fill="${fill}"`,
+  ).svg;
+}
 
+const poly = (pts, fill) =>
+  `<polygon points="${pts.map(([a, b]) => `${a.toFixed(4)},${b.toFixed(4)}`).join(" ")}" fill="${fill}"/>`;
+
+/** A line `t` metres thick lying above the edge from p to q. */
+const stripe = ([z0, y0], [z1, y1], lift, t, fill) =>
+  poly(
+    [
+      [z0, y0 + lift],
+      [z1, y1 + lift],
+      [z1, y1 + lift + t],
+      [z0, y0 + lift + t],
+    ],
+    fill,
+  );
+
+/**
+ * The back, as on their van: a red L at each end, CAUTION, and DRIVER UNDER
+ * INSTRUCTION on an orange band, all on the largest clear paint between the
+ * lamps, the plate and the window (the back's paint map), no taller than
+ * `maxH` metres. Where there is room for only one line, the band alone.
+ */
+function backPanel(k, fonts, maxH) {
+  const { L, box } = k;
+  const c = COLORS;
+  const r = k.clearRect("back", box.xmin, box.xmax, L.sill, L.belt + 0.05);
+  if (!r || r.y1 - r.y0 < 0.08 || r.z1 - r.z0 < 0.5) return "";
+  const s = k.scale("back");
+  const b = k.cap(k.boxPx("back", r.z0, r.y1, r.z1, r.y0), maxH * s);
+  const bold = fonts["Poppins-ExtraBold.ttf"];
+  const out = [];
+  const lSize = Math.min(b.h, 0.18 * s);
+  const roomForLs = b.w > lSize * 6;
+  const inner = roomForLs
+    ? { x: b.x + lSize * 1.1, w: b.w - lSize * 2.2 }
+    : { x: b.x, w: b.w };
+  if (roomForLs) {
+    out.push(redL(b.x + lSize * 0.45, b.y + b.h / 2, lSize));
+    out.push(redL(b.x + b.w - lSize * 0.4, b.y + b.h / 2, lSize));
+  }
+  const two = b.h >= 0.15 * s;
+  const bandH = Math.min(two ? b.h * 0.5 : b.h, 0.1 * s);
+  const bandY = two ? b.y + b.h - bandH : b.y + (b.h - bandH) / 2;
+  if (two) {
+    out.push(
+      fitted(
+        bold,
+        "CAUTION",
+        {
+          x: inner.x,
+          y: b.y + (b.h - bandH - Math.min(b.h * 0.4, 0.07 * s)) / 2,
+          w: inner.w,
+          h: Math.min(b.h * 0.4, 0.07 * s),
+        },
+        0.06,
+        `fill="${c.orange}" stroke="${c.white}" stroke-width="${(0.012 * s).toFixed(1)}" paint-order="stroke"`,
+      ).svg,
+    );
+  }
+  out.push(
+    `<rect x="${inner.x.toFixed(1)}" y="${bandY.toFixed(1)}" width="${inner.w.toFixed(1)}" height="${bandH.toFixed(1)}" fill="${c.orange}"/>`,
+    fitted(
+      bold,
+      "DRIVER UNDER INSTRUCTION",
+      {
+        x: inner.x + bandH * 0.3,
+        y: bandY + bandH * 0.22,
+        w: inner.w - bandH * 0.6,
+        h: bandH * 0.56,
+      },
+      0.03,
+      `fill="${c.white}"`,
+    ).svg,
+  );
+  return k.pixels("back", out.join(""));
+}
+
+/**
+ * Petanns' paint, fitted to the vehicle: their car's layout on the cars;
+ * on the van their real NV200's (an orange roof down to a blue line over
+ * the windows, the wedges low, the name large on the doors); on the lorry a
+ * fleet truck's, with the wedges running the length of the box.
+ */
 export default function petanns({ k, fonts }) {
+  return k.kind === "lorry" ? lorry(k, fonts) : car(k, fonts);
+}
+
+// ---- the car and the van ----------------------------------------------------------------
+
+function car(k, fonts) {
   const { L, box } = k;
   const c = COLORS;
   const far = 9;
+  const van = k.kind === "van";
   const rear = L.wheels.rear.z;
   const wb = rear - L.wheels.front.z;
   const zAt = (u) => rear - u * wb;
   const band = L.belt - L.sill;
   const yAt = (v) => L.belt - v * band;
   const at = (u, v) => [zAt(u), yAt(v)];
-  const scaleOf = (view) => Math.abs(k.pt[view](1, 0)[0] - k.pt[view](0, 0)[0]);
-  const poly = (pts, fill) =>
-    `<polygon points="${pts.map(([a, b]) => `${a.toFixed(4)},${b.toFixed(4)}`).join(" ")}" fill="${fill}"/>`;
-  /** A line `t` metres thick lying above the edge from p to q. */
-  const stripe = ([z0, y0], [z1, y1], lift, t, fill) =>
-    poly(
-      [
-        [z0, y0 + lift],
-        [z1, y1 + lift],
-        [z1, y1 + lift + t],
-        [z0, y0 + lift + t],
-      ],
-      fill,
-    );
 
   const white = k.rect(-far, -far, far, far, c.white);
 
@@ -299,16 +401,33 @@ export default function petanns({ k, fonts }) {
     stripe(at(0.9, 0.64), at(0.5, 1.1), 0.03, 0.022, c.orange),
     stripe(at(0.5, 1.1), at(0.1, 0.56), 0.03, 0.022, c.blue),
   ].join("");
-  // The orange roof comes down over the pillars as far as the rear door.
-  const roofEdge = poly(
-    [
-      [nose, L.belt + 0.05],
-      [zAt(0.1), L.belt + 0.05],
-      [zAt(0.1), far],
-      [nose, far],
-    ],
-    c.orange,
-  );
+
+  // The roof's colour on the sides. A car: the orange roof comes down over
+  // the pillars as far as the rear door. The van, as their NV200: orange
+  // over the windows the whole length, a white line, then a blue band
+  // along the windows' top edge.
+  let roofEdge;
+  if (van) {
+    // Over the windows the roof curves away at once, so the line is taken
+    // from the blank panel behind them: the orange comes 14 cm down it.
+    const panel = k.clearRect("both", L.door.z0, box.zmax, L.belt, box.ymax);
+    const paintTop = panel ? panel.y1 + 0.03 : box.ymax - 0.1;
+    const yT = paintTop - 0.14;
+    roofEdge = [
+      k.rect(-far, yT, far, far, c.orange),
+      k.rect(-far, yT - 0.075, far, yT - 0.018, c.blue),
+    ].join("");
+  } else {
+    roofEdge = poly(
+      [
+        [nose, L.belt + 0.05],
+        [zAt(0.1), L.belt + 0.05],
+        [zAt(0.1), far],
+        [nose, far],
+      ],
+      c.orange,
+    );
+  }
   const side = [white, roofEdge, blueFront, wedge, blueRear, lines].join("");
 
   // The top: an orange roof; on the white bonnet an orange sweep back from
@@ -316,34 +435,39 @@ export default function petanns({ k, fonts }) {
   const half = k.width / 2;
   const bz0 = L.bonnet.z0;
   const bz1 = L.bonnet.z1;
-  const sweeps = [-1, 1]
-    .map((s) =>
-      [
-        poly(
+  const hasBonnet = bz1 - bz0 > 0.3;
+  const sweeps = !hasBonnet
+    ? ""
+    : [-1, 1]
+        .map((sg) =>
           [
-            [bz0 - 0.05, s * half * 0.5],
-            [bz0 - 0.05, s * half * 0.86],
-            [bz1, s * half * 1.2],
-            [bz1, s * half * 0.9],
-          ],
-          c.orange,
-        ),
-        poly(
-          [
-            [bz0 - 0.05, s * half * 0.44],
-            [bz0 - 0.05, s * half * 0.47],
-            [bz1, s * half * 0.87],
-            [bz1, s * half * 0.83],
-          ],
-          c.blue,
-        ),
-      ].join(""),
-    )
-    .join("");
+            poly(
+              [
+                [bz0 - 0.05, sg * half * 0.5],
+                [bz0 - 0.05, sg * half * 0.86],
+                [bz1, sg * half * 1.2],
+                [bz1, sg * half * 0.9],
+              ],
+              c.orange,
+            ),
+            poly(
+              [
+                [bz0 - 0.05, sg * half * 0.44],
+                [bz0 - 0.05, sg * half * 0.47],
+                [bz1, sg * half * 0.87],
+                [bz1, sg * half * 0.83],
+              ],
+              c.blue,
+            ),
+          ].join(""),
+        )
+        .join("");
   const top = [
     white,
     sweeps,
-    k.rect(L.screen.front, -far, L.screen.rear, far, c.orange),
+    van
+      ? k.rect(-far, -far, far, far, c.orange)
+      : k.rect(L.screen.front, -far, L.screen.rear, far, c.orange),
   ].join("");
 
   // The ends: a blue bumper with a white strip low on it.
@@ -355,30 +479,57 @@ export default function petanns({ k, fonts }) {
     k.rect(-far, yStrip, far, yStrip + 0.045, c.white),
   ].join("");
 
-  // Lettering and signs, in pixels and never mirrored, the same on both sides.
+  // Lettering and signs, in pixels and never mirrored, the same on both
+  // sides. The name across the doors between the arches, no taller than a
+  // sign writer would paint it: about 20 cm on a car, 30 cm on the van.
+  // Where a moulding splits the doors into two low bands, PETANNS KENYA goes
+  // in the upper and the motto in the lower, as a wrapper works round a
+  // body line.
+  const zFront = Math.max(zAt(0.92), L.wheels.front.z + L.wheels.front.r);
+  const zBack = Math.min(zAt(0.1), L.wheels.rear.z - L.wheels.rear.r);
+  const [first, second] = L.bands ?? [L.door];
+  const split =
+    !van &&
+    first.y1 - first.y0 < 0.3 &&
+    second &&
+    second.y1 - second.y0 >= 0.1 &&
+    second.y1 < first.y0;
+  const nameH = van ? 0.3 : 0.2;
   const sides = ["left", "right"]
     .map((view) => {
-      const s = scaleOf(view);
+      const s = k.scale(view);
       const out = [];
-      // Their name across the doors, between the wheel arches.
-      const zFront = Math.max(zAt(0.92), L.wheels.front.z + L.wheels.front.r);
-      const zBack = Math.min(zAt(0.1), L.wheels.rear.z - L.wheels.rear.r);
-      const yHigh = Math.min(yAt(0.14), L.door.y1);
-      const yLow = Math.max(yAt(0.66), L.door.y0);
-      out.push(
-        lettering(fonts, boxPx(k, view, zFront, yHigh, zBack, yLow), {
-          motto: yHigh - yLow > 0.3,
-        }),
-      );
+      if (split) {
+        const upper = k.boxPx(view, zFront, first.y1, zBack, first.y0);
+        const lower = k.boxPx(view, zFront, second.y1, zBack, second.y0);
+        out.push(
+          lettering(fonts, k.cap(upper, nameH * s), { motto: false }),
+          motto(fonts, k.cap(lower, 0.06 * s)),
+        );
+      } else {
+        const yHigh = Math.min(yAt(0.14), L.door.y1);
+        const yLow = Math.max(yAt(0.66), L.door.y0);
+        const withMotto = yHigh - yLow > 0.3;
+        out.push(
+          lettering(
+            fonts,
+            k.cap(
+              k.boxPx(view, zFront, yHigh, zBack, yLow),
+              nameH * (withMotto ? 1.46 : 1) * s,
+            ),
+            { motto: withMotto },
+          ),
+        );
+      }
       // Their number, over the rear door, just under the window.
       {
-        const h = 0.05 * s;
-        const [px, py] = k.pt[view](zAt(0.3), L.belt - 0.055);
+        const h = (van ? 0.07 : 0.05) * s;
+        const [px, py] = k.pt[view](zAt(0.3), L.belt - (van ? 0.075 : 0.055));
         if (yAt(0.14) < L.belt - 0.09) out.push(phone(fonts, px, py, h));
       }
       // The warning triangle on the rear quarter, kept on the body.
       {
-        const size = 0.2;
+        const size = van ? 0.26 : 0.2;
         const z = Math.min(zAt(-0.16), box.zmax - 0.32);
         const [px, py] = k.pt[view](z, yAt(0.16));
         out.push(warning(px, py, size * s));
@@ -389,60 +540,33 @@ export default function petanns({ k, fonts }) {
 
   // Their emblem in the middle of the bonnet, upright from in front.
   const badge = (() => {
-    const s = scaleOf("top");
+    if (!hasBonnet) return "";
+    const s = k.scale("top");
     const [cx, cy] = k.pt.top((bz0 + bz1) / 2, 0);
     const size = Math.min(0.42, (bz1 - bz0) * 0.5) * s;
     return k.pixels("top", emblem(cx, cy, size, { turned: true }));
   })();
 
+  // The van's long roof behind the name board: their name in white on the
+  // orange, for the camera above.
+  const roofName =
+    van && L.roof.clear
+      ? k.onTopWith(
+          {
+            z0: L.roof.board.z + 0.55,
+            z1: L.roof.z1 - 0.2,
+            x0: L.roof.x0 + 0.18,
+            x1: L.roof.x1 - 0.18,
+          },
+          (b) => lettering(fonts, b, { mono: true }),
+        )
+      : "";
+
   // The front: a red L on the bumper, at the driver's right.
   const front = (() => {
-    const s = scaleOf("front");
+    const s = k.scale("front");
     const [px, py] = k.pt.front(k.width * 0.27, (yBumper + yStrip) / 2 + 0.04);
     return k.pixels("front", redL(px, py, 0.2 * s));
-  })();
-  // The back, as on their van: an L at each side, CAUTION, and DRIVER UNDER
-  // INSTRUCTION on an orange band.
-  const back = (() => {
-    const s = scaleOf("back");
-    const bold = fonts["Poppins-ExtraBold.ttf"];
-    const [cx] = k.pt.back(0, 0);
-    const w = k.width * 0.7 * s;
-    const [, bandTop] = k.pt.back(0, yStrip + 0.2);
-    const [, bandLow] = k.pt.back(0, yStrip + 0.07);
-    const [, cautionY] = k.pt.back(0, yBumper - 0.06);
-    const ls = [-1, 1]
-      .map((side) => {
-        const [px, py] = k.pt.back(side * k.width * 0.3, yBumper + 0.17);
-        return redL(px, py, 0.18 * s);
-      })
-      .join("");
-    return k.pixels(
-      "back",
-      [
-        ls,
-        fitted(
-          bold,
-          "CAUTION",
-          { x: cx - w / 2, y: cautionY - 0.035 * s, w, h: 0.07 * s },
-          0.06,
-          `fill="${c.orange}" stroke="${c.white}" stroke-width="${(0.012 * s).toFixed(1)}" paint-order="stroke"`,
-        ).svg,
-        `<rect x="${(cx - w / 2 - 0.04 * s).toFixed(1)}" y="${bandTop.toFixed(1)}" width="${(w + 0.08 * s).toFixed(1)}" height="${(bandLow - bandTop).toFixed(1)}" fill="${c.orange}"/>`,
-        fitted(
-          bold,
-          "DRIVER UNDER INSTRUCTION",
-          {
-            x: cx - w / 2,
-            y: bandTop + (bandLow - bandTop) * 0.22,
-            w,
-            h: (bandLow - bandTop) * 0.56,
-          },
-          0.03,
-          `fill="${c.white}"`,
-        ).svg,
-      ].join(""),
-    );
   })();
 
   return {
@@ -455,20 +579,171 @@ export default function petanns({ k, fonts }) {
       k.inView("back", end),
       sides,
       badge,
+      roofName,
       front,
-      back,
+      backPanel(k, fonts, van ? 0.26 : 0.2),
     ].join("\n"),
   };
 }
 
-function boxPx(k, view, a0, b0, a1, b1) {
-  const [x1, y1] = k.pt[view](a0, b0);
-  const [x2, y2] = k.pt[view](a1, b1);
+// ---- the lorry ------------------------------------------------------------------------
+
+/**
+ * The lorry, painted as a fleet truck in Petanns' look: a white cab, blue
+ * under its windows and orange over them; a white box with an orange roof
+ * coming down to a blue line at its top edge; their wedges running the
+ * length of the box low (blue from the front, the orange wedge pointing
+ * forward, blue rising at the rear), each with a thin line of the other
+ * colour; PETANNS KENYA and the motto large in the middle, their number and
+ * the warning triangle at the rear end, and the name in white on the box's
+ * roof for the camera above. The box's rear doors take no paint.
+ */
+function lorry(k, fonts) {
+  const { box } = k;
+  const L = k.L;
+  const c = COLORS;
+  const far = 9;
+  const load = L.load;
+  const cab = L.cab;
+  const len = load.z1 - load.z0;
+  const zL = (u) => load.z0 + u * len; // 0 at the box's front, 1 its rear
+  const rail = load.rail;
+  const foot = load.y0 - 0.05;
+  const yCap = load.y1 - 0.17; // the orange roof's lower edge on the sides
+
+  const white = k.rect(-far, -far, far, far, c.white);
+  const inCab = (body) => `<g clip-path="url(#petanns-cab)">${body}</g>`;
+  const inBox = (body) => `<g clip-path="url(#petanns-box)">${body}</g>`;
+
+  const cabSide = [
+    // Orange over the windows, blue under them with an orange line on top.
+    k.rect(-far, cab.top - 0.16, far, far, c.orange),
+    k.rect(-far, -far, far, cab.belt - 0.05, c.blue),
+    k.rect(-far, cab.belt - 0.05, far, cab.belt - 0.025, c.orange),
+  ].join("");
+
+  const blueFront = poly(
+    [
+      [zL(-0.05), rail + 0.22],
+      [zL(0.46), foot],
+      [zL(-0.05), foot],
+    ],
+    c.blue,
+  );
+  const wedge = poly(
+    [
+      [zL(0.3), foot],
+      [zL(0.74), rail + 0.2],
+      [zL(0.74), foot],
+    ],
+    c.orange,
+  );
+  const blueRear = poly(
+    [
+      [zL(0.7), foot],
+      [zL(0.76), rail + 0.22],
+      [zL(1.05), rail + 0.36],
+      [zL(1.05), foot],
+    ],
+    c.blue,
+  );
+  const lines = [
+    stripe([zL(-0.05), rail + 0.22], [zL(0.46), foot], 0.04, 0.03, c.orange),
+    stripe([zL(0.3), foot], [zL(0.74), rail + 0.2], 0.04, 0.03, c.blue),
+    stripe(
+      [zL(0.76), rail + 0.22],
+      [zL(1.05), rail + 0.36],
+      0.04,
+      0.03,
+      c.orange,
+    ),
+  ].join("");
+  const boxSide = [
+    k.rect(-far, yCap, far, far, c.orange),
+    k.rect(-far, yCap - 0.055, far, yCap - 0.02, c.blue),
+    blueFront,
+    wedge,
+    blueRear,
+    lines,
+  ].join("");
+  const side = [white, inCab(cabSide), inBox(boxSide)].join("");
+
+  // Lettering and signs on the box, the same on both sides: the name as
+  // large as the box's middle allows, their number under KENYA (the motto
+  // runs under PETANNS), the warning triangle at the rear end.
+  const sides = ["left", "right"]
+    .map((view) => {
+      const s = k.scale(view);
+      const b = k.boxPx(
+        view,
+        load.z0 + 0.25,
+        yCap - 0.1,
+        load.z1 - 0.62,
+        rail + 0.3,
+      );
+      const box1 = k.cap(b, 0.62 * 1.46 * s);
+      const g = lockupGeometry(fonts, box1, true);
+      const out = [lettering(fonts, box1)];
+      out.push(
+        phone(
+          fonts,
+          g.kenyaX + g.kenyaW / 2,
+          g.y + g.h * 1.32,
+          Math.min(0.085 * s, g.h * 0.17),
+        ),
+      );
+      const [px, py] = k.pt[view](
+        load.z1 - 0.33,
+        (yCap - 0.1 + rail + 0.3) / 2,
+      );
+      out.push(warning(px, py, 0.36 * s));
+      return k.pixels(view, out.join(""));
+    })
+    .join("");
+
+  // The top: orange all over, the name in white on the box.
+  const top = k.rect(-far, -far, far, far, c.orange);
+  const roofName = k.onTopWith(
+    {
+      z0: load.z0 + 0.35,
+      z1: load.z1 - 0.35,
+      x0: box.xmin + 0.2,
+      x1: box.xmax - 0.2,
+    },
+    (b) => lettering(fonts, b, { mono: true }),
+  );
+
+  // The ends: the cab's front white over a blue bumper, the orange roof
+  // edge across the box's front and back.
+  const yBumper = cab.sill + 0.33;
+  const ends = [
+    white,
+    k.rect(-far, -far, far, yBumper, c.blue),
+    k.rect(-far, yBumper, far, yBumper + 0.03, c.orange),
+    k.rect(-far, yCap, far, far, c.orange),
+  ].join("");
+  const front = (() => {
+    const s = k.scale("front");
+    const [px, py] = k.pt.front(k.width * 0.3, yBumper + 0.14);
+    return k.pixels("front", redL(px, py, 0.2 * s));
+  })();
+
+  const defs = [
+    `<clipPath id="petanns-cab"><rect x="-9" y="-9" width="${(9 + load.z0 - 0.03).toFixed(3)}" height="18"/></clipPath>`,
+    `<clipPath id="petanns-box"><rect x="${(load.z0 - 0.03).toFixed(3)}" y="-9" width="18" height="18"/></clipPath>`,
+  ].join("");
   return {
-    x: Math.min(x1, x2),
-    y: Math.min(y1, y2),
-    w: Math.abs(x2 - x1),
-    h: Math.abs(y2 - y1),
+    defs,
+    body: [
+      k.inView("left", side),
+      k.inView("right", side),
+      k.inView("top", top),
+      k.inView("front", ends),
+      k.inView("back", ends),
+      sides,
+      roofName,
+      front,
+    ].join("\n"),
   };
 }
 

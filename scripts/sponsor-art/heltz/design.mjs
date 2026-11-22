@@ -69,7 +69,13 @@ const BUMPER = down(150); // the white bumper's top, on the front
 export function lettering(
   fonts,
   box,
-  { mono = false, id = "l", align = "center" } = {},
+  {
+    mono = false,
+    id = "l",
+    align = "center",
+    valign = align === "center" ? "middle" : "top",
+    tag: withTag = true,
+  } = {},
 ) {
   const nameFont = fonts["RubikMonoOne-Regular.ttf"];
   const tagFont = fonts["Righteous-Regular.ttf"];
@@ -81,11 +87,13 @@ export function lettering(
   // end, a quarter of the name's height below it.
   const tagShare = 0.65;
   const gap = 0.26;
-  const w = Math.min(box.w, box.h / (1 / a1 + gap / a1 + tagShare / a2));
+  const w = withTag
+    ? Math.min(box.w, box.h / (1 / a1 + gap / a1 + tagShare / a2))
+    : Math.min(box.w, box.h * a1);
   const h1 = w / a1;
   const w2 = w * tagShare;
   const h2 = w2 / a2;
-  const total = h1 * (1 + gap) + h2;
+  const total = withTag ? h1 * (1 + gap) + h2 : h1;
   // `align` keeps the front end of the lettering against the gold: right on
   // the car's right side (nose to the right), left on its left side.
   const x =
@@ -94,7 +102,12 @@ export function lettering(
       : align === "left"
         ? box.x
         : box.x + (box.w - w) / 2;
-  const y = align === "center" ? box.y + (box.h - total) / 2 : box.y;
+  const y =
+    valign === "middle"
+      ? box.y + (box.h - total) / 2
+      : valign === "bottom"
+        ? box.y + box.h - total
+        : box.y;
 
   // Each letter on its own, so the L can be red as on their car.
   const letters = [];
@@ -111,12 +124,14 @@ export function lettering(
       ((g.advanceWidth / font.unitsPerEm) * size + nameTrack * size) * scale;
   }
   const all = letters.map((l) => l.d).join("");
-  const tag = line(tagFont, "DRIVING ACADEMY", {
-    x: x + w - w2,
-    y: y + h1 * (1 + gap),
-    height: h2,
-    tracking: tagTrack,
-  });
+  const tag = !withTag
+    ? ""
+    : line(tagFont, "DRIVING ACADEMY", {
+        x: x + w - w2,
+        y: y + h1 * (1 + gap),
+        height: h2,
+        tracking: tagTrack,
+      });
   const edge = Math.round(h1 * 0.075 * 10) / 10;
   const bold = Math.round(h2 * 0.06 * 10) / 10;
 
@@ -262,10 +277,72 @@ function scatter(c) {
 
 // ---- the car ------------------------------------------------------------------------
 
+/** "DRIVING ACADEMY" alone, filling `box` (pixels), in their blue. */
+function tagline(fonts, box, { align = "center" } = {}) {
+  const font = fonts["Righteous-Regular.ttf"];
+  const a = aspectOf(font, "DRIVING ACADEMY", 0.02);
+  const w = Math.min(box.w, box.h * a);
+  const h = w / a;
+  const x =
+    align === "right"
+      ? box.x + box.w - w
+      : align === "left"
+        ? box.x
+        : box.x + (box.w - w) / 2;
+  const d = line(font, "DRIVING ACADEMY", {
+    x,
+    y: box.y + (box.h - h) / 2,
+    height: h,
+    tracking: 0.02,
+  });
+  const bold = Math.round(h * 0.06 * 10) / 10;
+  return `<path d="${d}" fill="${COLORS.blue}" stroke="${COLORS.blue}" stroke-width="${bold}" stroke-linejoin="round"/>`;
+}
+
+const poly = (pts, fill, extra = "") =>
+  `<polygon points="${pts.map(([a, b]) => `${a.toFixed(4)},${b.toFixed(4)}`).join(" ")}" fill="${fill}"${extra}/>`;
+
+/** The splash, traced, centred on (z, y) of a side, `h` metres tall. */
+function splashAt3d(z, y, h, maxW = Infinity) {
+  const splashSvg = readFileSync(path.join(HERE, "splash.svg"), "utf8");
+  const [, sw, sh] = /width="(\d+)" height="(\d+)"/.exec(splashSvg).map(Number);
+  const inner = /<g id="splash"[\s\S]*?<\/g>/.exec(splashSvg)[0];
+  // Mirrored, so its tails point back along the vehicle.
+  const sk = Math.min(h / sh, maxW / sw);
+  return `<g transform="translate(${z.toFixed(4)} ${y.toFixed(4)}) scale(${(-sk).toFixed(6)} ${(-sk).toFixed(6)}) translate(${-sw / 2} ${-sh / 2})">${inner}</g>`;
+}
+
+/**
+ * Heltz's paint, fitted to the vehicle: their car's layout on the cars, the
+ * same with the gold running to the front door's back edge and the name on
+ * the blank rear panel on the van, and a fleet truck's layout on the lorry.
+ */
 export default function heltz({ k, fonts }) {
+  if (k.kind === "lorry") return lorry(k, fonts);
+  return car(k, fonts);
+}
+
+/**
+ * HELTZ / DRIVING ACADEMY on the back, on the largest clear paint between
+ * the lamps, the plate and the window (the back's paint map), no taller
+ * than `h` metres.
+ */
+function onBack(k, fonts, h) {
+  const { L, box } = k;
+  const r = k.clearRect("back", box.xmin, box.xmax, L.sill, L.belt + 0.05);
+  if (!r || r.y1 - r.y0 < 0.12 || r.z1 - r.z0 < 0.5) return "";
+  const b = k.boxPx("back", r.z0, r.y1, r.z1, r.y0);
+  return k.pixels(
+    "back",
+    lettering(fonts, k.cap(b, h * k.scale("back")), { id: "heltz-back" }),
+  );
+}
+
+function car(k, fonts) {
   const { L, box } = k;
   const c = COLORS;
   const far = 9;
+  const van = k.kind === "van";
   const rear = L.wheels.rear.z;
   const wb = rear - L.wheels.front.z;
   const zAt = (u) => rear - u * wb;
@@ -275,7 +352,14 @@ export default function heltz({ k, fonts }) {
 
   // The gold front: below the windows from the gold's edge forward, and all
   // of it ahead of the windscreen. The bumper below its top line is white.
-  const zG = zAt(GOLD);
+  // On a van the driver sits over the wheel, so the front door is all
+  // "front": the gold runs to its back edge, the pillar behind its window.
+  let zG = zAt(GOLD);
+  if (van) {
+    const runs = k.runsAt("left", L.belt + 0.25, L.screen.front, rear);
+    const pillar = runs.find((r) => r.z1 - r.z0 < 0.4);
+    if (pillar) zG = pillar.z1 + (L.belt - L.sill) * LEAN;
+  }
   const yTop = L.belt + 0.02;
   const yBumper = yAt(BUMPER);
   const zBumper = L.wheels.front.z - L.wheels.front.r * 0.95;
@@ -293,39 +377,38 @@ export default function heltz({ k, fonts }) {
     [box.zmin - far, -far],
     [box.zmin - far, yBumper],
   ];
-  const poly = (pts, fill) =>
-    `<polygon points="${pts.map(([a, b]) => `${a.toFixed(4)},${b.toFixed(4)}`).join(" ")}" fill="${fill}"/>`;
-  const stripes = STRIPES.map((u) => {
-    const z = zAt(u);
-    const sw = STRIPE_W * wb;
-    return poly(
-      [
-        [lean(z, yTop), yTop],
-        [lean(z - sw, yTop), yTop],
-        [lean(z - sw, -1), -1],
-        [lean(z, -1), -1],
-      ],
-      c.red,
-    );
-  }).join("");
+  const stripeW = Math.max(STRIPE_W * wb, 0.05);
+  const stripeGap = (STRIPES[0] - STRIPES[1]) * wb;
+  const stripes = [zG, zG + stripeGap]
+    .map((z) =>
+      poly(
+        [
+          [lean(z, yTop), yTop],
+          [lean(z - stripeW, yTop), yTop],
+          [lean(z - stripeW, -1), -1],
+          [lean(z, -1), -1],
+        ],
+        c.red,
+      ),
+    )
+    .join("");
 
-  // The splash, traced from the photo (nose to the right there; here the
-  // shape follows the car, so it is mirrored to keep its tails pointing back).
-  const splashSvg = readFileSync(path.join(HERE, "splash.svg"), "utf8");
-  const [, sw, sh] = /width="(\d+)" height="(\d+)"/.exec(splashSvg).map(Number);
-  const inner = /<g id="splash"[\s\S]*?<\/g>/.exec(splashSvg)[0];
-  // As wide as on their car, unless the wing over the arch is too low to
-  // hold it: then smaller, to fit what shows.
+  // The splash on the front wing, as wide as on their car, unless the wing
+  // over the arch is too low to hold it: then smaller, to fit what shows.
   const archTop = L.wheels.front.y + L.wheels.front.r;
   const room =
     L.wing.y1 - L.wing.y0 > 0.06
       ? L.wing
       : { y0: archTop + 0.01, y1: L.bonnet.y - 0.02 };
-  // Partly behind the arch is fine: so is the splash on their car.
-  const sk = Math.min((SPLASH.w * wb) / sw, (1.5 * (room.y1 - room.y0)) / sh);
-  const zS = zAt(SPLASH.at);
-  const yS = (room.y0 + room.y1) / 2 + 0.01;
-  const splash = `<g transform="translate(${zS.toFixed(4)} ${yS.toFixed(4)}) scale(${(-sk).toFixed(6)} ${(-sk).toFixed(6)}) translate(${-sw / 2} ${-sh / 2})">${inner}</g>`;
+  const splashSvg = readFileSync(path.join(HERE, "splash.svg"), "utf8");
+  const [, sw] = /width="(\d+)" height="(\d+)"/.exec(splashSvg).map(Number);
+  const splash = splashAt3d(
+    zAt(SPLASH.at),
+    (room.y0 + room.y1) / 2 + 0.01,
+    1.5 * (room.y1 - room.y0),
+    SPLASH.w * wb,
+  );
+  void sw;
 
   const white = [
     k.rect(-far, -far, far, far, c.white),
@@ -347,30 +430,89 @@ export default function heltz({ k, fonts }) {
     k.rect(-far, -far, far, yBumper, c.white),
   ].join("");
 
-  // The lettering, between the rear wheel and the gold, in the doors' clear
-  // band: as wide as on their car if the band is tall enough, never stretched.
-  const zFront = zAt(NAME.to);
-  // On their car it starts just over the rear wheel. A van's wheels stand
-  // taller, and its arch would cut the lettering's end off: there it stops
-  // at the arch's front edge.
-  const tallArch = L.wheels.rear.r > 0.45;
-  const zBack = Math.min(
-    zAt(NAME.from),
-    tallArch ? L.wheels.rear.z - L.wheels.rear.r - 0.04 : L.wheels.rear.z,
-  );
-  const name = ["left", "right"]
-    .map((view) => {
-      const b = boxPx(k, view, zFront, L.door.y1, zBack, L.door.y0 + 0.01);
-      // Keep the lettering's nose end against the gold, as on their car.
-      return k.pixels(
-        view,
-        lettering(fonts, b, {
-          id: `heltz-${view}`,
-          align: view === "right" ? "right" : "left",
-        }),
+  // The lettering. On a car: between the rear wheel and the gold, in the
+  // doors' clear band, as on their car, never taller than a sign writer
+  // would paint it (a name about 22 cm high). Where a moulding splits the
+  // doors into two low bands, HELTZ goes in the upper and DRIVING ACADEMY
+  // in the lower, as a wrapper works round a body line.
+  const name = [];
+  const panel = van
+    ? k.clearRect("both", zG + 0.25, box.zmax, L.belt, box.ymax)
+    : null;
+  if (panel && panel.y1 - panel.y0 > 0.4) {
+    // A van: the blank panel behind the side windows, high where it reads
+    // over traffic, the name about 30 cm tall.
+    for (const view of ["left", "right"]) {
+      const b = k.boxPx(view, panel.z0, panel.y1, panel.z1, panel.y0);
+      name.push(
+        k.pixels(
+          view,
+          lettering(fonts, k.cap(b, 0.56 * k.scale(view)), {
+            id: `heltz-${view}`,
+            align: "center",
+          }),
+        ),
       );
-    })
-    .join("");
+    }
+  } else {
+    const zFront = zAt(NAME.to);
+    const tallArch = L.wheels.rear.r > 0.45;
+    const zBack = Math.min(
+      zAt(NAME.from),
+      tallArch ? L.wheels.rear.z - L.wheels.rear.r - 0.04 : L.wheels.rear.z,
+    );
+    const [first, second] = L.bands ?? [L.door];
+    const split =
+      first.y1 - first.y0 < 0.3 &&
+      second &&
+      second.y1 - second.y0 >= 0.1 &&
+      second.y1 < first.y0;
+    for (const view of ["left", "right"]) {
+      const align = view === "right" ? "right" : "left";
+      const s = k.scale(view);
+      if (split) {
+        const top = k.boxPx(view, zFront, first.y1, zBack, first.y0 + 0.01);
+        const low = k.boxPx(view, zFront, second.y1, zBack, second.y0);
+        name.push(
+          k.pixels(
+            view,
+            lettering(fonts, k.cap(top, 0.2 * s), {
+              id: `heltz-${view}`,
+              align,
+              valign: "middle",
+              tag: false,
+            }) + tagline(fonts, k.cap(low, 0.075 * s), { align }),
+          ),
+        );
+      } else {
+        const b = k.boxPx(view, zFront, L.door.y1, zBack, L.door.y0 + 0.01);
+        name.push(
+          k.pixels(
+            view,
+            lettering(fonts, k.cap(b, 0.36 * s, "top"), {
+              id: `heltz-${view}`,
+              align,
+            }),
+          ),
+        );
+      }
+    }
+  }
+
+  // The roof behind the name board on a long van roof: HELTZ for the camera
+  // above.
+  const roofName =
+    van && L.roof.clear
+      ? k.onTopWith(
+          {
+            z0: L.roof.board.z + 0.55,
+            z1: L.roof.z1 - 0.15,
+            x0: L.roof.x0 + 0.15,
+            x1: L.roof.x1 - 0.15,
+          },
+          (b) => lettering(fonts, b, { id: "heltz-roof" }),
+        )
+      : "";
 
   const body = [
     k.inView("left", side),
@@ -378,20 +520,145 @@ export default function heltz({ k, fonts }) {
     k.inView("top", top),
     k.inView("front", front),
     k.inView("back", white),
-    name,
+    ...name,
+    roofName,
+    onBack(k, fonts, van ? 0.3 : 0.22),
   ].join("\n");
   return { defs: scatter(c), body };
 }
 
-function boxPx(k, view, a0, b0, a1, b1) {
-  const [x1, y1] = k.pt[view](a0, b0);
-  const [x2, y2] = k.pt[view](a1, b1);
-  return {
-    x: Math.min(x1, x2),
-    y: Math.min(y1, y2),
-    w: Math.abs(x2 - x1),
-    h: Math.abs(y2 - y1),
-  };
+/**
+ * The lorry, painted as a fleet truck in Heltz's look: the cab is their gold
+ * front, with the splash on its door; the gold runs a little onto the box
+ * and ends in their two red stripes. The box is white, calm in the middle
+ * for HELTZ and DRIVING ACADEMY (letters about 55 cm tall), with their
+ * scatter over its rear part behind a third stripe and along the drop-side
+ * rail at its foot. Its roof carries the name for the camera above.
+ */
+function lorry(k, fonts) {
+  const { L, box } = k;
+  const c = COLORS;
+  const far = 9;
+  const load = L.load;
+  const cab = L.cab;
+  const yHigh = box.ymax + 0.2;
+  const tilt = 0.1; // the stripes lean back, as on their car
+  const lean = (z, y) => z - (y - load.rail) * tilt;
+  const sw = 0.075; // a stripe, wide enough to read on a truck
+  const zGold = load.z0 + 0.3;
+  const zStripe2 = zGold + 0.2;
+  const zScatter = load.z1 - 1.05;
+  const stripe = (z) =>
+    poly(
+      [
+        [lean(z, yHigh), yHigh],
+        [lean(z + sw, yHigh), yHigh],
+        [lean(z + sw, -1), -1],
+        [lean(z, -1), -1],
+      ],
+      c.red,
+    );
+  const white = k.rect(-far, -far, far, far, c.white);
+  const scatterIn = (pts) =>
+    `<clipPath id="heltz-rear-${pts.length}"><path d="M${pts.map(([a, b]) => `${a.toFixed(3)} ${b.toFixed(3)}`).join("L")}Z"/></clipPath>` +
+    `<g clip-path="url(#heltz-rear-${pts.length})">${k.rect(-far, -far, far, far, "url(#heltz-scatter)")}</g>`;
+  const rearPart = [
+    [lean(zScatter, yHigh), yHigh],
+    [far, yHigh],
+    [far, -1],
+    [lean(zScatter, -1), -1],
+  ];
+  const railPart = [
+    [-far, load.rail - 0.02],
+    [far, load.rail - 0.02],
+    [far, -1],
+    [-far, -1],
+    [-far, load.rail - 0.02],
+  ];
+  const gold = [
+    [lean(zGold, yHigh), yHigh],
+    [lean(zGold, -1), -1],
+    [-far, -1],
+    [-far, yHigh],
+  ];
+  const side = [
+    white,
+    scatterIn(rearPart),
+    scatterIn(railPart),
+    poly(gold, c.gold),
+    stripe(zGold),
+    stripe(zStripe2),
+    stripe(zScatter - sw),
+    // The splash on the cab's door, low and forward, as on their wing.
+    splashAt3d(
+      (cab.door.z0 + cab.door.z1) / 2,
+      (cab.door.y0 + cab.door.y1) / 2,
+      0.24,
+      0.55,
+    ),
+  ].join("");
+
+  // The name on the box, between the stripes and the scatter, its nose end
+  // against the gold as on their car.
+  const name = ["left", "right"]
+    .map((view) => {
+      const b = k.boxPx(
+        view,
+        zStripe2 + sw + 0.25,
+        load.y1 - 0.12,
+        zScatter - sw - 0.25,
+        load.rail + 0.08,
+      );
+      return k.pixels(
+        view,
+        lettering(fonts, k.cap(b, 1.0 * k.scale(view)), {
+          id: `heltz-${view}`,
+          align: view === "right" ? "right" : "left",
+          valign: "middle",
+        }),
+      );
+    })
+    .join("");
+
+  // The top: the cab gold, the box white with the same zones and stripes
+  // straight across it, and the name over the box's middle.
+  const topStripe = (z) => k.rect(z, -far, z + sw, far, c.red);
+  const top = [
+    white,
+    `<g clip-path="url(#heltz-top-rear)">${k.rect(-far, -far, far, far, "url(#heltz-scatter)")}</g>`,
+    k.rect(-far, -far, zGold, far, c.gold),
+    topStripe(zGold),
+    topStripe(zStripe2),
+    topStripe(zScatter - sw),
+  ].join("");
+  const roofName = k.onTopWith(
+    {
+      z0: zStripe2 + sw + 0.3,
+      z1: zScatter - sw - 0.3,
+      x0: box.xmin + 0.18,
+      x1: box.xmax - 0.18,
+    },
+    (b) => lettering(fonts, b, { id: "heltz-roof" }),
+  );
+
+  const front = [
+    k.rect(-far, -far, far, far, c.gold),
+    k.rect(-far, -far, far, cab.sill + 0.3, c.white),
+  ].join("");
+
+  const defs =
+    scatter(c) +
+    `<clipPath id="heltz-top-rear"><rect x="${zScatter.toFixed(3)}" y="-9" width="9" height="18"/></clipPath>`;
+  const body = [
+    k.inView("left", side),
+    k.inView("right", side),
+    k.inView("top", top),
+    k.inView("front", front),
+    k.inView("back", white),
+    name,
+    roofName,
+  ].join("\n");
+  return { defs, body };
 }
 
 /** Heltz's logo: their lettering, on a transparent ground. */

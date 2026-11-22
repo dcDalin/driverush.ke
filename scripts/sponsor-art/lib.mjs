@@ -362,8 +362,132 @@ export function kit(layout, fonts) {
     ].join("\n");
   }
 
+  // ---- where paint shows (the side maps of build-car-wrap) ----
+
+  const maps = layout.landmarks.map;
+  /**
+   * Is the 5 cm cell at (a, y) clear paint a learner sees? `a` is z along a
+   * side ("left", "right"), x across the back ("back").
+   */
+  function clear(side, a, y) {
+    const m = maps[side];
+    const row = m.rows[Math.floor((y - m.y0) / m.cell)];
+    return row?.[Math.floor((a - m.a0) / m.cell)] === "1";
+  }
+
+  /**
+   * The largest rectangle of clear paint on a side inside [zA, zB] x [yA, yB]
+   * (metres), as {z0, z1, y0, y1}, trimmed by `inset` all round. Both sides
+   * are asked when `side` is "both", and only cells clear on both count, so
+   * lettering lands the same on the left and the right. On the "back", z
+   * reads x.
+   */
+  function clearRect(side, zA, zB, yA, yB, { inset = 0.03 } = {}) {
+    const m = side === "back" ? maps.back : maps.left;
+    const sides = side === "both" ? ["left", "right"] : [side];
+    const i0 = Math.ceil((zA - m.a0) / m.cell);
+    const i1 = Math.floor((zB - m.a0) / m.cell);
+    const j0 = Math.ceil((yA - m.y0) / m.cell);
+    const j1 = Math.floor((yB - m.y0) / m.cell);
+    const cols = i1 - i0;
+    if (cols <= 0 || j1 <= j0) return null;
+    // Largest rectangle under a histogram, row by row, bottom up.
+    const heights = new Array(cols).fill(0);
+    let best = null;
+    for (let j = j0; j < j1; j++) {
+      for (let c = 0; c < cols; c++) {
+        const z = m.a0 + (i0 + c + 0.5) * m.cell;
+        const y = m.y0 + (j + 0.5) * m.cell;
+        heights[c] = sides.every((s) => clear(s, z, y)) ? heights[c] + 1 : 0;
+      }
+      const stack = [];
+      for (let c = 0; c <= cols; c++) {
+        const h = c < cols ? heights[c] : 0;
+        while (stack.length && heights[stack[stack.length - 1]] >= h) {
+          const top = stack.pop();
+          const left = stack.length ? stack[stack.length - 1] + 1 : 0;
+          const area = heights[top] * (c - left);
+          if (!best || area > best.area) {
+            best = { area, c0: left, c1: c, top: j + 1, h: heights[top] };
+          }
+        }
+        stack.push(c);
+      }
+    }
+    if (!best || best.area === 0) return null;
+    return {
+      z0: m.a0 + (i0 + best.c0) * m.cell + inset,
+      z1: m.a0 + (i0 + best.c1) * m.cell - inset,
+      y0: m.y0 + (best.top - best.h) * m.cell + inset,
+      y1: m.y0 + best.top * m.cell - inset,
+    };
+  }
+
+  /**
+   * The clear runs along a side at height y, nose to tail, as {z0, z1}:
+   * between them are windows, pillars' glass, lamps and arches.
+   */
+  function runsAt(side, y, zA = zmin, zB = zmax) {
+    const m = maps[side];
+    const runs = [];
+    let start = null;
+    for (let z = zA + m.cell / 2; z <= zB + m.cell; z += m.cell) {
+      const ok = z <= zB && clear(side, z, y);
+      if (ok && start === null) start = z - m.cell / 2;
+      if (!ok && start !== null) {
+        runs.push({ z0: start, z1: z - m.cell / 2 });
+        start = null;
+      }
+    }
+    return runs;
+  }
+
+  /**
+   * Something drawn upright on the roof or bonnet, reading when the car
+   * drives away from you: `draw(box)` fills a pixel box whose top points at
+   * the nose. `area` is {z0, z1, x0, x1} in metres.
+   */
+  function onTopWith(area, draw) {
+    const b = boxPx("top", area.z1, area.x0, area.z0, area.x1);
+    const cx = b.x + b.w / 2;
+    const cy = b.y + b.h / 2;
+    const box = { x: cx - b.h / 2, y: cy - b.w / 2, w: b.h, h: b.w };
+    return pixels(
+      "top",
+      `<g transform="rotate(90 ${f1(cx)} ${f1(cy)})">${draw(box)}</g>`,
+    );
+  }
+
+  /** Pixels per metre in a view. */
+  const scale = (view) => views[view].scale;
+
+  /**
+   * A pixel box no taller than `h` pixels, its middle where the box's was
+   * (or its top or bottom, with `align`): lettering fitted into it is then
+   * no larger than a sign writer would paint it on this vehicle.
+   */
+  function cap(b, h, align = "middle") {
+    if (b.h <= h) return b;
+    const y =
+      align === "top"
+        ? b.y
+        : align === "bottom"
+          ? b.y + b.h - h
+          : b.y + (b.h - h) / 2;
+    return { ...b, y, h };
+  }
+
   return {
     L: layout.landmarks,
+    scale,
+    cap,
+    kind: layout.landmarks.kind ?? "car",
+    car: layout.car,
+    clear,
+    clearRect,
+    runsAt,
+    onTopWith,
+    boxPx,
     box: { xmin, ymin, zmin, xmax, ymax, zmax },
     width: xmax - xmin,
     inView,

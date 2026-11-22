@@ -93,10 +93,17 @@ const everyCar = (dir: string) =>
     BoardCarId,
     CarPaint
   >;
+/**
+ * "wrap4" goes with the cars' `?v=4` UVs (see build-sponsor-art). `PAINT_V`
+ * is the paint's own version: bump it when the schools' paint is redrawn on
+ * the same UVs, so a phone that has the old pictures fetches the new ones at
+ * once instead of on its next visit (public/sw.js refreshes them behind).
+ * 2: every livery fitted per vehicle (cars, van, lorry), 2026-11-22.
+ */
+const PAINT_V = 2;
 const paintOf = (dir: string, car: BoardCarId): CarPaint => ({
-  // "wrap4" goes with the cars' `?v=4` UVs (see build-sponsor-art).
-  hi: `${dir}/${car}-wrap4-hi.webp`,
-  lo: `${dir}/${car}-wrap4-lo.webp`,
+  hi: `${dir}/${car}-wrap4-hi.webp?v=${PAINT_V}`,
+  lo: `${dir}/${car}-wrap4-lo.webp?v=${PAINT_V}`,
 });
 
 export const SPONSORS: readonly Sponsor[] = [

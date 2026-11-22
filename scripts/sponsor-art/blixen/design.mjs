@@ -253,32 +253,123 @@ function phonePill(fonts, cx, cy, h) {
   ].join("");
 }
 
-// ---- the car ------------------------------------------------------------------------
+// ---- shared parts ----------------------------------------------------------------------
 
+const poly = (pts, fill) =>
+  `<polygon points="${pts.map(([a, b]) => `${a.toFixed(4)},${b.toFixed(4)}`).join(" ")}" fill="${fill}"/>`;
+
+/** Three chevrons pointing at the nose, `h` metres tall, the first at z. */
+function chevrons3(z0, y, h) {
+  return [0, 1, 2]
+    .map((i) => {
+      const z = z0 + i * h * 1.1;
+      const a = h * 0.5;
+      const t = h * 0.42;
+      return poly(
+        [
+          [z + a, y + h / 2],
+          [z, y],
+          [z + a, y - h / 2],
+          [z + a + t, y - h / 2],
+          [z + t, y],
+          [z + a + t, y + h / 2],
+        ],
+        COLORS.orange,
+      );
+    })
+    .join("");
+}
+
+/**
+ * B.A.D.S in black, `h` pixels tall, centred on (px, py) of a side view and
+ * turned to lie along the line from (a) to (b), in that view's pixels.
+ */
+function badsAlong(fonts, px, py, h, [ax, ay], [bx, by]) {
+  let turn = (Math.atan2(by - ay, bx - ax) * 180) / Math.PI;
+  if (turn > 90) turn -= 180;
+  if (turn < -90) turn += 180;
+  const font = fonts["Poppins-ExtraBold.ttf"];
+  const w = h * aspectOf(font, "B.A.D.S", 0.06);
+  return `<g transform="rotate(${turn.toFixed(1)} ${px.toFixed(1)} ${py.toFixed(1)})"><path d="${line(font, "B.A.D.S", { x: px - w / 2, y: py - h / 2, height: h, tracking: 0.06 })}" fill="${COLORS.black}"/></g>`;
+}
+
+/**
+ * "Instant Brakes" on the back, as across their boot lid: on the largest
+ * clear silver there (between the lamps, the plate and the window), or in
+ * white on the orange below it when the silver has no room. Never on a
+ * lamp or the plate.
+ */
+function instantBrakes(k, fonts, ySplit, maxH) {
+  const { L, box } = k;
+  const font = fonts["Poppins-Medium.ttf"];
+  const text = "Instant   Brakes";
+  const a = aspectOf(font, text, 0.01);
+  const s = k.scale("back");
+  const tryIn = (y0, y1, fill) => {
+    const r = k.clearRect("back", box.xmin, box.xmax, y0, y1);
+    if (!r || r.z1 - r.z0 < 0.45 || r.y1 - r.y0 < 0.07) return null;
+    const b = k.boxPx("back", r.z0, r.y1, r.z1, r.y0);
+    const h = Math.min(maxH * s, b.h * 0.8, (b.w * 0.92) / a);
+    if (h < 0.045 * s) return null;
+    return fitted(
+      font,
+      text,
+      { x: b.x, y: b.y + (b.h - h) / 2, w: b.w, h },
+      0.01,
+      `fill="${fill}"`,
+    ).svg;
+  };
+  const svg =
+    tryIn(ySplit + 0.02, L.belt + 0.06, COLORS.orange) ??
+    tryIn(L.sill, ySplit - 0.02, COLORS.white);
+  return svg ? k.pixels("back", svg) : "";
+}
+
+// ---- the car and the van ------------------------------------------------------------
+
+/**
+ * Blixen's paint, fitted to the vehicle: their car's layout on the cars;
+ * on the van the orange rear rises over the blank rear quarter, with the
+ * mark and DRIVING SCHOOL larger on the sliding door; on the lorry a fleet
+ * truck's layout in their look.
+ */
 export default function blixen({ k, fonts }) {
+  if (k.kind === "lorry") return lorry(k, fonts);
+  return car(k, fonts);
+}
+
+function car(k, fonts) {
   const { L, box } = k;
   const c = COLORS;
   const far = 9;
+  const van = k.kind === "van";
   const rear = L.wheels.rear.z;
   const wb = rear - L.wheels.front.z;
   const zAt = (u) => rear - u * wb;
   const band = L.belt - L.sill;
   const yAt = (v) => L.belt - v * band;
-  /** Pixels per metre in a view. */
-  const scaleOf = (view) => Math.abs(k.pt[view](1, 0)[0] - k.pt[view](0, 0)[0]);
-  const poly = (pts, fill) =>
-    `<polygon points="${pts.map(([a, b]) => `${a.toFixed(4)},${b.toFixed(4)}`).join(" ")}" fill="${fill}"/>`;
 
   const silver = k.rect(-far, -far, far, far, c.silver);
   // The orange strip along the bottom of the body.
   const yLip = L.sill + Math.max(0.05, LIP * band);
   const lip = k.rect(-far, -far, far, yLip, c.orange);
 
-  // The orange rear: below the windows, behind a diagonal that runs forward
-  // as it falls, from over the rear wheel to a quarter of the way along.
-  const edgeAt = (y) =>
-    zAt(EDGE.top) + ((zAt(EDGE.bottom) - zAt(EDGE.top)) * (L.belt - y)) / band;
-  const yTop = L.belt + 0.03;
+  // The orange rear's front edge. On a car, as on theirs: from over the rear
+  // wheel at the window line, running forward as it falls. On the van it is
+  // one straight diagonal from high on the blank rear quarter (the panel
+  // behind the side windows) down across the sliding door, so the orange
+  // fills that panel's back part as a fleet van's wrap does.
+  const panel = van
+    ? k.clearRect("both", L.wheels.front.z, box.zmax, L.belt, box.ymax)
+    : null;
+  const vanEdge = van && panel && panel.y1 - panel.y0 > 0.4;
+  const VAN_LEAN = 0.8; // metres back per metre up
+  const edgeAt = vanEdge
+    ? (y) => panel.z0 + 0.05 + (y - L.belt) * VAN_LEAN
+    : (y) =>
+        zAt(EDGE.top) +
+        ((zAt(EDGE.bottom) - zAt(EDGE.top)) * (L.belt - y)) / band;
+  const yTop = vanEdge ? box.ymax + 0.2 : L.belt + 0.03;
   const rearOrange = poly(
     [
       [edgeAt(yTop), yTop],
@@ -288,17 +379,20 @@ export default function blixen({ k, fonts }) {
     ],
     c.orange,
   );
-  // Two thin orange lines beside that edge, on the silver, from the window
-  // line a little under halfway down (as on the photo of their car's rear).
-  const yLines = yAt(0.45);
-  const lines = [0.035, 0.07]
+  // Two thin orange lines beside that edge, on the silver: on a car from the
+  // window line a little under halfway down; on the van down the panel.
+  const [yLineTop, yLineLow] = vanEdge
+    ? [panel.y1 - 0.02, L.belt + 0.12]
+    : [yTop, yAt(0.45)];
+  const lineW = vanEdge ? 0.022 : 0.014;
+  const lines = (vanEdge ? [0.06, 0.12] : [0.035, 0.07])
     .map((gap) =>
       poly(
         [
-          [edgeAt(yTop) - gap, yTop],
-          [edgeAt(yTop) - gap - 0.014, yTop],
-          [edgeAt(yLines) - gap - 0.014, yLines],
-          [edgeAt(yLines) - gap, yLines],
+          [edgeAt(yLineTop) - gap, yLineTop],
+          [edgeAt(yLineTop) - gap - lineW, yLineTop],
+          [edgeAt(yLineLow) - gap - lineW, yLineLow],
+          [edgeAt(yLineLow) - gap, yLineLow],
         ],
         c.orange,
       ),
@@ -316,70 +410,107 @@ export default function blixen({ k, fonts }) {
     c.orange,
   );
   // Three chevrons on the front wing, pointing forward, clear of the arch.
-  const chevrons = (() => {
-    const y = Math.max(
-      yAt(CHEVRONS.down),
-      L.wheels.front.y + L.wheels.front.r + 0.07,
-    );
-    const h = 0.05;
-    return [0, 1, 2]
-      .map((i) => {
-        const z = zAt(CHEVRONS.at) - 0.04 + i * 0.055;
-        const a = h * 0.5;
-        const t = h * 0.42;
-        return poly(
-          [
-            [z + a, y + h / 2],
-            [z, y],
-            [z + a, y - h / 2],
-            [z + a + t, y - h / 2],
-            [z + t, y],
-            [z + a + t, y + h / 2],
-          ],
-          c.orange,
-        );
-      })
-      .join("");
-  })();
+  const chevH = van ? 0.07 : 0.05;
+  const chev = chevrons3(
+    zAt(CHEVRONS.at) - 0.04,
+    Math.max(yAt(CHEVRONS.down), L.wheels.front.y + L.wheels.front.r + 0.07),
+    chevH,
+  );
 
-  const side = [silver, rearOrange, lines, frontOrange, lip, chevrons].join("");
+  const side = [silver, rearOrange, lines, frontOrange, lip, chev].join("");
   const front = [silver, k.rect(-far, -far, far, yAt(FRONT), c.orange)].join(
     "",
   );
-  const back = [silver, k.rect(-far, -far, far, yAt(0.5), c.orange)].join("");
+  const ySplit = yAt(0.5);
+  const back = [silver, k.rect(-far, -far, far, ySplit, c.orange)].join("");
 
-  // The lettering, in pixels and never mirrored, the same on both sides.
+  // Where a moulding splits the doors' clear band, each piece of lettering
+  // keeps to the band it overlaps most, as a wrapper works round a body line.
+  const bands = L.bands?.length ? L.bands : [L.door];
+  const inBand = (y0, y1) => {
+    let best = null;
+    let most = -Infinity;
+    for (const b of bands) {
+      const o = Math.min(y1, b.y1) - Math.max(y0, b.y0);
+      if (o > most) {
+        most = o;
+        best = b;
+      }
+    }
+    return { y0: Math.max(y0, best.y0), y1: Math.min(y1, best.y1) };
+  };
+
   const zNoseStop = L.wheels.front.z + L.wheels.front.r * 0.95;
   const zTailStop = L.wheels.rear.z - L.wheels.rear.r * 0.95;
   const sides = ["left", "right"]
     .map((view) => {
-      const s = scaleOf(view);
+      const s = k.scale(view);
       const out = [];
-      // Their mark, on the front door.
+      if (vanEdge) {
+        // The van: their mark large on the sliding door under its window,
+        // DRIVING SCHOOL under it, ahead of the orange.
+        const z0 = zNoseStop + 0.08;
+        const markLow = L.belt - 0.38;
+        const markBox = k.boxPx(
+          view,
+          z0,
+          Math.min(L.door.y1, L.belt - 0.03),
+          Math.min(edgeAt(markLow) - 0.55, L.door.z1),
+          markLow,
+        );
+        out.push(mark(fonts, k.cap(markBox, 0.32 * s)));
+        const dsTop = markLow - 0.04;
+        const dsLow = Math.max(yLip + 0.03, L.door.y0);
+        const dsBox = k.boxPx(view, z0, dsTop, edgeAt(dsLow) - 0.12, dsLow);
+        out.push(drivingSchool(fonts, k.cap(dsBox, 0.13 * s)));
+        // B.A.D.S along the diagonal, on the silver, at the window line.
+        const y = L.belt - 0.14;
+        const [px, py] = k.pt[view](edgeAt(y) - 0.26, y);
+        out.push(
+          badsAlong(
+            fonts,
+            px,
+            py,
+            0.1 * s,
+            k.pt[view](edgeAt(L.belt + 0.5), L.belt + 0.5),
+            k.pt[view](edgeAt(L.sill), L.sill),
+          ),
+        );
+        // Their number on the orange, high on the rear panel.
+        const yP = (panel.y0 + panel.y1) / 2 + 0.05;
+        const tail = Math.min(panel.z1, box.zmax - 0.12);
+        const from = edgeAt(yP + 0.08) + 0.08;
+        let h = 0.12 * s;
+        h *= Math.min(1, ((tail - from) * s) / pillWidth(fonts, h));
+        const [px2, py2] = k.pt[view]((from + tail) / 2, yP);
+        out.push(phonePill(fonts, px2, py2, h));
+        return k.pixels(view, out.join(""));
+      }
+      // A car, as theirs: the mark on the front door.
+      const mk = inBand(yAt(MARK.low), Math.min(yAt(MARK.top), L.door.y1));
       out.push(
         mark(
           fonts,
-          boxPx(
-            k,
+          k.boxPx(
             view,
             Math.max(zAt(MARK.to), zNoseStop),
-            Math.min(yAt(MARK.top), L.door.y1),
+            mk.y1,
             zAt(MARK.from),
-            yAt(MARK.low),
+            mk.y0,
           ),
         ),
       );
       // DRIVING SCHOOL, low across both doors, above the orange strip.
+      const ds = inBand(Math.max(yAt(NAME.low), yLip + 0.02), yAt(NAME.top));
       out.push(
         drivingSchool(
           fonts,
-          boxPx(
-            k,
+          k.boxPx(
             view,
             Math.max(zAt(NAME.to), zNoseStop),
-            yAt(NAME.top),
+            ds.y1,
             Math.min(zAt(NAME.from), zTailStop),
-            Math.max(yAt(NAME.low), yLip + 0.02),
+            ds.y0,
           ),
         ),
       );
@@ -387,16 +518,15 @@ export default function blixen({ k, fonts }) {
       {
         const y = yAt(BADS.down);
         const [px, py] = k.pt[view](edgeAt(y) - BADS.ahead, y);
-        const [ax, ay] = k.pt[view](edgeAt(L.belt), L.belt);
-        const [bx, by] = k.pt[view](edgeAt(L.sill), L.sill);
-        let turn = (Math.atan2(by - ay, bx - ax) * 180) / Math.PI;
-        if (turn > 90) turn -= 180;
-        if (turn < -90) turn += 180;
-        const font = fonts["Poppins-ExtraBold.ttf"];
-        const h = BADS.height * s;
-        const w = h * aspectOf(font, "B.A.D.S", 0.06);
         out.push(
-          `<g transform="rotate(${turn.toFixed(1)} ${px.toFixed(1)} ${py.toFixed(1)})"><path d="${line(font, "B.A.D.S", { x: px - w / 2, y: py - h / 2, height: h, tracking: 0.06 })}" fill="${c.black}"/></g>`,
+          badsAlong(
+            fonts,
+            px,
+            py,
+            BADS.height * s,
+            k.pt[view](edgeAt(L.belt), L.belt),
+            k.pt[view](edgeAt(L.sill), L.sill),
+          ),
         );
       }
       // Their number, on the orange over the rear wheel. On a car with a
@@ -415,22 +545,20 @@ export default function blixen({ k, fonts }) {
     })
     .join("");
 
-  // "Instant Brakes" across the boot lid, under the window.
-  const boot = (() => {
-    const s = scaleOf("back");
-    const font = fonts["Poppins-Medium.ttf"];
-    const y = yAt(0.16);
-    const [cx, cy] = k.pt.back(0, y);
-    const w = k.width * 0.62 * s;
-    const t = fitted(
-      font,
-      "Instant   Brakes",
-      { x: cx - w / 2, y: cy - 0.065 * s, w, h: 0.13 * s },
-      0.01,
-      `fill="${c.orange}"`,
-    );
-    return k.pixels("back", t.svg);
-  })();
+  // The van's long roof, behind the name board: their mark for the camera
+  // above.
+  const roofMark =
+    van && L.roof.clear
+      ? k.onTopWith(
+          {
+            z0: L.roof.board.z + 0.6,
+            z1: L.roof.z1 - 0.2,
+            x0: L.roof.x0 + 0.2,
+            x1: L.roof.x1 - 0.2,
+          },
+          (b) => mark(fonts, b),
+        )
+      : "";
 
   const body = [
     k.inView("left", side),
@@ -439,20 +567,163 @@ export default function blixen({ k, fonts }) {
     k.inView("front", front),
     k.inView("back", back),
     sides,
-    boot,
+    roofMark,
+    instantBrakes(k, fonts, ySplit, van ? 0.13 : 0.1),
   ].join("\n");
   return { defs: "", body };
 }
 
-function boxPx(k, view, a0, b0, a1, b1) {
-  const [x1, y1] = k.pt[view](a0, b0);
-  const [x2, y2] = k.pt[view](a1, b1);
-  return {
-    x: Math.min(x1, x2),
-    y: Math.min(y1, y2),
-    w: Math.abs(x2 - x1),
-    h: Math.abs(y2 - y1),
-  };
+// ---- the lorry ------------------------------------------------------------------------
+
+/**
+ * The lorry, as a fleet truck in Blixen's look. The cab is their car's
+ * front: silver, with the orange bumper and lower corners, the chevrons, and
+ * their mark on the door where it fits. The box is silver with their orange
+ * rear over its back third behind the same leaning edge and two thin lines,
+ * their mark large on its front part (about 60 cm tall), DRIVING SCHOOL
+ * under it, B.A.D.S along the edge and their number on the orange. The
+ * drop-side rail at its foot is their orange strip. The box's roof carries
+ * the mark for the camera above. Its rear doors take no paint.
+ */
+function lorry(k, fonts) {
+  const { L, box } = k;
+  const c = COLORS;
+  const far = 9;
+  const load = L.load;
+  const cab = L.cab;
+  const len = load.z1 - load.z0;
+  const LEAN = 0.62; // the edge runs forward as it falls, as on their car
+  const zTopEdge = load.z0 + len * 0.66;
+  const edgeAt = (y) => zTopEdge - (load.y1 - y) * LEAN;
+  const yHigh = box.ymax + 0.2;
+
+  const silver = k.rect(-far, -far, far, far, c.silver);
+  const rearOrange = poly(
+    [
+      [edgeAt(yHigh), yHigh],
+      [far, yHigh],
+      [far, -far],
+      [edgeAt(-far), -far],
+    ],
+    c.orange,
+  );
+  const yLineLow = load.rail + (load.y1 - load.rail) * 0.5;
+  const lines = [0.08, 0.16]
+    .map((gap) =>
+      poly(
+        [
+          [edgeAt(yHigh) - gap, yHigh],
+          [edgeAt(yHigh) - gap - 0.028, yHigh],
+          [edgeAt(yLineLow) - gap - 0.028, yLineLow],
+          [edgeAt(yLineLow) - gap, yLineLow],
+        ],
+        c.orange,
+      ),
+    )
+    .join("");
+  // The rail at the box's foot and the cab's lower part: their orange strip
+  // and orange front corner.
+  const rail = k.rect(load.z0 - 0.05, -far, far, load.rail - 0.015, c.orange);
+  const yCabLow = cab.sill + 0.3;
+  const cabLow = k.rect(-far, -far, cab.z1, yCabLow, c.orange);
+  const chev = chevrons3(
+    cab.door.z0 + 0.02,
+    (cab.door.y0 + cab.door.y1) / 2,
+    0.08,
+  );
+  const side = [silver, rearOrange, lines, rail, cabLow, chev].join("");
+
+  const sides = ["left", "right"]
+    .map((view) => {
+      const s = k.scale(view);
+      const out = [];
+      // The mark, large on the box's front part, high.
+      const z0 = load.z0 + 0.22;
+      const markTop = load.y1 - 0.1;
+      const markLow = markTop - 0.66;
+      const markZ1 = edgeAt(markLow) - 0.4;
+      out.push(
+        mark(
+          fonts,
+          k.cap(k.boxPx(view, z0, markTop, markZ1, markLow), 0.62 * s),
+        ),
+      );
+      // DRIVING SCHOOL under it, across the box above the rail.
+      const dsTop = markLow - 0.06;
+      const dsLow = load.rail + 0.1;
+      out.push(
+        drivingSchool(
+          fonts,
+          k.cap(
+            k.boxPx(view, z0, dsTop, edgeAt(dsLow) - 0.25, dsLow),
+            0.26 * s,
+          ),
+        ),
+      );
+      // B.A.D.S along the edge, on the silver.
+      const y = load.rail + (load.y1 - load.rail) * 0.72;
+      const [px, py] = k.pt[view](edgeAt(y) - 0.42, y);
+      out.push(
+        badsAlong(
+          fonts,
+          px,
+          py,
+          0.17 * s,
+          k.pt[view](edgeAt(load.y1), load.y1),
+          k.pt[view](edgeAt(load.rail), load.rail),
+        ),
+      );
+      // Their number on the orange, high, ahead of the box's back edge.
+      const yP = load.y1 - 0.32;
+      const from = edgeAt(yP + 0.1) + 0.15;
+      const to = load.z1 - 0.15;
+      let h = 0.18 * s;
+      h *= Math.min(1, ((to - from) * s) / pillWidth(fonts, h));
+      const [qx, qy] = k.pt[view]((from + to) / 2, yP);
+      out.push(phonePill(fonts, qx, qy, h));
+      // The mark on the cab door, if there is room for it to read.
+      const r = k.clearRect(
+        "both",
+        cab.z0 + 0.05,
+        cab.z1 - 0.05,
+        yCabLow + 0.02,
+        cab.top,
+      );
+      if (r && r.y1 - r.y0 >= 0.11 && r.z1 - r.z0 >= 0.25) {
+        out.push(mark(fonts, k.boxPx(view, r.z0, r.y1, r.z1, r.y0)));
+      }
+      return k.pixels(view, out.join(""));
+    })
+    .join("");
+
+  // The top: the box silver with the orange back third, the cab silver.
+  const top = [
+    silver,
+    k.rect(zTopEdge, -far, far, far, c.orange),
+    k.rect(zTopEdge - 0.16 - 0.028, -far, zTopEdge - 0.16, far, c.orange),
+    k.rect(zTopEdge - 0.08 - 0.028, -far, zTopEdge - 0.08, far, c.orange),
+  ].join("");
+  const roofMark = k.onTopWith(
+    {
+      z0: load.z0 + 0.3,
+      z1: zTopEdge - 0.4,
+      x0: box.xmin + 0.15,
+      x1: box.xmax - 0.15,
+    },
+    (b) => mark(fonts, b),
+  );
+  const front = [silver, k.rect(-far, -far, far, yCabLow, c.orange)].join("");
+
+  const body = [
+    k.inView("left", side),
+    k.inView("right", side),
+    k.inView("top", top),
+    k.inView("front", front),
+    k.inView("back", silver),
+    sides,
+    roofMark,
+  ].join("\n");
+  return { defs: "", body };
 }
 
 // ---- the logo ------------------------------------------------------------------------

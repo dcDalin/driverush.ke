@@ -26,6 +26,14 @@ type Layout = {
     belt: number;
     screen: { front: number; rear: number };
     door: { z0: number; z1: number; y0: number; y1: number };
+    kind: "car" | "van" | "lorry";
+    bands: { y0: number; y1: number }[];
+    cab?: { z0: number; z1: number; sill: number; belt: number };
+    load?: { z0: number; z1: number; y0: number; y1: number; rail: number };
+    map: Record<
+      "left" | "right" | "back",
+      { cell: number; a0: number; y0: number; rows: string[] }
+    >;
   };
 };
 const layoutOf = (car: string): Layout =>
@@ -110,5 +118,30 @@ describe.each(BOARD_CARS.map((c) => c.id))("the %s's wrap template", (car) => {
     // (a side moulding across the doors, as on the crossover, leaves a little
     // less than a plain door does)
     expect(L.door.y1 - L.door.y0).toBeGreaterThan(0.18);
+  });
+
+  it("says what kind of vehicle it is, and maps where paint shows", () => {
+    const L = layout.landmarks;
+    expect(L.kind).toBe(
+      car === "lorry" ? "lorry" : car === "van" ? "van" : "car",
+    );
+    // every clear band across the doors, the tallest first
+    expect(L.bands[0]).toEqual({ y0: L.door.y0, y1: L.door.y1 });
+    for (const side of ["left", "right", "back"] as const) {
+      const m = L.map[side];
+      expect(m.rows.length).toBeGreaterThan(10);
+      expect(new Set(m.rows.map((r) => r.length)).size).toBe(1);
+      // a good share of each is paint a learner sees (but the lorry's back:
+      // its load body's doors are bare metal on the model)
+      if (car === "lorry" && side === "back") continue;
+      const cells = m.rows.join("");
+      expect(cells.split("1").length - 1).toBeGreaterThan(cells.length * 0.15);
+    }
+    if (car === "lorry") {
+      // the cab ahead of the load body, the drop-side rail along its foot
+      expect(L.cab!.z1).toBeLessThanOrEqual(L.load!.z0 + 0.1);
+      expect(L.load!.rail).toBeGreaterThan(L.load!.y0);
+      expect(L.load!.rail).toBeLessThan(L.load!.y1 - 0.8);
+    }
   });
 });

@@ -19,8 +19,11 @@
  *
  * Run after scripts/build-board-cars.mjs (which writes the cars without UVs):
  *   node scripts/build-car-wrap.mjs [car ...]
+ * To measure built cars again (landmarks and paint maps only; their files,
+ * UVs and templates untouched):
+ *   node scripts/build-car-wrap.mjs --measure [car ...]
  */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { NodeIO } from "@gltf-transform/core";
 import { ALL_EXTENSIONS } from "@gltf-transform/extensions";
@@ -35,8 +38,9 @@ import { MeshoptDecoder, MeshoptEncoder } from "meshoptimizer";
 
 const ROOT = process.cwd();
 const OUT = path.join(ROOT, "public/assets/board/sponsors");
-const CARS = process.argv.slice(2).length
-  ? process.argv.slice(2)
+const NAMED = process.argv.slice(2).filter((a) => !a.startsWith("--"));
+const CARS = NAMED.length
+  ? NAMED
   : [
       "saloon",
       "hatchback",
@@ -57,7 +61,20 @@ const CARS = process.argv.slice(2).length
  * side stands in for the doors, so its bottom edge is the "sill" and its top
  * the "belt", and the name board stands on the cab's roof, not the load.
  */
-const SHAPES = { lorry: { cabRear: -1.6 } };
+const SHAPES = {
+  // `railTop`: the top of the drop-side rail along the load body's foot
+  // (its hinges and catches sit there), read off the template. Above it is
+  // the box's flat panel, where lettering goes.
+  lorry: { kind: "lorry", cabRear: -1.6, railTop: 1.01 },
+  van: { kind: "van" },
+};
+
+/**
+ * `--measure`: measure the built cars again (landmarks, the paint maps and
+ * the template) without writing their files. Their UVs and views stay as
+ * they are, so the schools' existing art keeps fitting.
+ */
+const MEASURE = process.argv.includes("--measure");
 
 /** The template picture, in pixels. Schools draw at this size. */
 const ATLAS = { width: 2048, height: 2048 };
@@ -301,16 +318,20 @@ function landmarks(doc, paintTris, bodyTris, shape = {}) {
   // trim, mouldings, handles, arches). Bands where paint shows right across
   // are where lettering can go.
   const CELL = 0.01;
-  const facing = (t) => viewOf(t) === "left";
-  const surfaces = [
-    ...paintTris.filter(facing).map((t) => ({ t, paint: true })),
-    ...bodyTris.filter(facing).map((t) => ({ t, paint: false })),
-  ];
-  /** The longest run of rows in [yA, yB] where paint shows over [zA, zB]. */
-  function clearBand(zA, zB, yA, yB, need = 0.9) {
+  /**
+   * Which 1 cm cells of a side, in [zA, zB] x [yA, yB], show paint: the
+   * nearest surface seen from that side wins.
+   */
+  function sideGrid(side, zA, zB, yA, yB) {
+    const facing = (t) => viewOf(t) === side;
+    const nearer = side === "left" ? (x, d) => x < d : (x, d) => x > d;
+    const surfaces = [
+      ...paintTris.filter(facing).map((t) => ({ t, paint: true })),
+      ...bodyTris.filter(facing).map((t) => ({ t, paint: false })),
+    ];
     const nz = Math.max(1, Math.round((zB - zA) / CELL));
     const ny = Math.max(1, Math.round((yB - yA) / CELL));
-    const depth = new Float32Array(nz * ny).fill(Infinity);
+    const depth = new Float32Array(nz * ny).fill(NaN);
     const paint = new Uint8Array(nz * ny);
     for (const { t, paint: isPaint } of surfaces) {
       const [a, b, c] = t;
@@ -333,14 +354,65 @@ function landmarks(doc, paintTris, bodyTris, shape = {}) {
           if (u < 0 || v < 0 || u + v > 1) continue;
           const x = a[0] + u * (b[0] - a[0]) + v * (c[0] - a[0]);
           const k = j * nz + i;
-          if (x < depth[k]) {
+          if (Number.isNaN(depth[k]) || nearer(x, depth[k])) {
             depth[k] = x;
             paint[k] = isPaint ? 1 : 0;
           }
         }
       }
     }
-    let best = [0, 0];
+    return { nz, ny, paint };
+  }
+
+  /** The same for the back, seen from behind: cells over [xA, xB] x [yA, yB]. */
+  function backGrid(xA, xB, yA, yB) {
+    const surfaces = [
+      ...paintTris
+        .filter((t) => viewOf(t) === "back")
+        .map((t) => ({ t, paint: true })),
+      ...bodyTris
+        .filter((t) => viewOf(t) === "back")
+        .map((t) => ({ t, paint: false })),
+    ];
+    const nx = Math.max(1, Math.round((xB - xA) / CELL));
+    const ny = Math.max(1, Math.round((yB - yA) / CELL));
+    const depth = new Float32Array(nx * ny).fill(NaN);
+    const paint = new Uint8Array(nx * ny);
+    for (const { t, paint: isPaint } of surfaces) {
+      const [a, b, c] = t;
+      const xs = [a[0], b[0], c[0]];
+      const ys = [a[1], b[1], c[1]];
+      const i0 = Math.max(0, Math.floor((Math.min(...xs) - xA) / CELL));
+      const i1 = Math.min(nx - 1, Math.ceil((Math.max(...xs) - xA) / CELL));
+      const j0 = Math.max(0, Math.floor((Math.min(...ys) - yA) / CELL));
+      const j1 = Math.min(ny - 1, Math.ceil((Math.max(...ys) - yA) / CELL));
+      const det = (b[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (b[1] - a[1]);
+      if (Math.abs(det) < 1e-9) continue;
+      for (let j = j0; j <= j1; j++) {
+        const y = yA + (j + 0.5) * CELL;
+        for (let i = i0; i <= i1; i++) {
+          const x = xA + (i + 0.5) * CELL;
+          const u =
+            ((x - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (y - a[1])) / det;
+          const v =
+            ((b[0] - a[0]) * (y - a[1]) - (x - a[0]) * (b[1] - a[1])) / det;
+          if (u < 0 || v < 0 || u + v > 1) continue;
+          const z = a[2] + u * (b[2] - a[2]) + v * (c[2] - a[2]);
+          const k = j * nx + i;
+          if (Number.isNaN(depth[k]) || z > depth[k]) {
+            depth[k] = z;
+            paint[k] = isPaint ? 1 : 0;
+          }
+        }
+      }
+    }
+    return { nz: nx, ny, paint };
+  }
+
+  /** Every run of rows in [yA, yB] where paint shows over [zA, zB], tallest first. */
+  function clearBands(zA, zB, yA, yB, need = 0.9) {
+    const { nz, ny, paint } = sideGrid("left", zA, zB, yA, yB);
+    const runs = [];
     let start = -1;
     for (let j = 0; j <= ny; j++) {
       let ok = false;
@@ -351,14 +423,54 @@ function landmarks(doc, paintTris, bodyTris, shape = {}) {
       }
       if (ok && start < 0) start = j;
       if (!ok && start >= 0) {
-        if (j - start > best[1] - best[0]) best = [start, j];
+        runs.push([start, j]);
         start = -1;
       }
     }
-    return {
-      y0: r3(yA + best[0] * CELL + 0.01),
-      y1: r3(yA + best[1] * CELL - 0.01),
-    };
+    return runs
+      .sort((p, q) => q[1] - q[0] - (p[1] - p[0]))
+      .map(([j0, j1]) => ({
+        y0: r3(yA + j0 * CELL + 0.01),
+        y1: r3(yA + j1 * CELL - 0.01),
+      }))
+      .filter((b) => b.y1 - b.y0 >= 0.04);
+  }
+  /** The longest run of rows in [yA, yB] where paint shows over [zA, zB]. */
+  const clearBand = (zA, zB, yA, yB, need) =>
+    clearBands(zA, zB, yA, yB, need)[0] ?? { y0: r3(yA), y1: r3(yA) };
+
+  /**
+   * Where paint shows on each side and the back, on a 5 cm grid over the
+   * whole of it: rows bottom up from `y0`, columns from `a0` (nose to tail
+   * along a side, z; left to right across the back, x), "1" where most
+   * of the cell is paint a learner sees. Designs read it (sponsor-art/lib.mjs)
+   * to keep lettering on clear paint and find the big blank panels.
+   */
+  function paintMap(side) {
+    const step = 5;
+    const back = side === "back";
+    const aA = back ? box.min[0] : box.min[2];
+    const aB = back ? box.max[0] : box.max[2];
+    const yA = box.min[1];
+    const g = back
+      ? backGrid(aA, aB, yA, box.max[1])
+      : sideGrid(side, aA, aB, yA, box.max[1]);
+    const cols = Math.floor(g.nz / step);
+    const rows = [];
+    for (let J = 0; J < Math.floor(g.ny / step); J++) {
+      let row = "";
+      for (let I = 0; I < cols; I++) {
+        let n = 0;
+        for (let j = J * step; j < (J + 1) * step; j++) {
+          for (let i = I * step; i < (I + 1) * step; i++) {
+            n += g.paint[j * g.nz + i];
+          }
+        }
+        row += n / (step * step) >= 0.7 ? "1" : "0";
+      }
+      rows.push(row);
+    }
+    return { cell: CELL * step, a0: r3(aA), y0: r3(yA), rows };
   }
 
   const loadBox = loadAt === undefined ? null : boxOf(sideTris);
@@ -370,6 +482,9 @@ function landmarks(doc, paintTris, bodyTris, shape = {}) {
         z1: r3(rear.z - archR - 0.05),
       };
   const door = { ...doorZ, ...clearBand(doorZ.z0, doorZ.z1, sill, belt) };
+  // Every clear band across the doors, tallest first: a moulding can split
+  // them, and the band under it may be the better one for a name.
+  const bands = clearBands(doorZ.z0, doorZ.z1, sill, belt);
   // The front wing over the arch, for a mark there.
   const wingZ = {
     z0: r3(front.z - archR * 0.7),
@@ -386,7 +501,49 @@ function landmarks(doc, paintTris, bodyTris, shape = {}) {
     ),
   };
 
+  // A lorry's two parts: its cab (the school's "car" look goes there) and
+  // its load body (a big flat panel, painted like a fleet truck's box).
+  let cab;
+  let load;
+  if (loadBox) {
+    const cabSide = paintTris.filter(
+      (t) => facesSide(t) && centroid(t)[2] < loadAt,
+    );
+    const cabBox = boxOf(cabSide);
+    const cabGlass = glassSides.filter((t) => centroid(t)[2] < loadAt);
+    const cabBelt = Math.min(...cabGlass.flatMap((t) => t.map((p) => p[1])));
+    const cabTop = boxOf(paintTris.filter((t) => centroid(t)[2] < loadAt))
+      .max[1];
+    const cabDoor = {
+      z0: r3(Math.max(cabBox.min[2] + 0.1, front.z - archR)),
+      z1: r3(loadAt - 0.08),
+    };
+    cab = {
+      z0: r3(cabBox.min[2]),
+      z1: r3(loadAt),
+      sill: r3(cabBox.min[1]),
+      belt: r3(cabBelt),
+      top: r3(cabTop),
+      door: {
+        ...cabDoor,
+        ...clearBand(cabDoor.z0, cabDoor.z1, front.y + archR, cabBelt, 0.85),
+      },
+    };
+    const loadTop = boxOf(paintTris.filter((t) => onLoad(t) && facesUp(t)))
+      .max[1];
+    load = {
+      z0: r3(loadBox.min[2]),
+      z1: r3(loadBox.max[2]),
+      y0: r3(loadBox.min[1]),
+      y1: r3(loadBox.max[1]),
+      top: r3(loadTop),
+      rail: r3(shape.railTop ?? loadBox.min[1]),
+      bands: clearBands(door.z0, door.z1, loadBox.min[1], loadBox.max[1]),
+    };
+  }
+
   return {
+    kind: shape.kind ?? "car",
     wheels: { front, rear },
     sill: r3(sill),
     belt: r3(belt),
@@ -395,7 +552,14 @@ function landmarks(doc, paintTris, bodyTris, shape = {}) {
     bonnet,
     trims,
     door,
+    bands,
     wing,
+    ...(cab ? { cab, load } : {}),
+    map: {
+      left: paintMap("left"),
+      right: paintMap("right"),
+      back: paintMap("back"),
+    },
   };
 }
 
@@ -424,7 +588,11 @@ async function wrapCar(id) {
     }
   }
 
-  const box = boxOf(paintTris);
+  const before = MEASURE
+    ? JSON.parse(readFileSync(path.join(OUT, `${id}-wrap.json`), "utf8"))
+    : null;
+  // Measuring again keeps the box and views the UVs were laid out with.
+  const box = before ? before.box : boxOf(paintTris);
   const [xmin, , zmin] = box.min;
   const [xmax, ymax, zmax] = box.max;
   const L = zmax - zmin;
@@ -435,13 +603,14 @@ async function wrapCar(id) {
   // the picture can give them: stacked full width, at the largest scale that
   // fits this car. The ends go below at half that, and the underside (never
   // seen) in what is left.
-  const SCALE =
-    Math.floor(
-      Math.min(
-        (ATLAS.width - 2 * PAD) / L,
-        (ATLAS.height - 5 * PAD) / (2.5 * H + W),
-      ) / 10,
-    ) * 10;
+  const SCALE = before
+    ? before.scale
+    : Math.floor(
+        Math.min(
+          (ATLAS.width - 2 * PAD) / L,
+          (ATLAS.height - 5 * PAD) / (2.5 * H + W),
+        ) / 10,
+      ) * 10;
   const ENDS = SCALE / 2;
   const row1 = PAD;
   const row2 = row1 + Math.round(H * SCALE) + PAD;
@@ -458,7 +627,7 @@ async function wrapCar(id) {
     h: Math.round(h * scale),
     scale,
   });
-  const views = {
+  const views = before?.views ?? {
     left: view(PAD, row1, L, H, SCALE),
     right: view(PAD, row2, L, H, SCALE),
     top: view(PAD, row3, L, W, SCALE),
@@ -522,26 +691,33 @@ async function wrapCar(id) {
       uv[i * 2 + 1] = y / ATLAS.height;
     });
   });
-  prim.setAttribute(
-    "TEXCOORD_0",
-    doc
-      .createAccessor("uv")
-      .setType("VEC2")
-      .setArray(uv)
-      .setBuffer(doc.getRoot().listBuffers()[0]),
-  );
+  if (!MEASURE)
+    prim.setAttribute(
+      "TEXCOORD_0",
+      doc
+        .createAccessor("uv")
+        .setType("VEC2")
+        .setArray(uv)
+        .setBuffer(doc.getRoot().listBuffers()[0]),
+    );
 
   const marks = landmarks(doc, paintTris, bodyTris, SHAPES[id]);
   // The board reads where a name board stands from the car's own file.
   const rootNode = nodes.find((n) => n.getExtras()?.wheelRadius);
   rootNode?.setExtras({ ...rootNode.getExtras(), roof: marks.roof.board });
 
-  await doc.transform(
-    weld(),
-    quantize({ quantizePosition: 14, quantizeColor: 8, quantizeTexcoord: 14 }),
-    meshopt({ encoder: MeshoptEncoder, level: "high" }),
-  );
-  await io.write(file, doc);
+  if (!MEASURE) {
+    await doc.transform(
+      weld(),
+      quantize({
+        quantizePosition: 14,
+        quantizeColor: 8,
+        quantizeTexcoord: 14,
+      }),
+      meshopt({ encoder: MeshoptEncoder, level: "high" }),
+    );
+    await io.write(file, doc);
+  }
 
   const layout = {
     note: `Written by scripts/build-car-wrap.mjs. Pixels in the ${id}'s wrap template; landmarks in metres, in the car's frame (nose -z, driver's right +x).`,
@@ -549,7 +725,7 @@ async function wrapCar(id) {
     atlas: ATLAS,
     scale: SCALE,
     pad: PAD,
-    box: {
+    box: before?.box ?? {
       length: r3(L),
       width: r3(W),
       height: r3(H),
@@ -623,7 +799,8 @@ async function wrapCar(id) {
     ),
     `</svg>`,
   ].join("\n");
-  writeFileSync(path.join(OUT, `${id}-template.svg`), `${svg}\n`);
+  // Measuring again leaves the template as drawn from the full-precision car.
+  if (!MEASURE) writeFileSync(path.join(OUT, `${id}-template.svg`), `${svg}\n`);
 
   console.log(id, {
     size: `${L.toFixed(2)} x ${W.toFixed(2)} x ${H.toFixed(2)} m`,
