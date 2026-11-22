@@ -1288,19 +1288,21 @@ function Scene({
       : carPaint.hi
     : null;
   // The school changes with every new task (sponsor-visit.ts). The car keeps
-  // the paint it has until the next school's has arrived, so it never shows
-  // plain between the two.
+  // the paint it has until the next school's has arrived, and waits out of
+  // sight meanwhile (`playerReady`): it shows neither plain nor in the paint
+  // of the school that has left (owner, 2026-11-22).
   const [wrap, setWrap] = React.useState<THREE.Texture | null>(null);
-  // The first paint has arrived, or will not: until then the car is not
-  // shown, so it is never seen plain and then painted (owner, 2026-11-22).
-  const [wrapKnown, setWrapKnown] = React.useState(false);
+  // The picture the car's paint was last settled for: it has arrived, or will
+  // not. Until that is the school now on the board the car is not shown, so
+  // it is never seen plain and then painted (owner, 2026-11-22).
+  const [wrapFor, setWrapFor] = React.useState<string | null>(null);
   const worn = React.useRef<THREE.Texture | null>(null);
   React.useEffect(() => {
     const put = (texture: THREE.Texture | null) => {
       const before = worn.current;
       worn.current = texture;
       setWrap(texture);
-      setWrapKnown(wrapUrl !== null);
+      setWrapFor(wrapUrl);
       // Freed once the car has taken the new one.
       if (before) window.setTimeout(() => before.dispose(), 400);
     };
@@ -1372,14 +1374,14 @@ function Scene({
   // ready: its shape and its picture change together.
   type RoofBoard = { spec: TopBoard; art: THREE.Texture };
   const [roofBoard, setRoofBoard] = React.useState<RoofBoard | null>(null);
-  const [roofKnown, setRoofKnown] = React.useState(false);
+  const [roofFor, setRoofFor] = React.useState<string | null>(null);
   const roofWorn = React.useRef<RoofBoard | null>(null);
   React.useEffect(() => {
     const put = (next: RoofBoard | null) => {
       const before = roofWorn.current;
       roofWorn.current = next;
       setRoofBoard(next);
-      setRoofKnown(topBoard !== null);
+      setRoofFor(topBoard?.src ?? null);
       if (before) window.setTimeout(() => before.art.dispose(), 400);
     };
     if (!topBoard) {
@@ -1499,8 +1501,8 @@ function Scene({
   // own model, the school's paint and the roof board. Never plain first and
   // painted a second later (owner, 2026-11-22). The loader stays up for the
   // first of it; a slow connection is waited for only so long.
-  const roofReady = !topBoard || roofKnown;
-  const playerReady = (!wrapUrl || wrapKnown) && roofReady;
+  const roofReady = !topBoard || roofFor === topBoard.src;
+  const playerReady = (!wrapUrl || wrapFor === wrapUrl) && roofReady;
   const lineReady = (car: BoardCarId) =>
     !lineLivery || (!pending?.has(car) && lineWraps.ready(car) && roofReady);
   const allReady =
@@ -1901,7 +1903,8 @@ function Scene({
       r.show = sweep && !calm ? SHOW_TOTAL : 0;
     } else {
       if (focus || cam.free) r.show = skipTo(r.show);
-      if (driving) r.show = Math.max(0, r.show - dt);
+      // The turn round the car waits for the car to be there.
+      if (driving && (playerReady || late)) r.show = Math.max(0, r.show - dt);
     }
     if (fresh) {
       r.intro =
