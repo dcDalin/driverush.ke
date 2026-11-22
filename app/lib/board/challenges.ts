@@ -33,6 +33,11 @@ export type OtherCar = {
   car?: BoardCarId;
   plate?: string;
   /**
+   * Wears the visiting school's paint and roof board, like the learner's car
+   * (a lane lesson's line-up). `paint` is then what it wears with no school.
+   */
+  school?: boolean;
+  /**
    * Turned upside down by the instructor to close a way (`blocks.ts`). It
    * cannot be pushed aside.
    */

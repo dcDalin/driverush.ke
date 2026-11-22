@@ -102,7 +102,7 @@ import {
   sponsorShown,
   useVisitSponsor,
 } from "~/lib/board/sponsor-visit";
-import type { TopBoard } from "~/lib/board/sponsors";
+import type { Sponsor, TopBoard } from "~/lib/board/sponsors";
 import {
   SHOW_TOTAL,
   showcaseCamera,
@@ -138,7 +138,10 @@ export type BoardTableProps = {
   seat: Seat;
   /** The car the learner drives. */
   car: BoardCarId;
-  /** Its paint, when it is not the usual one: a car picked from a line-up. */
+  /**
+   * Its colour with no school on the board, when it is not the usual one: a
+   * car picked from a line-up. With a school it wears the school's paint.
+   */
   paint?: string;
   /** Learning, with no task on: the car only shows while a route plays. */
   learning?: boolean;
@@ -171,6 +174,11 @@ export type ExtraCar = {
   x: number;
   z: number;
   heading: number;
+  /**
+   * Wears the visiting school's paint and roof board (a lane lesson's
+   * line-up). `paint` is then what it wears with no school.
+   */
+  school?: boolean;
   /** It can be picked: the scene says where it is on the screen (`picks`). */
   pick?: string;
   /** Turned upside down to close a way (`blocks.ts`). */
@@ -756,6 +764,79 @@ function dispose(root: THREE.Object3D) {
   });
 }
 
+/**
+ * Takes a school's paint and roof board off a car about to be thrown away:
+ * the pictures are the school's, shared, and outlive the car.
+ */
+function undress(holder: THREE.Object3D) {
+  const model = holder.userData.model as CarModel | undefined;
+  const paintwork = model?.userData.paintwork;
+  if (paintwork) paintwork.map = null;
+  wearTopBoard(holder, null, null);
+}
+
+type SchoolWraps = { of: (car: BoardCarId) => THREE.Texture | null };
+
+/**
+ * A school's paint for each of these car models (`models`: their ids, joined
+ * by commas), fetched as they are asked for and kept while they are wanted.
+ * What it returns is a new object whenever a picture arrives or goes.
+ */
+function useSchoolWraps(
+  livery: NonNullable<Sponsor["livery"]> | null,
+  models: string,
+  tier: BoardTier,
+): SchoolWraps {
+  const held = React.useRef(new Map<string, THREE.Texture>());
+  const [wraps, setWraps] = React.useState<SchoolWraps>({ of: () => null });
+  React.useEffect(() => {
+    const small = tier === "low";
+    const urls = new Map<BoardCarId, string>();
+    if (livery && models) {
+      for (const car of models.split(",") as BoardCarId[]) {
+        const art = livery.cars[car];
+        if (art) urls.set(car, small ? art.lo : art.hi);
+      }
+    }
+    const tell = () =>
+      setWraps({
+        of: (car) => held.current.get(urls.get(car) ?? "") ?? null,
+      });
+    // Pictures no car here wears now: freed once the cars have let go.
+    const wanted = new Set(urls.values());
+    for (const [url, texture] of held.current) {
+      if (wanted.has(url)) continue;
+      held.current.delete(url);
+      window.setTimeout(() => texture.dispose(), 400);
+    }
+    tell();
+    let alive = true;
+    for (const url of wanted) {
+      if (held.current.has(url)) continue;
+      loadWrap(url, small ? 4 : 16)
+        .then((texture) => {
+          if (!alive || held.current.has(url)) return texture.dispose();
+          held.current.set(url, texture);
+          tell();
+        })
+        .catch(() => {
+          // That model wears the school's plain body colour.
+        });
+    }
+    return () => {
+      alive = false;
+    };
+  }, [livery, models, tier]);
+  React.useEffect(() => {
+    const all = held.current;
+    return () => {
+      for (const texture of all.values()) texture.dispose();
+      all.clear();
+    };
+  }, []);
+  return wraps;
+}
+
 // ---- cars -----------------------------------------------------------------------
 
 let blob: THREE.CanvasTexture | null = null;
@@ -1176,8 +1257,8 @@ function Scene({
   }, [gl, tier, table, invalidate]);
 
   // The school's paint goes on the learner's own car when the school has art
-  // for it, never on a line-up car with its own colour.
-  const carPaint = (models && !paint && sponsor?.livery?.cars[driven]) || null;
+  // for it, a car taken from a lane lesson's line-up too (owner, 2026-11-22).
+  const carPaint = (models && sponsor?.livery?.cars[driven]) || null;
   const livery = carPaint && sponsor?.livery ? sponsor.livery : null;
   const wrapUrl = carPaint
     ? tier === "low"
@@ -1241,8 +1322,25 @@ function Scene({
     invalidate();
   }, [player, wrap, livery, sponsor, invalidate]);
 
+  // The cars of a lane lesson's line-up wear the school's paint as well, each
+  // model its own picture of it.
+  const lineLivery = (models && sponsor?.livery) || null;
+  const lineModels = React.useMemo(() => {
+    const ids = new Set<BoardCarId>();
+    const beside = carsBeside(driven);
+    (challenge?.otherCars ?? []).forEach((other, i) => {
+      if (other.school) ids.add(other.car ?? beside[i % beside.length]);
+    });
+    (extraCars ?? []).forEach((extra) => {
+      if (extra.school) ids.add(extra.car);
+    });
+    return [...ids].sort().join(",");
+  }, [challenge, extraCars, driven]);
+  const lineWraps = useSchoolWraps(lineLivery, lineModels, tier);
+
   // With its paint, the school's name board on the roof (top-board.ts).
-  const topBoard = (livery && sponsor?.topBoard) || null;
+  const topBoard =
+    ((livery || (lineLivery && lineModels)) && sponsor?.topBoard) || null;
   // Like the paint, the board on the roof stays until the next school's is
   // ready: its shape and its picture change together.
   type RoofBoard = { spec: TopBoard; art: THREE.Texture };
@@ -1281,24 +1379,24 @@ function Scene({
     [],
   );
   React.useEffect(() => {
-    if (!roofBoard) return;
+    if (!roofBoard || !livery) return;
     wearTopBoard(player, roofBoard.spec, roofBoard.art, tier === "low");
     invalidate();
     return () => {
       wearTopBoard(player, null, null);
     };
-  }, [player, roofBoard, tier, invalidate]);
+  }, [player, roofBoard, livery, tier, invalidate]);
 
   // The school the next task will show: its pictures are fetched quietly
   // once this drive is under way, so the change does not wait for them.
   React.useEffect(() => {
-    if (!sponsor || paint) return;
+    if (!sponsor) return;
     const timer = window.setTimeout(() => {
       const next = nextSchool();
       if (next) warmSchool(next, driven, tier === "low");
     }, 5000);
     return () => window.clearTimeout(timer);
-  }, [sponsor, driven, tier, paint]);
+  }, [sponsor, driven, tier]);
 
   const others = React.useMemo(
     () =>
@@ -1314,7 +1412,14 @@ function Scene({
       }),
     [challenge, tier, models, driven],
   );
-  React.useEffect(() => () => others.forEach(dispose), [others]);
+  React.useEffect(
+    () => () =>
+      others.forEach((other) => {
+        undress(other);
+        dispose(other);
+      }),
+    [others],
+  );
 
   // Cars standing in the parking zone, to show what it is for. They are moved
   // about between attempts, and the green box of a parking task with them.
@@ -1353,7 +1458,51 @@ function Scene({
     });
     return group;
   }, [tier, models, extraCars]);
-  React.useEffect(() => () => dispose(extras), [extras]);
+  React.useEffect(
+    () => () => {
+      extras.children.forEach(undress);
+      dispose(extras);
+    },
+    [extras],
+  );
+
+  // The school's paint and roof board on the line-up's cars: the ones standing
+  // while another is driven, and all of them while none is.
+  React.useEffect(() => {
+    if (!lineLivery) return;
+    const dress = (holder: THREE.Object3D, car: BoardCarId) => {
+      wearWrap(holder, lineWraps.of(car), lineLivery.base);
+      wearTopBoard(
+        holder,
+        roofBoard?.spec,
+        roofBoard?.art ?? null,
+        tier === "low",
+      );
+    };
+    const beside = carsBeside(driven);
+    (challenge?.otherCars ?? []).forEach((other, i) => {
+      const holder = others[i];
+      if (other.school && holder) {
+        dress(holder, other.car ?? beside[i % beside.length]);
+      }
+    });
+    (extraCars ?? []).forEach((extra, i) => {
+      const holder = extras.children[i];
+      if (extra.school && holder) dress(holder, extra.car);
+    });
+    invalidate();
+  }, [
+    lineLivery,
+    lineWraps,
+    roofBoard,
+    others,
+    extras,
+    challenge,
+    extraCars,
+    driven,
+    tier,
+    invalidate,
+  ]);
 
   const goal = React.useMemo(() => {
     if (!challenge) return null;
@@ -1813,6 +1962,7 @@ function Scene({
     // The opening close-up, blended over the seat's view: the seat's view
     // keeps running underneath, so going back to it is seamless.
     let closeUp = 0;
+    let closeDist = 0;
     if (r.show > 0) {
       const pose = showcasePose({
         left: r.show,
@@ -1824,6 +1974,7 @@ function Scene({
       });
       const at = showcaseCamera(pose);
       closeUp = pose.weight;
+      closeDist = pose.dist;
       camX = lerp(camX, at.x, closeUp);
       camY = lerp(camY, at.y, closeUp);
       camZ = lerp(camZ, at.z, closeUp);
@@ -1833,6 +1984,15 @@ function Scene({
     }
     state.camera.position.set(camX, camY, camZ);
     state.camera.lookAt(aimX, aimY, aimZ);
+    // A car taken from a line-up has its turn to itself: the cars standing
+    // where the camera goes round it are out of sight until it is over.
+    const clear = closeUp > 0.35 ? closeDist + 3 : 0;
+    others.forEach((other, i) => {
+      if (!challenge?.otherCars[i]?.school) return;
+      other.visible =
+        !clear ||
+        Math.hypot(other.position.x - car.x, other.position.z - car.z) > clear;
+    });
 
     // The sun's shadows are spent on the part of the board in view: closed in
     // on a car, the same shadow picture covers a fifth of the ground it does

@@ -828,9 +828,20 @@ export function BoardGame() {
   // 2026-11-22). A new round or level makes a new queue and the next task
   // moves along it; a retry or a restart changes neither, so it keeps its
   // school.
-  React.useEffect(() => {
-    if (s.queue[s.pos]) startRound(s.queue, s.pos);
-  }, [s.queue, s.pos]);
+  //
+  // A lane options level is one round from its line-up to its last car: the
+  // whole line wears one school (owner, 2026-11-22), though each car taken is
+  // a new queue. Before the table's own effects, so its cars are not first
+  // painted for the school that is leaving.
+  const lessonArm = s.lanes?.arm;
+  const lessonRound = React.useMemo(
+    () => [s.level, lessonArm],
+    [s.level, lessonArm],
+  );
+  React.useLayoutEffect(() => {
+    if (lessonArm) startRound(lessonRound, 0);
+    else if (s.queue[s.pos]) startRound(s.queue, s.pos);
+  }, [lessonArm, lessonRound, s.queue, s.pos]);
   // A lane options level: every car of one road is out, and one is driven at
   // a time. The one being driven is the learner's car for now.
   const lineUp = React.useMemo(
@@ -862,6 +873,7 @@ export function BoardGame() {
               car: one.car,
               paint: one.paint,
               plate: one.plate,
+              school: true,
               ...(lanesRest[one.id] ?? one.start),
               pick: frontCars.includes(one) ? one.id : undefined,
             }))
@@ -999,8 +1011,9 @@ export function BoardGame() {
           // Every go at a drive, retries too, opens with a full turn round
           // the car, so the learner sees its paint and the school whose paint
           // it is (owner, 2026-11-21), then, on a phone, a look at where it
-          // ends. Not a lesson's line-up car: it wears its own colour.
-          sweep={!pickedCar && s.mode === "drive"}
+          // ends. A lane lesson's line-up car too: it wears the school's
+          // paint like any other (owner, 2026-11-22).
+          sweep={s.mode === "drive"}
           onUnsupported={() => setUnsupported(true)}
           onPainted={() => setPainted(true)}
           className="absolute inset-0"
@@ -1250,9 +1263,8 @@ export function BoardGame() {
       {/* During the turn round the car: whose car it is. */}
       {!unsupported &&
         showing &&
-        !pickedCar &&
         s.mode === "drive" &&
-        sponsor?.livery?.cars[boardCar] && (
+        sponsor?.livery?.cars[pickedCar?.car ?? boardCar] && (
           <SponsorCredit
             sponsor={sponsor}
             lead="Car by"

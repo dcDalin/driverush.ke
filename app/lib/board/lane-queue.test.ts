@@ -164,6 +164,15 @@ describe("the lane options line-up", () => {
     }
   });
 
+  it("marks every standing car as one that wears the school's paint", () => {
+    for (const arm of ["S", "W"] as const) {
+      const cars = queueCars(arm);
+      const task = queueChallenge(cars, cars[0], {});
+      expect(task.otherCars).toHaveLength(cars.length - 1);
+      expect(task.otherCars?.every((other) => other.school)).toBe(true);
+    }
+  });
+
   it("offers only the front waiting car of each lane", () => {
     const cars = queueCars("S");
     expect(pickable(cars, []).map((c) => c.slot)).toEqual([0, 0, 0, 0]);

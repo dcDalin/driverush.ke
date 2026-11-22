@@ -559,8 +559,10 @@ function LanesLevel({
       >
         <span
           aria-hidden
+          // The colour of its way through, as the line on the table is drawn:
+          // the cars themselves all wear the school's paint.
           className="h-4 w-7 shrink-0 rounded-[5px] border border-white/40"
-          style={{ background: car.paint }}
+          style={{ background: car.option.color }}
         />
         <span className="min-w-0 flex-1">
           {compact && (
@@ -639,9 +641,8 @@ function LanesLevel({
                   key={car.id}
                   className={cn(
                     "size-2.5 rounded-full border border-white/40",
-                    !home.includes(car.id) && "opacity-35",
+                    home.includes(car.id) ? "bg-state-done" : "bg-state-locked",
                   )}
-                  style={{ background: car.paint }}
                 />
               ))}
             </span>

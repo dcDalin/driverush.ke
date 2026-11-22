@@ -50,7 +50,11 @@ export const QUEUE_GAP = 6.4;
 /** The last car's middle stays this far in from the end of the board. */
 const END_ROOM = CAR.length / 2 + 0.7;
 
-/** A paint for every car on the longest line-up, easy to tell apart on tarmac. */
+/**
+ * A paint for every car on the longest line-up, easy to tell apart on tarmac.
+ * On the table the cars wear the visiting school's paint (owner, 2026-11-22);
+ * these are for the flat guide picture, and for a table with no school.
+ */
 const PAINTS = [
   "#dfe3e8",
   "#1f9d55",
@@ -152,6 +156,7 @@ function standing(car: QueueCar, pose: QueuePose): OtherCar {
     paint: car.paint,
     car: car.car,
     plate: car.plate,
+    school: true,
   };
 }
 
