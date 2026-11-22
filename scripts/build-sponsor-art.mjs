@@ -48,6 +48,7 @@ export const CARS = [
   "suv",
   "van",
   "lorry",
+  "crossover",
 ];
 
 function option(name) {

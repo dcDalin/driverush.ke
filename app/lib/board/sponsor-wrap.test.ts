@@ -107,6 +107,8 @@ describe.each(BOARD_CARS.map((c) => c.id))("the %s's wrap template", (car) => {
     expect(L.door.z1).toBeLessThan(zmax);
     expect(L.door.y0).toBeGreaterThanOrEqual(L.sill);
     expect(L.door.y1).toBeLessThanOrEqual(L.belt);
-    expect(L.door.y1 - L.door.y0).toBeGreaterThan(0.2);
+    // (a side moulding across the doors, as on the crossover, leaves a little
+    // less than a plain door does)
+    expect(L.door.y1 - L.door.y0).toBeGreaterThan(0.18);
   });
 });

@@ -135,6 +135,19 @@ export const BOARD_CARS = [
       ccBy: true,
     },
   },
+  // A car, at the cars' shared size.
+  {
+    id: "crossover",
+    label: "Crossover",
+    src: "/assets/board/cars/crossover.glb?v=1",
+    thumb: "/assets/board/cars/thumbs/crossover.webp?v=1",
+    size: CAR_SIZE,
+    model: {
+      by: "Ruleta",
+      page: "https://sketchfab.com/3d-models/nissan-x-trail-11073bb28ecf42d3855457d61ea116bd",
+      ccBy: true,
+    },
+  },
 ] as const;
 
 /** The size every `thumb` is saved at: scripts/build-car-thumbs.mjs. */

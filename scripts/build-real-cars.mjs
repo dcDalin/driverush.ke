@@ -105,6 +105,12 @@ const hiluxWheel = ([x, y, z]) =>
 const lorryAxle = ([, , z]) =>
   Math.abs(z + 2.005) < 0.34 || Math.abs(z - 1.19) < 0.34;
 
+/** Inside one of the X-Trail's wheels (thousandths of an inch). */
+const xtrailWheel = ([x, y, z]) =>
+  Math.abs(x) > 15000 &&
+  (Math.hypot(y - 8890, z + 35520) < 9200 ||
+    Math.hypot(y - 8890, z - 31155) < 9200);
+
 const CARS = {
   // 2014 Toyota Corolla E180 by Armored Wave, CC BY 4.0.
   saloon: {
@@ -228,6 +234,22 @@ const CARS = {
       [/\|Glass_basic_white$/, "glass"],
       [/\|Default_1[12]$/, "tail"],
       [/\|(PL1_0|Pl2_0|Default_9|Default_10|Targa_[01])$/, "drop"], // plates
+    ],
+  },
+  // Nissan X-Trail (the first shape, 2001 to 2007) by Ruleta, CC BY 4.0. A
+  // SketchUp model, in thousandths of an inch: its parts are told apart by
+  // their materials.
+  crossover: {
+    dir: "xtrail",
+    nose: "+z",
+    rules: [
+      [/\|(tire|brake)$/, "wheel"],
+      // One metal for the rims and for the trim: only what sits in a wheel.
+      [/\|metal$/, "wheel", xtrailWheel],
+      [/\|body-color$/, "paint"],
+      [/\|(glass1|glass2|Black_glass)$/, "glass"],
+      [/\|plt3-2$/, "tail"],
+      [/\|Material_31$/, "drop"], // the seats
     ],
   },
 };

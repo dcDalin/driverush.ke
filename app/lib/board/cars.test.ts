@@ -57,6 +57,7 @@ describe("board cars", () => {
       "pickup",
       "van",
       "lorry",
+      "crossover",
     ]);
   });
 

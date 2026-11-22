@@ -48,6 +48,7 @@ const BOARD_FILES = [
   "/assets/board/cars/suv.glb?v=6",
   "/assets/board/cars/van.glb?v=2",
   "/assets/board/cars/lorry.glb?v=2",
+  "/assets/board/cars/crossover.glb?v=1",
   "/assets/board/cars/thumbs/saloon.webp?v=1",
   "/assets/board/cars/thumbs/hatchback.webp?v=1",
   "/assets/board/cars/thumbs/wagon.webp?v=1",
@@ -55,6 +56,7 @@ const BOARD_FILES = [
   "/assets/board/cars/thumbs/suv.webp?v=1",
   "/assets/board/cars/thumbs/van.webp?v=1",
   "/assets/board/cars/thumbs/lorry.webp?v=1",
+  "/assets/board/cars/thumbs/crossover.webp?v=1",
   "/assets/board/poster.jpg",
 ];
 /** Every built file the game needs, lazy ones too. Written by `vite.config.ts`. */
