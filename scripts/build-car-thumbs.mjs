@@ -6,7 +6,7 @@
  *
  * Every vehicle is taken from the same place and shrunk by the same amount,
  * then stood on the same ground line in a picture of the same size. So the
- * van and the lorry stay bigger than the five cars, as they are on the board.
+ * van and the lorry stay bigger than the six cars, as they are on the board.
  *
  * Usage:
  *   npm run dev                  # terminal 1

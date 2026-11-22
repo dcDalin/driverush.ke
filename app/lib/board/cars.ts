@@ -10,7 +10,7 @@ export type CarSize = {
   height: number;
 };
 
-/** The size the five cars share: they differ in looks only. */
+/** The size the six cars share: they differ in looks only. */
 const CAR_SIZE: CarSize = {
   length: CAR.length,
   width: CAR.width,
@@ -19,7 +19,7 @@ const CAR_SIZE: CarSize = {
 };
 
 /**
- * The vehicles the learner can drive on the board. The five cars differ in
+ * The vehicles the learner can drive on the board. The six cars differ in
  * looks only: each is scaled to the same footprint. A bigger vehicle is true
  * to its own size (`size`), and the board's physics, line-ups and camera go
  * by that (owner, 2026-11-22).

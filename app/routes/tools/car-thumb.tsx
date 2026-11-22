@@ -5,7 +5,7 @@
  * not know the word "wagon" can still pick one.
  *
  * Every vehicle is taken from the same place, so the van and the lorry come
- * out bigger than the five cars, as they are on the board.
+ * out bigger than the six cars, as they are on the board.
  *
  * Internal: noindex, outside the tools layout so nothing else is in the shot.
  */
