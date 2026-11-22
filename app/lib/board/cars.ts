@@ -125,6 +125,22 @@ export const BOARD_CARS = [
       ccBy: true,
     },
   },
+  {
+    id: "minibus",
+    label: "Minibus",
+    src: "/assets/board/cars/minibus.glb?v=1",
+    // Like the lorry, it steers more tightly than its axles (3.2 m apart)
+    // would give, to get through the gaps in the central reserve. Wider and
+    // longer than the lorry, it needs a little more: at 2.6 it clipped the
+    // reserve on "The gap is blocked" (board.test.ts drives it).
+    size: { length: 6.14, width: 2.1, wheelbase: 2.4, height: 3.05 },
+    big: true,
+    model: {
+      by: "ann_fenek",
+      page: "https://sketchfab.com/3d-models/isuzu-elf-truck-xyz-ee9e569d3fea439cb41166d07aeb7cca",
+      ccBy: true,
+    },
+  },
 ] as const;
 
 /** The licence most of the models are shared under, which asks for a credit. */

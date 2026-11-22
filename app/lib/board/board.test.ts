@@ -1237,7 +1237,7 @@ describe("tasks away from the roundabout", () => {
   // The van and the lorry are true to size: longer, and the lorry turns in a
   // wider circle. Every task they are given must still be drivable. (A task
   // that uses an angle bay is driven in a car instead.)
-  for (const vehicle of ["van", "lorry"] as const) {
+  for (const vehicle of ["van", "lorry", "minibus"] as const) {
     for (const challenge of ROUTE_TASKS) {
       if (taskUsesAngleBay(challenge)) continue;
       it(`passes "${challenge.title}" in the ${vehicle}`, () => {

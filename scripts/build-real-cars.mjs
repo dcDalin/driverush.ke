@@ -223,6 +223,22 @@ const CARS = {
       [/\|(PL1_0|Pl2_0|Default_9|Default_10|Targa_[01])$/, "drop"], // plates
     ],
   },
+  // Isuzu Elf truck XYZ by ann_fenek, CC BY 4.0: an Elf with a minibus body.
+  // True to size.
+  minibus: {
+    dir: "minibus",
+    nose: "+x",
+    // The model's own length; the width leaves room for its mirrors.
+    fit: { length: 6.14, width: 2.6 },
+    rules: [
+      // A Maya model: one plain material for each kind of surface.
+      [/^pasted__pasted__pasted__pasted__pCylinder1_/, "wheel"],
+      // Its cream top and green skirt both take paint.
+      [/\|lambert(3|5)$/, "paint"],
+      [/\|lambert8$/, "glass"],
+      [/\|lambert11$/, "tail"],
+    ],
+  },
 };
 
 // ---- arguments --------------------------------------------------------------

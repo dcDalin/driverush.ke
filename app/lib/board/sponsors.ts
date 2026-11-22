@@ -85,6 +85,7 @@ const ALL_CARS: readonly BoardCarId[] = [
   "suv",
   "van",
   "lorry",
+  "minibus",
 ];
 /** A school with paint for every board car. */
 const everyCar = (dir: string) =>

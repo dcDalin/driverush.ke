@@ -48,6 +48,7 @@ const BOARD_FILES = [
   "/assets/board/cars/suv.glb?v=5",
   "/assets/board/cars/van.glb?v=1",
   "/assets/board/cars/lorry.glb?v=1",
+  "/assets/board/cars/minibus.glb?v=1",
   "/assets/board/poster.jpg",
 ];
 /** Every built file the game needs, lazy ones too. Written by `vite.config.ts`. */
