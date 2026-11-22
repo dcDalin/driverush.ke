@@ -775,7 +775,14 @@ function undress(holder: THREE.Object3D) {
   wearTopBoard(holder, null, null);
 }
 
-type SchoolWraps = { of: (car: BoardCarId) => THREE.Texture | null };
+type SchoolWraps = {
+  of: (car: BoardCarId) => THREE.Texture | null;
+  /** That model's paint has arrived, or will not: nothing more to wait for. */
+  ready: (car: BoardCarId) => boolean;
+};
+
+/** How long a car waits out of sight for its paint on a slow connection (ms). */
+const CAR_PATIENCE = 8000;
 
 /**
  * A school's paint for each of these car models (`models`: their ids, joined
@@ -788,7 +795,11 @@ function useSchoolWraps(
   tier: BoardTier,
 ): SchoolWraps {
   const held = React.useRef(new Map<string, THREE.Texture>());
-  const [wraps, setWraps] = React.useState<SchoolWraps>({ of: () => null });
+  const failed = React.useRef(new Set<string>());
+  const [wraps, setWraps] = React.useState<SchoolWraps>({
+    of: () => null,
+    ready: () => false,
+  });
   React.useEffect(() => {
     const small = tier === "low";
     const urls = new Map<BoardCarId, string>();
@@ -801,6 +812,10 @@ function useSchoolWraps(
     const tell = () =>
       setWraps({
         of: (car) => held.current.get(urls.get(car) ?? "") ?? null,
+        ready: (car) => {
+          const url = urls.get(car);
+          return !url || held.current.has(url) || failed.current.has(url);
+        },
       });
     // Pictures no car here wears now: freed once the cars have let go.
     const wanted = new Set(urls.values());
@@ -821,6 +836,8 @@ function useSchoolWraps(
         })
         .catch(() => {
           // That model wears the school's plain body colour.
+          failed.current.add(url);
+          if (alive) tell();
         });
     }
     return () => {
@@ -1095,8 +1112,11 @@ function Scene({
   models,
   shadow,
   onSlow,
+  pending,
 }: BoardTableProps & {
   models: CarSources;
+  /** The car models still on their way: those cars wait out of sight. */
+  pending?: ReadonlySet<BoardCarId>;
   /** The shadow picture's size, or 0 for none: the ladder's say. */
   shadow: number;
   /** The drive has been running slowly: go down a step. */
@@ -1189,9 +1209,11 @@ function Scene({
     };
   }, [gl, scene, tier, invalidate]);
 
-  // The board's top is painted from its drawing, then the learner may start.
+  // The board's top is painted from its drawing. The learner may start once
+  // the cars are ready as well (`carsShown`, further down).
   const ready = React.useRef(onReady);
   ready.current = onReady;
+  const [boardDone, setBoardDone] = React.useState(false);
   React.useEffect(() => {
     let alive = true;
     let painted: THREE.CanvasTexture | null = null;
@@ -1199,7 +1221,7 @@ function Scene({
     const done = () => {
       if (!alive) return;
       invalidate();
-      ready.current?.();
+      setBoardDone(true);
     };
     const sharpest = gl.capabilities.getMaxAnisotropy();
 
@@ -1269,12 +1291,16 @@ function Scene({
   // the paint it has until the next school's has arrived, so it never shows
   // plain between the two.
   const [wrap, setWrap] = React.useState<THREE.Texture | null>(null);
+  // The first paint has arrived, or will not: until then the car is not
+  // shown, so it is never seen plain and then painted (owner, 2026-11-22).
+  const [wrapKnown, setWrapKnown] = React.useState(false);
   const worn = React.useRef<THREE.Texture | null>(null);
   React.useEffect(() => {
     const put = (texture: THREE.Texture | null) => {
       const before = worn.current;
       worn.current = texture;
       setWrap(texture);
+      setWrapKnown(wrapUrl !== null);
       // Freed once the car has taken the new one.
       if (before) window.setTimeout(() => before.dispose(), 400);
     };
@@ -1316,7 +1342,8 @@ function Scene({
   React.useEffect(() => () => dispose(player), [player]);
   // The school's paint goes on the car already on the table, never by
   // building a new one: a new car would reset what the camera is doing.
-  React.useEffect(() => {
+  // Before the next picture is drawn, so a new car is never seen without it.
+  React.useLayoutEffect(() => {
     if (!livery) return;
     if (wearWrap(player, wrap, livery.base)) sponsorShown(sponsor, "car");
     invalidate();
@@ -1345,12 +1372,14 @@ function Scene({
   // ready: its shape and its picture change together.
   type RoofBoard = { spec: TopBoard; art: THREE.Texture };
   const [roofBoard, setRoofBoard] = React.useState<RoofBoard | null>(null);
+  const [roofKnown, setRoofKnown] = React.useState(false);
   const roofWorn = React.useRef<RoofBoard | null>(null);
   React.useEffect(() => {
     const put = (next: RoofBoard | null) => {
       const before = roofWorn.current;
       roofWorn.current = next;
       setRoofBoard(next);
+      setRoofKnown(topBoard !== null);
       if (before) window.setTimeout(() => before.art.dispose(), 400);
     };
     if (!topBoard) {
@@ -1378,7 +1407,7 @@ function Scene({
     },
     [],
   );
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     if (!roofBoard || !livery) return;
     wearTopBoard(player, roofBoard.spec, roofBoard.art, tier === "low");
     invalidate();
@@ -1466,11 +1495,38 @@ function Scene({
     [extras],
   );
 
+  // A car is shown once everything it wears has arrived (or will not): its
+  // own model, the school's paint and the roof board. Never plain first and
+  // painted a second later (owner, 2026-11-22). The loader stays up for the
+  // first of it; a slow connection is waited for only so long.
+  const roofReady = !topBoard || roofKnown;
+  const playerReady = (!wrapUrl || wrapKnown) && roofReady;
+  const lineReady = (car: BoardCarId) =>
+    !lineLivery || (!pending?.has(car) && lineWraps.ready(car) && roofReady);
+  const allReady =
+    playerReady &&
+    (!lineModels || (lineModels.split(",") as BoardCarId[]).every(lineReady));
+  const [late, setLate] = React.useState(false);
+  React.useEffect(() => {
+    if (allReady) {
+      setLate(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setLate(true), CAR_PATIENCE);
+    return () => window.clearTimeout(timer);
+  }, [allReady]);
+  const carsShown = allReady || late;
+  React.useEffect(() => {
+    if (boardDone && carsShown) ready.current?.();
+  }, [boardDone, carsShown]);
+
   // The school's paint and roof board on the line-up's cars: the ones standing
   // while another is driven, and all of them while none is.
-  React.useEffect(() => {
-    if (!lineLivery) return;
+  React.useLayoutEffect(() => {
     const dress = (holder: THREE.Object3D, car: BoardCarId) => {
+      holder.userData.waiting = !(late || lineReady(car));
+      holder.visible = !holder.userData.waiting;
+      if (!lineLivery) return;
       wearWrap(holder, lineWraps.of(car), lineLivery.base);
       wearTopBoard(
         holder,
@@ -1491,10 +1547,15 @@ function Scene({
       if (extra.school && holder) dress(holder, extra.car);
     });
     invalidate();
+    // `lineReady` is made of the values listed here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     lineLivery,
     lineWraps,
     roofBoard,
+    roofReady,
+    pending,
+    late,
     others,
     extras,
     challenge,
@@ -1666,7 +1727,7 @@ function Scene({
       car.speed = 0;
       car.steer = 0;
     }
-    player.visible = !learning || route !== null;
+    player.visible = (playerReady || late) && (!learning || route !== null);
     // In a parking task the parked cars are solid and drawn with the task's
     // own cars, so the ones that only dress the board step aside.
     parked.visible = !(
@@ -1990,8 +2051,10 @@ function Scene({
     others.forEach((other, i) => {
       if (!challenge?.otherCars[i]?.school) return;
       other.visible =
-        !clear ||
-        Math.hypot(other.position.x - car.x, other.position.z - car.z) > clear;
+        !other.userData.waiting &&
+        (!clear ||
+          Math.hypot(other.position.x - car.x, other.position.z - car.z) >
+            clear);
     });
 
     // The sun's shadows are spent on the part of the board in view: closed in
@@ -2209,6 +2272,8 @@ function SceneWithCars(props: SceneProps) {
   const [others, setOthers] = React.useState<
     Partial<Record<BoardCarId, THREE.Object3D>>
   >({});
+  // The models that could not be had: nothing more to wait for.
+  const [lost, setLost] = React.useState<readonly BoardCarId[]>([]);
   React.useEffect(() => {
     let alive = true;
     const loader = new SturdyGLTFLoader();
@@ -2222,6 +2287,7 @@ function SceneWithCars(props: SceneProps) {
         })
         .catch(() => {
           // That car keeps wearing the driven car's shape.
+          if (alive) setLost((had) => [...had, entry.id]);
         });
     }
     return () => {
@@ -2238,7 +2304,19 @@ function SceneWithCars(props: SceneProps) {
     }
     return byId;
   }, [driven, others, drivenUrl]);
-  return <Scene {...props} models={models} />;
+  const pending = React.useMemo(
+    () =>
+      new Set(
+        BOARD_CARS.filter(
+          (entry) =>
+            entry.src !== drivenUrl &&
+            !others[entry.id] &&
+            !lost.includes(entry.id),
+        ).map((entry) => entry.id),
+      ),
+    [others, lost, drivenUrl],
+  );
+  return <Scene {...props} models={models} pending={pending} />;
 }
 
 const srcOf = (id: BoardCarId) =>
