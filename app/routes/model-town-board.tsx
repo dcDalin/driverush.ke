@@ -29,6 +29,10 @@ import {
 import { BoardLevels } from "~/components/board/board-levels";
 import { useBoardPage } from "~/components/board/use-board-page";
 import { BoardPicture } from "~/components/board/board-picture";
+import {
+  BoardSchools,
+  boardSchoolNames,
+} from "~/components/board/sponsor-credit";
 import { GuideFold } from "~/components/brand/guide-fold";
 import { GuideLayout } from "~/components/brand/guide-layout";
 import { MDX } from "~/components/brand/mdx-components";
@@ -116,7 +120,8 @@ export default function ModelTownBoard() {
           It has a dual carriageway with four lanes each way, a roundabout, a
           three-lane road, a two-way road, a street, and a parking zone. Lane 1
           is always the lane by the kerb.{" "}
-          <MDX.a href={`${BOARD_PATH}/diagram`}>See the labelled diagram</MDX.a>.
+          <MDX.a href={`${BOARD_PATH}/diagram`}>See the labelled diagram</MDX.a>
+          .
         </MDX.p>
         <MDX.p>
           Test yourself with{" "}
@@ -141,6 +146,16 @@ export default function ModelTownBoard() {
           part="whole"
           alt="Diagram of the Model Town Board: the dual carriageway, roundabout, three-lane road, two-way road, street and parking zone, numbered to the list below."
         />
+      </section>
+      <section aria-labelledby="board-schools">
+        <MDX.h2 id="board-schools">The cars on the board</MDX.h2>
+        <MDX.p>
+          Every learner car on the board wears the real colours of a Kenyan
+          driving school, a different one with each new task:{" "}
+          {boardSchoolNames()}. They sponsor the board, which keeps it free with
+          no ads. Tap a logo to visit a school&apos;s site.
+        </MDX.p>
+        <BoardSchools place="board_page" onInk={false} className="my-5" />
       </section>
       <GuideFold
         id="guide"
