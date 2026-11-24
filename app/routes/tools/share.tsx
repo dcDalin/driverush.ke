@@ -119,10 +119,10 @@ export default function ShareBuilder() {
 
   return (
     <div>
-      <header className="border-b-2 border-ink pb-6">
+      <header className="border-b border-line pb-6">
         <span className="eyebrow text-ink">Internal · campaigns</span>
-        <h1 className="m-0 mt-3 font-display text-[clamp(32px,5vw,52px)] font-extrabold uppercase leading-[0.95] tracking-tighter">
-          Share <span className="italic text-rush">builder</span>
+        <h1 className="m-0 mt-3 font-display text-[clamp(32px,5vw,52px)] font-semibold leading-[0.95] tracking-tighter">
+          Share <span className="text-rush">builder</span>
         </h1>
         <p className="mt-4 max-w-2xl font-serif text-[clamp(16px,2vw,20px)] leading-tight text-ink-2">
           Tag a DriveRush link with UTMs before posting it anywhere — socials,
@@ -234,12 +234,12 @@ export default function ShareBuilder() {
         </section>
 
         {/* Preview */}
-        <section className="grid gap-4 self-start border-2 border-ink bg-surface p-6 shadow-stamp lg:sticky lg:top-6">
+        <section className="grid gap-4 self-start border border-line bg-surface p-6 shadow-stamp lg:sticky lg:top-6 rounded-lg">
           <div className="flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
             <Icon icon={LinkIcon} size={13} />
             Tagged link
           </div>
-          <div className="break-all border-2 border-dashed border-ink bg-paper-3 p-4 font-mono text-[12.5px] leading-relaxed text-ink">
+          <div className="break-all border border-line bg-paper-3 p-4 font-mono text-[12.5px] leading-relaxed text-ink rounded-lg">
             {ready ? tagged : "Fill in URL, source, and medium to preview…"}
           </div>
           <div className="flex flex-wrap gap-2.5">

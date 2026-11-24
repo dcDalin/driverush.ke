@@ -39,7 +39,7 @@ export function TabBar() {
       />
       <nav
         aria-label="Main"
-        className="fixed inset-x-0 bottom-0 z-30 border-t-2 border-ink bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
       >
         <ul className="m-0 grid list-none grid-cols-4 p-0">
           {SITE_TABS.map((tab) => {
@@ -53,7 +53,7 @@ export function TabBar() {
                     analytics.navTabClicked({ tab: tab.id, from: pathname })
                   }
                   className={cn(
-                    "relative flex h-[3.75rem] flex-col items-center justify-center gap-1 font-mono text-[10px] font-bold uppercase tracking-widest outline-none transition-colors focus-visible:bg-paper-2",
+                    "relative flex h-[3.75rem] flex-col items-center justify-center gap-1 text-[11px] font-medium outline-none transition-colors focus-visible:bg-paper-2",
                     on
                       ? "text-ink before:absolute before:inset-x-3 before:-top-0.5 before:h-[3px] before:bg-rush"
                       : "text-ink-3 hover:text-ink",

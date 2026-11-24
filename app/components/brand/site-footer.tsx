@@ -26,7 +26,7 @@ const Container = ({ children }: { children: React.ReactNode }) => (
 
 export function SiteFooter() {
   return (
-    <footer className="border-t-4 border-double border-ink bg-ink py-12 text-paper">
+    <footer className="border-t border-line bg-ink py-12 text-paper">
       <Container>
         <div className="grid gap-6 border-b border-paper/20 pb-7 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr_1fr]">
           <div className="sm:col-span-2 lg:col-span-1">
@@ -36,7 +36,7 @@ export function SiteFooter() {
               the NTSA test.
             </p>
 
-            <h3 className="m-0 mb-3 mt-6 font-display text-xs font-extrabold uppercase tracking-widest">
+            <h3 className="m-0 mb-3 mt-6 font-display text-xs font-bold uppercase tracking-widest">
               Contact
             </h3>
             <ul className="m-0 list-none p-0">
@@ -117,10 +117,10 @@ export function SiteFooter() {
 
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-paper/20 py-5">
           <SignCredit size="sm" onInk />
-          <span className="font-mono text-[10.5px] uppercase tracking-widest opacity-70">
+          <span className="font-sans text-[10.5px] uppercase tracking-wider opacity-70 font-medium">
             {SIGN_BRAND.name} name and logo used with permission
           </span>
-          <span className="font-mono text-[10.5px] uppercase tracking-widest opacity-70">
+          <span className="font-sans text-[10.5px] uppercase tracking-wider opacity-70 font-medium">
             Based on the{" "}
             <a
               href={SIGN_SOURCE.href}
@@ -137,7 +137,7 @@ export function SiteFooter() {
               {SIGN_SOURCE.name}
             </a>
           </span>
-          <span className="font-mono text-[10.5px] uppercase tracking-widest opacity-70">
+          <span className="font-sans text-[10.5px] uppercase tracking-wider opacity-70 font-medium">
             Not affiliated with the NTSA
           </span>
         </div>
@@ -148,7 +148,7 @@ export function SiteFooter() {
             tone="on-dark"
             utmMedium="home_footer"
           />
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 font-mono text-[11px] uppercase tracking-widest opacity-60">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 font-sans text-[11px] uppercase tracking-wider opacity-60 font-medium">
             <span>© 2026 DriveRush.ke</span>
             <span aria-hidden>·</span>
             <span>Learn · Drive · Succeed</span>
@@ -170,7 +170,7 @@ function FooterCol({
 }) {
   return (
     <div>
-      <h3 className="m-0 mb-3 font-display text-xs font-extrabold uppercase tracking-widest">
+      <h3 className="m-0 mb-3 font-display text-xs font-bold uppercase tracking-widest">
         {heading}
       </h3>
       <ul className="m-0 list-none p-0">

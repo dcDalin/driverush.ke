@@ -291,7 +291,7 @@ function CameraStage({
             })}
           />
           <div
-            className="pointer-events-none absolute border-2 border-white/65"
+            className="pointer-events-none absolute border border-white/65"
             style={{
               left: rect.left,
               top: rect.top,
@@ -337,7 +337,7 @@ function ClassicStage({
   return (
     <div
       className={cn(
-        "relative w-full overflow-hidden border-2 border-ink bg-ink",
+        "relative w-full overflow-hidden border border-line bg-ink rounded-lg",
         aspectClassName,
         className,
       )}
@@ -383,7 +383,7 @@ function ClassicStage({
                 })}
               />
               <div
-                className="pointer-events-none absolute border-2 border-white/70"
+                className="pointer-events-none absolute border border-white/70"
                 style={{
                   left: `${region.x}%`,
                   top: `${region.y}%`,

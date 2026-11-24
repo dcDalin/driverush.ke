@@ -29,7 +29,7 @@ export function SignTrainerList({
   const streak = usePracticeStreak();
   return (
     <div className={className}>
-      <ul className="m-0 grid list-none border border-ink/25 bg-surface p-0">
+      <ul className="m-0 grid list-none border border-ink/25 bg-surface p-0 rounded-lg">
         {SIGN_GAMES.map((game, index) => {
           const saved = progress?.[game.slug] ?? {};
           const counts = signCounts(saved, Object.keys(saved));
@@ -55,7 +55,7 @@ export function SignTrainerList({
                 </span>
               )}
               <span className="min-w-0 flex-1">
-                <span className="block font-display text-[15px] font-extrabold uppercase leading-tight tracking-tight">
+                <span className="block font-display text-[15px] font-bold leading-tight tracking-tight">
                   {game.title}
                 </span>
                 <span className="mt-0.5 block text-[13.5px] leading-snug text-ink-2">
@@ -106,7 +106,7 @@ export function SignTrainerList({
       </ul>
       {/* Only for returning learners, so a first visit stays all action. */}
       {streak && streak.days > 0 && (
-        <p className="m-0 mt-2.5 font-mono text-[11px] font-bold uppercase tracking-widest text-ink-2">
+        <p className="m-0 mt-2.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-ink-2">
           {streak.days} day{streak.days === 1 ? "" : "s"} in a row
           {!streak.practisedToday && (
             <span className="font-normal text-ink-3">

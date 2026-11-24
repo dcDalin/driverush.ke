@@ -50,7 +50,7 @@ export function TrainerReadyPanel({
   const started = counts.known + counts.learning > 0;
 
   return (
-    <div className="grid gap-3 border-2 border-t-0 border-ink bg-surface p-4">
+    <div className="grid gap-3 border border-t-0 border-line bg-surface p-4 rounded-lg">
       <Button
         variant="rush"
         size="lg"
@@ -90,7 +90,7 @@ export function TrainerReadyPanel({
         <div className="min-w-0 flex-1">
           {selfGrading && (
             <>
-              <p className="m-0 mb-1.5 font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+              <p className="m-0 mb-1.5 font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
                 {started
                   ? `${counts.known} known · ${counts.learning} learning · ${counts.due} due`
                   : "Weakest signs come first"}

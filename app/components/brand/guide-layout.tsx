@@ -64,8 +64,8 @@ export function GuideLayout({
             doing something starts straight away. */}
         {byline && <Rail />}
         <div className="mx-auto w-full max-w-3xl px-5 pb-20 pt-6 sm:px-9 sm:pt-10">
-          <header className="border-b-2 border-ink pb-7">
-            <p className="m-0 flex flex-wrap justify-between gap-x-4 gap-y-1 font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+          <header className="border-b border-line pb-7">
+            <p className="m-0 flex flex-wrap justify-between gap-x-4 gap-y-1 font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
               <span>{kicker}</span>
               {byline && (
                 <span>
@@ -77,7 +77,7 @@ export function GuideLayout({
                 </span>
               )}
             </p>
-            <h1 className="m-0 mt-4 font-display text-[clamp(34px,6.4vw,64px)] font-extrabold uppercase leading-[0.94] tracking-tighter [&_em]:font-serif [&_em]:font-normal [&_em]:normal-case [&_em]:italic [&_em]:text-rush">
+            <h1 className="m-0 mt-4 font-display text-[clamp(34px,6.4vw,64px)] font-semibold leading-[0.94] tracking-tighter [&_em]:font-serif [&_em]:font-normal [&_em]:normal-case [&_em]:text-rush">
               {title}
             </h1>
             <div className="mt-4 sm:grid sm:grid-cols-[1fr_minmax(0,240px)] sm:items-end sm:gap-6">

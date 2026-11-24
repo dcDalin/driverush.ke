@@ -26,7 +26,7 @@ function Progress({
       data-slot="progress"
       value={pct}
       className={cn(
-        "relative h-[22px] w-full overflow-hidden border-2 border-ink bg-paper-3",
+        "relative h-2.5 w-full overflow-hidden rounded-full bg-paper-2",
         className,
       )}
       {...props}
@@ -34,9 +34,9 @@ function Progress({
       <ProgressPrimitive.Indicator
         data-slot="progress-indicator"
         className={cn(
-          "h-full transition-[width] duration-300 ease-snap",
+          "h-full rounded-full transition-[width] duration-300 ease-snap",
           tone === "rush"
-            ? "bg-[repeating-linear-gradient(45deg,var(--rush)_0_8px,var(--rush-deep)_8px_16px)]"
+            ? "bg-rush"
             : "bg-kenya-green",
           indicatorClassName,
         )}
@@ -44,9 +44,9 @@ function Progress({
       />
       {showTicks && (
         <>
-          <span className="pointer-events-none absolute inset-y-0 left-1/4 w-px bg-ink/40" />
-          <span className="pointer-events-none absolute inset-y-0 left-1/2 w-px bg-ink/40" />
-          <span className="pointer-events-none absolute inset-y-0 left-3/4 w-px bg-ink/40" />
+          <span className="pointer-events-none absolute inset-y-0 left-1/4 w-0.5 bg-surface" />
+          <span className="pointer-events-none absolute inset-y-0 left-1/2 w-0.5 bg-surface" />
+          <span className="pointer-events-none absolute inset-y-0 left-3/4 w-0.5 bg-surface" />
         </>
       )}
     </ProgressPrimitive.Root>
@@ -63,7 +63,7 @@ function ProgressIndeterminate({
       role="progressbar"
       aria-busy
       className={cn(
-        "relative h-4 w-full overflow-hidden border-2 border-ink bg-paper-3",
+        "relative h-2.5 w-full overflow-hidden rounded-full bg-paper-2",
         className,
       )}
       {...props}
@@ -71,7 +71,7 @@ function ProgressIndeterminate({
       <div
         className={cn(
           "h-full w-full",
-          "bg-[repeating-linear-gradient(45deg,var(--ink)_0_8px,var(--ink-3)_8px_16px)]",
+          "bg-[repeating-linear-gradient(90deg,transparent_0_25%,var(--rush)_25%_50%,transparent_50%_100%)] bg-[length:200%_100%]",
           "animate-[dr-stripe-move_1.4s_linear_infinite]",
         )}
       />

@@ -28,9 +28,9 @@ type BlogPostLayoutProps = {
 /** Keeps the trainers one click away, even for readers who never reach the end. */
 function TryItNowPanel() {
   return (
-    <aside className="mt-6 flex flex-wrap items-center justify-between gap-3 border-2 border-ink bg-paper-2 px-4 py-3 sm:px-5">
+    <aside className="mt-6 flex flex-wrap items-center justify-between gap-3 border border-line bg-paper-2 px-4 py-3 sm:px-5 rounded-lg">
       <div>
-        <p className="m-0 font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+        <p className="m-0 font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
           Try it now
         </p>
         <p className="m-0 mt-0.5 text-[14px] leading-snug text-ink">
@@ -68,27 +68,27 @@ export function BlogPostLayout({
           <div className="mb-6 flex items-center justify-between gap-3">
             <Link
               to="/blogs"
-              className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-ink-3 outline-none hover:text-ink focus-visible:text-ink"
+              className="inline-flex items-center gap-2 font-sans text-[11px] uppercase tracking-wider text-ink-3 outline-none hover:text-ink focus-visible:text-ink font-medium"
             >
               <Icon icon={ArrowLeftIcon} size={14} />
               All posts
             </Link>
-            <span className="font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+            <span className="font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
               Blog · {post.category}
             </span>
           </div>
 
-          <header className="border-b-2 border-ink pb-8">
-            <div className="flex items-baseline justify-between border-b border-dashed border-ink pb-2.5 font-mono text-[11px] uppercase tracking-widest text-ink-3">
+          <header className="border-b border-line pb-8">
+            <div className="flex items-baseline justify-between border-b border-line pb-2.5 font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
               <span>{post.kicker ?? `${post.category} · ${post.tone}`}</span>
               <time dateTime={post.date}>{formatDate(post.date)}</time>
             </div>
 
             <h1
               className={cn(
-                "m-0 mt-6 font-display font-extrabold uppercase leading-[0.92] tracking-tight text-ink",
+                "m-0 mt-6 font-display font-bold uppercase leading-[0.92] tracking-tight text-ink",
                 "text-[clamp(36px,7vw,72px)]",
-                "[&_em]:font-serif [&_em]:font-normal [&_em]:normal-case [&_em]:italic [&_em]:text-rush",
+                "[&_em]:font-serif [&_em]:font-normal [&_em]:normal-case [&_em]:text-rush",
               )}
             >
               {post.title}
@@ -102,7 +102,7 @@ export function BlogPostLayout({
                 decided the piece is worth passing on. Posts share their own
                 canonical URL, not a /s hop, so the link equity stays here. */}
             <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-2 font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+              <div className="flex flex-wrap items-center gap-2 font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
                 <span>{post.readingMinutes} min read</span>
                 <span aria-hidden>·</span>
                 <span>
@@ -146,13 +146,13 @@ export function BlogPostLayout({
           </article>
 
           {/* CTA tail — keep nudging readers toward the live product. */}
-          <section className="border-t-2 border-ink bg-paper-2 px-5 py-8 sm:px-7">
-            <p className="m-0 mb-4 font-mono text-[11px] uppercase tracking-widest text-ink-3">
+          <section className="border-t border-line bg-paper-2 px-5 py-8 sm:px-7">
+            <p className="m-0 mb-4 font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
               Stop reading. Practise the signs.
             </p>
-            <h2 className="m-0 mb-5 font-display text-2xl font-extrabold uppercase leading-[0.98] tracking-tight text-ink sm:text-3xl">
+            <h2 className="m-0 mb-5 font-display text-2xl font-semibold leading-[0.98] tracking-tight text-ink sm:text-3xl">
               The fastest way to remember Kenyan road signs is{" "}
-              <em className="font-serif font-normal normal-case italic text-rush">
+              <em className="font-serif font-normal normal-case text-rush">
                 to play with them
               </em>
               .
@@ -187,13 +187,13 @@ export function BlogPostLayout({
 
           {related.length > 0 && (
             <section className="mt-14">
-              <div className="mb-5 flex items-baseline justify-between border-b-2 border-ink pb-3">
-                <h2 className="m-0 font-display text-xl font-extrabold uppercase tracking-tight text-ink sm:text-2xl">
+              <div className="mb-5 flex items-baseline justify-between border-b border-line pb-3">
+                <h2 className="m-0 font-display text-xl font-semibold tracking-tight text-ink sm:text-2xl">
                   Keep reading
                 </h2>
                 <Link
                   to="/blogs"
-                  className="font-mono text-[11px] uppercase tracking-widest text-rush hover:underline"
+                  className="font-sans text-[11px] uppercase tracking-wider text-rush hover:underline font-medium"
                 >
                   All posts →
                 </Link>

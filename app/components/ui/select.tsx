@@ -31,14 +31,14 @@ function SelectTrigger({
       data-slot="select-trigger"
       data-size={size}
       className={cn(
-        "flex w-full min-w-0 items-center justify-between gap-2 border-2 border-ink bg-surface px-3.5 text-[14.5px] font-medium text-ink",
+        "flex w-full min-w-0 items-center justify-between gap-2 border border-input bg-surface px-3.5 text-[14.5px] font-medium text-ink rounded-lg",
         "data-[size=default]:h-11 data-[size=sm]:h-9 data-[size=sm]:text-[13px]",
-        "shadow-[4px_4px_0_var(--line-soft)] outline-none transition-[transform,box-shadow] duration-100 ease-snap",
+        "shadow-xs outline-none transition-[border-color,box-shadow] duration-150 ease-snap",
         "data-[placeholder]:text-ink-4 data-[placeholder]:font-normal",
-        "focus-visible:-translate-x-px focus-visible:-translate-y-px focus-visible:shadow-stamp-rush",
-        "data-[state=open]:-translate-x-px data-[state=open]:-translate-y-px data-[state=open]:shadow-stamp-rush",
+        "focus-visible:border-rush focus-visible:ring-4 focus-visible:ring-rush/15",
+        "data-[state=open]:border-rush data-[state=open]:ring-4 data-[state=open]:ring-rush/15",
         "disabled:pointer-events-none disabled:opacity-50",
-        "aria-invalid:bg-[color-mix(in_oklab,var(--rush)_6%,var(--surface))] aria-invalid:shadow-stamp-rush aria-invalid:border-rush",
+        "aria-invalid:bg-[color-mix(in_oklab,var(--rush)_6%,var(--surface))] aria-invalid:border-rush aria-invalid:ring-4 aria-invalid:ring-rush/15",
         "*:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:text-left",
         "[&_svg]:pointer-events-none [&_svg]:shrink-0",
         className,
@@ -105,7 +105,7 @@ function SelectContent({
         data-slot="select-content"
         position={position}
         className={cn(
-          "relative z-50 max-h-[var(--radix-select-content-available-height)] min-w-[8rem] overflow-hidden border-2 border-ink bg-surface text-foreground shadow-stamp",
+          "relative z-50 max-h-[var(--radix-select-content-available-height)] min-w-[8rem] overflow-hidden border border-line bg-surface text-foreground shadow-lg rounded-lg p-1",
           "data-[state=open]:animate-in data-[state=closed]:animate-out",
           "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
           "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
@@ -139,7 +139,7 @@ function SelectLabel({
     <SelectPrimitive.Label
       data-slot="select-label"
       className={cn(
-        "px-3 pb-1 pt-2 font-mono text-[10px] uppercase tracking-widest text-ink-3",
+        "px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-ink-3",
         className,
       )}
       {...props}
@@ -158,7 +158,7 @@ function SelectItem({
       className={cn(
         "relative flex w-full cursor-pointer select-none items-center gap-2 py-2 pl-8 pr-3",
         "text-[14px] font-medium text-ink outline-none",
-        "data-[highlighted]:bg-paper-3 data-[state=checked]:font-bold",
+        "rounded-md data-[highlighted]:bg-paper-2 data-[state=checked]:font-semibold",
         "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
         "[&_svg]:pointer-events-none [&_svg]:shrink-0",
         className,
@@ -182,7 +182,7 @@ function SelectSeparator({
   return (
     <SelectPrimitive.Separator
       data-slot="select-separator"
-      className={cn("my-1 h-px bg-ink", className)}
+      className={cn("my-1 h-px bg-line", className)}
       {...props}
     />
   );

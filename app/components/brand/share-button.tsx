@@ -247,7 +247,7 @@ export function ShareButton({
                     </>
                   )}
                 </p>
-                <p className="m-0 mt-1.5 font-mono text-[11px] uppercase tracking-widest text-ink-3">
+                <p className="m-0 mt-1.5 font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
                   Or send the link
                 </p>
               </div>
@@ -271,7 +271,7 @@ export function ShareButton({
                   }}
                   className={cn(
                     "inline-flex items-center gap-2.5 rounded-soft border border-ink/25 bg-surface px-4 py-3",
-                    "font-display text-[13px] font-bold uppercase tracking-wide text-ink",
+                    "font-display text-[13px] font-bold tracking-tight text-ink",
                     "outline-none transition-colors hover:border-ink/60 hover:bg-paper-2",
                     "focus-visible:border-ink/60 focus-visible:bg-paper-2 active:translate-y-px",
                   )}

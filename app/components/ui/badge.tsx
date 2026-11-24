@@ -6,16 +6,16 @@ import { cn } from "~/lib/utils";
 
 const badgeVariants = cva(
   [
-    "inline-flex items-center gap-1.5 border-2 border-ink",
-    "font-mono text-[10.5px] font-bold uppercase leading-none tracking-widest",
+    "inline-flex items-center gap-1.5 border border-transparent rounded-full",
+    "text-[12px] font-medium leading-none",
     "px-2 py-1 select-none whitespace-nowrap",
     "[&_svg]:size-3 [&_svg]:shrink-0",
   ].join(" "),
   {
     variants: {
       variant: {
-        default: "bg-surface text-ink",
-        rush: "bg-rush text-white",
+        default: "border-line bg-surface text-ink",
+        rush: "bg-rush text-primary-foreground",
         ink: "bg-ink text-paper",
         amber: "bg-amber text-amber-foreground",
         green: "bg-kenya-green text-kenya-green-foreground",
@@ -23,7 +23,7 @@ const badgeVariants = cva(
         magenta: "bg-magenta text-magenta-foreground",
         blue: "bg-plate-blue text-plate-blue-foreground",
         cream: "bg-cream text-cream-foreground",
-        outline: "bg-transparent text-ink",
+        outline: "border-line bg-transparent text-ink",
       },
     },
     defaultVariants: {

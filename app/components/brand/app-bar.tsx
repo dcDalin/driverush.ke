@@ -43,7 +43,7 @@ function AppBar({
       data-slot="app-bar"
       className={cn(
         // Clear of a notch when the page runs under it (`viewport-fit=cover`).
-        "sticky top-0 z-40 w-full border-b-2 border-ink bg-surface pt-[env(safe-area-inset-top)]",
+        "sticky top-0 z-40 w-full border-b border-line bg-surface pt-[env(safe-area-inset-top)]",
         className,
       )}
       {...props}
@@ -87,15 +87,15 @@ function AppBarLink({
       data-active={active || undefined}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "relative inline-flex items-center border-2 border-transparent px-3 py-2",
-        "font-display text-[11px] font-bold uppercase tracking-wider text-ink-2",
+        "relative inline-flex items-center border border-transparent px-3 py-2 rounded-lg",
+        "text-[14px] font-medium text-ink-2",
         "outline-none transition-colors duration-100 ease-snap",
-        "hover:text-ink focus-visible:border-ink focus-visible:bg-paper-3 focus-visible:text-ink",
+        "hover:bg-paper-2 hover:text-ink focus-visible:border-line focus-visible:bg-paper-2 focus-visible:text-ink",
         // Active rail: bottom-edge bar in rush red, inset to the text padding
         // (`inset-x-3`) and dropped 2px below the link so it meets the
-        // AppBar's own `border-b-2 border-ink` flush.
+        // AppBar's own `border-b border-line` flush.
         active &&
-          "text-ink after:pointer-events-none after:absolute after:inset-x-3 after:-bottom-[10px] after:h-[3px] after:bg-rush",
+          "text-ink after:pointer-events-none after:absolute after:inset-x-3 after:-bottom-[10px] after:h-[2px] after:rounded-full after:bg-rush",
         className,
       )}
       {...props}

@@ -43,27 +43,27 @@ function ToolNav({ onNavigate }: { onNavigate?: () => void }) {
         onClick={onNavigate}
         data-active={pathname === "/tools" || undefined}
         className={cn(
-          "flex items-center gap-2.5 border-2 border-transparent px-3 py-2",
-          "font-mono text-[11px] uppercase tracking-widest text-ink-3",
+          "flex items-center gap-2.5 border border-transparent px-3 py-2 rounded-lg",
+          "font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium",
           "outline-none transition-colors duration-100 ease-snap",
-          "hover:text-ink focus-visible:border-ink focus-visible:bg-paper-3 focus-visible:text-ink",
+          "hover:text-ink focus-visible:border-line focus-visible:bg-paper-3 focus-visible:text-ink",
           "data-[active]:bg-ink data-[active]:text-paper data-[active]:hover:text-paper",
         )}
       >
         All tools
       </Link>
 
-      <div className="my-2 border-t border-dashed border-ink" />
+      <div className="my-2 border-t border-line" />
 
       {TOOLS.map((tool) => {
         const active = pathname === tool.path;
         const soon = tool.status === "soon";
         const className = cn(
-          "group/tool flex items-start gap-2.5 border-2 border-transparent px-3 py-2.5",
+          "group/tool flex items-start gap-2.5 border border-transparent px-3 py-2.5 rounded-lg",
           "outline-none transition-colors duration-100 ease-snap",
           soon
             ? "cursor-not-allowed text-ink-4"
-            : "text-ink-2 hover:text-ink focus-visible:border-ink focus-visible:bg-paper-3 focus-visible:text-ink",
+            : "text-ink-2 hover:text-ink focus-visible:border-line focus-visible:bg-paper-3 focus-visible:text-ink",
           active && "bg-ink text-paper hover:text-paper",
         );
         const inner = (
@@ -74,10 +74,10 @@ function ToolNav({ onNavigate }: { onNavigate?: () => void }) {
               className="mt-px shrink-0"
             />
             <span className="min-w-0">
-              <span className="flex items-center gap-1.5 font-display text-[12.5px] font-extrabold uppercase tracking-wide">
+              <span className="flex items-center gap-1.5 font-display text-[12.5px] font-bold uppercase tracking-wide">
                 {tool.title}
                 {soon && (
-                  <span className="border border-current px-1 py-px font-mono text-[8.5px] font-bold uppercase tracking-widest">
+                  <span className="border border-current px-1 py-px font-sans text-[8.5px] font-semibold uppercase tracking-wider rounded-lg">
                     Soon
                   </span>
                 )}
@@ -102,14 +102,14 @@ function ToolNav({ onNavigate }: { onNavigate?: () => void }) {
         );
       })}
 
-      <div className="my-2 border-t border-dashed border-ink" />
+      <div className="my-2 border-t border-line" />
 
       <Link
         to="/"
         onClick={onNavigate}
         className={cn(
           "flex items-center gap-2 px-3 py-2",
-          "font-mono text-[10.5px] uppercase tracking-widest text-ink-3",
+          "font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium",
           "outline-none transition-colors duration-100 hover:text-ink focus-visible:text-ink",
         )}
       >
@@ -127,16 +127,16 @@ function SidebarHeader() {
   return (
     <Link
       to="/tools"
-      className="flex items-center gap-2.5 border-b-2 border-ink bg-ink px-4 py-3.5 text-paper outline-none"
+      className="flex items-center gap-2.5 border-b border-line bg-ink px-4 py-3.5 text-paper outline-none"
     >
-      <span className="flex size-7 items-center justify-center border-2 border-paper bg-paper text-ink">
+      <span className="flex size-7 items-center justify-center border border-paper bg-paper text-ink rounded-md">
         <Icon icon={CropIcon} size={15} />
       </span>
       <span className="leading-none">
-        <span className="block font-display text-[13px] font-extrabold uppercase tracking-wide">
+        <span className="block font-display text-[13px] font-bold tracking-tight">
           DriveRush
         </span>
-        <span className="mt-0.5 block font-mono text-[9px] uppercase tracking-[0.2em] text-ink-200">
+        <span className="mt-0.5 block font-sans text-[9px] uppercase tracking-[0.2em] text-ink-200 font-medium">
           Tools · internal
         </span>
       </span>
@@ -150,7 +150,7 @@ export default function ToolsLayout() {
   return (
     <div className="min-h-screen bg-paper-2 text-ink md:flex">
       {/* Desktop sidebar */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r-2 border-ink bg-surface md:flex">
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-line bg-surface md:flex">
         <SidebarHeader />
         <div className="flex-1 overflow-y-auto p-3">
           <ToolNav />
@@ -158,15 +158,15 @@ export default function ToolsLayout() {
       </aside>
 
       {/* Mobile top bar */}
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b-2 border-ink bg-surface px-4 py-3 md:hidden">
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-line bg-surface px-4 py-3 md:hidden">
         <Link to="/tools" className="flex items-center gap-2 outline-none">
-          <span className="flex size-7 items-center justify-center border-2 border-ink bg-ink text-paper">
+          <span className="flex size-7 items-center justify-center border border-line bg-ink text-paper rounded-md">
             <Icon
               icon={CropIcon}
               size={14}
             />
           </span>
-          <span className="font-display text-[13px] font-extrabold uppercase tracking-wide">
+          <span className="font-display text-[13px] font-bold tracking-tight">
             DriveRush <span className="text-ink-3">Tools</span>
           </span>
         </Link>

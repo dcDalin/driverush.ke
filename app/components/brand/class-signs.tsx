@@ -20,12 +20,12 @@ export function ClassSigns({ category }: { category: SignCategoryId }) {
     <section className="mt-12" aria-labelledby="class-signs">
       <h2
         id="class-signs"
-        className="m-0 mb-4 border-b-2 border-ink pb-3 font-display text-xl font-extrabold uppercase tracking-tight"
+        className="m-0 mb-4 border-b border-line pb-3 font-display text-xl font-bold tracking-tight"
       >
         All {signs.length} {page.name.toLowerCase()}
       </h2>
       <div className="mb-5 flex flex-wrap items-center gap-2">
-        <span className="font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+        <span className="font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
           Drill this class
         </span>
         <Button variant="rush" size="sm" asChild>
@@ -54,11 +54,11 @@ export function ClassSigns({ category }: { category: SignCategoryId }) {
           <li key={sign.id}>
             <Link
               to={signPagePath(sign)}
-              className="grid h-full grid-cols-[56px_1fr] items-start gap-3 border-2 border-ink bg-paper-3 p-3 no-underline outline-none transition-colors hover:bg-surface focus-visible:bg-surface"
+              className="grid h-full grid-cols-[56px_1fr] items-start gap-3 border border-line bg-paper-3 p-3 no-underline outline-none transition-colors hover:bg-surface focus-visible:bg-surface rounded-lg"
             >
-              <SignImage sign={sign} className="size-14 border-2 border-ink" />
+              <SignImage sign={sign} className="size-14 border border-line rounded-lg" />
               <span className="min-w-0">
-                <span className="block font-display text-[12.5px] font-extrabold uppercase leading-tight tracking-[0.02em] text-ink">
+                <span className="block font-display text-[12.5px] font-bold uppercase leading-tight tracking-[0.02em] text-ink">
                   {sign.name}
                 </span>
                 <span className="mt-1 block font-sans text-[13px] leading-snug text-ink-2">

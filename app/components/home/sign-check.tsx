@@ -142,12 +142,12 @@ export function SignCheck({
             onNext={next}
           />
         ) : (
-          <div className="flex flex-wrap items-center justify-between gap-4 border-2 border-ink bg-surface p-5 shadow-stamp sm:p-7">
+          <div className="flex flex-wrap items-center justify-between gap-4 border border-line bg-surface p-5 shadow-stamp sm:p-7 rounded-lg">
             <div>
-              <p className="m-0 font-mono text-[11px] uppercase tracking-widest text-ink-3">
+              <p className="m-0 font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
                 Quick check
               </p>
-              <h2 className="m-0 mt-1.5 font-display text-[clamp(20px,3.2vw,30px)] font-extrabold uppercase leading-none tracking-tight text-ink">
+              <h2 className="m-0 mt-1.5 font-display text-[clamp(20px,3.2vw,30px)] font-semibold leading-none tracking-tight text-ink">
                 {ROUND_SIZE} signs. How many can you name?
               </h2>
             </div>
@@ -183,16 +183,16 @@ function Playing({
   const answered = chosen !== null;
   const correct = chosen === question.sign.id;
   return (
-    <div className="grid items-start gap-5 border-2 border-ink bg-surface p-5 shadow-stamp sm:grid-cols-[220px_1fr] sm:gap-6 sm:p-7">
+    <div className="grid items-start gap-5 border border-line bg-surface p-5 shadow-stamp sm:grid-cols-[220px_1fr] sm:gap-6 sm:p-7 rounded-lg">
       <div
         key={question.sign.id}
-        className="dr-pop mx-auto aspect-square w-40 border-2 border-ink bg-white sm:w-full"
+        className="dr-pop mx-auto aspect-square w-40 border border-line bg-white sm:w-full rounded-lg"
         style={regionSpriteStyle(signCrop(question.sign), CHART_SRC, CROP_PAD)}
         role="img"
         aria-label="Kenyan road sign"
       />
       <div className="grid gap-3">
-        <p className="m-0 font-mono text-[11px] uppercase tracking-widest text-ink-3">
+        <p className="m-0 font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
           Sign {position + 1} of {total} · What is this sign?
         </p>
         <ul className="m-0 grid list-none gap-2 p-0">
@@ -206,7 +206,7 @@ function Playing({
                   onClick={() => onPick(option)}
                   disabled={answered}
                   className={cn(
-                    "w-full border-2 border-ink px-3 py-2.5 text-left font-display text-[14px] font-extrabold uppercase tracking-tight outline-none transition-colors",
+                    "w-full border border-line px-3 py-2.5 text-left font-display text-[14px] font-bold tracking-tight outline-none transition-colors rounded-lg",
                     !answered &&
                       "bg-surface text-ink hover:bg-ink hover:text-paper focus-visible:bg-ink focus-visible:text-paper",
                     answered &&
@@ -231,7 +231,7 @@ function Playing({
         </ul>
         {answered && (
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line-soft pt-3">
-            <p className="m-0 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest">
+            <p className="m-0 inline-flex items-center gap-2 font-sans text-[11px] uppercase tracking-wider font-medium">
               {correct ? (
                 <>
                   <Icon
@@ -270,12 +270,12 @@ function Result({
 }) {
   const score = total - missed.length;
   return (
-    <div className="dr-pop grid gap-4 border-2 border-ink bg-surface p-5 shadow-stamp sm:p-7">
+    <div className="dr-pop grid gap-4 border border-line bg-surface p-5 shadow-stamp sm:p-7 rounded-lg">
       <div>
-        <p className="m-0 font-mono text-[11px] uppercase tracking-widest text-ink-3">
+        <p className="m-0 font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
           Your score
         </p>
-        <h2 className="m-0 mt-1.5 font-display text-[clamp(26px,4.4vw,42px)] font-extrabold uppercase leading-none tracking-tight text-ink">
+        <h2 className="m-0 mt-1.5 font-display text-[clamp(26px,4.4vw,42px)] font-semibold leading-none tracking-tight text-ink">
           {score} of {total} right
         </h2>
       </div>
@@ -292,7 +292,7 @@ function Result({
                 key={sign.id}
                 title={sign.name}
                 aria-label={sign.name}
-                className="dr-pop size-14 border-2 border-ink bg-white sm:size-16"
+                className="dr-pop size-14 border border-line bg-white sm:size-16 rounded-lg"
                 style={{
                   ...regionSpriteStyle(signCrop(sign), CHART_SRC, CROP_PAD),
                   ...stagger(index + 2),

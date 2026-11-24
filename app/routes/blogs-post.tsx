@@ -141,10 +141,10 @@ function PostMissing() {
     <main className="min-h-screen bg-paper text-ink">
       <Rail />
       <div className="mx-auto w-full max-w-2xl px-5 py-24 text-center sm:px-9">
-        <p className="m-0 mb-3 font-mono text-[11px] uppercase tracking-widest text-ink-3">
+        <p className="m-0 mb-3 font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
           404 · post not found
         </p>
-        <h1 className="m-0 mb-5 font-display text-4xl font-extrabold uppercase tracking-tight text-ink sm:text-5xl">
+        <h1 className="m-0 mb-5 font-display text-4xl font-semibold tracking-tight text-ink sm:text-5xl">
           That post has moved on.
         </h1>
         <p className="m-0 mb-7 font-serif text-lg leading-snug text-ink-2">
@@ -165,7 +165,7 @@ export function ErrorBoundary() {
   }
   return (
     <main className="mx-auto max-w-xl px-5 py-16">
-      <h1 className="font-display text-3xl font-extrabold uppercase tracking-tight">
+      <h1 className="font-display text-3xl font-semibold tracking-tight">
         Something went sideways
       </h1>
       <p className="mt-3 font-serif text-ink-2">

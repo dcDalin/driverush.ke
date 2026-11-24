@@ -196,10 +196,10 @@ export default function Sign3DTool({ loaderData }: Route.ComponentProps) {
 
   return (
     <div>
-      <header className="border-b-2 border-ink pb-6">
+      <header className="border-b border-line pb-6">
         <span className="eyebrow text-ink">Internal · authoring</span>
-        <h1 className="m-0 mt-3 font-display text-[clamp(32px,5vw,52px)] font-extrabold uppercase leading-[0.95] tracking-tighter">
-          3D sign <span className="italic text-rush">mapper</span>
+        <h1 className="m-0 mt-3 font-display text-[clamp(32px,5vw,52px)] font-semibold leading-[0.95] tracking-tighter">
+          3D sign <span className="text-rush">mapper</span>
         </h1>
         <p className="mt-4 max-w-2xl font-serif text-[clamp(16px,2vw,20px)] leading-tight text-ink-2">
           Preview each road-sign GLB, set its name / note / audio and tune the
@@ -210,7 +210,7 @@ export default function Sign3DTool({ loaderData }: Route.ComponentProps) {
       </header>
 
       {/* save / export bar */}
-      <div className="mt-6 flex flex-wrap items-center gap-3 border-2 border-ink bg-surface p-3 shadow-stamp">
+      <div className="mt-6 flex flex-wrap items-center gap-3 border border-line bg-surface p-3 shadow-stamp rounded-lg">
         <Button
           variant="ink"
           size="sm"
@@ -249,8 +249,8 @@ export default function Sign3DTool({ loaderData }: Route.ComponentProps) {
       <div className="mt-6 grid gap-6 lg:grid-cols-[300px_1fr]">
         {/* ---- sign list ---- */}
         <aside className="space-y-4">
-          <div className="border-2 border-ink bg-surface">
-            <div className="border-b-2 border-ink bg-paper-3 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-ink-2">
+          <div className="border border-line bg-surface rounded-lg">
+            <div className="border-b border-line bg-paper-3 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-ink-2">
               Signs · {signs.length}
             </div>
             <ul className="m-0 max-h-[60vh] list-none overflow-auto p-0">
@@ -258,7 +258,7 @@ export default function Sign3DTool({ loaderData }: Route.ComponentProps) {
                 <li
                   key={s.id}
                   className={cn(
-                    "flex items-center gap-2 border-b border-dashed border-ink/40 px-2 py-1.5",
+                    "flex items-center gap-2 border-b border-ink/40 px-2 py-1.5",
                     selectedId === s.id && "bg-paper-3",
                   )}
                 >
@@ -304,15 +304,15 @@ export default function Sign3DTool({ loaderData }: Route.ComponentProps) {
           </div>
 
           {unmapped.length > 0 && (
-            <div className="border-2 border-dashed border-ink bg-surface">
-              <div className="border-b-2 border-dashed border-ink bg-paper-3 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-ink-2">
+            <div className="border border-line bg-surface rounded-lg">
+              <div className="border-b border-line bg-paper-3 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-ink-2">
                 Unmapped GLBs · {unmapped.length}
               </div>
               <ul className="m-0 list-none p-0">
                 {unmapped.map((m) => (
                   <li
                     key={m}
-                    className="flex items-center gap-2 border-b border-dashed border-ink/40 px-2 py-1.5"
+                    className="flex items-center gap-2 border-b border-ink/40 px-2 py-1.5"
                   >
                     <span className="min-w-0 flex-1 truncate font-mono text-[10px] uppercase tracking-widest text-ink-3">
                       {fileLabel(m)}
@@ -338,14 +338,14 @@ export default function Sign3DTool({ loaderData }: Route.ComponentProps) {
         {/* ---- editor ---- */}
         <section>
           {!selected ? (
-            <div className="flex min-h-72 items-center justify-center border-2 border-dashed border-ink bg-paper-3 font-mono text-[11px] uppercase tracking-widest text-ink-3">
+            <div className="flex min-h-72 items-center justify-center border border-line bg-paper-3 font-mono text-[11px] uppercase tracking-widest text-ink-3 rounded-lg">
               Select a sign to edit
             </div>
           ) : (
             <div className="grid gap-5 md:grid-cols-2">
               {/* preview + framing */}
               <div className="space-y-3">
-                <div className="relative aspect-square w-full overflow-hidden border-2 border-ink bg-ink">
+                <div className="relative aspect-square w-full overflow-hidden border border-line bg-ink rounded-lg">
                   <Sign3DViewer
                     modelSrc={selected.modelSrc}
                     yaw={selected.yaw}

@@ -41,7 +41,7 @@ export function TrainerGuide({
   return (
     <section
       aria-label={`About ${name}`}
-      className="mt-14 grid gap-10 border-t-2 border-ink pt-8 font-serif text-[17px] leading-relaxed text-ink-2"
+      className="mt-14 grid gap-10 border-t border-line pt-8 font-serif text-[17px] leading-relaxed text-ink-2"
     >
       <div>
         <Heading>How the {name} trainer works</Heading>
@@ -80,14 +80,14 @@ export function TrainerGuide({
         </ul>
       </div>
 
-      <details className="group border-2 border-ink bg-paper-3 font-sans">
-        <summary className="cursor-pointer px-4 py-3 font-display text-[15px] font-extrabold uppercase tracking-tight text-ink">
+      <details className="group border border-line bg-paper-3 font-sans rounded-lg">
+        <summary className="cursor-pointer px-4 py-3 font-display text-[15px] font-bold tracking-tight text-ink">
           All {signs.length} signs in this trainer
         </summary>
-        <div className="grid gap-6 border-t-2 border-ink px-4 py-5">
+        <div className="grid gap-6 border-t border-line px-4 py-5">
           {classes.map(({ id, guide, signs: list }) => (
             <div key={id}>
-              <h3 className="m-0 mb-1 font-display text-[13px] font-extrabold uppercase tracking-wide text-ink">
+              <h3 className="m-0 mb-1 font-display text-[13px] font-bold tracking-tight text-ink">
                 {guide.label} · {list.length}
               </h3>
               <p className="m-0 mb-3 text-[13.5px] leading-snug text-ink-2">
@@ -118,7 +118,7 @@ export function TrainerGuide({
 
 function Heading({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="m-0 mb-3 font-display text-xl font-extrabold uppercase tracking-tight text-ink">
+    <h2 className="m-0 mb-3 font-display text-xl font-bold tracking-tight text-ink">
       {children}
     </h2>
   );

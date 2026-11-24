@@ -112,7 +112,7 @@ function routeLines(route: Route, active: number | null): Line[] {
 }
 
 const selectClass =
-  "w-full border-2 border-ink bg-surface px-3 py-2 font-mono text-[12.5px] text-ink";
+  "w-full border border-line bg-surface px-3 py-2 font-mono text-[12.5px] text-ink rounded-lg";
 
 export default function BoardNetworkTool() {
   const net = React.useMemo(() => network(), []);
@@ -266,9 +266,9 @@ export default function BoardNetworkTool() {
 
   return (
     <div>
-      <header className="border-b-2 border-ink pb-5">
+      <header className="border-b border-line pb-5">
         <span className="eyebrow text-ink">Model Town Board · checking</span>
-        <h1 className="m-0 mt-3 font-display text-[clamp(28px,4vw,44px)] font-extrabold uppercase leading-[0.95] tracking-tighter">
+        <h1 className="m-0 mt-3 font-display text-[clamp(28px,4vw,44px)] font-semibold leading-[0.95] tracking-tighter">
           Lane network
         </h1>
         <p className="mt-3 max-w-3xl text-[14.5px] leading-relaxed text-ink-2">
@@ -281,17 +281,17 @@ export default function BoardNetworkTool() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div
-          className="border-2 border-ink bg-[#101114] [&>svg]:block [&>svg]:h-auto [&>svg]:max-h-[88vh] [&>svg]:w-full"
+          className="border border-line bg-[#101114] [&>svg]:block [&>svg]:h-auto [&>svg]:max-h-[88vh] [&>svg]:w-full rounded-lg"
           data-testid="board-network"
           dangerouslySetInnerHTML={{ __html: svg }}
         />
 
         <div className="flex flex-col gap-6">
           <section
-            className="border-2 border-ink bg-surface p-4"
+            className="border border-line bg-surface p-4 rounded-lg"
             data-testid="blocked-roads"
           >
-            <h2 className="m-0 font-display text-[18px] font-extrabold uppercase tracking-tight">
+            <h2 className="m-0 font-display text-[18px] font-bold tracking-tight">
               Blocked roads
             </h2>
             <p className="m-0 mt-2 text-[13.5px] leading-relaxed text-ink-2">
@@ -321,8 +321,8 @@ export default function BoardNetworkTool() {
             )}
           </section>
 
-          <section className="border-2 border-ink bg-surface p-4">
-            <h2 className="m-0 font-display text-[18px] font-extrabold uppercase tracking-tight">
+          <section className="border border-line bg-surface p-4 rounded-lg">
+            <h2 className="m-0 font-display text-[18px] font-bold tracking-tight">
               Try a route
             </h2>
             <label className="mt-3 block font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
@@ -364,7 +364,7 @@ export default function BoardNetworkTool() {
                   type="button"
                   onClick={() => setSeen(side)}
                   className={cn(
-                    "border-2 border-ink px-3 py-1.5 font-mono text-[11px] uppercase tracking-widest",
+                    "border border-line px-3 py-1.5 font-mono text-[11px] uppercase tracking-widest rounded-lg",
                     seen === side ? "bg-ink text-paper" : "bg-surface text-ink",
                   )}
                 >
@@ -406,7 +406,7 @@ export default function BoardNetworkTool() {
                         type="button"
                         onClick={() => setActive(active === i ? null : i)}
                         className={cn(
-                          "block w-full border-b border-dashed border-ink px-2 py-2 text-left",
+                          "block w-full border-b border-line px-2 py-2 text-left",
                           active === i && "bg-paper-3",
                         )}
                       >
@@ -435,8 +435,8 @@ export default function BoardNetworkTool() {
           </section>
 
           {!plan && (
-            <section className="border-2 border-ink bg-surface p-4">
-              <h2 className="m-0 font-display text-[18px] font-extrabold uppercase tracking-tight">
+            <section className="border border-line bg-surface p-4 rounded-lg">
+              <h2 className="m-0 font-display text-[18px] font-bold tracking-tight">
                 Show
               </h2>
               <div className="mt-3 flex flex-col gap-2">
@@ -463,15 +463,15 @@ export default function BoardNetworkTool() {
             </section>
           )}
 
-          <section className="border-2 border-ink bg-surface p-4">
-            <h2 className="m-0 font-display text-[18px] font-extrabold uppercase tracking-tight">
+          <section className="border border-line bg-surface p-4 rounded-lg">
+            <h2 className="m-0 font-display text-[18px] font-bold tracking-tight">
               Still to confirm with a driving school
             </h2>
             <ul className="m-0 mt-3 list-none p-0">
               {unsure.map(([title, group]) => (
                 <li
                   key={title}
-                  className="border-b border-dashed border-ink py-2 text-[13.5px] leading-snug text-ink-2"
+                  className="border-b border-line py-2 text-[13.5px] leading-snug text-ink-2"
                 >
                   <span className="font-bold text-ink">{title}</span>{" "}
                   <span className="font-mono text-[11px] text-ink-3">

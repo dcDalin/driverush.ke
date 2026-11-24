@@ -13,7 +13,7 @@ import { SignIcon } from "~/components/brand/art/sign-glyphs";
 import { cn } from "~/lib/utils";
 
 const alertVariants = cva(
-  "grid grid-cols-[48px_1fr_auto] items-center gap-3.5 border-2 border-ink px-4 py-3.5 shadow-stamp",
+  "grid grid-cols-[48px_1fr_auto] items-center gap-3.5 border border-line px-4 py-3.5 rounded-xl",
   {
     variants: {
       variant: {
@@ -29,13 +29,13 @@ const alertVariants = cva(
 );
 
 const iconBoxVariants = cva(
-  "flex size-11 items-center justify-center border-2 border-ink",
+  "flex size-10 items-center justify-center rounded-lg",
   {
     variants: {
       variant: {
         info: "bg-plate-blue text-plate-blue-foreground",
         warn: "bg-amber text-amber-foreground",
-        error: "bg-rush text-white",
+        error: "bg-rush text-primary-foreground",
         ok: "bg-kenya-green text-kenya-green-foreground",
         neutral: "bg-paper-3 text-ink",
       },
@@ -101,7 +101,7 @@ function AlertTitle({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="alert-title"
       className={cn(
-        "font-display text-[14px] font-extrabold uppercase tracking-wide text-ink",
+        "font-display text-[15px] font-semibold tracking-tight text-ink",
         "[&>p]:m-0 [&>p]:font-[inherit] [&>p]:text-[length:inherit] [&>p]:leading-[inherit] [&>p]:text-inherit",
         className,
       )}
@@ -145,9 +145,9 @@ function AlertAction({ className, ...props }: React.ComponentProps<"button">) {
       type="button"
       data-slot="alert-action"
       className={cn(
-        "border-2 border-ink bg-transparent px-2.5 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-ink",
-        "outline-none transition-colors duration-100 hover:bg-ink hover:text-paper",
-        "focus-visible:bg-ink focus-visible:text-paper",
+        "rounded-md border border-line bg-surface px-2.5 py-1 text-[12.5px] font-semibold text-ink",
+        "outline-none transition-colors duration-100 hover:bg-paper-2",
+        "focus-visible:ring-4 focus-visible:ring-rush/15",
         className,
       )}
       {...props}

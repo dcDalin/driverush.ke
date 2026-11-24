@@ -93,21 +93,21 @@ export default function PelicanSigns() {
           <div className="mb-6 flex items-center justify-between gap-3">
             <Link
               to="/road-signs"
-              className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-ink-3 outline-none hover:text-ink focus-visible:text-ink"
+              className="inline-flex items-center gap-2 font-sans text-[11px] uppercase tracking-wider text-ink-3 outline-none hover:text-ink focus-visible:text-ink font-medium"
             >
               <Icon icon={ArrowLeftIcon} size={14} />
               All signs
             </Link>
-            <span className="font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+            <span className="font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
               Trainer № 01
             </span>
           </div>
 
-          <header className="dr-rise border-b-2 border-ink pb-7">
+          <header className="dr-rise border-b border-line pb-7">
             <SignCredit size="sm" />
-            <h1 className="m-0 mt-3 font-display text-[clamp(40px,7vw,72px)] font-extrabold uppercase leading-[0.9] tracking-tighter">
+            <h1 className="m-0 mt-3 font-display text-[clamp(40px,7vw,72px)] font-semibold leading-[0.9] tracking-tighter">
               Pelican road signs{" "}
-              <span className="italic text-rush">chart</span>
+              <span className="text-rush">chart</span>
             </h1>
             <p className="mt-4 max-w-2xl font-serif text-[clamp(16px,2.2vw,22px)] leading-tight text-ink-2">
               We zoom into one sign on the chart. Name it before the answer
@@ -116,7 +116,7 @@ export default function PelicanSigns() {
           </header>
 
           {!ready ? (
-            <div className="relative mt-6 aspect-video w-full overflow-hidden border-2 border-ink bg-white">
+            <div className="relative mt-6 aspect-video w-full overflow-hidden border border-line bg-white rounded-lg">
               {/* In the server's HTML, so the download starts straight away. */}
               <img
                 src={board.imageSrc}
@@ -130,8 +130,8 @@ export default function PelicanSigns() {
               </div>
             </div>
           ) : practiceCount === 0 ? (
-            <div className="mt-6 flex flex-col items-center gap-4 border-2 border-dashed border-ink bg-paper-3 px-6 py-12 text-center">
-              <span className="font-mono text-[11px] uppercase tracking-widest text-ink-3">
+            <div className="mt-6 flex flex-col items-center gap-4 border border-line bg-paper-3 px-6 py-12 text-center rounded-lg">
+              <span className="font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
                 No signs match your category filter
               </span>
               <Button
@@ -149,8 +149,8 @@ export default function PelicanSigns() {
             </div>
           )}
 
-          <div className="mt-8 flex flex-wrap items-center gap-3 border-t border-dashed border-ink pt-5">
-            <span className="font-mono text-[11px] uppercase tracking-widest text-ink-3">
+          <div className="mt-8 flex flex-wrap items-center gap-3 border-t border-line pt-5">
+            <span className="font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
               Same signs, in 3D
             </span>
             <Button variant="paper" size="sm" asChild>

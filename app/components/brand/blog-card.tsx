@@ -29,14 +29,14 @@ function BlogCard({ post, compact, className, ...props }: BlogCardProps) {
     <article
       data-slot="blog-card"
       className={cn(
-        "group relative flex h-full flex-col border-2 border-ink bg-surface transition hover:bg-paper-2 focus-within:bg-paper-2",
+        "group relative flex h-full flex-col border border-line bg-surface transition hover:bg-paper-2 focus-within:bg-paper-2 rounded-lg",
         compact ? "p-5" : "p-6 sm:p-7",
         className,
       )}
       {...props}
     >
-      <div className="mb-4 flex items-center justify-between font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
-        <span className="bg-ink px-2 py-0.5 font-bold text-paper">
+      <div className="mb-4 flex items-center justify-between font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
+        <span className="rounded-full bg-paper-2 px-2.5 py-1 font-semibold normal-case tracking-normal text-ink-2">
           {post.category}
         </span>
         <time dateTime={post.date}>{formatDate(post.date)}</time>
@@ -44,11 +44,11 @@ function BlogCard({ post, compact, className, ...props }: BlogCardProps) {
 
       <h3
         className={cn(
-          "m-0 mb-3 font-display font-extrabold uppercase leading-[1.05] tracking-tight text-ink",
+          "m-0 mb-3 font-display font-bold leading-[1.05] tracking-tight text-ink",
           compact
             ? "text-lg line-clamp-3"
             : "text-2xl sm:text-[26px] line-clamp-2",
-          "[&_em]:font-serif [&_em]:font-normal [&_em]:normal-case [&_em]:italic [&_em]:text-rush",
+          "[&_em]:font-serif [&_em]:font-normal [&_em]:normal-case [&_em]:text-rush",
         )}
       >
         <Link
@@ -68,7 +68,7 @@ function BlogCard({ post, compact, className, ...props }: BlogCardProps) {
         {post.lede}
       </p>
 
-      <div className="mt-auto flex items-center justify-between gap-3 border-t border-dashed border-ink pt-4 font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+      <div className="mt-auto flex items-center justify-between gap-3 border-t border-line pt-4 font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
         <span>{post.readingMinutes} min read</span>
         <span className="inline-flex items-center gap-1.5 text-rush group-hover:gap-2 transition-[gap]">
           Read

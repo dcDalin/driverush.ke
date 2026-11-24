@@ -43,17 +43,17 @@ export function SettingSection({
 }) {
   return (
     <section
-      className={cn("border-2 border-ink bg-surface", className)}
+      className={cn("border border-line bg-surface rounded-lg", className)}
       data-disabled={disabled || undefined}
     >
-      <header className="flex items-start justify-between gap-3 border-b-2 border-ink bg-paper-3 px-3.5 py-2.5">
+      <header className="flex items-start justify-between gap-3 border-b border-line bg-paper-3 px-3.5 py-2.5">
         <div className="min-w-0">
-          <h3 className="flex items-center gap-2 font-display text-[12px] font-extrabold uppercase tracking-wider text-ink">
+          <h3 className="flex items-center gap-2 font-display text-[12px] font-bold uppercase tracking-wider text-ink">
             {icon && <Icon icon={icon} size={14} />}
             {title}
           </h3>
           {description && (
-            <p className="mt-0.5 font-mono text-[9.5px] uppercase tracking-widest text-ink-3">
+            <p className="mt-0.5 font-sans text-[9.5px] uppercase tracking-wider text-ink-3 font-medium">
               {description}
             </p>
           )}
@@ -91,13 +91,13 @@ export function ToggleRow({
   return (
     <label
       className={cn(
-        "flex cursor-pointer items-center justify-between gap-3 border-2 border-ink bg-surface px-3 py-2.5",
+        "flex cursor-pointer items-center justify-between gap-3 border border-line bg-surface px-3 py-2.5 rounded-lg",
         disabled && "pointer-events-none opacity-40",
       )}
     >
       <span className="flex min-w-0 items-start gap-2.5">
         {icon && (
-          <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center border-2 border-ink bg-paper-3 text-ink">
+          <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center border border-line bg-paper-3 text-ink rounded-md">
             <Icon icon={icon} size={14} />
           </span>
         )}
@@ -283,7 +283,7 @@ export function ChipToggle({
       disabled={disabled}
       onClick={onToggle}
       className={cn(
-        "border-2 border-ink px-2.5 py-1 font-mono text-[10.5px] font-bold uppercase tracking-widest outline-none transition-colors",
+        "border border-line px-2.5 py-1 font-sans text-[10.5px] font-semibold uppercase tracking-wider outline-none transition-colors rounded-lg",
         "focus-visible:shadow-stamp-rush",
         "disabled:pointer-events-none disabled:opacity-40",
         active

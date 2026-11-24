@@ -21,7 +21,7 @@ function SheetOverlay({
     <DialogPrimitive.Overlay
       data-slot="sheet-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-ink/60 backdrop-blur-[1px]",
+        "fixed inset-0 z-50 bg-black/45 backdrop-blur-sm",
         "data-[state=open]:animate-in data-[state=open]:fade-in-0",
         "data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
         className,
@@ -33,7 +33,7 @@ function SheetOverlay({
 
 const sheetVariants = cva(
   [
-    "fixed z-50 flex flex-col gap-0 border-2 border-ink bg-surface text-foreground shadow-stamp-xl",
+    "fixed z-50 flex flex-col gap-0 border border-line bg-surface text-foreground shadow-xl",
     "data-[state=open]:animate-in data-[state=closed]:animate-out duration-200",
   ].join(" "),
   {
@@ -81,9 +81,9 @@ function SheetContent({
             aria-label="Close"
             className={cn(
               "absolute right-3 top-3 inline-flex size-8 items-center justify-center",
-              "border-2 border-ink bg-surface text-ink outline-none",
-              "transition-colors duration-100 hover:bg-ink hover:text-paper",
-              "focus-visible:bg-ink focus-visible:text-paper",
+              "rounded-md text-ink-3 outline-none",
+              "transition-colors duration-100 hover:bg-paper-2 hover:text-ink",
+              "focus-visible:ring-4 focus-visible:ring-rush/15",
             )}
           >
             <Icon
@@ -102,7 +102,7 @@ function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="sheet-header"
       className={cn(
-        "flex items-center justify-between border-b-2 border-ink bg-ink px-4 py-3 font-mono text-[10.5px] font-bold uppercase tracking-widest text-paper",
+        "flex items-center justify-between border-b border-line px-5 py-4 text-[12px] font-medium text-ink-3",
         className,
       )}
       {...props}
@@ -118,7 +118,7 @@ function SheetTitle({
     <DialogPrimitive.Title
       data-slot="sheet-title"
       className={cn(
-        "font-display text-base font-extrabold uppercase tracking-wide text-paper",
+        "font-display text-[17px] font-semibold tracking-tight text-ink",
         className,
       )}
       {...props}
@@ -154,7 +154,7 @@ function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="sheet-footer"
       className={cn(
-        "flex items-center justify-end gap-2.5 border-t-2 border-dashed border-ink p-4",
+        "flex items-center justify-end gap-2.5 border-t border-line p-4",
         className,
       )}
       {...props}

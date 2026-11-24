@@ -47,7 +47,7 @@ export function SignClassList() {
             <span className="flex flex-1 items-center gap-2.5">
               <span
                 aria-hidden
-                className="size-7 shrink-0 border-2 border-ink bg-white"
+                className="size-7 shrink-0 border border-line bg-white rounded-md"
                 style={regionSpriteStyle(signs[0].crop, CHART_SRC, THUMB_PAD)}
               />
               <span>{category.label}</span>
@@ -59,7 +59,7 @@ export function SignClassList() {
         >
           <div id={category.id} className="scroll-mt-20 font-sans">
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <span className="font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+              <span className="font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
                 Drill this class
               </span>
               <Button variant="paper" size="sm" asChild>
@@ -95,19 +95,19 @@ export function SignClassList() {
               {signs.map((sign) => (
                 <li
                   key={sign.id}
-                  className="dr-skip-offscreen grid grid-cols-[64px_1fr] items-start gap-3 border-2 border-ink bg-paper-3 p-3"
+                  className="dr-skip-offscreen grid grid-cols-[64px_1fr] items-start gap-3 border border-line bg-paper-3 p-3 rounded-lg"
                 >
                   <div
                     role="img"
                     aria-label={`Road sign: ${sign.name}`}
-                    className="size-16 border-2 border-ink bg-white"
+                    className="size-16 border border-line bg-white rounded-lg"
                     style={regionSpriteStyle(sign.crop, CHART_SRC, THUMB_PAD)}
                   />
                   <div className="min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <Link
                         to={signPagePath(sign)}
-                        className="font-display text-[12.5px] font-extrabold uppercase leading-tight tracking-[0.02em] text-ink underline-offset-2 hover:text-rush hover:underline"
+                        className="font-display text-[12.5px] font-bold uppercase leading-tight tracking-[0.02em] text-ink underline-offset-2 hover:text-rush hover:underline"
                       >
                         {sign.name}
                       </Link>

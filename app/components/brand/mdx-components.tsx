@@ -52,8 +52,8 @@ export const MDX = {
     <h1
       {...props}
       className={cn(
-        "m-0 mb-6 font-display text-[clamp(36px,6vw,64px)] font-extrabold uppercase leading-[0.92] tracking-tight text-ink",
-        "[&_em]:font-serif [&_em]:font-normal [&_em]:normal-case [&_em]:italic [&_em]:text-rush",
+        "m-0 mb-6 font-display text-[clamp(36px,6vw,64px)] font-semibold leading-[0.92] tracking-tight text-ink",
+        "[&_em]:font-serif [&_em]:font-normal [&_em]:normal-case [&_em]:text-rush",
         props.className,
       )}
     />
@@ -62,25 +62,25 @@ export const MDX = {
     <div className="my-6 overflow-x-auto">
       <table
         {...props}
-        className="w-full min-w-[520px] border-collapse border-2 border-ink font-sans text-[14.5px] leading-snug"
+        className="w-full min-w-[520px] border-collapse border border-line font-sans text-[14.5px] leading-snug"
       />
     </div>
   ),
   th: (props: React.ComponentProps<"th">) => (
     <th
       {...props}
-      className="border border-ink bg-paper-2 px-3 py-2 text-left font-display text-[11.5px] font-extrabold uppercase tracking-wide text-ink"
+      className="border border-line bg-paper-2 px-3 py-2 text-left font-display text-[11.5px] font-bold uppercase tracking-wide text-ink"
     />
   ),
   td: (props: React.ComponentProps<"td">) => (
-    <td {...props} className="border border-ink px-3 py-2 align-top text-ink-2" />
+    <td {...props} className="border border-line px-3 py-2 align-top text-ink-2" />
   ),
   h2: (props: React.ComponentProps<"h2">) => (
     <h2
       {...props}
       className={cn(
-        "mt-14 mb-4 border-b-2 border-ink pb-3 font-display text-[clamp(24px,3.4vw,36px)] font-extrabold uppercase leading-[1.02] tracking-tight text-ink",
-        "[&_em]:font-serif [&_em]:font-normal [&_em]:normal-case [&_em]:italic [&_em]:text-rush",
+        "mt-14 mb-4 border-b border-line pb-3 font-display text-[clamp(24px,3.4vw,36px)] font-semibold leading-[1.02] tracking-tight text-ink",
+        "[&_em]:font-serif [&_em]:font-normal [&_em]:normal-case [&_em]:text-rush",
         props.className,
       )}
     />
@@ -89,8 +89,8 @@ export const MDX = {
     <h3
       {...props}
       className={cn(
-        "mt-10 mb-3 font-display text-xl font-extrabold uppercase tracking-tight text-ink",
-        "[&_em]:font-serif [&_em]:font-normal [&_em]:normal-case [&_em]:italic [&_em]:text-rush",
+        "mt-10 mb-3 font-display text-xl font-bold tracking-tight text-ink",
+        "[&_em]:font-serif [&_em]:font-normal [&_em]:normal-case [&_em]:text-rush",
         props.className,
       )}
     />
@@ -100,7 +100,7 @@ export const MDX = {
       {...props}
       className={cn(
         "my-4 font-serif text-[17px] leading-relaxed text-ink-2",
-        "[&_em]:not-italic [&_em]:italic [&_em]:text-rush",
+        "[&_em]:not-italic [&_em]:text-rush",
         props.className,
       )}
     />
@@ -109,7 +109,7 @@ export const MDX = {
     <ul
       {...props}
       className={cn(
-        "my-5 list-none space-y-2 border-l-2 border-dashed border-ink pl-5 font-serif text-[17px] leading-relaxed text-ink-2",
+        "my-5 list-none space-y-2 border-l border-line pl-5 font-serif text-[17px] leading-relaxed text-ink-2",
         "[&_li]:relative [&_li]:pl-5",
         "[&_li]:before:absolute [&_li]:before:left-0 [&_li]:before:top-[0.7em] [&_li]:before:size-2 [&_li]:before:bg-rush",
         props.className,
@@ -120,7 +120,7 @@ export const MDX = {
     <ol
       {...props}
       className={cn(
-        "my-5 list-decimal space-y-2 pl-7 font-serif text-[17px] leading-relaxed text-ink-2 marker:font-display marker:font-extrabold marker:text-rush",
+        "my-5 list-decimal space-y-2 pl-7 font-serif text-[17px] leading-relaxed text-ink-2 marker:font-display marker:font-bold marker:text-rush",
         props.className,
       )}
     />
@@ -131,8 +131,8 @@ export const MDX = {
     <blockquote
       {...props}
       className={cn(
-        "my-7 border-l-4 border-rush bg-paper-2 px-5 py-4 font-serif text-[19px] italic leading-snug text-ink",
-        "[&_p]:m-0 [&_p]:font-serif [&_p]:italic [&_p]:text-ink",
+        "my-7 border-l border-rush bg-paper-2 px-5 py-4 font-serif text-[19px] leading-snug text-ink",
+        "[&_p]:m-0 [&_p]:text-[1.05em] [&_p]:text-ink",
         props.className,
       )}
     />
@@ -141,7 +141,7 @@ export const MDX = {
     <hr
       {...props}
       className={cn(
-        "my-12 h-0 border-0 border-t-2 border-dashed border-ink",
+        "my-12 h-0 border-0 border-t border-line",
         props.className,
       )}
     />
@@ -150,7 +150,7 @@ export const MDX = {
     <code
       {...props}
       className={cn(
-        "rounded-none border border-ink bg-paper-2 px-1.5 py-0.5 font-mono text-[13px] text-ink",
+        "rounded-none border border-line bg-paper-2 px-1.5 py-0.5 font-mono text-[13px] text-ink",
         props.className,
       )}
     />
@@ -159,7 +159,7 @@ export const MDX = {
     <pre
       {...props}
       className={cn(
-        "my-6 overflow-x-auto border-2 border-ink bg-paper-2 p-4 font-mono text-[13px] leading-relaxed text-ink",
+        "my-6 overflow-x-auto border border-line bg-paper-2 p-4 font-mono text-[13px] leading-relaxed text-ink rounded-lg",
         props.className,
       )}
     />
