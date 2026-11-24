@@ -92,6 +92,11 @@ const ROUTES: Record<string, Entry> = {
     group: "Guide",
     path: "/driving-schools-kenya",
   },
+  "routes/driving-school": {
+    group: "School page",
+    template: "/driving-schools-kenya/:slug",
+    path: "/driving-schools-kenya/:slug",
+  },
   "routes/derevaprep-alternative": {
     group: "Guide",
     path: "/derevaprep-alternative",

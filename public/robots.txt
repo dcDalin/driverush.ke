@@ -1,8 +1,29 @@
 # DriveRush.ke · https://driverush.ke
-# Public pages are open to all crawlers. Internal authoring tools are not meant
-# to be indexed.
+# Public pages are open to all crawlers, search engines and AI assistants alike.
+# Internal authoring tools are not meant to be indexed.
+# A short map of the site for AI assistants: https://driverush.ke/llms.txt
 
 User-agent: *
+Allow: /
+Disallow: /tools
+Disallow: /tools/
+
+# AI search and assistant crawlers, named so it's plain they are welcome.
+# A named group replaces the * group for that crawler, so it repeats the rules.
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: meta-externalagent
+User-agent: Amazonbot
+User-agent: DuckAssistBot
+User-agent: MistralAI-User
 Allow: /
 Disallow: /tools
 Disallow: /tools/

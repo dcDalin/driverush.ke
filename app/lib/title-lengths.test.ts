@@ -11,6 +11,7 @@ import {
   BOARD_LEVELS_TITLE,
 } from "./board-guides";
 import { COURSE_LEVELS } from "./board/curriculum";
+import { DRIVING_SCHOOL_PAGES } from "./driving-school-pages";
 import { SIGN_CLASS_PAGES } from "./sign-class-pages";
 import {
   SIGN_PAGES,
@@ -33,6 +34,11 @@ describe("titles fit in a search result", () => {
   });
 
   it.each(SIGN_CLASS_PAGES.map((p) => [p.path, p]))("%s", (_, page) => {
+    expect(pageTitle(page.title).length).toBeLessThanOrEqual(TITLE_MAX);
+    expect(page.description.length).toBeLessThanOrEqual(DESCRIPTION_MAX);
+  });
+
+  it.each(DRIVING_SCHOOL_PAGES.map((p) => [p.path, p]))("%s", (_, page) => {
     expect(pageTitle(page.title).length).toBeLessThanOrEqual(TITLE_MAX);
     expect(page.description.length).toBeLessThanOrEqual(DESCRIPTION_MAX);
   });

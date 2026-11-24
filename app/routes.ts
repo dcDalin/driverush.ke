@@ -53,6 +53,7 @@ export default [
   route("ntsa-test", "routes/ntsa-test.tsx"),
   route("ntsa-test/questions", "routes/ntsa-questions.tsx"),
   route("driving-schools-kenya", "routes/driving-schools-kenya.tsx"),
+  route("driving-schools-kenya/:slug", "routes/driving-school.tsx"),
   route("derevaprep-alternative", "routes/derevaprep-alternative.tsx"),
   route("about", "routes/about.tsx"),
   route("privacy", "routes/privacy.tsx"),
@@ -81,6 +82,8 @@ export default [
 
   // SEO resource route — XML sitemap at /sitemap.xml (referenced by robots.txt).
   route("sitemap.xml", "routes/sitemap-xml.ts"),
+  // A Markdown map of the site for AI assistants (https://llmstxt.org).
+  route("llms.txt", "routes/llms-txt.ts"),
 
   // Internal authoring tools — own dashboard layout (sidebar + mobile sheet).
   ...prefix("tools", [

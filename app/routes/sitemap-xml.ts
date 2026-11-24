@@ -23,6 +23,7 @@ import {
   NTSA_QUESTIONS_CHECKED,
   NTSA_QUESTIONS_PATH,
 } from "~/lib/ntsa-questions-page";
+import { DRIVING_SCHOOL_PAGES } from "~/lib/driving-school-pages";
 import { SIGN_CLASS_PAGES } from "~/lib/sign-class-pages";
 import {
   isSignConfirmed,
@@ -70,6 +71,9 @@ const STATIC_PAGES: Entry[] = [
   page("/ntsa-test", "0.9"),
   page(NTSA_QUESTIONS_PATH, "0.8", "monthly", NTSA_QUESTIONS_CHECKED),
   page("/driving-schools-kenya", "0.9"),
+  ...DRIVING_SCHOOL_PAGES.map((school) =>
+    page(school.path, "0.7", "monthly", school.checked),
+  ),
   ...SIGN_CLASS_PAGES.map((p) => page(p.path, "0.8", "monthly", p.checked)),
   page("/road-signs/pelican", "0.7", "weekly"),
   page("/road-signs/3d", "0.7", "weekly"),
