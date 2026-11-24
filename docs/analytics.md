@@ -260,6 +260,18 @@ built-in Internal / Test users (744655).
 - `What would you pay for` (01a1fc77-ca13-0000-21c6-7faec2b2a7c5): which paid
   extras and a monthly KES price. `committed` learners only.
 
+**A survey shows only while its targeting flags are on.** Each survey has an
+internal flag (`survey-targeting-…-custom`: not dismissed, not answered, no
+survey in the last 30 days) and, if it has an audience, a second one
+(`survey-targeting-…`). A survey created through the API or MCP gets those
+flags switched off, and launching it (setting `start_date`) does not switch
+them on. Nothing errors: the browser is sent the survey and no flag for it, so
+it never shows. That is what happened to all three surveys from 21 to 24 Nov
+2026 (no `survey shown` at all); the flags were switched on 24 Nov. After
+creating a survey, check with `feature-flag-get-definition-by-key` that its
+flags are `active`, and `feature-flag-enable` them if not. `surveys_opt_in`
+on the project must be on too.
+
 The weekly Discord summary (`scripts/weekly-summary.mjs`) reports active
 learners, activation and NTSA passes alongside the older numbers, and each
 school's learners reached and site taps.
