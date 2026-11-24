@@ -2,7 +2,8 @@
  * DriveRush home. One thing to do: the Model Town Board, which is what most
  * learners are after, as a picture and one button that starts the course or
  * carries on with it. One other choice under it: the road signs, as two short
- * rows. Nothing else. The guides are a tab away, and in the footer.
+ * rows. Then a quiet row naming the driving schools whose colours the board's
+ * cars wear. Nothing else. The guides are a tab away, and in the footer.
  */
 import type { Route } from "./+types/home";
 
@@ -20,6 +21,7 @@ import { SiteFooter } from "~/components/brand/site-footer";
 import { SiteNav } from "~/components/brand/site-nav";
 import { HomeHero } from "~/components/home/home-hero";
 import { HomeSigns } from "~/components/home/home-signs";
+import { HomeSchools } from "~/components/home/home-schools";
 
 export function meta(_: Route.MetaArgs) {
   return [
@@ -54,6 +56,7 @@ export default function Home() {
       <main className="min-h-screen text-ink">
         <HomeHero />
         <HomeSigns />
+        <HomeSchools />
       </main>
       <SiteFooter />
     </>

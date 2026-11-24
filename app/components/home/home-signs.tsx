@@ -11,7 +11,7 @@ export function HomeSigns() {
     <section
       id="road-signs"
       aria-labelledby="home-signs"
-      className="mx-auto w-full max-w-4xl scroll-mt-20 px-5 pb-16 sm:px-9"
+      className="mx-auto w-full max-w-4xl scroll-mt-20 px-5 pb-10 sm:px-9"
     >
       <h2
         id="home-signs"

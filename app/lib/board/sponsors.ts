@@ -396,4 +396,6 @@ export type SponsorPlace =
   /** The driving schools guide's section on the schools. */
   | "guide"
   /** The board page's section on the schools (`/model-town-board`). */
-  | "board_page";
+  | "board_page"
+  /** The home page's row of schools. */
+  | "home";
