@@ -15,7 +15,9 @@ import { analytics } from "./analytics";
 import {
   BOARD_CHALLENGES,
   BOARD_ROUND_SIZE,
-  isRouteTask,
+  FREE_DRIVE,
+  hasParkedCars,
+  isFreeDrive,
   type BoardChallenge,
 } from "./board/challenges";
 import { learnedKey, levelById, unitOf, type Level } from "./board/curriculum";
@@ -34,6 +36,7 @@ import {
   car,
   deviation,
   drive,
+  drivenMetres,
   judging,
   elapsedSeconds,
   hasMoved,
@@ -122,7 +125,23 @@ export type BoardNotice = {
   n: number;
   back?: boolean;
   route?: boolean;
+  /** Free drive: the car was picked up at the frame and put back on the road. */
+  turned?: boolean;
+  /** Free drive: a rule was broken and the car drives on. */
+  broken?: boolean;
 };
+
+/** One thing said in a free drive, for its count and its summary. */
+export type FreeEntry = {
+  id: FaultId;
+  serious: boolean;
+  /** The car was put back or turned round. */
+  back: boolean;
+  seconds: number;
+};
+
+/** Free drive keeps this many entries at most: a long drive is still a short list. */
+const FREE_LOG_MAX = 300;
 
 type BoardState = {
   // ---- persisted ----
@@ -187,6 +206,8 @@ type BoardState = {
   lastStars: number;
   /** Bumped on every (re)start, so the scene knows to snap the camera. */
   attempt: number;
+  /** What a free drive has said so far, oldest first. */
+  freeLog: FreeEntry[];
   // ---- this run ----
   runClean: string[];
   runFaulted: string[];
@@ -205,6 +226,8 @@ type BoardState = {
   exit: () => void;
   /** Open the board to learn it: no task, no clock. */
   learn: () => void;
+  /** Drive anywhere on the board: no task, every rule judged and counted. */
+  freeDrive: (surface?: string) => void;
   /** Open one level of the course: its cards, its playback or its task. */
   startLevel: (id: string) => void;
   /** The level's cards were read to the end, or its lanes all looked at. */
@@ -255,7 +278,25 @@ const FRESH_RUN = {
   runStreak: 0,
   runBestStreak: 0,
   lanes: null as LanesRun | null,
+  freeLog: [] as FreeEntry[],
 };
+
+/** Is this run a free drive? */
+export function isFreeRun(s: {
+  queue: BoardChallenge[];
+  pos: number;
+}): boolean {
+  const task = s.queue[s.pos];
+  return task != null && isFreeDrive(task);
+}
+
+/**
+ * The rules a free drive has broken so far. Reaching the frame of the board
+ * breaks none: the road just runs off the board there.
+ */
+export function rulesBroken(log: readonly FreeEntry[]): FreeEntry[] {
+  return log.filter((entry) => entry.id !== "board_edge");
+}
 
 export function starsFor(faults: number): number {
   return faults === 0 ? 3 : faults === 1 ? 2 : 1;
@@ -311,6 +352,7 @@ export const useBoardStore = create<BoardState>()(
        */
       const gentle = (): "free" | "soft" | null => {
         const s = get();
+        if (isFreeRun(s)) return "free";
         const level = levelById(s.level);
         if (level?.kind === "warmup") return "free";
         if (s.lanes?.picked) return "soft";
@@ -318,6 +360,22 @@ export const useBoardStore = create<BoardState>()(
           return "soft";
         }
         return null;
+      };
+
+      /** Free drive counts what it says: the chip and the summary read this. */
+      const tally = (fault: Fault, back: boolean) => {
+        if (!isFreeRun(get())) return;
+        set((s) => ({
+          freeLog: [
+            ...s.freeLog,
+            {
+              id: fault.id,
+              serious: fault.serious,
+              back,
+              seconds: elapsedSeconds(),
+            },
+          ].slice(-FREE_LOG_MAX),
+        }));
       };
 
       /** A serious mistake: the examiner stops the attempt. */
@@ -330,8 +388,10 @@ export const useBoardStore = create<BoardState>()(
           (kind === "soft" &&
             !STOPS_ALWAYS.has(fault.id) &&
             get().faults < SMALL_FAULT_LIMIT - 1);
-        if (room && setBack(SET_BACK)) {
+        const far = fault.id === "board_edge" ? SET_BACK_PAST : SET_BACK;
+        if (room && setBack(far)) {
           if (kind === "soft") record(fault);
+          tally(fault, true);
           set((s) => ({
             notice: { fault, n: s.noticeCount + 1, back: true },
             noticeCount: s.noticeCount + 1,
@@ -425,10 +485,21 @@ export const useBoardStore = create<BoardState>()(
       const onSmall = (fault: Fault) => {
         if (get().settings.sound) playSfx("wrong");
         buzz(BUZZ.miss);
-        // The first drive only says the rule. Nothing is counted.
+        // The first drive only says the rule. Nothing is counted. Free drive
+        // counts it for its own summary, and nothing else.
         if (gentle() === "free") {
+          const turned = fault.id === "board_edge";
+          tally(fault, turned);
           set((s) => ({
-            notice: { fault, n: s.noticeCount + 1 },
+            notice: {
+              fault,
+              n: s.noticeCount + 1,
+              ...(turned
+                ? { turned: true }
+                : fault.serious && isFreeRun(s)
+                  ? { broken: true }
+                  : {}),
+            },
             noticeCount: s.noticeCount + 1,
           }));
           return;
@@ -599,12 +670,7 @@ export const useBoardStore = create<BoardState>()(
         releaseCamera();
         // The parked cars stand somewhere new each attempt, so the farthest
         // free bay has to be looked for.
-        if (
-          isRouteTask(challenge) &&
-          challenge.otherCars.some((other) => !other.flipped)
-        ) {
-          shuffleParkingLayout();
-        }
+        if (hasParkedCars(challenge)) shuffleParkingLayout();
         beginChallenge(challenge, { onFault, onSmall, onDeviation, onGoal });
         judging.forgiveLanes = gentle() === "free";
         // A car from a line-up is told its option: its line is on the table.
@@ -741,7 +807,17 @@ export const useBoardStore = create<BoardState>()(
         exit: () => {
           const before = get();
           const task = before.queue[before.pos];
-          if (
+          if (task && isFreeDrive(task)) {
+            const broken = rulesBroken(before.freeLog);
+            analytics.boardFreeDriveEnded({
+              seconds: Math.round(elapsedSeconds()),
+              metres: Math.round(drivenMetres()),
+              rules_broken: broken.length,
+              set_backs: before.freeLog.filter((entry) => entry.back).length,
+              rules: [...new Set(broken.map((entry) => entry.id))].join(","),
+              moved: hasMoved(),
+            });
+          } else if (
             before.mode === "drive" &&
             task &&
             before.phase !== "complete" &&
@@ -788,6 +864,21 @@ export const useBoardStore = create<BoardState>()(
             hinted: false,
           });
           analytics.boardLearnOpened();
+        },
+
+        freeDrive: (surface = "link") => {
+          if (get().settings.sound) warmSfx();
+          set({
+            ...FRESH_RUN,
+            queue: [FREE_DRIVE],
+            overlayOpen: true,
+            mode: "drive",
+            level: null,
+            hinted: false,
+            round: false,
+          });
+          analytics.boardFreeDriveStarted({ surface });
+          begin();
         },
 
         startLevel: (id) => {

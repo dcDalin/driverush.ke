@@ -364,6 +364,24 @@ export const analytics = {
   /** Learn mode opened on the board. */
   boardLearnOpened: () => emit("board_learn_opened", {}),
 
+  /** Free drive was opened: the board with no task, every rule still judged. */
+  boardFreeDriveStarted: (args: { surface: string }) =>
+    emit("board_free_drive_started", args),
+
+  /**
+   * A free drive was left. How long it went on, how far the car went, and
+   * which rules were broken (unique ids, comma-joined), to see what learners
+   * get wrong when nobody tells them where to go.
+   */
+  boardFreeDriveEnded: (args: {
+    seconds: number;
+    metres: number;
+    rules_broken: number;
+    set_backs: number;
+    rules: string;
+    moved: boolean;
+  }) => emit("board_free_drive_ended", args),
+
   /** A lesson's route was played back, or a board feature looked at. */
   boardLessonViewed: (args: {
     kind: "lane" | "feature" | "route" | "parking";

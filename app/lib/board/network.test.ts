@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { BOARD_CHALLENGES, isRouteTask } from "./challenges";
+import { BOARD_CHALLENGES, isTurnTask } from "./challenges";
 import { BOARD_FEATURES } from "./features";
 import { BOUNDS, goalBox, onTarmac } from "./full-board";
 import {
@@ -326,7 +326,7 @@ describe("what Learn mode teaches", () => {
 
   it("knows the right way through every driving task, start line to green box", () => {
     for (const challenge of BOARD_CHALLENGES) {
-      if (isRouteTask(challenge)) continue;
+      if (!isTurnTask(challenge)) continue;
       const route = challengeRoute(challenge);
       expect(route, challenge.id).not.toBeNull();
       const start = lanePoint(

@@ -84,4 +84,22 @@ describe("board store analytics", () => {
     expect(finish(3, 2)).toMatchObject({ best_before: 3, new_best: false });
     expect(finish(3, 4)).toMatchObject({ best_before: 3, new_best: true });
   });
+
+  it("reports a free drive started and ended, and never as abandoned", () => {
+    const { freeDrive } = useBoardStore.getState();
+    freeDrive("course_page");
+    expect(sent.find((e) => e.name === "boardFreeDriveStarted")?.args).toEqual({
+      surface: "course_page",
+    });
+    useBoardStore.getState().exit();
+    const ended = sent.find((e) => e.name === "boardFreeDriveEnded");
+    expect(ended?.args).toMatchObject({
+      rules_broken: 0,
+      set_backs: 0,
+      rules: "",
+      moved: false,
+    });
+    expect(sent.some((e) => e.name === "boardAbandoned")).toBe(false);
+    expect(sent.some((e) => e.name === "boardFaulted")).toBe(false);
+  });
 });

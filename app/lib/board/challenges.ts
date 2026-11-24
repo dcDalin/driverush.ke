@@ -85,12 +85,48 @@ export type RouteChallenge = TaskBase & {
   block?: string;
 };
 
-export type BoardChallenge = TurnChallenge | RouteChallenge;
+/**
+ * Free drive: no task, no green box, no pass. The car starts on a road and the
+ * learner drives wherever they like. Every rule is still judged, and each one
+ * broken is said and counted (`free-referee.ts`).
+ */
+export type FreeChallenge = TaskBase & {
+  free: true;
+  /** Reverse gear is in, for the parking bays. */
+  reverse: true;
+  start: { arm: ArmId; lane: number; along: number };
+};
+
+export type BoardChallenge = TurnChallenge | RouteChallenge | FreeChallenge;
 
 export function isRouteTask(
   challenge: BoardChallenge,
 ): challenge is RouteChallenge {
   return "lesson" in challenge;
+}
+
+export function isFreeDrive(
+  challenge: BoardChallenge,
+): challenge is FreeChallenge {
+  return "free" in challenge;
+}
+
+export function isTurnTask(
+  challenge: BoardChallenge,
+): challenge is TurnChallenge {
+  return "goal" in challenge;
+}
+
+/** The car has a reverse gear on this drive. */
+export function hasReverse(challenge: BoardChallenge): boolean {
+  return !isTurnTask(challenge) && challenge.reverse;
+}
+
+/** Cars stand in the parking bays on this drive. */
+export function hasParkedCars(challenge: BoardChallenge): boolean {
+  return (
+    !isTurnTask(challenge) && challenge.otherCars.some((one) => !one.flipped)
+  );
 }
 
 /** Far enough back that there is room to change lanes before the continuous lines. */
@@ -384,6 +420,24 @@ export const BOARD_CHALLENGES: readonly BoardChallenge[] = [
   ...ROUTE_TASKS,
   ...BLOCKED_TASKS,
 ];
+
+/**
+ * Free drive. Like the first drive it is not in `BOARD_CHALLENGES`, so it never
+ * turns up in a mock round. Its parked cars follow the parking layout.
+ */
+export const FREE_DRIVE: FreeChallenge = Object.defineProperty(
+  {
+    id: "free:drive",
+    free: true as const,
+    reverse: true as const,
+    title: "Free drive",
+    prompt:
+      "Drive anywhere on the board. Every rule you break is said and counted. Press Finish when you are done.",
+    start: { arm: "S" as ArmId, lane: 2, along: START_ALONG },
+  },
+  "otherCars",
+  { enumerable: true, get: () => parked.otherCars },
+) as FreeChallenge;
 
 export const BOARD_ROUND_SIZE = 5;
 

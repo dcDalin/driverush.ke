@@ -28,7 +28,9 @@ export type SmallFaultId =
   | "roundabout_stop"
   | "crossing_stop"
   | "kerb_stop"
-  | "bay_line";
+  | "bay_line"
+  /** Free drive only: the car reached the frame and was turned round. */
+  | "board_edge";
 export type SeriousFaultId =
   | "wrong_exit"
   | "wrong_destination"

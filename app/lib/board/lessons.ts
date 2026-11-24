@@ -5,7 +5,7 @@
  */
 import { blockById, closedEdges } from "./blocks";
 import { CAR } from "./car";
-import { isRouteTask, type BoardChallenge } from "./challenges";
+import { isFreeDrive, isRouteTask, type BoardChallenge } from "./challenges";
 import { goalBox, startOnBoard, type Box } from "./full-board";
 import {
   ARMS,
@@ -514,6 +514,8 @@ export function challengeRoute(challenge: BoardChallenge): Route | null {
     taskCache.set(key, route);
     return route;
   }
+  // Free drive has no route: the car goes where the learner takes it.
+  if (isFreeDrive(challenge)) return null;
   if (taskCache.has(challenge.id)) return taskCache.get(challenge.id) ?? null;
   const { start, goal, turn } = challenge;
   const from = laneNode(start.arm, "approach", start.lane, "start");
@@ -603,8 +605,12 @@ function placedStart(challenge: BoardChallenge): {
   };
 }
 
-/** The green box a task ends in, for drawing flat or on the table. */
-export function taskGoalBox(challenge: BoardChallenge): Box {
+/**
+ * The green box a task ends in, for drawing flat or on the table. Free drive
+ * has none.
+ */
+export function taskGoalBox(challenge: BoardChallenge): Box | null {
+  if (isFreeDrive(challenge)) return null;
   if (!isRouteTask(challenge)) return goalBox(challenge.goal);
   const route = challengeRoute(challenge);
   if (!route) return { x0: -2, x1: 2, z0: -2, z1: 2 };

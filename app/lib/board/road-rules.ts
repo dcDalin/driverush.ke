@@ -133,6 +133,12 @@ export type RoadResult = {
   fault?: Fault;
   /** The car is against the frame of the board. */
   frame: boolean;
+  /**
+   * The fault is one the car is still committing (driving against the
+   * traffic, or up the other side of the road): left alone, it comes again
+   * every step. Free drive puts the car back for these.
+   */
+  held?: true;
   loc: Location;
   /** The car has just left the roundabout, by an exit its lane may take. */
   exited?: {
@@ -503,6 +509,7 @@ export function roadStep(
     if (ref.wrongSideTime > WRONG_WAY_GRACE) {
       // Only a painted line keeps these lanes apart.
       result.fault = { id: "centre_line", serious: true };
+      result.held = true;
     }
     return result;
   }
@@ -540,6 +547,7 @@ export function roadStep(
     ref.wrongWayTime = against && moving ? ref.wrongWayTime + dt : 0;
     if (ref.wrongWayTime > WRONG_WAY_GRACE) {
       result.fault = { id: "wrong_way", serious: true };
+      result.held = true;
       return result;
     }
 
@@ -734,6 +742,7 @@ export function roadStep(
       id: ARMS[loc.arm].medianHalf > 0 ? "wrong_way" : "centre_line",
       serious: true,
     };
+    result.held = true;
     return result;
   }
 

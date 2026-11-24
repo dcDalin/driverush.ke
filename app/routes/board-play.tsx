@@ -1,8 +1,9 @@
 /**
  * `/model-town-board/play`: the board game and nothing else. `?level=<id>`
  * opens one level of the course, `?task=<id>` starts one task, `?learn=1`
- * opens the board to explore, and with none of them it is a round of mixed
- * tasks. `?school=<id>` names the driving school on the board, and follows it
+ * opens the board to explore, `?free=1` is free drive (no task, every rule
+ * said and counted; `&from=` names where it was opened), and with none of
+ * them it is a round of mixed tasks. `?school=<id>` names the driving school on the board, and follows it
  * as it changes. Closing the game goes back to the page it was opened from,
  * or to the Model Town Board page when it was opened cold.
  *
@@ -89,6 +90,8 @@ export default function BoardPlay() {
   // The board runs to the top edge: the status bar takes its dark.
   useThemeColor(SITE.themeColors.game);
   const learn = params.get("learn") === "1";
+  const free = params.get("free") === "1";
+  const from = params.get("from");
   const task = params.get("task");
   const level = params.get("level");
   // Today's drive (`daily-drive.ts`): only today's task, opened as such. An
@@ -102,6 +105,7 @@ export default function BoardPlay() {
     if (!store.overlayOpen) {
       if (level) store.startLevel(level);
       else if (learn) store.learn();
+      else if (free) store.freeDrive(from ?? "link");
       // A task that doesn't exist (an old or mistyped link) is a round.
       else store.start(task && challengeById(task) ? [task] : undefined);
       if (daily && task) analytics.dailyDriveStarted({ challenge_id: task });
@@ -111,7 +115,7 @@ export default function BoardPlay() {
       useBoardStore.getState().exit();
       swapping.current = false;
     };
-  }, [learn, task, level, daily]);
+  }, [learn, free, from, task, level, daily]);
 
   // Close takes the learner back to the page they opened the game from. The
   // store is listened to directly, not read from a render: moving from one

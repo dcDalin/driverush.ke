@@ -25,6 +25,8 @@ import { faultRule, faultTip } from "~/lib/board/board-rules";
 import {
   BOARD_CHALLENGES,
   blockCars,
+  hasReverse,
+  isFreeDrive,
   isRouteTask,
   type BoardChallenge,
 } from "~/lib/board/challenges";
@@ -60,6 +62,8 @@ import { peekAt, useStage } from "~/lib/board/stage";
 import { LevelCheer } from "~/components/board/board-cheer";
 import {
   BOARD_CHALLENGE_IDS,
+  isFreeRun,
+  rulesBroken,
   useBoardStore,
   type BoardNotice,
 } from "~/lib/board-store";
@@ -99,6 +103,7 @@ import { DailyDriveLink } from "~/components/board/daily-drive-row";
 import { useCourseStart } from "~/components/board/use-course-start";
 import { BoardFaultTip } from "~/components/board/board-fault-tip";
 import { BoardFinishCue } from "~/components/board/board-finish-cue";
+import { BoardFreeSummary } from "~/components/board/board-free-summary";
 import { BoardFps } from "~/components/board/board-fps";
 import { BoardLearn } from "~/components/board/board-learn";
 import { BoardLevel } from "~/components/board/board-level";
@@ -202,9 +207,9 @@ function Minimap({
   svg: string;
   live: boolean;
   seat: Seat;
-  /** The middle of the box the task ends in. */
-  finish: { x: number; z: number };
-  /** Show the car and the finish together on the table. */
+  /** The middle of the box the task ends in. Free drive has none. */
+  finish?: { x: number; z: number };
+  /** Show the car and the finish together, or the whole board. */
   onPeek: () => void;
 }) {
   const dot = React.useRef<HTMLSpanElement>(null);
@@ -222,11 +227,11 @@ function Minimap({
     return () => cancelAnimationFrame(frame);
   }, [live, svg, seat]);
   const sideways = seat === "east" || seat === "west";
-  const end = placeOnPage(finish.x, finish.z, seat);
+  const end = finish ? placeOnPage(finish.x, finish.z, seat) : null;
   return (
     <button
       type="button"
-      aria-label="Show where this task ends"
+      aria-label={end ? "Show where this task ends" : "Show the whole board"}
       data-board-minimap
       disabled={!live}
       onClick={onPeek}
@@ -241,13 +246,15 @@ function Minimap({
         dangerouslySetInnerHTML={{ __html: svg }}
       />
       {/* The finish, ringed so it shows at this size. */}
-      <span
-        className="absolute size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-[#5fe08a]/40"
-        style={{
-          left: `${(end.left * 100).toFixed(1)}%`,
-          top: `${(end.top * 100).toFixed(1)}%`,
-        }}
-      />
+      {end && (
+        <span
+          className="absolute size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-[#5fe08a]/40"
+          style={{
+            left: `${(end.left * 100).toFixed(1)}%`,
+            top: `${(end.top * 100).toFixed(1)}%`,
+          }}
+        />
+      )}
       <span
         ref={dot}
         className="absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-ink bg-kenya-gold"
@@ -586,9 +593,13 @@ function StarLost({
       <p className="m-0 font-mono text-[10px] font-bold uppercase tracking-widest">
         {notice.route
           ? `Off route · ${tip.title}`
-          : notice.back
-            ? `Back a bit · ${tip.title}`
-            : tip.title}
+          : notice.turned
+            ? `Picked up · ${tip.title}`
+            : notice.back
+              ? `Back a bit · ${tip.title}`
+              : notice.broken
+                ? `Rule broken · ${tip.title}`
+                : tip.title}
         {!lesson && !notice.route && " · 1 star lost"}
       </p>
       <p className="m-0 mt-1 text-[13.5px] font-semibold leading-snug">
@@ -721,6 +732,8 @@ export function BoardGame() {
       lastBest: st.lastBest,
       attempt: st.attempt,
       lanes: st.lanes,
+      freeLog: st.freeLog,
+      freeDrive: st.freeDrive,
       pickCar: st.pickCar,
       putBack: st.putBack,
       runClean: st.runClean,
@@ -753,6 +766,8 @@ export function BoardGame() {
   const [wrongStep, setWrongStep] = React.useState<number | null>(null);
   // Asked before a drive that is under way is thrown away.
   const [leaving, setLeaving] = React.useState(false);
+  // Free drive's count of the rules broken, over the table.
+  const [summaryOpen, setSummaryOpen] = React.useState(false);
   // Restart, Settings and the zoom buttons, behind one button.
   const [moreOpen, setMoreOpen] = React.useState(false);
   const [coachStep, setCoachStep] = React.useState(0);
@@ -776,7 +791,7 @@ export function BoardGame() {
 
   // With the settings, the levels or the "leave?" question over the table,
   // the drive holds still: the car, the referee and the clock.
-  const held = settingsOpen || levelsOpen || leaving;
+  const held = settingsOpen || levelsOpen || leaving || summaryOpen;
   React.useEffect(() => {
     setPaused(held);
     return () => setPaused(false);
@@ -785,14 +800,37 @@ export function BoardGame() {
   React.useEffect(() => {
     setLeaving(false);
     setMoreOpen(false);
+    setSummaryOpen(false);
   }, [s.phase, s.attempt]);
-  const heldRef = React.useRef({ settingsOpen, levelsOpen, leaving });
-  heldRef.current = { settingsOpen, levelsOpen, leaving };
+  const heldRef = React.useRef({
+    settingsOpen,
+    levelsOpen,
+    leaving,
+    summaryOpen,
+  });
+  heldRef.current = { settingsOpen, levelsOpen, leaving, summaryOpen };
 
-  /** Leave the board. Mid-drive, ask first: it is one tap from a restart. */
+  /**
+   * Leave the board. Mid-drive, ask first: it is one tap from a restart. A
+   * free drive that has gone anywhere shows what it broke instead.
+   */
   const askToLeave = () => {
     const store = useBoardStore.getState();
-    if (store.phase === "driving" && hasMoved() && !heldRef.current.leaving) {
+    if (
+      isFreeRun(store) &&
+      store.phase === "driving" &&
+      hasMoved() &&
+      !heldRef.current.summaryOpen
+    ) {
+      setSummaryOpen(true);
+      return;
+    }
+    if (
+      !isFreeRun(store) &&
+      store.phase === "driving" &&
+      hasMoved() &&
+      !heldRef.current.leaving
+    ) {
       setLeaving(true);
       return;
     }
@@ -838,6 +876,8 @@ export function BoardGame() {
   }, [seat, assist]);
 
   const challenge = s.queue[s.pos] ?? null;
+  // Free drive: no task, no green box, every rule said and counted.
+  const free = challenge != null && isFreeDrive(challenge);
   // Each new task or level puts the next school on the board (owner,
   // 2026-11-22). A new round or level makes a new queue and the next task
   // moves along it; a retry or a restart changes neither, so it keeps its
@@ -930,8 +970,16 @@ export function BoardGame() {
   const sheetUp = s.phase !== "driving";
   // A popup is up, or the leave question: the other controls step back.
   const quiet = sheetUp || leaving;
-  const reverseTask =
-    challenge != null && isRouteTask(challenge) && challenge.reverse;
+  const reverseTask = challenge != null && hasReverse(challenge);
+  // How to reverse is said at the start of a task. A free drive goes on and
+  // on, so there it is said for a while and then the road is left clear.
+  const [reverseNote, setReverseNote] = React.useState(true);
+  React.useEffect(() => {
+    setReverseNote(true);
+    if (!free) return;
+    const timer = window.setTimeout(() => setReverseNote(false), 12000);
+    return () => window.clearTimeout(timer);
+  }, [free, s.attempt]);
   const last = s.pos >= s.queue.length - 1;
 
   // Today's drive (`daily-drive.ts`): the one task opened with `&daily=1` on
@@ -1003,7 +1051,7 @@ export function BoardGame() {
     () =>
       challenge
         ? fullBoardSvg({
-            box: taskGoalBox(challenge),
+            box: taskGoalBox(challenge) ?? undefined,
             seen: seat,
             numbers: false,
             // a blocked way shows on the small map too
@@ -1029,6 +1077,11 @@ export function BoardGame() {
   );
   /** Back the view off to show the car and the finish together. */
   const peek = () => {
+    if (free) {
+      // No finish: the whole board, to find the way.
+      peekAt({ ...BOUNDS }, seat === "east" || seat === "west");
+      return;
+    }
     if (!goalBox) return;
     peekAt(
       {
@@ -1160,9 +1213,11 @@ export function BoardGame() {
                 <TaskCard
                   key={`${challenge.id}-${s.attempt}`}
                   place={
-                    level
-                      ? `Level ${level.n} of ${COURSE_LEVELS.length}`
-                      : `Task ${s.pos + 1} of ${s.queue.length}`
+                    free
+                      ? "The whole board"
+                      : level
+                        ? `Level ${level.n} of ${COURSE_LEVELS.length}`
+                        : `Task ${s.pos + 1} of ${s.queue.length}`
                   }
                   title={challenge.title}
                   prompt={
@@ -1176,12 +1231,12 @@ export function BoardGame() {
                   attempt={s.attempt}
                   onNextStep={() => s.hint("next_step")}
                   onShowMe={() => showTheWay("show_me")}
-                  bare={warmup}
+                  bare={warmup || free}
                 >
-                  {s.notice && (
+                  {s.notice && !summaryOpen && (
                     <StarLost
                       notice={s.notice}
-                      lesson={pickedCar != null || warmup}
+                      lesson={pickedCar != null || warmup || free}
                     />
                   )}
                   <BoardSignCue active />
@@ -1278,8 +1333,52 @@ export function BoardGame() {
                 />
               </div>
             )}
+            {/* Free drive: the clock, the count, and the way to finish. On a
+                phone they stack, so the task column keeps its width. */}
+            {free && (
+              <div
+                className={cn(
+                  "pointer-events-auto flex flex-col items-end gap-2 sm:flex-row sm:items-center",
+                  sheetUp && "max-sm:hidden",
+                  awayForTurn(showing),
+                )}
+              >
+                <div
+                  data-free-tally
+                  role="status"
+                  className="flex items-center gap-2 rounded-md border-2 border-white/15 bg-[#101114]/85 px-2.5 py-1.5 font-mono text-[12px] font-bold"
+                >
+                  <Clock
+                    running={s.phase === "driving" && !held}
+                    key={s.attempt}
+                  />
+                  {(() => {
+                    const n = rulesBroken(s.freeLog).length;
+                    return (
+                      <span className={n ? "text-[#f6c416]" : "text-white/80"}>
+                        <span className="sm:hidden">
+                          {n === 0 ? "Clean" : `${n} broken`}
+                        </span>
+                        <span className="max-sm:hidden">
+                          {n === 0
+                            ? "No rules broken"
+                            : `${n} ${n === 1 ? "rule" : "rules"} broken`}
+                        </span>
+                      </span>
+                    );
+                  })()}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSummaryOpen(true)}
+                  className="inline-flex min-h-11 items-center rounded-md bg-[#f6c416] px-3.5 text-[13.5px] font-bold text-[#17181b] outline-none focus-visible:ring-2 focus-visible:ring-white"
+                >
+                  Finish
+                </button>
+              </div>
+            )}
             {/* A car from a line-up is a lesson: no clock, no stars. */}
-            {!pickedCar && !warmup && (
+            {!pickedCar && !warmup && !free && (
               <div
                 className={cn(
                   "flex items-center gap-2 rounded-md border-2 border-white/15 bg-[#101114]/85 px-2.5 py-1.5 font-mono text-[12px] font-bold",
@@ -1305,7 +1404,7 @@ export function BoardGame() {
                 )}
               </div>
             )}
-            {goalBox && (
+            {(goalBox || free) && (
               <div
                 className={cn(sheetUp && "max-sm:hidden", awayForTurn(showing))}
               >
@@ -1313,10 +1412,14 @@ export function BoardGame() {
                   svg={minimap}
                   live={s.phase === "driving"}
                   seat={seat}
-                  finish={{
-                    x: (goalBox.x0 + goalBox.x1) / 2,
-                    z: (goalBox.z0 + goalBox.z1) / 2,
-                  }}
+                  finish={
+                    goalBox
+                      ? {
+                          x: (goalBox.x0 + goalBox.x1) / 2,
+                          z: (goalBox.z0 + goalBox.z1) / 2,
+                        }
+                      : undefined
+                  }
                   onPeek={peek}
                 />
               </div>
@@ -1344,6 +1447,7 @@ export function BoardGame() {
         painted &&
         coaching &&
         !warmup &&
+        !free &&
         s.mode === "drive" &&
         s.phase === "driving" &&
         !showing &&
@@ -1388,6 +1492,7 @@ export function BoardGame() {
       {!unsupported &&
         painted &&
         challenge &&
+        !free &&
         s.phase === "driving" &&
         !settingsOpen && (
           <div className={awayForTurn(showing)}>
@@ -1411,7 +1516,7 @@ export function BoardGame() {
                 : undefined
             }
             note={
-              reverseTask
+              reverseTask && reverseNote
                 ? "To reverse: stop, pull the joystick back and hold it. The back of the car goes where you point."
                 : undefined
             }
@@ -1423,6 +1528,7 @@ export function BoardGame() {
         s.mode === "drive" &&
         s.phase === "driving" &&
         !held &&
+        !free &&
         !(coaching && !warmup) && (
           <StuckChip key={s.attempt} onRestart={s.restart} />
         )}
@@ -1441,6 +1547,17 @@ export function BoardGame() {
         seat={seat}
         car={boardCar}
       />
+
+      {/* Free drive's finish: what was broken, and where to go from here. */}
+      {free && summaryOpen && s.phase === "driving" && (
+        <BoardFreeSummary
+          log={s.freeLog}
+          seconds={elapsedSeconds()}
+          onKeepDriving={() => setSummaryOpen(false)}
+          onNewDrive={() => s.freeDrive("summary")}
+          onClose={s.exit}
+        />
+      )}
 
       {/* Leaving mid-drive: one question, so a slip of the thumb costs nothing. */}
       {leaving && s.phase === "driving" && (
@@ -1496,7 +1613,7 @@ export function BoardGame() {
           >
             {s.missed ? "You left the route" : faultTip(s.fault).title}
           </h2>
-          {challenge && (
+          {challenge && !free && (
             <p className="m-0 text-[13px] leading-snug text-ink-2">
               You were asked: {challenge.prompt}
             </p>
@@ -1526,14 +1643,16 @@ export function BoardGame() {
             <Icon icon={RefreshIcon} size={16} />
             Try again
           </Button>
-          <Button
-            variant="ink"
-            className="w-full"
-            onClick={() => showTheWay("after_fault")}
-          >
-            <Icon icon={PlayIcon} size={14} />
-            Watch the right way
-          </Button>
+          {!free && (
+            <Button
+              variant="ink"
+              className="w-full"
+              onClick={() => showTheWay("after_fault")}
+            >
+              <Icon icon={PlayIcon} size={14} />
+              Watch the right way
+            </Button>
+          )}
           <button
             type="button"
             onClick={pickedCar ? s.putBack : s.exit}

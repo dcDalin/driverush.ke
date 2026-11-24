@@ -6,7 +6,19 @@
  */
 import type { CarInput, CarState } from "./car";
 import { sizeOf, type BoardCarId } from "./cars";
-import { isRouteTask, type BoardChallenge } from "./challenges";
+import {
+  hasReverse,
+  isFreeDrive,
+  isRouteTask,
+  isTurnTask,
+  type BoardChallenge,
+} from "./challenges";
+import {
+  createFree,
+  freeRefStep,
+  type FreeState,
+  type Pose,
+} from "./free-referee";
 import { challengeRoute, taskParks, taskStart } from "./lessons";
 import { bearingOf, wrapPi } from "./geometry";
 import { poseAt, type Route } from "./network";
@@ -112,6 +124,17 @@ const TRAIL_MAX = 900;
 const BUMP_APART = 5;
 const BUMPS = new Set(["kerb", "central_reserve", "island"]);
 let lastBump: { x: number; z: number } | null = null;
+
+/**
+ * Free drive says each rule once where it is broken: crossing a continuous
+ * line and straight back over it is one mistake. The same rule only counts
+ * again once the car is this far on.
+ */
+const RULE_APART = 8;
+const lastTold = new Map<string, { x: number; z: number }>();
+/** The drive is free drive: nothing ends it (`free-referee.ts`). */
+let freeRun = false;
+let free: FreeState = createFree();
 
 type Callbacks = {
   /** A serious mistake: the attempt is over. */
@@ -222,11 +245,13 @@ export function beginChallenge(next: BoardChallenge, cb: Callbacks): void {
   routeRef = createRouteRef();
   taskRoute = isRouteTask(next) ? challengeRoute(next) : null;
   taskParking = taskParks(next);
-  drive.reverse = isRouteTask(next) && next.reverse;
+  freeRun = isFreeDrive(next);
+  free = createFree();
+  drive.reverse = hasReverse(next);
   // Where the task ends in one lane, lane assist joins the roundabout lane
   // that option goes round in and steers out into that lane.
   drive.exitTo =
-    !isRouteTask(next) && next.goal.lane != null
+    isTurnTask(next) && next.goal.lane != null
       ? { arm: next.goal.arm, lane: next.goal.lane }
       : null;
   car.speed = 0;
@@ -251,6 +276,7 @@ export function beginChallenge(next: BoardChallenge, cb: Callbacks): void {
   trail.length = 0;
   trail.push({ x: car.x, z: car.z });
   lastBump = null;
+  lastTold.clear();
   driven = 0;
   letGo = false;
   snaps.length = 0;
@@ -288,6 +314,7 @@ export function setBack(metres: number): boolean {
   trail.length = Math.max(1, snap.trail);
   driven = snap.at;
   lastBump = null;
+  lastTold.clear();
   carry = 0;
   paused = false;
   settle();
@@ -295,6 +322,37 @@ export function setBack(metres: number): boolean {
   letGo = true;
   driving = true;
   return true;
+}
+
+/**
+ * Put the car down here, at rest, and carry on with the same drive: free
+ * drive turning the car round at the frame. The rules start afresh from here.
+ */
+export function placeCar(pose: Pose): void {
+  if (!challenge || !engine) return;
+  car.x = pose.x;
+  car.z = pose.z;
+  car.heading = pose.heading;
+  car.speed = 0;
+  car.steer = 0;
+  ref = createRef();
+  assist = createAssist();
+  physics = engine.createPhysics(challenge, car, vehicle);
+  view.others = physics.poses;
+  view.braking = false;
+  view.reversing = false;
+  view.hold = 0;
+  view.backing = 0;
+  trail.push({ x: car.x, z: car.z });
+  // Setting back never goes past here: the road behind is another road now.
+  snaps.length = 0;
+  snapshot();
+  lastBump = null;
+  lastTold.clear();
+  carry = 0;
+  settle();
+  resetInput();
+  letGo = true;
 }
 
 /**
@@ -416,6 +474,31 @@ function reverseLine(at: CarState): { heading: number; along: number } | null {
   };
 }
 
+/** Say a step's small mistakes. A kerb leaned on is one bump, not several. */
+function saySmall(small: readonly Fault[], impact: number): void {
+  for (const fault of small) {
+    view.jolt = Math.max(view.jolt, 0.6 * Math.max(0.5, impact));
+    if (BUMPS.has(fault.id)) {
+      const again =
+        lastBump !== null &&
+        Math.hypot(car.x - lastBump.x, car.z - lastBump.z) < BUMP_APART;
+      lastBump = { x: car.x, z: car.z };
+      if (again) continue;
+    }
+    callbacks?.onSmall(fault);
+  }
+}
+
+/** Free drive: is this a new mistake, and not the one just said here? */
+function newHere(fault: Fault): boolean {
+  const last = lastTold.get(fault.id);
+  if (last && Math.hypot(car.x - last.x, car.z - last.z) < RULE_APART) {
+    return false;
+  }
+  lastTold.set(fault.id, { x: car.x, z: car.z });
+  return true;
+}
+
 /** Advance the drive by one rendered frame. */
 export function tick(frameSeconds: number): void {
   if (
@@ -487,6 +570,31 @@ export function tick(frameSeconds: number): void {
       continue;
     }
 
+    if (freeRun) {
+      const said = freeRefStep(
+        ref,
+        free,
+        car,
+        physics.contacts,
+        STEP,
+        sizeOf(vehicle),
+      );
+      saySmall(said.small, physics.impact);
+      if (said.place) {
+        placeCar(said.place);
+        callbacks.onSmall(said.fault!);
+        continue;
+      }
+      if (said.fault && said.back) {
+        // The store puts the car back a little before the mistake.
+        stopDriving();
+        callbacks.onFault(said.fault);
+        return;
+      }
+      if (said.fault && newHere(said.fault)) callbacks.onSmall(said.fault);
+      continue;
+    }
+
     const result = isRouteTask(challenge)
       ? taskRoute
         ? routeRefStep(
@@ -498,18 +606,10 @@ export function tick(frameSeconds: number): void {
             STEP,
           )
         : { small: [] }
-      : refStep(ref, challenge, car, physics.contacts, STEP);
-    for (const fault of result.small) {
-      view.jolt = Math.max(view.jolt, 0.6 * Math.max(0.5, physics.impact));
-      if (BUMPS.has(fault.id)) {
-        const again =
-          lastBump !== null &&
-          Math.hypot(car.x - lastBump.x, car.z - lastBump.z) < BUMP_APART;
-        lastBump = { x: car.x, z: car.z };
-        if (again) continue;
-      }
-      callbacks.onSmall(fault);
-    }
+      : isTurnTask(challenge)
+        ? refStep(ref, challenge, car, physics.contacts, STEP)
+        : { small: [] };
+    saySmall(result.small, physics.impact);
     if (
       result.fault &&
       judging.forgiveLanes &&

@@ -188,7 +188,7 @@ export default function BoardNetworkTool() {
       return fullBoardSvg({
         seen,
         routes: lines,
-        box: taskGoalBox(blockedTask),
+        box: taskGoalBox(blockedTask) ?? undefined,
         cars: [
           ...blockedTask.otherCars.map((car) => ({
             x: car.x,

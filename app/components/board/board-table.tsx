@@ -26,7 +26,7 @@ import {
   sizeOf,
   type BoardCarId,
 } from "~/lib/board/cars";
-import { isRouteTask, type BoardChallenge } from "~/lib/board/challenges";
+import { hasParkedCars, type BoardChallenge } from "~/lib/board/challenges";
 import {
   BOUNDS,
   CAR_COLORS,
@@ -1588,7 +1588,9 @@ function Scene({
 
   const goal = React.useMemo(() => {
     if (!challenge) return null;
+    // Free drive has no green box.
     const box = taskGoalBox(challenge);
+    if (!box) return null;
     return {
       x: (box.x0 + box.x1) / 2,
       z: (box.z0 + box.z1) / 2,
@@ -1751,11 +1753,7 @@ function Scene({
     player.visible = (playerReady || late) && (!learning || route !== null);
     // In a parking task the parked cars are solid and drawn with the task's
     // own cars, so the ones that only dress the board step aside.
-    parked.visible = !(
-      challenge &&
-      isRouteTask(challenge) &&
-      challenge.otherCars.some((other) => !other.flipped)
-    );
+    parked.visible = !(challenge && hasParkedCars(challenge));
     if (playing && !stillChevrons) chevrons.offset.x -= dt * 0.9;
     if (glowMaterial.current) {
       glowMaterial.current.opacity =
