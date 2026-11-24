@@ -103,6 +103,17 @@ export const SITE = {
 export const GONASI = {
   name: "Gonasi",
   url: "https://www.gonasi.com",
+  /**
+   * Gonasi's own social profiles, where DriveRush is promoted. They go on the
+   * parent organisation, never on DriveRush's `SITE.sameAs`: `sameAs` says
+   * "this is the same entity", and these accounts are Gonasi's. Checked
+   * 2026-11-24 (TikTok shows driverush.ke in its bio). Add Facebook and
+   * LinkedIn here once their exact addresses are confirmed.
+   */
+  sameAs: [
+    "https://www.tiktok.com/@gonasi_app",
+    "https://www.instagram.com/gonasi_app/",
+  ],
   blurb:
     "Gonasi builds software for learning the stuff people usually give up on. Dense rule books, jargon-heavy exams, official material written like it doesn't want to be read.",
   /** Logo for placement over dark backgrounds (`bg-ink`, etc.). */
@@ -271,6 +282,7 @@ export function organizationLd() {
       "@id": `${GONASI.url}#organization`,
       name: GONASI.name,
       url: GONASI.url,
+      sameAs: [...GONASI.sameAs],
     },
   };
 }
