@@ -62,7 +62,7 @@ function MissedThumbnails({ signs }: { signs: readonly MissedSign[] }) {
             key={sign.id}
             title={sign.name}
             aria-label={sign.name}
-            className="dr-pop size-12 border-2 border-ink bg-white"
+            className="dr-pop size-12 border border-line bg-white rounded-lg"
             style={
               {
                 "--i": index + 4,
@@ -75,7 +75,7 @@ function MissedThumbnails({ signs }: { signs: readonly MissedSign[] }) {
         );
       })}
       {more > 0 && (
-        <li className="flex size-12 items-center justify-center border-2 border-ink bg-paper-3 font-mono text-[11px] font-bold text-ink-2">
+        <li className="flex size-12 items-center justify-center border border-line bg-paper-3 font-mono text-[11px] font-bold text-ink-2 rounded-lg">
           +{more}
         </li>
       )}
@@ -179,26 +179,26 @@ export function TrainerResultCard({
         variants={CARD}
         initial="hidden"
         animate="show"
-        className="relative w-full max-w-sm border-2 border-ink bg-surface shadow-stamp-xl"
+        className="relative w-full max-w-sm border border-line bg-surface shadow-stamp-xl rounded-lg"
       >
-        <div className="flex items-center justify-between gap-3 bg-ink px-4 py-2.5 font-mono text-[10.5px] font-bold uppercase tracking-widest text-paper">
+        <div className="flex items-center justify-between gap-3 bg-ink px-4 py-2.5 font-sans text-[10.5px] font-semibold uppercase tracking-wider text-paper">
           <span>{scope === "chart" ? "Whole chart" : "Round done"}</span>
           <button
             type="button"
             aria-label="Close"
             onClick={onExit}
-            className="relative -my-1 inline-flex size-6 shrink-0 items-center justify-center border-2 border-paper before:absolute before:-inset-2.5 before:content-[''] text-paper outline-none transition-colors duration-100 hover:bg-paper hover:text-ink focus-visible:bg-paper focus-visible:text-ink"
+            className="relative -my-1 inline-flex size-6 shrink-0 items-center justify-center border border-paper before:absolute before:-inset-2.5 before:content-[''] text-paper outline-none transition-colors duration-100 hover:bg-paper hover:text-ink focus-visible:bg-paper focus-visible:text-ink rounded-md"
           >
             <Icon icon={CloseIcon} size={13} />
           </button>
         </div>
 
-        <RoundDoneScene crop className="h-24 border-b-2 border-ink sm:h-28" />
+        <RoundDoneScene crop className="h-24 border-b border-line sm:h-28" />
 
         <div className="flex flex-col items-center gap-3 px-5 py-6">
           <motion.h2
             variants={ITEM}
-            className="m-0 font-display text-[clamp(24px,6vw,32px)] font-extrabold uppercase leading-[0.95] tracking-tight text-ink"
+            className="m-0 font-display text-[clamp(24px,6vw,32px)] font-semibold leading-[0.95] tracking-tight text-ink"
           >
             {headline}
           </motion.h2>
@@ -225,7 +225,7 @@ export function TrainerResultCard({
 
           {selfGraded && (
             <motion.div variants={ITEM} className="dr-fill-in w-full">
-              <div className="mb-1.5 flex items-center justify-between gap-2 font-mono text-[10px] uppercase tracking-widest text-ink-3">
+              <div className="mb-1.5 flex items-center justify-between gap-2 font-sans text-[10px] uppercase tracking-wider text-ink-3 font-medium">
                 <span>
                   {counts.known} known · {counts.learning} learning
                 </span>
@@ -239,7 +239,7 @@ export function TrainerResultCard({
                 className="h-3"
               />
               {streakLine && (
-                <p className="m-0 mt-2 font-mono text-[10px] font-bold uppercase tracking-widest text-ink-2">
+                <p className="m-0 mt-2 font-sans text-[10px] font-semibold uppercase tracking-wider text-ink-2">
                   {streakLine}
                 </p>
               )}
@@ -256,7 +256,7 @@ export function TrainerResultCard({
                       onResetMastery();
                     }
                   }}
-                  className="mt-2 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-ink-3 outline-none hover:text-ink focus-visible:text-ink"
+                  className="mt-2 inline-flex items-center gap-1.5 font-sans text-[10px] uppercase tracking-wider text-ink-3 outline-none hover:text-ink focus-visible:text-ink font-medium"
                 >
                   <Icon icon={RefreshIcon} size={11} />
                   Reset progress

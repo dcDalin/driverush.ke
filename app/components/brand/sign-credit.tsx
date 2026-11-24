@@ -19,13 +19,13 @@ export function SignCredit({
     <span className={cn("inline-flex items-center gap-2.5", className)}>
       <span
         className={cn(
-          "font-mono text-[10.5px] uppercase tracking-widest",
+          "font-sans text-[10.5px] uppercase tracking-wider font-medium",
           onInk ? "text-paper/80" : "text-ink-3",
         )}
       >
         Featuring
       </span>
-      <span className="inline-flex border-2 border-ink bg-white">
+      <span className="inline-flex border border-line bg-white rounded-lg">
         <img
           src={SIGN_BRAND.logo}
           alt={SIGN_BRAND.name}

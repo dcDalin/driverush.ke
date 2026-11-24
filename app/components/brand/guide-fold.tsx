@@ -53,14 +53,14 @@ export function GuideFold({
     <details
       data-slot="guide-fold"
       className={cn(
-        "group scroll-mt-20 border border-ink/25 bg-surface",
+        "group scroll-mt-20 border border-ink/25 bg-surface rounded-lg",
         className,
       )}
       {...props}
     >
       <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 outline-none transition-colors hover:bg-paper-2 focus-visible:bg-paper-2 [&::-webkit-details-marker]:hidden">
         <span className="min-w-0">
-          <span className="block font-display text-[15px] font-extrabold uppercase leading-tight tracking-tight text-ink">
+          <span className="block font-display text-[15px] font-bold leading-tight tracking-tight text-ink">
             {title}
           </span>
           {hint && (
@@ -71,7 +71,7 @@ export function GuideFold({
         </span>
         <span
           aria-hidden
-          className="shrink-0 font-display text-[22px] font-extrabold leading-none text-rush before:content-['+'] group-open:before:content-['−']"
+          className="shrink-0 font-display text-[22px] font-bold leading-none text-rush before:content-['+'] group-open:before:content-['−']"
         />
       </summary>
       <div className="border-t border-ink/15 px-4 pb-5 pt-1">{children}</div>

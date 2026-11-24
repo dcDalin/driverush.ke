@@ -24,9 +24,9 @@ export function PracticeQuestions({
       {questions.map((question, index) => (
         <li
           key={question.prompt}
-          className="border-2 border-ink bg-paper-3 p-4 sm:p-5"
+          className="border border-line bg-paper-3 p-4 sm:p-5 rounded-lg"
         >
-          <p className="m-0 font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+          <p className="m-0 font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
             Question {start + index}
           </p>
           <p className="m-0 mt-1.5 text-[16px] font-semibold leading-snug text-ink">
@@ -42,8 +42,8 @@ export function PracticeQuestions({
               </li>
             ))}
           </ul>
-          <details className="mt-3 border-t border-dashed border-ink pt-2.5">
-            <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-widest text-rush outline-none focus-visible:underline">
+          <details className="mt-3 border-t border-line pt-2.5">
+            <summary className="cursor-pointer font-sans text-[11px] uppercase tracking-wider text-rush outline-none focus-visible:underline font-medium">
               Show the answer
             </summary>
             <p className="m-0 mt-2 text-[15px] leading-snug text-ink">
@@ -53,7 +53,7 @@ export function PracticeQuestions({
               </strong>{" "}
               {question.why}
             </p>
-            <p className="m-0 mt-1.5 font-mono text-[10.5px] uppercase tracking-wider text-ink-3">
+            <p className="m-0 mt-1.5 font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
               Source: {question.source}
             </p>
           </details>

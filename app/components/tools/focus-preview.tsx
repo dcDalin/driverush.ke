@@ -158,7 +158,7 @@ export function FocusPreview({
 
   if (order.length === 0) {
     return (
-      <div className="flex aspect-video items-center justify-center border-2 border-dashed border-ink bg-paper-3 text-center font-mono text-[11px] uppercase tracking-widest text-ink-3">
+      <div className="flex aspect-video items-center justify-center border border-line bg-paper-3 text-center font-sans text-[11px] uppercase tracking-wider text-ink-3 rounded-lg font-medium">
         Add a region to preview the trainer
       </div>
     );
@@ -181,15 +181,15 @@ export function FocusPreview({
         />
 
         {phase === "revealed" && region && (
-          <div className="absolute inset-x-0 bottom-0 z-10 border-t-2 border-ink bg-surface/95 px-4 py-3 backdrop-blur-sm">
+          <div className="absolute inset-x-0 bottom-0 z-10 border-t border-line bg-surface/95 px-4 py-3 backdrop-blur-sm">
             <div className="mx-auto max-w-2xl">
-              <span className="flex flex-wrap items-center gap-x-2 font-mono text-[10px] uppercase tracking-widest text-ink-3">
+              <span className="flex flex-wrap items-center gap-x-2 font-sans text-[10px] uppercase tracking-wider text-ink-3 font-medium">
                 <span className="text-ink-2">
                   {cat?.emoji} {cat?.label}
                 </span>
                 {region.code && <span>· {region.code}</span>}
               </span>
-              <p className="m-0 mt-0.5 font-display text-[clamp(18px,3vw,26px)] font-extrabold uppercase leading-tight tracking-tight text-ink">
+              <p className="m-0 mt-0.5 font-display text-[clamp(18px,3vw,26px)] font-semibold leading-tight tracking-tight text-ink">
                 {region.name || "(unnamed)"}
               </p>
               {region.note && (
@@ -201,7 +201,7 @@ export function FocusPreview({
           </div>
         )}
 
-        <span className="absolute left-2 top-2 z-10 bg-ink px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-widest text-paper">
+        <span className="absolute left-2 top-2 z-10 bg-ink px-1.5 py-0.5 font-sans text-[10px] font-semibold uppercase tracking-wider text-paper">
           {currentIndex + 1} / {order.length}
         </span>
       </div>
@@ -262,7 +262,7 @@ export function FocusPreview({
           {phase === "revealed" ? "Hide name" : "Reveal name"}
         </Button>
 
-        <span className="ml-auto truncate font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+        <span className="ml-auto truncate font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
           zoom ≈ {transform.scale.toFixed(2)}× · {region?.name || "—"}
         </span>
       </div>

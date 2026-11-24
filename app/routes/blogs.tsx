@@ -132,7 +132,7 @@ export default function BlogsIndex() {
 
           {/* Featured hero post — first one in date order. */}
           {hero && (
-            <section className="border-b-2 border-ink py-10">
+            <section className="border-b border-line py-10">
               <div className="mb-6 flex flex-wrap items-center gap-2">
                 <Badge variant="rush">★ Featured · just in</Badge>
                 <Badge variant="ink">{hero.category}</Badge>
@@ -142,9 +142,9 @@ export default function BlogsIndex() {
                 <div>
                   <h2
                     className={[
-                      "m-0 font-display font-extrabold uppercase leading-[0.92] tracking-tight text-ink",
+                      "m-0 font-display font-bold leading-[0.92] tracking-tight text-ink",
                       "text-[clamp(36px,6vw,64px)]",
-                      "[&_em]:font-serif [&_em]:font-normal [&_em]:normal-case [&_em]:italic [&_em]:text-rush",
+                      "[&_em]:font-serif [&_em]:font-normal [&_em]:normal-case [&_em]:text-rush",
                     ].join(" ")}
                   >
                     <Link
@@ -164,20 +164,20 @@ export default function BlogsIndex() {
                         <Icon icon={ArrowRightIcon} size={16} />
                       </Link>
                     </Button>
-                    <span className="font-mono text-[11px] uppercase tracking-widest text-ink-3">
+                    <span className="font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
                       {hero.readingMinutes} min read · By {SITE.byline}
                     </span>
                   </div>
                 </div>
 
-                <aside className="border-l-2 border-dashed border-ink pl-5">
-                  <p className="m-0 mb-3 font-mono text-[11px] uppercase tracking-widest text-ink-3">
+                <aside className="border-l border-line pl-5">
+                  <p className="m-0 mb-3 font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
                     Why we wrote this →
                   </p>
                   <p className="m-0 font-serif text-base leading-snug text-ink-2">
                     {hero.description}
                   </p>
-                  <p className="mt-4 font-mono text-[10.5px] uppercase tracking-widest text-rush">
+                  <p className="mt-4 font-sans text-[10.5px] uppercase tracking-wider text-rush font-medium">
                     Tone: {hero.tone}
                   </p>
                 </aside>
@@ -187,11 +187,11 @@ export default function BlogsIndex() {
 
           {/* The rest as a grid. */}
           <section className="py-12">
-            <div className="mb-6 flex items-baseline justify-between border-b-2 border-ink pb-3">
-              <h2 className="m-0 font-display text-2xl font-extrabold uppercase tracking-tight text-ink sm:text-3xl">
+            <div className="mb-6 flex items-baseline justify-between border-b border-line pb-3">
+              <h2 className="m-0 font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
                 More from the editors
               </h2>
-              <span className="font-mono text-[11px] uppercase tracking-widest text-ink-3">
+              <span className="font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
                 {rest.length} more
               </span>
             </div>
@@ -206,12 +206,12 @@ export default function BlogsIndex() {
           </section>
 
           {/* Outbound CTA strip — keep the live product within one click. */}
-          <section className="mb-14 border-2 border-ink bg-ink p-6 text-paper sm:p-8">
-            <p className="m-0 mb-2 font-mono text-[11px] uppercase tracking-widest opacity-70">
+          <section className="mb-14 border border-line bg-ink p-6 text-paper sm:p-8 rounded-lg">
+            <p className="m-0 mb-2 font-sans text-[11px] uppercase tracking-wider opacity-70 font-medium">
               The reading is great. The practice is greater.
             </p>
-            <h2 className="m-0 mb-4 font-display text-2xl font-extrabold uppercase leading-[0.98] tracking-tight sm:text-3xl">
-              Try the live <span className="italic text-rush">games</span> the
+            <h2 className="m-0 mb-4 font-display text-2xl font-semibold leading-[0.98] tracking-tight sm:text-3xl">
+              Try the live <span className="text-rush">games</span> the
               blog keeps pointing at.
             </h2>
             {/* On a phone the buttons wrap their words and fill the width: a

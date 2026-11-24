@@ -102,10 +102,10 @@ export default function Guides() {
         <div className="grid gap-8">
           {GROUPS.map((group) => (
             <section key={group.title} aria-label={group.title}>
-              <h2 className="m-0 mb-2 font-mono text-[11px] font-bold uppercase tracking-widest text-ink-3">
+              <h2 className="m-0 mb-2 font-sans text-[11px] font-semibold uppercase tracking-wider text-ink-3">
                 {group.title}
               </h2>
-              <ul className="m-0 grid list-none border border-ink/25 bg-surface p-0">
+              <ul className="m-0 grid list-none border border-ink/25 bg-surface p-0 rounded-lg">
                 {group.items.map((item) => (
                   <li
                     key={item.to}

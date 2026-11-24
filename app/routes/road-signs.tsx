@@ -122,7 +122,7 @@ function SignChip({
     <span
       aria-hidden
       className={cn(
-        "inline-block size-5 shrink-0 border-2 border-ink",
+        "inline-block size-5 shrink-0 border border-line rounded-md",
         CHIP_CLIP[shape],
         CHIP_BG[tone],
         className,
@@ -144,10 +144,10 @@ export default function RoadSigns() {
             <SignCredit className="dr-rise" />
             <h1
               style={stagger(1)}
-              className="dr-rise m-0 font-display text-[clamp(36px,7vw,76px)] font-extrabold uppercase leading-[0.9] tracking-tighter"
+              className="dr-rise m-0 font-display text-[clamp(36px,7vw,76px)] font-semibold leading-[0.9] tracking-tighter"
             >
               Kenya road signs.{" "}
-              <span className="italic text-rush">{`All ${SIGN_COUNT}.`}</span>
+              <span className="text-rush">{`All ${SIGN_COUNT}.`}</span>
             </h1>
             <p
               style={stagger(2)}
@@ -265,8 +265,8 @@ export default function RoadSigns() {
                 <SignClassList />
 
                 {/* The chart itself: tucked away, open if wanted. */}
-                <details className="mt-4 border-2 border-ink bg-surface [&[open]>summary]:border-b-2 [&[open]>summary]:border-ink [&[open]>summary]:after:content-['−']">
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 font-mono text-[10.5px] uppercase tracking-widest text-ink-3 outline-none after:font-display after:text-lg after:font-extrabold after:leading-none after:text-rush after:content-['+'] focus-visible:text-ink [&::-webkit-details-marker]:hidden">
+                <details className="mt-4 border border-line bg-surface [&[open]>summary]:border-b-2 [&[open]>summary]:border-ink [&[open]>summary]:after:content-['−'] rounded-lg">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 font-sans text-[10.5px] uppercase tracking-wider text-ink-3 outline-none after:font-display after:text-lg after:font-bold after:leading-none after:text-rush after:content-['+'] focus-visible:text-ink [&::-webkit-details-marker]:hidden font-medium">
                     The Pelican chart
                   </summary>
                   <figure className="bg-white p-3 sm:p-5">
@@ -278,7 +278,7 @@ export default function RoadSigns() {
                       loading="lazy"
                       className="mx-auto block w-full"
                     />
-                    <figcaption className="mt-3 border-t border-dashed border-ink pt-3 font-mono text-[10px] uppercase tracking-widest text-ink-3">
+                    <figcaption className="mt-3 border-t border-line pt-3 font-sans text-[10px] uppercase tracking-wider text-ink-3 font-medium">
                       The Pelican chart · the trainer zooms into one sign at a
                       time
                     </figcaption>
@@ -318,7 +318,7 @@ export default function RoadSigns() {
                       }
                     >
                       <div id={cat.slug} className="scroll-mt-20 font-sans">
-                        <p className="font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+                        <p className="font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
                           {cat.shapeLabel}
                         </p>
                         <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ink-2">
@@ -328,10 +328,10 @@ export default function RoadSigns() {
                           {cat.signs.map((sign) => (
                             <li
                               key={sign.name}
-                              className="border-2 border-ink bg-paper-3 px-3.5 py-3"
+                              className="border border-line bg-paper-3 px-3.5 py-3 rounded-lg"
                             >
                               <div className="flex items-start justify-between gap-2">
-                                <span className="font-display text-[12.5px] font-extrabold uppercase leading-tight tracking-[0.02em] text-ink">
+                                <span className="font-display text-[12.5px] font-bold uppercase leading-tight tracking-[0.02em] text-ink">
                                   {sign.name}
                                 </span>
                                 {sign.swahili && (

@@ -163,7 +163,7 @@ export function ImageFocusPlayer({
     return (
       <div
         className={cn(
-          "flex aspect-video w-full items-center justify-center border-2 border-dashed border-ink bg-paper-3 text-center font-mono text-[11px] uppercase tracking-widest text-ink-3",
+          "flex aspect-video w-full items-center justify-center border border-line bg-paper-3 text-center font-sans text-[11px] uppercase tracking-wider text-ink-3 rounded-lg font-medium",
           className,
         )}
       >
@@ -299,7 +299,7 @@ export function ImageFocusPlayer({
           aria-live="polite"
           className="dr-flash pointer-events-none absolute inset-x-0 top-16 z-20 flex justify-center"
         >
-          <span className="border-2 border-ink bg-kenya-green px-3 py-1 font-display text-[15px] font-extrabold uppercase tracking-tight text-kenya-green-foreground shadow-stamp-xs">
+          <span className="border border-line bg-kenya-green px-3 py-1 font-display text-[15px] font-bold tracking-tight text-kenya-green-foreground shadow-stamp-xs rounded-lg">
             {s.runStreak} in a row
           </span>
         </div>
@@ -465,13 +465,13 @@ export function ImageFocusPlayer({
               className="mx-auto w-full max-w-2xl space-y-3 p-4 sm:p-5"
             >
               <motion.div variants={ANSWER_HEADLINE}>
-                <SheetTitle className="m-0 font-display text-[clamp(22px,4.5vw,32px)] font-extrabold uppercase leading-[0.95] tracking-tight text-ink">
+                <SheetTitle className="m-0 font-display text-[clamp(22px,4.5vw,32px)] font-semibold leading-[0.95] tracking-tight text-ink">
                   {region.name || "(unnamed sign)"}
                 </SheetTitle>
               </motion.div>
               <motion.div
                 variants={ANSWER_ITEM}
-                className="flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[10px] uppercase tracking-widest text-ink-3"
+                className="flex flex-wrap items-center gap-x-2 gap-y-0.5 font-sans text-[10px] uppercase tracking-wider text-ink-3 font-medium"
               >
                 <span className="text-ink-2">
                   {cat?.label}
@@ -516,7 +516,7 @@ export function ImageFocusPlayer({
                     Next sign
                     <Icon icon={ChevronRightIcon} size={14} />
                   </Button>
-                  <p className="font-mono text-[10px] uppercase tracking-widest text-ink-3">
+                  <p className="font-sans text-[10px] uppercase tracking-wider text-ink-3 font-medium">
                     It comes back later this run.
                   </p>
                 </motion.div>
@@ -546,7 +546,7 @@ export function ImageFocusPlayer({
                       Missed it
                     </Button>
                   </div>
-                  <p className="font-mono text-[10px] uppercase tracking-widest text-ink-3">
+                  <p className="font-sans text-[10px] uppercase tracking-wider text-ink-3 font-medium">
                     Missed signs come back later this run.
                     {isMastered(s.progress, region.id) ? " · known ✓" : ""}
                   </p>

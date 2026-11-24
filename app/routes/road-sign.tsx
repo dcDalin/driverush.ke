@@ -127,7 +127,7 @@ export default function RoadSign({ loaderData }: Route.ComponentProps) {
         <div className="mx-auto w-full max-w-4xl px-5 pb-20 pt-6 sm:px-9 sm:pt-10">
           <nav
             aria-label="Breadcrumb"
-            className="mb-6 flex flex-wrap items-center gap-2 font-mono text-[10.5px] uppercase tracking-widest text-ink-3"
+            className="mb-6 flex flex-wrap items-center gap-2 font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium"
           >
             <Link to="/road-signs" className="hover:text-ink hover:underline">
               Road signs
@@ -151,20 +151,20 @@ export default function RoadSign({ loaderData }: Route.ComponentProps) {
                 width={SIGN_IMAGE_SIZE}
                 height={SIGN_IMAGE_SIZE}
                 fetchPriority="high"
-                className="block aspect-square w-full max-w-[240px] border border-ink/25 bg-white"
+                className="block aspect-square w-full max-w-[240px] border border-ink/25 bg-white rounded-lg"
               />
             ) : (
               <SignImage
                 sign={sign}
                 label={`${sign.name} road sign (${sign.code})`}
-                className="aspect-square w-full max-w-[240px] border border-ink/25"
+                className="aspect-square w-full max-w-[240px] border border-ink/25 rounded-lg"
               />
             )}
             <div className="grid justify-items-start gap-3">
-              <p className="m-0 font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+              <p className="m-0 font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
                 Kenyan {guide.singular} · {sign.code}
               </p>
-              <h1 className="m-0 font-display text-[clamp(30px,5.6vw,56px)] font-extrabold uppercase leading-[0.95] tracking-tighter">
+              <h1 className="m-0 font-display text-[clamp(30px,5.6vw,56px)] font-semibold leading-[0.95] tracking-tighter">
                 {signHeading(sign.name!)}
               </h1>
               <div className="mt-1 flex flex-wrap gap-2.5">
@@ -188,7 +188,7 @@ export default function RoadSign({ loaderData }: Route.ComponentProps) {
             </div>
           </header>
 
-          <section className="mt-10 grid gap-8 border-t-2 border-ink pt-8 font-serif text-[18px] leading-relaxed text-ink-2">
+          <section className="mt-10 grid gap-8 border-t border-line pt-8 font-serif text-[18px] leading-relaxed text-ink-2">
             {extra && (
               <Block title="What it looks like">
                 <p className="m-0">{extra.looks}</p>
@@ -222,7 +222,7 @@ export default function RoadSign({ loaderData }: Route.ComponentProps) {
                         >
                           <SignImage
                             sign={other}
-                            className="size-14 border-2 border-ink"
+                            className="size-14 border border-line rounded-lg"
                           />
                           <p className="m-0">
                             <Link
@@ -259,7 +259,7 @@ export default function RoadSign({ loaderData }: Route.ComponentProps) {
           </section>
 
           <section className="mt-10">
-            <h2 className="m-0 mb-4 border-b-2 border-ink pb-3 font-display text-xl font-extrabold uppercase tracking-tight">
+            <h2 className="m-0 mb-4 border-b border-line pb-3 font-display text-xl font-bold tracking-tight">
               More {guide.label.toLowerCase()}
             </h2>
             <ul className="m-0 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-3">
@@ -267,13 +267,13 @@ export default function RoadSign({ loaderData }: Route.ComponentProps) {
                 <li key={other.slug}>
                   <Link
                     to={signPagePath(other)}
-                    className="grid h-full grid-cols-[48px_1fr] items-center gap-2.5 border-2 border-ink bg-paper-3 p-2.5 outline-none transition-colors hover:bg-surface focus-visible:bg-surface"
+                    className="grid h-full grid-cols-[48px_1fr] items-center gap-2.5 border border-line bg-paper-3 p-2.5 outline-none transition-colors hover:bg-surface focus-visible:bg-surface rounded-lg"
                   >
                     <SignImage
                       sign={other}
-                      className="size-12 border-2 border-ink"
+                      className="size-12 border border-line rounded-lg"
                     />
-                    <span className="font-display text-[11.5px] font-extrabold uppercase leading-tight tracking-[0.02em]">
+                    <span className="font-display text-[11.5px] font-bold uppercase leading-tight tracking-[0.02em]">
                       {other.name}
                     </span>
                   </Link>
@@ -316,7 +316,7 @@ function Block({
 }) {
   return (
     <div>
-      <h2 className="m-0 mb-2 font-display text-xl font-extrabold uppercase tracking-tight text-ink">
+      <h2 className="m-0 mb-2 font-display text-xl font-bold tracking-tight text-ink">
         {title}
       </h2>
       {children}

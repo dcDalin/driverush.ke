@@ -65,7 +65,7 @@ export const links: Route.LinksFunction = () => [
   },
   {
     rel: "stylesheet",
-    href: "https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Montserrat:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap",
+    href: "https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap",
   },
   // Favicons. Explicit links so browsers and crawlers pick the right size
   // instead of guessing from /favicon.ico alone.
@@ -284,7 +284,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         <RoadClosedScene title="A road barrier with a number plate reading KDR 404" />
       </ScenePlate>
       <div className="grid gap-3">
-        <h1 className="m-0 font-display text-[clamp(30px,7vw,48px)] font-extrabold uppercase leading-[0.95] tracking-tighter">
+        <h1 className="m-0 font-display text-[clamp(30px,7vw,48px)] font-semibold leading-[0.95] tracking-tighter">
           {message}
         </h1>
         <p className="m-0 font-serif text-lg leading-snug text-ink-2">
@@ -295,7 +295,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         </Button>
       </div>
       {stack && (
-        <pre className="w-full overflow-x-auto border-2 border-ink bg-paper-3 p-4 text-xs">
+        <pre className="w-full overflow-x-auto border border-line bg-paper-3 p-4 text-xs rounded-lg">
           <code>{stack}</code>
         </pre>
       )}

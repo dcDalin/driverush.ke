@@ -37,14 +37,14 @@ function Slider({
       <SliderPrimitive.Track
         data-slot="slider-track"
         className={cn(
-          "relative h-7 w-full grow overflow-hidden border-2 border-ink bg-paper-3 shadow-stamp-sm",
+          "relative h-2 w-full grow overflow-hidden rounded-full bg-paper-2",
           // Tick gradient — matches the speedometer feel.
-          "bg-[repeating-linear-gradient(90deg,var(--ink)_0_1px,transparent_1px_10%)] bg-[length:100%_100%]",
+          "",
         )}
       >
         <SliderPrimitive.Range
           data-slot="slider-range"
-          className="absolute h-full bg-[repeating-linear-gradient(45deg,var(--rush)_0_6px,var(--rush-deep)_6px_12px)]"
+          className="absolute h-full rounded-full bg-rush"
         />
       </SliderPrimitive.Track>
       {_values.map((_, i) => (
@@ -52,9 +52,9 @@ function Slider({
           key={i}
           data-slot="slider-thumb"
           className={cn(
-            "block h-8 w-3.5 -translate-y-px border-2 border-ink bg-ink",
+            "block size-5 rounded-full border-2 border-rush bg-surface shadow-sm",
             "outline-none transition-shadow duration-100 ease-snap",
-            "focus-visible:shadow-stamp-rush",
+            "focus-visible:ring-4 focus-visible:ring-rush/15",
             "disabled:pointer-events-none disabled:opacity-50",
           )}
         />

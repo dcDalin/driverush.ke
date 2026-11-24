@@ -32,14 +32,14 @@ function TicketCard({
   return (
     <article
       data-slot="ticket-card"
-      className={cn("border-2 border-ink bg-surface p-7", className)}
+      className={cn("border border-line bg-surface p-7 rounded-lg", className)}
       {...props}
     >
       {(passLabel || seat) && (
-        <div className="mb-5 flex items-center justify-between font-mono text-[10px] uppercase tracking-widest text-ink-3">
+        <div className="mb-5 flex items-center justify-between font-sans text-[10px] uppercase tracking-wider text-ink-3 font-medium">
           <span>{passLabel}</span>
           {seat && (
-            <span className="bg-ink px-2 py-0.5 font-bold text-paper">
+            <span className="rounded-full bg-paper-2 px-2.5 py-1 font-semibold normal-case tracking-normal text-ink-2">
               {seat}
             </span>
           )}
@@ -47,8 +47,8 @@ function TicketCard({
       )}
       <h3
         className={cn(
-          "m-0 mb-4 font-display text-2xl font-extrabold uppercase leading-[0.95] tracking-tight text-ink",
-          "[&_em]:font-serif [&_em]:font-normal [&_em]:normal-case [&_em]:italic [&_em]:text-rush",
+          "m-0 mb-4 font-display text-2xl font-semibold leading-[0.95] tracking-tight text-ink",
+          "[&_em]:font-serif [&_em]:font-normal [&_em]:normal-case [&_em]:text-rush",
         )}
       >
         {title}

@@ -13,7 +13,7 @@ function Rail({ className, ...props }: React.ComponentProps<"div">) {
       aria-hidden
       data-slot="rail"
       className={cn(
-        "dr-flag relative h-3 w-full border-b-2 border-ink",
+        "dr-flag relative h-3 w-full border-b border-line",
         "bg-[repeating-linear-gradient(90deg,var(--ink)_0_14px,transparent_14px_26px)]",
         // The 5-color flag underbar that hangs under the rail
         "after:absolute after:left-0 after:right-0 after:-bottom-[6px] after:h-1",

@@ -124,7 +124,7 @@ function RegionCropper({
 
   return (
     <div className="space-y-4">
-      <div className="relative h-[clamp(280px,52vh,560px)] w-full overflow-hidden border-2 border-ink bg-ink">
+      <div className="relative h-[clamp(280px,52vh,560px)] w-full overflow-hidden border border-line bg-ink rounded-lg">
         <Cropper
           image={imageSrc}
           crop={crop}
@@ -186,7 +186,7 @@ function RegionCropper({
       </div>
 
       <div className="flex flex-wrap items-center gap-5">
-        <label className="flex cursor-pointer items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-ink-2">
+        <label className="flex cursor-pointer items-center gap-2 font-sans text-[11px] uppercase tracking-wider text-ink-2 font-medium">
           <Checkbox
             checked={showGrid}
             onCheckedChange={(c) => setShowGrid(c === true)}
@@ -194,21 +194,21 @@ function RegionCropper({
           <Icon icon={GridIcon} size={13} />
           Grid
         </label>
-        <label className="flex cursor-pointer items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-ink-2">
+        <label className="flex cursor-pointer items-center gap-2 font-sans text-[11px] uppercase tracking-wider text-ink-2 font-medium">
           <Checkbox
             checked={restrictPosition}
             onCheckedChange={(c) => setRestrictPosition(c === true)}
           />
           Restrict to image
         </label>
-        <p className="font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+        <p className="font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
           {croppedArea
             ? `x ${round(croppedArea.x)}% · y ${round(croppedArea.y)}% · w ${round(croppedArea.width)}% · h ${round(croppedArea.height)}%`
             : "drag to position the box"}
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-2.5 border-t-2 border-dashed border-ink pt-4">
+      <div className="flex flex-wrap gap-2.5 border-t border-line pt-4">
         <Button variant="rush" onClick={handleConfirm} disabled={!croppedArea}>
           <Icon icon={CheckIcon} size={16} />
           {region ? "Update box" : "Add region"}
@@ -284,13 +284,13 @@ export function ImageRegionEditor({
           <Icon icon={PlusIcon} size={16} />
           New region
         </Button>
-        <span className="font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+        <span className="font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
           {regions.length} region{regions.length === 1 ? "" : "s"} · click a box
           to edit its crop
         </span>
       </div>
 
-      <div className="relative inline-block w-full border-2 border-ink bg-paper-3">
+      <div className="relative inline-block w-full border border-line bg-paper-3 rounded-lg">
         <img
           src={imageSrc}
           alt="Source"
@@ -320,10 +320,10 @@ export function ImageRegionEditor({
               className={cn(
                 "group/box absolute cursor-pointer outline-none transition-colors",
                 active
-                  ? "border-2 border-rush bg-rush/20"
+                  ? "border border-rush bg-rush/20 rounded-lg"
                   : named
-                    ? "border-2 border-kenya-green/80 bg-kenya-green/15 hover:bg-kenya-green/25"
-                    : "border-2 border-hazard/80 bg-hazard/15 hover:bg-hazard/25",
+                    ? "border border-kenya-green/80 bg-kenya-green/15 hover:bg-kenya-green/25 rounded-lg"
+                    : "border border-hazard/80 bg-hazard/15 hover:bg-hazard/25 rounded-lg",
               )}
               style={{
                 left: `${r.x}%`,

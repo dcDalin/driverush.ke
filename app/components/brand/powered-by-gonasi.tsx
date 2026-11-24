@@ -118,7 +118,7 @@ export function PoweredByGonasi({
         rel="noreferrer noopener"
         aria-label={aria}
         className={cn(
-          "group/gonasi inline-flex items-center gap-3 border-2 border-ink",
+          "group/gonasi inline-flex items-center gap-3 border border-line rounded-lg",
           "outline-none transition-[transform,box-shadow] duration-100 ease-snap",
           "hover:-translate-x-px hover:-translate-y-px hover:shadow-stamp",
           "active:translate-x-[2px] active:translate-y-[2px] active:shadow-stamp-sm",
@@ -126,7 +126,7 @@ export function PoweredByGonasi({
           className,
         )}
       >
-        <span className="pl-3 pr-1 font-mono text-[10px] font-bold uppercase tracking-widest opacity-80">
+        <span className="pl-3 pr-1 font-sans text-[10px] font-semibold uppercase tracking-wider opacity-80">
           Powered by
         </span>
         <GonasiMark
@@ -148,14 +148,14 @@ export function PoweredByGonasi({
         rel="noreferrer noopener"
         aria-label={aria}
         className={cn(
-          "group/gonasi inline-flex items-center gap-2.5 border-2 border-ink",
+          "group/gonasi inline-flex items-center gap-2.5 border border-line rounded-lg",
           "outline-none transition-[transform,box-shadow] duration-100 ease-snap",
           "hover:-translate-x-px hover:-translate-y-px hover:shadow-stamp-sm",
           "focus-visible:-translate-x-px focus-visible:-translate-y-px focus-visible:shadow-stamp-rush",
           className,
         )}
       >
-        <span className="pl-2.5 pr-1 font-mono text-[10px] font-bold uppercase tracking-widest text-ink-3">
+        <span className="pl-2.5 pr-1 font-sans text-[10px] font-semibold uppercase tracking-wider text-ink-3">
           Powered by{" "}
           <span className="text-ink group-hover/gonasi:text-rush">
             {GONASI.name}
@@ -187,7 +187,7 @@ export function PoweredByGonasi({
         tone={tone}
         className="block h-8 w-8 shrink-0 object-contain"
       />
-      <span className="font-mono text-[11px] uppercase tracking-widest text-ink-3">
+      <span className="font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
         Powered by <span className="font-bold text-ink">{GONASI.name}</span>
       </span>
     </a>

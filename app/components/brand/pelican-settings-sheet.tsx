@@ -108,7 +108,7 @@ export function PelicanSettingsSheet() {
             }
           >
             {regions.length === 0 ? (
-              <p className="font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+              <p className="font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
                 No signs on the board yet
               </p>
             ) : (
@@ -214,8 +214,8 @@ export function PelicanSettingsSheet() {
               <strong>known</strong>: a meter that builds across runs (a miss
               only nudges it down a notch). Saved on this device only.
             </p>
-            <div className="flex items-center justify-between gap-3 border-2 border-ink bg-paper-3 px-3 py-2">
-              <span className="font-mono text-[10.5px] uppercase tracking-widest text-ink-2">
+            <div className="flex items-center justify-between gap-3 border border-line bg-paper-3 px-3 py-2 rounded-lg">
+              <span className="font-sans text-[10.5px] uppercase tracking-wider text-ink-2 font-medium">
                 Known {mastered} / {regions.length}
               </span>
               <Button

@@ -366,10 +366,10 @@ export default function ImageCoordsTool({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="space-y-8">
-      <header className="border-b-2 border-ink pb-6">
+      <header className="border-b border-line pb-6">
         <span className="eyebrow text-ink">Tool · image focus authoring</span>
-        <h1 className="m-0 mt-3 font-display text-[clamp(28px,4.5vw,44px)] font-extrabold uppercase leading-[0.95] tracking-tighter">
-          Image <span className="italic text-rush">coordinates</span>
+        <h1 className="m-0 mt-3 font-display text-[clamp(28px,4.5vw,44px)] font-semibold leading-[0.95] tracking-tighter">
+          Image <span className="text-rush">coordinates</span>
         </h1>
         <p className="mt-3 max-w-2xl font-serif text-[clamp(15px,1.9vw,19px)] leading-tight text-ink-2">
           Crop a box over each sign, name it, eyeball the zoom-and-blur preview,
@@ -380,7 +380,7 @@ export default function ImageCoordsTool({ loaderData }: Route.ComponentProps) {
       </header>
 
       {/* ---- Status bar ---- */}
-      <section className="flex flex-wrap items-center justify-between gap-3 border-2 border-ink bg-paper-3 px-4 py-3">
+      <section className="flex flex-wrap items-center justify-between gap-3 border border-line bg-paper-3 px-4 py-3 rounded-lg">
         <span className="flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
           <Icon icon={ImageIcon} size={13} />
           {ROAD_SIGNS_IMAGE_SRC}
@@ -430,7 +430,7 @@ export default function ImageCoordsTool({ loaderData }: Route.ComponentProps) {
 
       {/* ---- Editor ---- */}
       <section className="space-y-3">
-        <h2 className="font-display text-base font-extrabold uppercase tracking-wide text-ink">
+        <h2 className="font-display text-base font-bold tracking-tight text-ink">
           1 · {mode === "crop" ? "Crop a region" : "Regions"}
         </h2>
         <ImageRegionEditor
@@ -462,15 +462,15 @@ export default function ImageCoordsTool({ loaderData }: Route.ComponentProps) {
       {/* ---- Region list + selected region form ---- */}
       <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         <div className="space-y-3">
-          <h2 className="font-display text-base font-extrabold uppercase tracking-wide text-ink">
+          <h2 className="font-display text-base font-bold tracking-tight text-ink">
             2 · Region list
           </h2>
           {regions.length === 0 ? (
-            <p className="border-2 border-dashed border-ink bg-paper-3 px-4 py-6 text-center font-mono text-[11px] uppercase tracking-widest text-ink-3">
+            <p className="border border-line bg-paper-3 px-4 py-6 text-center font-mono text-[11px] uppercase tracking-widest text-ink-3 rounded-lg">
               No regions yet — hit “New region” above
             </p>
           ) : (
-            <ul className="divide-y-2 divide-ink border-2 border-ink bg-surface">
+            <ul className="divide-y-2 divide-line border border-line bg-surface rounded-lg">
               {regions.map((r, i) => {
                 const active = r.id === selectedRegionId;
                 const named = r.name.trim().length > 0;
@@ -484,7 +484,7 @@ export default function ImageCoordsTool({ loaderData }: Route.ComponentProps) {
                   >
                     <span
                       className={cn(
-                        "flex size-6 shrink-0 items-center justify-center border-2 border-ink font-mono text-[11px] font-bold",
+                        "flex size-6 shrink-0 items-center justify-center border border-line font-mono text-[11px] font-bold rounded-md",
                         named
                           ? "bg-kenya-green text-kenya-green-foreground"
                           : "bg-hazard text-hazard-foreground",
@@ -497,7 +497,7 @@ export default function ImageCoordsTool({ loaderData }: Route.ComponentProps) {
                       onClick={() => setSelectedRegionId(r.id)}
                       className="min-w-0 flex-1 text-left outline-none"
                     >
-                      <span className="block truncate font-display text-[13px] font-extrabold uppercase tracking-wide text-ink">
+                      <span className="block truncate font-display text-[13px] font-bold tracking-tight text-ink">
                         {r.name || "(unnamed)"}
                       </span>
                       <span className="block truncate font-mono text-[9.5px] uppercase tracking-widest text-ink-3">
@@ -544,7 +544,7 @@ export default function ImageCoordsTool({ loaderData }: Route.ComponentProps) {
         </div>
 
         <div className="space-y-3">
-          <h2 className="font-display text-base font-extrabold uppercase tracking-wide text-ink">
+          <h2 className="font-display text-base font-bold tracking-tight text-ink">
             3 · Region details
           </h2>
           {selectedRegion ? (
@@ -559,7 +559,7 @@ export default function ImageCoordsTool({ loaderData }: Route.ComponentProps) {
               }
             />
           ) : (
-            <p className="border-2 border-dashed border-ink bg-paper-3 px-4 py-6 text-center font-mono text-[11px] uppercase tracking-widest text-ink-3">
+            <p className="border border-line bg-paper-3 px-4 py-6 text-center font-mono text-[11px] uppercase tracking-widest text-ink-3 rounded-lg">
               Select a region to edit its name &amp; metadata
             </p>
           )}
@@ -568,7 +568,7 @@ export default function ImageCoordsTool({ loaderData }: Route.ComponentProps) {
 
       {/* ---- Preview ---- */}
       <section className="space-y-3">
-        <h2 className="font-display text-base font-extrabold uppercase tracking-wide text-ink">
+        <h2 className="font-display text-base font-bold tracking-tight text-ink">
           4 · Preview
         </h2>
         <FocusPreview
@@ -580,7 +580,7 @@ export default function ImageCoordsTool({ loaderData }: Route.ComponentProps) {
 
       {/* ---- Settings ---- */}
       <section className="space-y-3">
-        <h2 className="font-display text-base font-extrabold uppercase tracking-wide text-ink">
+        <h2 className="font-display text-base font-bold tracking-tight text-ink">
           5 · Playback settings
           <span className="ml-2 font-mono text-[10px] font-normal normal-case tracking-normal text-ink-3">
             these drive the real /road-signs/pelican gameplay
@@ -596,7 +596,7 @@ export default function ImageCoordsTool({ loaderData }: Route.ComponentProps) {
       {/* ---- Export / import ---- */}
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-display text-base font-extrabold uppercase tracking-wide text-ink">
+          <h2 className="font-display text-base font-bold tracking-tight text-ink">
             6 · JSON
           </h2>
           <div className="flex flex-wrap gap-2">
@@ -617,8 +617,8 @@ export default function ImageCoordsTool({ loaderData }: Route.ComponentProps) {
           </div>
         </div>
 
-        <div className="border-2 border-ink bg-ink">
-          <div className="flex items-center justify-between border-b-2 border-ink bg-paper-3 px-3.5 py-2 font-mono text-[10.5px] font-bold uppercase tracking-widest text-ink">
+        <div className="border border-line bg-ink rounded-lg">
+          <div className="flex items-center justify-between border-b border-line bg-paper-3 px-3.5 py-2 font-mono text-[10.5px] font-bold uppercase tracking-widest text-ink">
             <span>{DATA_FILE_LABEL}</span>
             <span>
               {regions.length} region{regions.length === 1 ? "" : "s"}
@@ -630,11 +630,11 @@ export default function ImageCoordsTool({ loaderData }: Route.ComponentProps) {
           </pre>
         </div>
 
-        <details className="border-2 border-ink bg-surface">
+        <details className="border border-line bg-surface rounded-lg">
           <summary className="cursor-pointer select-none px-3.5 py-2.5 font-mono text-[10.5px] font-bold uppercase tracking-widest text-ink-2 hover:text-ink">
             Import — paste JSON to replace the working set
           </summary>
-          <div className="space-y-2.5 border-t-2 border-ink p-3.5">
+          <div className="space-y-2.5 border-t border-line p-3.5">
             <Textarea
               value={importText}
               onChange={(e) => setImportText(e.target.value)}
@@ -682,7 +682,7 @@ function IconBtn({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "flex size-7 items-center justify-center border-2 border-ink bg-surface text-ink outline-none transition-colors",
+        "flex size-7 items-center justify-center border border-line bg-surface text-ink outline-none transition-colors rounded-md",
         "hover:bg-ink hover:text-paper focus-visible:bg-ink focus-visible:text-paper",
         "disabled:pointer-events-none disabled:opacity-40",
         danger && "hover:bg-rush focus-visible:bg-rush",
@@ -735,7 +735,7 @@ function RegionForm({
   const cat = getSignCategory(region.category);
 
   return (
-    <div className="space-y-4 border-2 border-ink bg-surface p-4">
+    <div className="space-y-4 border border-line bg-surface p-4 rounded-lg">
       <Field label="Name" hint="shown when revealed">
         <Input
           value={region.name}
@@ -861,7 +861,7 @@ function RegionForm({
         </Field>
       </div>
 
-      <div className="grid grid-cols-4 gap-2 border-t-2 border-dashed border-ink pt-3">
+      <div className="grid grid-cols-4 gap-2 border-t border-line pt-3">
         {(["x", "y", "width", "height"] as const).map((k) => (
           <Field key={k} label={k}>
             <Input
@@ -908,7 +908,7 @@ function SettingsPanel({
         : "";
 
   return (
-    <div className="space-y-5 border-2 border-ink bg-paper-3 p-4">
+    <div className="space-y-5 border border-line bg-paper-3 p-4 rounded-lg">
       <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
         <SliderRow
           label="Blur intensity"

@@ -15,7 +15,7 @@ export function HomeSigns() {
     >
       <h2
         id="home-signs"
-        className="m-0 mb-1 font-display text-[clamp(18px,4.4vw,24px)] font-extrabold uppercase leading-none tracking-tight text-ink"
+        className="m-0 mb-1 font-display text-[clamp(18px,4.4vw,24px)] font-semibold leading-none tracking-tight text-ink"
       >
         Learning the signs?
       </h2>

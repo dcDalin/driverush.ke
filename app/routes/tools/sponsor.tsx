@@ -57,8 +57,8 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="mt-8 border-t-2 border-ink pt-5">
-      <h2 className="m-0 font-display text-[22px] font-extrabold uppercase tracking-tight">
+    <section className="mt-8 border-t border-line pt-5">
+      <h2 className="m-0 font-display text-[22px] font-bold tracking-tight">
         {title}
       </h2>
       {note && (
@@ -129,9 +129,9 @@ export default function SponsorTool() {
 
   return (
     <div>
-      <header className="border-b-2 border-ink pb-6">
+      <header className="border-b border-line pb-6">
         <span className="eyebrow text-ink">Internal · sponsors</span>
-        <h1 className="m-0 mt-3 font-display text-[clamp(32px,5vw,52px)] font-extrabold uppercase leading-[0.95] tracking-tighter">
+        <h1 className="m-0 mt-3 font-display text-[clamp(32px,5vw,52px)] font-semibold leading-[0.95] tracking-tighter">
           {sponsor.school}
         </h1>
         <p className="mt-3 max-w-2xl text-[15px] leading-snug text-ink-2">
@@ -188,7 +188,7 @@ export default function SponsorTool() {
               />
               Show the template over it
             </label>
-            <div className="relative w-full max-w-4xl border-2 border-ink">
+            <div className="relative w-full max-w-4xl border border-line rounded-lg">
               <img
                 src={wrapFull}
                 alt="The car's paint, flat"
@@ -245,7 +245,7 @@ export default function SponsorTool() {
                 Steer left and right
               </label>
             </div>
-            <div className="aspect-[4/3] w-full max-w-3xl border-2 border-ink sm:aspect-[16/9]">
+            <div className="aspect-[4/3] w-full max-w-3xl border border-line sm:aspect-[16/9] rounded-lg">
               {mounted && (
                 <React.Suspense fallback={null}>
                   <SponsorCarCanvas
@@ -277,13 +277,13 @@ export default function SponsorTool() {
       >
         <div className="grid gap-4 md:grid-cols-[2fr_3fr]">
           <div
-            className="border-2 border-ink [&>svg]:block [&>svg]:h-auto [&>svg]:w-full"
+            className="border border-line [&>svg]:block [&>svg]:h-auto [&>svg]:w-full rounded-lg"
             dangerouslySetInnerHTML={{
               __html: fullBoardSvg({ sponsorLogo: sponsor.logo.mono }),
             }}
           />
           <div
-            className="border-2 border-ink [&>svg]:block [&>svg]:h-auto [&>svg]:w-full"
+            className="border border-line [&>svg]:block [&>svg]:h-auto [&>svg]:w-full rounded-lg"
             dangerouslySetInnerHTML={{
               __html: fullBoardSvg({
                 sponsorLogo: sponsor.logo.mono,
@@ -307,7 +307,7 @@ export default function SponsorTool() {
               className="rounded-md border border-white/15 bg-white/10 px-3 py-2 text-white"
             />
           </div>
-          <div className="flex flex-col gap-3 rounded-md border-2 border-ink p-4">
+          <div className="flex flex-col gap-3 rounded-md border border-line p-4">
             <span className="font-mono text-[11px] uppercase tracking-widest text-ink-3">
               Settings, Your car
             </span>

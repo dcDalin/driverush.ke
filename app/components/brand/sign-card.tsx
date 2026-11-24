@@ -7,7 +7,7 @@ import { SignIcon } from "~/components/brand/art/sign-glyphs";
 import { cn } from "~/lib/utils";
 
 const signFrameVariants = cva(
-  "flex size-28 shrink-0 items-center justify-center border-2 border-ink",
+  "flex size-28 shrink-0 items-center justify-center border border-line rounded-lg",
   {
     variants: {
       shape: {
@@ -77,7 +77,7 @@ function SignCard({
     <figure
       data-slot="sign-card"
       className={cn(
-        "flex flex-col items-center gap-3 border-2 border-ink bg-surface px-5 py-6 text-center",
+        "flex flex-col items-center gap-3 border border-line bg-surface px-5 py-6 text-center rounded-lg",
         className,
       )}
       {...props}
@@ -96,11 +96,11 @@ function SignCard({
         </div>
       )}
       <figcaption className="space-y-1">
-        <div className="font-display text-[13px] font-extrabold uppercase tracking-wide text-ink">
+        <div className="font-display text-[13px] font-bold tracking-tight text-ink">
           {name}
         </div>
         {classification && (
-          <div className="font-mono text-[10.5px] uppercase tracking-wider text-ink-3">
+          <div className="font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
             {classification}
           </div>
         )}
