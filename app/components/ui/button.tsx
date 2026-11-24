@@ -27,8 +27,7 @@ const buttonVariants = cva(
         // Cautionary, save-for-later
         amber: "bg-amber text-amber-foreground hover:brightness-95",
         // Pass / sawa / success
-        green:
-          "bg-kenya-green text-kenya-green-foreground hover:brightness-95",
+        green: "bg-kenya-green text-kenya-green-foreground hover:brightness-95",
         // Quiet default: a thin outline on the page's own surface
         paper:
           "border-line bg-surface text-ink shadow-xs hover:border-ink/25 hover:bg-paper-2",
@@ -36,6 +35,18 @@ const buttonVariants = cva(
         ghost: "bg-transparent text-ink hover:bg-paper-2 active:translate-y-0",
         // Inline link styling
         link: "bg-transparent text-rush underline-offset-4 hover:underline active:translate-y-0",
+        // The game's own buttons, on its dark ground in both themes.
+        // Gold: the one thing to do next.
+        "game-gold":
+          "border-2 border-game-gold bg-game-gold text-game-gold-foreground hover:border-game-gold-hover hover:bg-game-gold-hover focus-visible:outline-white",
+        // Over the table: a dark chip that reads on any part of the board
+        game: "border-2 border-white/15 bg-game/85 text-white hover:bg-white/15 focus-visible:outline-white",
+        // In a game panel: an outline on the panel's own dark ground
+        "game-outline":
+          "border-2 border-white/20 bg-white/5 text-white hover:bg-white/15 focus-visible:outline-white",
+        // In a game panel: a quiet underlined choice
+        "game-link":
+          "bg-transparent px-0 text-white/75 underline underline-offset-4 hover:text-white focus-visible:text-white focus-visible:outline-white active:translate-y-0",
       },
       size: {
         sm: "h-9 px-3.5 text-[13px]",
@@ -44,6 +55,8 @@ const buttonVariants = cva(
         // Circular icon button
         stamp: "size-14 rounded-full p-0 text-lg [&_svg]:size-5",
         "stamp-sm": "size-10 rounded-full p-0 text-base [&_svg]:size-4",
+        // Square icon button, a thumb wide
+        icon: "size-11 p-0",
       },
     },
     defaultVariants: {

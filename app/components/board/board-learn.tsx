@@ -31,6 +31,10 @@ import { cam, fitTable, flyTo, useStage } from "~/lib/board/stage";
 import { useBoardStore } from "~/lib/board-store";
 import { cn } from "~/lib/utils";
 
+import { Button } from "~/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group";
+
 import { Icon } from "~/components/brand/icon";
 import {
   ArrowRightIcon,
@@ -71,7 +75,9 @@ type Showing = {
 const chip =
   "min-h-11 rounded-md border-2 px-3 py-2 text-left text-[13.5px] font-semibold leading-snug outline-none transition-colors focus-visible:border-white";
 const chipOff = "border-white/15 bg-white/5 text-white hover:bg-white/10";
-const chipOn = "border-[#f6c416] bg-[#f6c416] text-[#17181b]";
+/** A pick in a ToggleGroup: the chip's type, a Toggle's colours. */
+const pick =
+  "h-auto min-h-11 px-3 py-2 text-[13.5px] font-semibold leading-snug whitespace-normal";
 const eyebrow =
   "m-0 font-mono text-[10px] font-bold uppercase tracking-widest text-white/55";
 
@@ -246,287 +252,309 @@ export function BoardLearn({
             Learn the board
           </h2>
           <div className="flex items-center gap-1.5">
-            <button
-              type="button"
+            <Button
+              variant="game-outline"
+              size="icon"
               aria-label="Settings"
               onClick={onSettings}
-              className="inline-flex size-11 items-center justify-center rounded-md border-2 border-white/15 outline-none transition-colors hover:bg-white/15 focus-visible:border-white"
             >
               <Icon icon={SettingsIcon} size={20} />
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="game-outline"
+              size="icon"
               aria-label="Close"
               onClick={exit}
-              className="inline-flex size-11 items-center justify-center rounded-md border-2 border-white/15 outline-none transition-colors hover:bg-white/15 focus-visible:border-white"
             >
               <Icon icon={CloseIcon} size={20} />
-            </button>
+            </Button>
           </div>
         </header>
 
-        <div
-          role="tablist"
-          aria-label="What to learn"
-          className="mt-3 grid grid-cols-4 gap-1 px-3.5"
+        <Tabs
+          value={tab}
+          onValueChange={(next) => pickTab(next as Tab)}
+          // Arrow keys only move the focus: a lesson list loads, and the
+          // table's lines clear, when a tab is chosen.
+          activationMode="manual"
+          className="mt-3 min-h-0 flex-1 gap-0"
         >
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={tab === t.id}
-              onClick={() => pickTab(t.id)}
-              className={cn(
-                "min-h-11 rounded-md border-2 py-2 font-mono text-[11px] font-bold uppercase tracking-widest outline-none transition-colors focus-visible:border-white",
-                tab === t.id ? chipOn : chipOff,
-              )}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5 pb-4">
-          {route && showing ? (
-            <div className="grid gap-3">
-              <button
-                type="button"
-                onClick={back}
-                className="inline-flex min-h-11 items-center gap-1 self-start pr-4 font-mono text-[12px] font-bold uppercase tracking-widest text-white/80 outline-none hover:text-white focus-visible:underline"
-              >
-                <Icon icon={ChevronLeftIcon} size={14} />
-                Back
-              </button>
-              <div>
-                <h3 className="m-0 text-[17px] font-bold leading-snug">
-                  {showing.title}
-                </h3>
-                <p className="m-0 mt-1 text-[13.5px] leading-snug text-white/75">
-                  {showing.ask}
-                </p>
-                {showing.rule && (
-                  <p className="m-0 mt-1.5 text-[13px] font-semibold leading-snug text-kenya-gold">
-                    {showing.rule}
-                  </p>
+          <TabsList
+            aria-label="What to learn"
+            className="grid w-auto grid-cols-4 gap-1 bg-transparent p-0 px-3.5"
+          >
+            {TABS.map((t) => (
+              <TabsTrigger
+                key={t.id}
+                value={t.id}
+                className={cn(
+                  "rounded-md border-2 px-0 py-2 font-mono text-[11px] font-bold uppercase tracking-widest focus-visible:outline-white",
+                  chipOff,
+                  "data-[state=active]:border-game-gold data-[state=active]:bg-game-gold data-[state=active]:text-game-gold-foreground data-[state=active]:shadow-none",
                 )}
-              </div>
-              <BoardPlayback className="rounded-md border-2 border-white/15 bg-white/5 p-3" />
-              <ol className="m-0 grid list-none gap-1 p-0">
-                {route.steps.map((s, i) => (
-                  <li key={`${s.from}-${s.title}`}>
-                    <button
-                      type="button"
-                      onClick={() => toStep(i)}
-                      aria-current={i === step ? "step" : undefined}
-                      className={cn(
-                        "flex min-h-11 w-full items-start gap-2.5 rounded-md border-2 px-2.5 py-2.5 text-left outline-none transition-colors focus-visible:border-white",
-                        i === step
-                          ? "border-white/40 bg-white/10"
-                          : "border-transparent hover:bg-white/5",
-                      )}
-                    >
-                      <span className="mt-px font-mono text-[11px] font-bold text-white/55">
-                        {i + 1}
-                      </span>
-                      <span className="min-w-0 flex-1 text-[13.5px] font-semibold leading-snug">
-                        {s.title}
-                        <span className="ml-1.5 inline-flex gap-1 align-middle font-mono text-[9.5px] font-bold uppercase tracking-widest">
-                          <StepTags step={s} />
-                        </span>
-                        {!s.confirmed && (
-                          <span className="mt-0.5 block text-[12px] font-semibold text-kenya-gold">
-                            {UNSURE_NOTE}
-                          </span>
-                        )}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          ) : tab === "lanes" ? (
-            <div className="grid gap-3">
-              <div>
-                <p className={eyebrow}>Coming from</p>
-                <div className="mt-1.5 grid grid-cols-4 gap-1">
-                  {APPROACHES.map((a) => (
-                    <button
-                      key={a.arm}
-                      type="button"
-                      aria-pressed={arm === a.arm}
-                      onClick={() => {
-                        setArm(a.arm);
-                        setLane((n) => Math.min(n, ARMS[a.arm].lanes));
-                      }}
-                      className={cn(
-                        chip,
-                        "px-1 text-center",
-                        arm === a.arm ? chipOn : chipOff,
-                      )}
-                    >
-                      {a.label}
-                    </button>
-                  ))}
+              >
+                {t.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          <TabsContent
+            value={tab}
+            className="mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5 pb-4"
+          >
+            {route && showing ? (
+              <div className="grid gap-3">
+                <Button
+                  variant="game-link"
+                  onClick={back}
+                  className="gap-1 self-start pr-4 font-mono text-[12px] font-bold uppercase tracking-widest text-white/80 no-underline focus-visible:underline"
+                >
+                  <Icon icon={ChevronLeftIcon} size={14} />
+                  Back
+                </Button>
+                <div>
+                  <h3 className="m-0 text-[17px] font-bold leading-snug">
+                    {showing.title}
+                  </h3>
+                  <p className="m-0 mt-1 text-[13.5px] leading-snug text-white/75">
+                    {showing.ask}
+                  </p>
+                  {showing.rule && (
+                    <p className="m-0 mt-1.5 text-[13px] font-semibold leading-snug text-kenya-gold">
+                      {showing.rule}
+                    </p>
+                  )}
                 </div>
-                <p className="m-0 mt-1.5 text-[12.5px] text-white/65">
-                  {APPROACHES.find((a) => a.arm === arm)?.road},{" "}
-                  {ARMS[arm].lanes} lanes each way. Option code{" "}
-                  <strong className="font-mono text-white">
-                    {OPTION_CODES[ARMS[arm].lanes]}
-                  </strong>
-                  : the number of options in each lane, from the kerb.
-                </p>
-              </div>
-              <div>
-                <p className={eyebrow}>In lane</p>
-                <div className="mt-1.5 flex gap-1">
-                  {Array.from({ length: ARMS[arm].lanes }, (_, i) => i + 1).map(
-                    (n) => (
+                <BoardPlayback className="rounded-md border-2 border-white/15 bg-white/5 p-3" />
+                <ol className="m-0 grid list-none gap-1 p-0">
+                  {route.steps.map((s, i) => (
+                    <li key={`${s.from}-${s.title}`}>
                       <button
-                        key={n}
                         type="button"
-                        aria-pressed={lane === n}
-                        onClick={() => setLane(n)}
+                        onClick={() => toStep(i)}
+                        aria-current={i === step ? "step" : undefined}
                         className={cn(
-                          chip,
-                          "flex-1 text-center",
-                          lane === n ? chipOn : chipOff,
+                          "flex min-h-11 w-full items-start gap-2.5 rounded-md border-2 px-2.5 py-2.5 text-left outline-none transition-colors focus-visible:border-white",
+                          i === step
+                            ? "border-white/40 bg-white/10"
+                            : "border-transparent hover:bg-white/5",
                         )}
                       >
-                        {n}
-                      </button>
-                    ),
-                  )}
-                </div>
-                <p className="m-0 mt-2 text-[14px] font-semibold leading-snug">
-                  {laneRule(ARMS[arm].lanes, lane)}
-                </p>
-                <p className="m-0 mt-1 text-[12.5px] leading-snug text-white/65">
-                  Lane 1 is by the kerb. Change lanes only where the lines are
-                  broken: mirrors, signal for 3 seconds, then move. Tap a turn
-                  to watch it driven.
-                </p>
-              </div>
-              <ul className="m-0 grid list-none gap-1.5 p-0">
-                {options.map((option) => (
-                  <li key={option.id}>
-                    <button
-                      type="button"
-                      className={cn(
-                        chip,
-                        chipOff,
-                        "flex w-full items-center gap-3",
-                      )}
-                      onClick={() =>
-                        play(
-                          {
-                            kind: "lane",
-                            id: `${arm}${lane}-${option.id}`,
-                            title: `Lane ${lane}: ${option.label.toLowerCase()}`,
-                            ask: laneRule(ARMS[arm].lanes, lane),
-                            color: option.color,
-                          },
-                          option.route,
-                        )
-                      }
-                    >
-                      <span
-                        aria-hidden
-                        className="h-2.5 w-7 shrink-0 rounded-full"
-                        style={{ background: option.color }}
-                      />
-                      <span className="flex-1">
-                        {option.label}{" "}
-                        <span className="font-mono text-[11px] text-white/55">
-                          {option.degrees}
+                        <span className="mt-px font-mono text-[11px] font-bold text-white/55">
+                          {i + 1}
                         </span>
-                        <span className="mt-0.5 block text-[12px] leading-snug text-white/60">
-                          {option.how}
-                        </span>
-                        {!option.confirmed && (
-                          <span className="mt-0.5 block text-[12px] font-semibold text-kenya-gold">
-                            {UNSURE_NOTE}
+                        <span className="min-w-0 flex-1 text-[13.5px] font-semibold leading-snug">
+                          {s.title}
+                          <span className="ml-1.5 inline-flex gap-1 align-middle font-mono text-[9.5px] font-bold uppercase tracking-widest">
+                            <StepTags step={s} />
                           </span>
-                        )}
-                      </span>
-                      <Icon icon={PlayIcon} size={14} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : tab === "board" ? (
-            <div className="grid gap-3">
-              {picked ? (
-                <div className="rounded-md border-2 border-[#f6c416] bg-white/5 p-3">
-                  <h3 className="m-0 text-[17px] font-bold leading-snug">
-                    {picked.name}
-                  </h3>
-                  <p className="m-0 mt-1.5 text-[14px] leading-snug text-white/85">
-                    {picked.note}
-                  </p>
-                  {picked.sign && (
-                    <Link
-                      to={picked.sign.to}
-                      className="mt-2 inline-flex items-center gap-1 text-[13px] font-bold text-kenya-gold underline-offset-4 hover:underline"
-                    >
-                      The {picked.sign.label} sign
-                      <Icon icon={ArrowRightIcon} size={13} />
-                    </Link>
-                  )}
-                  <p className="m-0 mt-2 font-mono text-[10px] uppercase tracking-widest text-white/50">
-                    {RULES_SOURCE}, Unit 3
+                          {!s.confirmed && (
+                            <span className="mt-0.5 block text-[12px] font-semibold text-kenya-gold">
+                              {UNSURE_NOTE}
+                            </span>
+                          )}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            ) : tab === "lanes" ? (
+              <div className="grid gap-3">
+                <div>
+                  <p className={eyebrow}>Coming from</p>
+                  <ToggleGroup
+                    type="single"
+                    variant="game"
+                    aria-label="Coming from"
+                    value={arm}
+                    onValueChange={(next) => {
+                      if (!next) return;
+                      const picked = next as ArmId;
+                      setArm(picked);
+                      setLane((n) => Math.min(n, ARMS[picked].lanes));
+                    }}
+                    className="mt-1.5 grid grid-cols-4 gap-1"
+                  >
+                    {APPROACHES.map((a) => (
+                      <ToggleGroupItem
+                        key={a.arm}
+                        value={a.arm}
+                        className={cn(pick, "px-1 text-center")}
+                      >
+                        {a.label}
+                      </ToggleGroupItem>
+                    ))}
+                  </ToggleGroup>
+                  <p className="m-0 mt-1.5 text-[12.5px] text-white/65">
+                    {APPROACHES.find((a) => a.arm === arm)?.road},{" "}
+                    {ARMS[arm].lanes} lanes each way. Option code{" "}
+                    <strong className="font-mono text-white">
+                      {OPTION_CODES[ARMS[arm].lanes]}
+                    </strong>
+                    : the number of options in each lane, from the kerb.
                   </p>
                 </div>
-              ) : (
-                <p className="m-0 text-[14px] leading-snug text-white/80">
-                  Tap anything painted on the board to see it and what it asks
-                  of you.
-                </p>
-              )}
-              <div className="grid grid-cols-2 gap-1.5">
-                {BOARD_FEATURES.map((f) => (
-                  <button
-                    key={f.id}
-                    type="button"
-                    aria-pressed={feature === f.id}
-                    onClick={() => {
-                      setFeature(f.id);
-                      analytics.boardLessonViewed({
-                        kind: "feature",
-                        lesson_id: f.id,
-                      });
-                    }}
-                    className={cn(chip, feature === f.id ? chipOn : chipOff)}
+                <div>
+                  <p className={eyebrow}>In lane</p>
+                  <ToggleGroup
+                    type="single"
+                    variant="game"
+                    aria-label="In lane"
+                    value={String(lane)}
+                    onValueChange={(next) => next && setLane(Number(next))}
+                    className="mt-1.5 flex gap-1"
                   >
-                    {f.name}
-                  </button>
-                ))}
+                    {Array.from(
+                      { length: ARMS[arm].lanes },
+                      (_, i) => i + 1,
+                    ).map((n) => (
+                      <ToggleGroupItem
+                        key={n}
+                        value={String(n)}
+                        className={cn(pick, "flex-1 text-center")}
+                      >
+                        {n}
+                      </ToggleGroupItem>
+                    ))}
+                  </ToggleGroup>
+                  <p className="m-0 mt-2 text-[14px] font-semibold leading-snug">
+                    {laneRule(ARMS[arm].lanes, lane)}
+                  </p>
+                  <p className="m-0 mt-1 text-[12.5px] leading-snug text-white/65">
+                    Lane 1 is by the kerb. Change lanes only where the lines are
+                    broken: mirrors, signal for 3 seconds, then move. Tap a turn
+                    to watch it driven.
+                  </p>
+                </div>
+                <ul className="m-0 grid list-none gap-1.5 p-0">
+                  {options.map((option) => (
+                    <li key={option.id}>
+                      <button
+                        type="button"
+                        className={cn(
+                          chip,
+                          chipOff,
+                          "flex w-full items-center gap-3",
+                        )}
+                        onClick={() =>
+                          play(
+                            {
+                              kind: "lane",
+                              id: `${arm}${lane}-${option.id}`,
+                              title: `Lane ${lane}: ${option.label.toLowerCase()}`,
+                              ask: laneRule(ARMS[arm].lanes, lane),
+                              color: option.color,
+                            },
+                            option.route,
+                          )
+                        }
+                      >
+                        <span
+                          aria-hidden
+                          className="h-2.5 w-7 shrink-0 rounded-full"
+                          style={{ background: option.color }}
+                        />
+                        <span className="flex-1">
+                          {option.label}{" "}
+                          <span className="font-mono text-[11px] text-white/55">
+                            {option.degrees}
+                          </span>
+                          <span className="mt-0.5 block text-[12px] leading-snug text-white/60">
+                            {option.how}
+                          </span>
+                          {!option.confirmed && (
+                            <span className="mt-0.5 block text-[12px] font-semibold text-kenya-gold">
+                              {UNSURE_NOTE}
+                            </span>
+                          )}
+                        </span>
+                        <Icon icon={PlayIcon} size={14} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </div>
-          ) : (
-            <div className="grid gap-3">
-              <p className="m-0 text-[14px] leading-snug text-white/80">
-                {tab === "routes"
-                  ? "Rule 1: use the shortest correct route without parking. Rule 2: use the longest correct route if needed. Rule 3: parking is only a last option. Tap a route to watch it driven, a step at a time."
-                  : "Parking and leaving a bay, forward and in reverse. Tap one to watch it, a step at a time."}
-              </p>
-              <ul className="m-0 grid list-none gap-1.5 p-0">
-                {LESSONS.filter((l) => l.group === tab).map(lessonRow)}
-              </ul>
-            </div>
-          )}
+            ) : tab === "board" ? (
+              <div className="grid gap-3">
+                {picked ? (
+                  <div className="rounded-md border-2 border-[#f6c416] bg-white/5 p-3">
+                    <h3 className="m-0 text-[17px] font-bold leading-snug">
+                      {picked.name}
+                    </h3>
+                    <p className="m-0 mt-1.5 text-[14px] leading-snug text-white/85">
+                      {picked.note}
+                    </p>
+                    {picked.sign && (
+                      <Link
+                        to={picked.sign.to}
+                        className="mt-2 inline-flex items-center gap-1 text-[13px] font-bold text-kenya-gold underline-offset-4 hover:underline"
+                      >
+                        The {picked.sign.label} sign
+                        <Icon icon={ArrowRightIcon} size={13} />
+                      </Link>
+                    )}
+                    <p className="m-0 mt-2 font-mono text-[10px] uppercase tracking-widest text-white/50">
+                      {RULES_SOURCE}, Unit 3
+                    </p>
+                  </div>
+                ) : (
+                  <p className="m-0 text-[14px] leading-snug text-white/80">
+                    Tap anything painted on the board to see it and what it asks
+                    of you.
+                  </p>
+                )}
+                <ToggleGroup
+                  type="single"
+                  variant="game"
+                  aria-label="On the board"
+                  value={feature ?? ""}
+                  onValueChange={(next) => {
+                    if (!next) return;
+                    setFeature(next);
+                    analytics.boardLessonViewed({
+                      kind: "feature",
+                      lesson_id: next,
+                    });
+                  }}
+                  className="grid grid-cols-2 gap-1.5"
+                >
+                  {BOARD_FEATURES.map((f) => (
+                    <ToggleGroupItem
+                      key={f.id}
+                      value={f.id}
+                      className={cn(pick, "justify-start text-left")}
+                    >
+                      {f.name}
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
+              </div>
+            ) : (
+              <div className="grid gap-3">
+                <p className="m-0 text-[14px] leading-snug text-white/80">
+                  {tab === "routes"
+                    ? "Rule 1: use the shortest correct route without parking. Rule 2: use the longest correct route if needed. Rule 3: parking is only a last option. Tap a route to watch it driven, a step at a time."
+                    : "Parking and leaving a bay, forward and in reverse. Tap one to watch it, a step at a time."}
+                </p>
+                <ul className="m-0 grid list-none gap-1.5 p-0">
+                  {LESSONS.filter((l) => l.group === tab).map(lessonRow)}
+                </ul>
+              </div>
+            )}
 
-          <Link
-            to={BOARD_PATH}
-            replace
-            className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md border-2 border-white/25 py-2.5 font-mono text-[11px] font-bold uppercase tracking-widest text-white outline-none transition-colors hover:bg-white/10 focus-visible:border-white"
-          >
-            Go to the levels
-            <Icon icon={ArrowRightIcon} size={14} />
-          </Link>
-        </div>
+            <Button
+              variant="game-outline"
+              asChild
+              className="mt-4 h-auto min-h-12 w-full bg-transparent py-2.5 font-mono text-[11px] font-bold uppercase tracking-widest no-underline hover:bg-white/10"
+            >
+              <Link to={BOARD_PATH} replace>
+                Go to the levels
+                <Icon icon={ArrowRightIcon} size={14} />
+              </Link>
+            </Button>
+          </TabsContent>
+        </Tabs>
       </section>
     </div>
   );
