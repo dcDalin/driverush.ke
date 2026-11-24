@@ -19,6 +19,7 @@ import { SIGN_CLASS_PAGES } from "~/lib/sign-class-pages";
 import { Logo } from "~/components/brand/logo";
 import { SignCredit } from "~/components/brand/sign-credit";
 import { PoweredByGonasi } from "~/components/brand/powered-by-gonasi";
+import { BoardSchools } from "~/components/board/sponsor-credit";
 
 const Container = ({ children }: { children: React.ReactNode }) => (
   <div className="mx-auto w-full max-w-6xl px-5 sm:px-9">{children}</div>
@@ -113,6 +114,23 @@ export function SiteFooter() {
               { label: "Privacy", href: "/privacy" },
             ]}
           />
+        </div>
+
+        <div className="border-b border-paper/20 py-6">
+          <h3 className="m-0 font-display text-xs font-bold uppercase tracking-widest">
+            Driving schools on the board
+          </h3>
+          <p className="m-0 mt-2 max-w-xl font-serif text-sm leading-snug opacity-80">
+            The learner cars on the{" "}
+            <Link
+              to={BOARD_PATH}
+              className="underline underline-offset-2 hover:opacity-80"
+            >
+              Model Town Board
+            </Link>{" "}
+            wear the colours of these Kenyan driving schools.
+          </p>
+          <BoardSchools className="mt-4" />
         </div>
 
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-paper/20 py-5">

@@ -118,7 +118,8 @@ export function PoweredByGonasi({
         rel="noreferrer noopener"
         aria-label={aria}
         className={cn(
-          "group/gonasi inline-flex items-center gap-3 border border-line rounded-lg",
+          // Clipped, so the logo's square field takes the box's round corners.
+          "group/gonasi inline-flex items-center gap-3 overflow-hidden border border-line rounded-lg",
           "outline-none transition-[transform,box-shadow] duration-100 ease-snap",
           "hover:-translate-x-px hover:-translate-y-px hover:shadow-stamp",
           "active:translate-x-[2px] active:translate-y-[2px] active:shadow-stamp-sm",
@@ -148,7 +149,7 @@ export function PoweredByGonasi({
         rel="noreferrer noopener"
         aria-label={aria}
         className={cn(
-          "group/gonasi inline-flex items-center gap-2.5 border border-line rounded-lg",
+          "group/gonasi inline-flex items-center gap-2.5 overflow-hidden border border-line rounded-lg",
           "outline-none transition-[transform,box-shadow] duration-100 ease-snap",
           "hover:-translate-x-px hover:-translate-y-px hover:shadow-stamp-sm",
           "focus-visible:-translate-x-px focus-visible:-translate-y-px focus-visible:shadow-stamp-rush",

@@ -25,13 +25,15 @@ export function SignCredit({
       >
         Featuring
       </span>
-      <span className="inline-flex border border-line bg-white rounded-lg">
+      {/* A white tile that clips the logo to its corners, so it reads on
+          light pages and on the ink footer alike. */}
+      <span className="inline-flex overflow-hidden rounded-md border border-line bg-white px-1.5 py-1">
         <img
           src={SIGN_BRAND.logo}
           alt={SIGN_BRAND.name}
           width={SIGN_BRAND.logoWidth}
           height={SIGN_BRAND.logoHeight}
-          className={cn("block w-auto", size === "md" ? "h-9" : "h-7")}
+          className={cn("block w-auto", size === "md" ? "h-8" : "h-6")}
         />
       </span>
     </span>

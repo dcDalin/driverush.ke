@@ -139,6 +139,8 @@ export const SPONSORS: readonly Sponsor[] = [
         lessons: `${HELTZ_DIR}/poster-lessons.webp`,
       },
     },
+    // Their own site (Tom Mboya Street head office), checked 2026-11-24.
+    url: "https://heltzdrivingschool.com",
     // Live for everyone since 2026-11-21 (owner's call).
     live: true,
   },
@@ -170,6 +172,8 @@ export const SPONSORS: readonly Sponsor[] = [
         lessons: `${TOPGEAR_DIR}/poster-lessons.webp`,
       },
     },
+    // Their own site (Outer Ring Road, Tena; 0722 784 235), checked 2026-11-24.
+    url: "https://topgeardrivingschool.co.ke",
     // Live since 2026-11-22: the owner approved its pictures. It takes turns
     // with the other live schools (`pickSponsor`).
     live: true,
@@ -271,6 +275,9 @@ export const SPONSORS: readonly Sponsor[] = [
         lessons: `${PETANNS_DIR}/poster-lessons.webp`,
       },
     },
+    // Their own site; its WhatsApp is the 0705 05 05 04 on their cars.
+    // Checked 2026-11-24.
+    url: "https://petannsdrivingschool.co.ke",
     // Live since 2026-11-22: the owner approved its pictures.
     live: true,
   },
@@ -381,4 +388,6 @@ export type SponsorPlace =
   | "ready_card"
   | "credit"
   /** Named on screen during the opening turn round the car. */
-  | "showcase";
+  | "showcase"
+  /** The site footer's row of schools on the board. */
+  | "footer";

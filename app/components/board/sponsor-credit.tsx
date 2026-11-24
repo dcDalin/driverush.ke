@@ -11,7 +11,11 @@
  */
 import * as React from "react";
 
-import type { Sponsor, SponsorPlace } from "~/lib/board/sponsors";
+import {
+  SPONSORS,
+  type Sponsor,
+  type SponsorPlace,
+} from "~/lib/board/sponsors";
 import { sponsorLinkClicked, sponsorShown } from "~/lib/board/sponsor-visit";
 import { cn } from "~/lib/utils";
 
@@ -111,5 +115,61 @@ export function SponsorReadyCard({
         </p>
       )}
     </div>
+  );
+}
+
+/**
+ * Every live school on the board, for the site footer: their logos on white
+ * tiles, each a link to the school's site when it has one. The cars on the
+ * board wear these schools' colours, so the site says whose they are.
+ */
+export function BoardSchools({ className }: { className?: string }) {
+  const schools = SPONSORS.filter((s) => s.live);
+  if (schools.length === 0) return null;
+  // The school's logo is a 1024 x 401 lockup: tiles keep its shape. The
+  // edge takes the footer's ink, so a white tile shows on either theme.
+  const tile =
+    "flex aspect-[1024/401] w-full items-center justify-center overflow-hidden rounded-md border border-paper/25 bg-white sm:w-[132px]";
+  return (
+    <ul
+      className={cn(
+        "m-0 grid list-none grid-cols-3 gap-2 p-0 sm:flex sm:flex-wrap sm:gap-2.5",
+        className,
+      )}
+    >
+      {schools.map((school) => {
+        const logo = (
+          <img
+            src={school.logo.full}
+            alt={school.school}
+            width={1024}
+            height={401}
+            loading="lazy"
+            className="block h-full w-full object-contain"
+          />
+        );
+        return (
+          <li key={school.id}>
+            {school.url ? (
+              <a
+                href={school.url}
+                target="_blank"
+                rel="noopener"
+                title={`${school.school} (opens their site)`}
+                onClick={() => sponsorLinkClicked(school, "footer")}
+                className={cn(
+                  tile,
+                  "outline-none transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-rush",
+                )}
+              >
+                {logo}
+              </a>
+            ) : (
+              <span className={tile}>{logo}</span>
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
