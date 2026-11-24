@@ -35,8 +35,8 @@ import {
   PopoverTrigger,
 } from "~/components/ui/popover";
 
-const linkButton =
-  "min-h-11 px-3 text-[13.5px] font-semibold text-ink-2 underline underline-offset-4 outline-none hover:text-ink focus-visible:text-ink";
+/** Layout for a quiet Button: a thumb high, a little room either side. */
+const linkButton = "px-3 text-[13.5px]";
 
 const card =
   "flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-md border border-ink/25 bg-surface px-4 py-3 text-left";
@@ -133,27 +133,29 @@ function Reminder({ record, now }: { record: TestRecord; now: string }) {
       <span className="text-[13.5px] text-ink-2">
         Remind me to practise every evening:
       </span>
-      <a
-        href={google}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={cn(linkButton, "inline-flex items-center")}
-        onClick={() =>
-          analytics.testReminderAdded({ calendar: "google", days_until })
-        }
-      >
-        Google Calendar
-      </a>
-      <a
-        href={ics}
-        download={ICS_NAME}
-        className={cn(linkButton, "inline-flex items-center")}
-        onClick={() =>
-          analytics.testReminderAdded({ calendar: "ics", days_until })
-        }
-      >
-        iPhone or other calendar
-      </a>
+      <Button variant="quiet" asChild className={linkButton}>
+        <a
+          href={google}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() =>
+            analytics.testReminderAdded({ calendar: "google", days_until })
+          }
+        >
+          Google Calendar
+        </a>
+      </Button>
+      <Button variant="quiet" asChild className={linkButton}>
+        <a
+          href={ics}
+          download={ICS_NAME}
+          onClick={() =>
+            analytics.testReminderAdded({ calendar: "ics", days_until })
+          }
+        >
+          iPhone or other calendar
+        </a>
+      </Button>
     </span>
   );
 }
@@ -254,13 +256,13 @@ export function TestCard({
           <Button variant="paper" onClick={() => report("failed")}>
             Not this time
           </Button>
-          <button
-            type="button"
+          <Button
+            variant="quiet"
             className={linkButton}
             onClick={() => report("not_yet")}
           >
             Not taken yet
-          </button>
+          </Button>
         </span>
       </div>
     );
@@ -322,20 +324,20 @@ export function TestCard({
         </Button>
       </span>
       <span className="flex w-full flex-wrap items-center">
-        <button
-          type="button"
+        <Button
+          variant="quiet"
           className={cn(linkButton, "pl-0")}
           onClick={() => putOff(true)}
         >
           Not booked yet
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="quiet"
           className={linkButton}
           onClick={() => putOff(false)}
         >
           Not now
-        </button>
+        </Button>
       </span>
     </form>
   );

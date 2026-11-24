@@ -106,13 +106,13 @@ export function BoardFreeSummary({
         <Icon icon={RefreshIcon} size={14} />
         New drive
       </Button>
-      <button
-        type="button"
+      <Button
+        variant="quiet"
         onClick={onClose}
-        className="min-h-11 w-full text-center text-[13.5px] font-semibold text-ink-2 underline underline-offset-4 outline-none hover:text-ink focus-visible:text-ink"
+        className="w-full text-[13.5px]"
       >
         Close
-      </button>
+      </Button>
     </BoardSheet>
   );
 }

@@ -1665,21 +1665,21 @@ export function BoardGame() {
               Watch the right way
             </Button>
           )}
-          <button
-            type="button"
+          <Button
+            variant="quiet"
             onClick={pickedCar ? s.putBack : s.exit}
-            className="min-h-11 w-full text-center text-[13.5px] font-semibold text-ink-2 underline underline-offset-4 outline-none hover:text-ink focus-visible:text-ink"
+            className="w-full text-[13.5px]"
           >
             {pickedCar ? "Back to the cars" : "Close"}
-          </button>
+          </Button>
           {level && !pickedCar && (
-            <button
-              type="button"
+            <Button
+              variant="quiet"
               onClick={openLevels}
-              className="-mt-2 flex min-h-11 w-full items-center justify-center text-[13.5px] font-semibold text-ink-2 underline underline-offset-4 outline-none hover:text-ink focus-visible:text-ink"
+              className="-mt-2 w-full text-[13.5px]"
             >
               All levels
-            </button>
+            </Button>
           )}
         </BoardSheet>
       )}

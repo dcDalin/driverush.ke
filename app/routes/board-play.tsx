@@ -30,6 +30,7 @@ import { useThemeColor } from "~/lib/theme";
 
 import { BoardGame } from "~/components/board/board-player";
 import { LoadingPanel } from "~/components/brand/traffic-loader";
+import { Button } from "~/components/ui/button";
 
 export function meta(_: Route.MetaArgs) {
   return [
@@ -143,12 +144,13 @@ export default function BoardPlay() {
       className="fixed inset-0 flex flex-col items-center justify-center gap-6 bg-[#101114] text-white"
     >
       <LoadingPanel label="Loading the board" size="lg" onDark />
-      <Link
-        to={BOARD_PATH}
-        className="font-mono text-[11px] font-bold uppercase tracking-widest text-white/70 underline underline-offset-4 outline-none hover:text-white focus-visible:text-white"
+      <Button
+        variant="game-link"
+        asChild
+        className="font-mono text-[11px] font-bold uppercase tracking-widest text-white/70"
       >
-        Back to the Model Town Board
-      </Link>
+        <Link to={BOARD_PATH}>Back to the Model Town Board</Link>
+      </Button>
       <BoardGame />
     </main>
   );

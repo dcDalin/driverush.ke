@@ -252,13 +252,13 @@ export function TrainerResultCard({
                   confirm="Reset"
                   onConfirm={onResetMastery}
                 >
-                  <button
-                    type="button"
-                    className="mt-2 inline-flex items-center gap-1.5 font-sans text-[10px] uppercase tracking-wider text-ink-3 outline-none hover:text-ink focus-visible:text-ink font-medium"
+                  <Button
+                    variant="quiet"
+                    className="mt-1 h-auto min-h-9 gap-1.5 text-[10px] font-medium uppercase tracking-wider text-ink-3 no-underline hover:underline"
                   >
                     <Icon icon={RefreshIcon} size={11} />
                     Reset progress
-                  </button>
+                  </Button>
                 </ConfirmAction>
               )}
             </motion.div>

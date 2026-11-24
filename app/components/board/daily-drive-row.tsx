@@ -19,6 +19,7 @@ import {
   ChevronRightIcon,
   RoadIcon,
 } from "~/components/brand/icons";
+import { Button } from "~/components/ui/button";
 
 function days(n: number): string {
   return `${n} ${n === 1 ? "day" : "days"}`;
@@ -118,29 +119,32 @@ export function DailyDriveLink({
   if (!drive || drive.done) return null;
   const run = streak?.days ?? 0;
   return (
-    <Link
-      to={drive.href}
-      replace
-      onClick={() =>
-        analytics.dailyDriveOpened({
-          challenge_id: drive.task.id,
-          surface,
-          done_today: false,
-        })
-      }
+    <Button
+      variant={onDark ? "game-link" : "quiet"}
+      asChild
       className={cn(
-        "inline-flex min-h-11 items-center gap-2 text-[13.5px] font-semibold underline underline-offset-4 outline-none",
-        onDark
-          ? "text-white/85 hover:text-white focus-visible:text-white"
-          : "text-ink-2 hover:text-ink focus-visible:text-ink",
+        "h-auto min-h-11 justify-start py-1.5 text-left text-[13.5px] font-semibold whitespace-normal",
+        onDark && "text-white/85",
         className,
       )}
     >
-      <Icon icon={RoadIcon} size={16} className="shrink-0" />
-      <span>
-        Today's drive: {drive.task.title}
-        {run > 0 ? `. Keeps your ${days(run)} in a row.` : "."}
-      </span>
-    </Link>
+      <Link
+        to={drive.href}
+        replace
+        onClick={() =>
+          analytics.dailyDriveOpened({
+            challenge_id: drive.task.id,
+            surface,
+            done_today: false,
+          })
+        }
+      >
+        <Icon icon={RoadIcon} size={16} className="shrink-0" />
+        <span>
+          Today's drive: {drive.task.title}
+          {run > 0 ? `. Keeps your ${days(run)} in a row.` : "."}
+        </span>
+      </Link>
+    </Button>
   );
 }
