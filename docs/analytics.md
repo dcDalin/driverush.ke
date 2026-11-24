@@ -121,6 +121,7 @@ get wrong" report.
 | `board_abandoned`         | Left a round before the end                                | `challenge_id`, `phase`, `task`, `of`, `tries`, `moved`, `off_route`               |
 | `board_completed`         | A round finishes                                           | `challenges`, `clean`, `fault_count`, `scope`, `mock`; for the mock also `best_before`, `new_best` |
 | `board_hint_used`         | A hint is used on a task                                   | `challenge_id`, `kind`                                                             |
+| `board_first_move`        | The stick is pushed for the first time on the first drive (PostHog only) | `challenge_id`, `ms` (from the stick coming alive), `input` (`touch`, `keys`), `nudged` (the stick had started showing how) |
 | `board_learn_opened`      | Learn mode opens                                           |                                                                                    |
 | `board_lesson_viewed`     | A lesson route or board feature is looked at               | `kind`, `lesson_id`                                                                |
 | `board_loaded`            | The 3D board is drawn (PostHog only)                       | `ms` (from the viewer opening), `tier`, `start_rung`, `weak_gpu`                   |

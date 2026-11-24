@@ -63,6 +63,7 @@ import {
   useBoardStore,
   type BoardNotice,
 } from "~/lib/board-store";
+import { analytics } from "~/lib/analytics";
 import { levelHref } from "~/lib/board-guides";
 import { COURSE_LEVELS, levelAfter, levelById } from "~/lib/board/curriculum";
 import { signCounts } from "~/lib/pelican-progress";
@@ -1362,6 +1363,16 @@ export function BoardGame() {
             active={s.phase === "driving" && !held && !showing}
             reverse={reverseTask}
             quietHint={coaching && !warmup}
+            nudge={warmup}
+            onFirstPush={
+              warmup && challenge
+                ? (first) =>
+                    analytics.boardFirstMove({
+                      challenge_id: challenge.id,
+                      ...first,
+                    })
+                : undefined
+            }
             note={
               reverseTask
                 ? "To reverse: stop, pull the joystick back and hold it. The back of the car goes where you point."

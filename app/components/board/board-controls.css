@@ -20,3 +20,57 @@
     0 4px 0 rgb(0 0 0 / 0.55),
     inset 0 2px 0 rgb(255 255 255 / 0.18);
 }
+
+/*
+ * The first drive's nudge: the resting knob slides the way the car faces and
+ * back, and a gold ring breathes round the stick, until the learner pushes.
+ * The animation wins over the knob's inline transform, which sits at rest.
+ */
+[data-board-stick] [data-nudge="true"] {
+  animation: board-stick-nudge 1.8s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+}
+
+.board-stick-ring {
+  position: absolute;
+  inset: -6px;
+  border: 3px solid #f6c416;
+  border-radius: 9999px;
+  pointer-events: none;
+  animation: board-stick-ring 1.8s ease-out infinite;
+}
+
+@keyframes board-stick-nudge {
+  0%,
+  15% {
+    transform: translate(0, 0);
+  }
+  45%,
+  65% {
+    transform: translate(var(--nudge-x, 0px), var(--nudge-y, -36px));
+  }
+  90%,
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes board-stick-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-board-stick] [data-nudge="true"] {
+    animation: none;
+  }
+  .board-stick-ring {
+    animation: none;
+    opacity: 1;
+  }
+}

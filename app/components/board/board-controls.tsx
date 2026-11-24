@@ -16,6 +16,11 @@
  * (and WASD) steer the car itself, as in a game: up to drive on, left and
  * right to turn, down to brake and back up (`keyStick`). They move the resting
  * knob, and holding Shift drives gently, for parking.
+ *
+ * With `nudge` on (the first drive), a stick nobody has pushed shows how:
+ * after a few seconds, or as soon as a tap lands anywhere without a push, the
+ * resting knob slides the way the car faces and back, with a ring round it.
+ * Most learners who left the first drive had never moved the car.
  */
 import * as React from "react";
 
@@ -42,6 +47,12 @@ const KEYS: Record<string, Dir> = {
   S: "down",
 };
 
+/** How long an unpushed stick waits before it shows how to push it, ms. */
+const NUDGE_AFTER = 3000;
+
+/** How far the knob slides when it shows how to push, as a share of its travel. */
+const NUDGE_REACH = 0.7;
+
 /** How far the keys push the knob with Shift held: a crawl, about 2 m/s, for a parking bay. */
 const GENTLE = 0.4;
 
@@ -60,8 +71,18 @@ export function BoardControls({
   reverse = false,
   note,
   quietHint = false,
+  nudge = false,
+  onFirstPush,
 }: {
   active: boolean;
+  /** Show how to push the stick when it sits unpushed (the first drive). */
+  nudge?: boolean;
+  /** The stick was pushed for the first time: how long it took, and with what. */
+  onFirstPush?: (first: {
+    ms: number;
+    input: "touch" | "keys";
+    nudged: boolean;
+  }) => void;
   /** The first-drive tips are saying it, so the line here stays quiet. */
   quietHint?: boolean;
   /** The task has a reverse gear: say when it is coming in, and when it is in. */
@@ -85,6 +106,16 @@ export function BoardControls({
   });
   // Shown until the learner has pushed the knob once.
   const [hint, setHint] = React.useState(true);
+  // The resting knob is showing how to push it.
+  const [nudging, setNudging] = React.useState(false);
+  // Which hand the next `place` comes from, for `onFirstPush`.
+  const input = React.useRef<"touch" | "keys">("touch");
+  // When the stick came alive, unpushed. Null once it has been pushed.
+  const aliveAt = React.useRef<number | null>(null);
+  const pushed = React.useRef(false);
+  const nudged = React.useRef(false);
+  const firstPush = React.useRef(onFirstPush);
+  firstPush.current = onFirstPush;
 
   /** Put the knob at `x`, `y` (each -1 to 1) and tell the car. */
   const place = React.useCallback((x: number, y: number) => {
@@ -98,8 +129,59 @@ export function BoardControls({
       const travel = (b.offsetWidth - el.offsetWidth) / 2;
       el.style.transform = `translate(${(stick.x * travel).toFixed(1)}px, ${(stick.y * travel).toFixed(1)}px)`;
     }
-    if (reach > STICK_DEADZONE) setHint(false);
+    if (reach > STICK_DEADZONE) {
+      setHint(false);
+      setNudging(false);
+      if (!pushed.current && aliveAt.current != null) {
+        pushed.current = true;
+        firstPush.current?.({
+          ms: Math.round(performance.now() - aliveAt.current),
+          input: input.current,
+          nudged: nudged.current,
+        });
+      }
+    }
   }, []);
+
+  // The first drive: an unpushed stick shows how to push it, after a few
+  // seconds, or straight away when a tap lands with no push (on the car, the
+  // road, or the stick without dragging it).
+  React.useEffect(() => {
+    if (!nudge || !active || pushed.current) {
+      setNudging(false);
+      return;
+    }
+    // From the latest time it came alive: the opening turn round the car, or
+    // a sheet over the table, is not time spent not knowing what to do.
+    aliveAt.current = performance.now();
+    const show = () => {
+      if (pushed.current) return;
+      const b = base.current;
+      const el = knob.current;
+      if (b && el) {
+        // The way the car faces on screen: what the up key would push.
+        const at = keyStick(
+          { up: true, down: false, left: false, right: false },
+          car,
+          drive.seat,
+          1,
+        );
+        const travel = ((b.offsetWidth - el.offsetWidth) / 2) * NUDGE_REACH;
+        el.style.setProperty("--nudge-x", `${(at.x * travel).toFixed(1)}px`);
+        el.style.setProperty("--nudge-y", `${(at.y * travel).toFixed(1)}px`);
+      }
+      nudged.current = true;
+      setNudging(true);
+    };
+    const wait = window.setTimeout(show, NUDGE_AFTER);
+    // After the thumb lifts, so a push that is under way is never nudged.
+    const tapped = () => window.setTimeout(show, 0);
+    window.addEventListener("pointerup", tapped);
+    return () => {
+      window.clearTimeout(wait);
+      window.removeEventListener("pointerup", tapped);
+    };
+  }, [nudge, active]);
 
   React.useEffect(() => {
     const keys = held.current;
@@ -136,6 +218,7 @@ export function BoardControls({
         gentle.current ? GENTLE : 1,
         (performance.now() - turnFrom) / 1000,
       );
+      input.current = "keys";
       place(at.x, at.y);
       drive.follow = at.follow;
       drive.keyExit = at.exit;
@@ -226,6 +309,7 @@ export function BoardControls({
         if (!dragging.current || !live.current) return;
         // nipplejs counts up as positive; the stick counts down. Its vector
         // is 1 with the knob at the rim.
+        input.current = "touch";
         place(e.data.vector.x, -e.data.vector.y);
       });
       pad.on("end", drop);
@@ -276,12 +360,25 @@ export function BoardControls({
           road above the joystick is where the car is. */}
       {((hint && !quietHint) || note) && (
         <p
-          key={hint ? "hint" : "note"}
+          key={hint ? (nudging ? "nudge" : "hint") : "note"}
           className="dr-rise m-0 max-w-[17rem] rounded-md bg-[#101114]/85 px-3 py-1.5 text-center text-[12.5px] font-semibold leading-snug text-white"
         >
-          {hint && !quietHint
-            ? "Push toward where you want to go. Let go to stop."
-            : note}
+          {hint && !quietHint ? (
+            nudging ? (
+              <>
+                <span className="pointer-fine:hidden">
+                  Put your thumb on the knob and push it the way the car faces.
+                </span>
+                <span className="hidden pointer-fine:inline">
+                  Drag the knob the way the car faces, or press the up arrow.
+                </span>
+              </>
+            ) : (
+              "Push toward where you want to go. Let go to stop."
+            )
+          ) : (
+            note
+          )}
         </p>
       )}
       <p
@@ -313,6 +410,7 @@ export function BoardControls({
           data-held="false"
           className="relative flex size-36 items-center justify-center rounded-full border-2 border-white/30 bg-[#17181b]/70 shadow-[0_6px_0_rgba(0,0,0,0.45)] transition-opacity duration-100 data-[held=true]:opacity-0"
         >
+          {nudging && <span aria-hidden className="board-stick-ring" />}
           {/* Four ticks: the knob points at the screen, not at the car. */}
           <svg
             viewBox="0 0 100 100"
@@ -327,6 +425,7 @@ export function BoardControls({
           <div
             ref={knob}
             data-held="false"
+            data-nudge={nudging ? "true" : undefined}
             className="size-16 rounded-full border-2 border-[#f6c416] bg-[#2b2d33] shadow-[0_4px_0_rgba(0,0,0,0.55),inset_0_2px_0_rgba(255,255,255,0.18)] will-change-transform data-[held=false]:transition-transform data-[held=false]:duration-150"
           />
         </div>

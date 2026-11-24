@@ -404,6 +404,18 @@ export const analytics = {
     kind: "next_step" | "show_me" | "after_fault";
   }) => emit("board_hint_used", args),
 
+  /**
+   * The first push of the stick on the first drive. `ms` is from the stick
+   * coming alive (after the opening turn round the car) to that push;
+   * `nudged` says the stick had started showing how to push it. PostHog only.
+   */
+  boardFirstMove: (args: {
+    challenge_id: string;
+    ms: number;
+    input: "touch" | "keys";
+    nudged: boolean;
+  }) => emit("board_first_move", args, false),
+
   // ----- driving-school sponsors (see ~/lib/board/sponsors) -----
 
   /**
