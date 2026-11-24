@@ -45,6 +45,14 @@ import {
 import { useBoardStore } from "~/lib/board-store";
 import { cn } from "~/lib/utils";
 
+import { Button } from "~/components/ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "~/components/ui/collapsible";
+import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group";
+
 import { LevelCheer } from "~/components/board/board-cheer";
 import { useOpenLevels } from "~/components/board/levels-sheet-context";
 import { LevelTestNote } from "~/components/board/level-test-note";
@@ -74,15 +82,12 @@ const chip =
 const chipOff = "border-white/15 bg-white/5 text-white hover:bg-white/10";
 const eyebrow =
   "m-0 font-mono text-[10px] font-bold uppercase tracking-widest text-white/55";
+/** Layout for the panel's main Button: a long level name wraps. */
 const primary =
-  "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md border-2 border-[#f6c416] bg-[#f6c416] px-4 py-2.5 text-center text-[14.5px] font-bold leading-snug text-[#17181b] outline-none transition-colors hover:bg-[#ffd84d] focus-visible:border-white disabled:opacity-40";
+  "h-auto min-h-12 w-full whitespace-normal px-4 py-2.5 text-center font-bold leading-snug no-underline";
 const secondary =
-  "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md border-2 border-white/25 px-4 py-2.5 text-center font-mono text-[11px] font-bold uppercase tracking-widest text-white outline-none transition-colors hover:bg-white/10 focus-visible:border-white disabled:opacity-40";
-const iconButton =
-  "inline-flex size-11 items-center justify-center rounded-md border-2 border-white/15 outline-none transition-colors hover:bg-white/15 focus-visible:border-white";
-
-const quiet =
-  "inline-flex min-h-10 items-center justify-center text-center text-[13px] font-semibold text-white/75 underline underline-offset-4 outline-none hover:text-white focus-visible:text-white";
+  "h-auto min-h-12 w-full whitespace-normal px-4 py-2.5 text-center font-mono text-[11px] font-bold uppercase tracking-widest no-underline disabled:opacity-40";
+const quiet = "h-auto min-h-10 text-center text-[13px] font-semibold";
 
 /**
  * The panel's foot: where the one thing to do next always sits, under the
@@ -106,27 +111,23 @@ function Fold({
   children: React.ReactNode;
   defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = React.useState(defaultOpen);
   return (
-    <div className="grid gap-2">
-      <button
-        type="button"
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-        className="flex min-h-11 w-full items-center justify-between gap-2 rounded-md border-2 border-white/15 px-3 text-left text-[13.5px] font-semibold outline-none transition-colors hover:bg-white/10 focus-visible:border-white"
-      >
-        {label}
-        <Icon
-          icon={ChevronDownIcon}
-          size={16}
-          className={cn(
-            "shrink-0 transition-transform motion-reduce:transition-none",
-            open && "rotate-180",
-          )}
-        />
-      </button>
-      {open && children}
-    </div>
+    <Collapsible defaultOpen={defaultOpen} className="grid gap-2">
+      <CollapsibleTrigger asChild>
+        <Button
+          variant="game-outline"
+          className="group/fold w-full justify-between bg-transparent px-3 text-left text-[13.5px] hover:bg-white/10"
+        >
+          {label}
+          <Icon
+            icon={ChevronDownIcon}
+            size={16}
+            className="shrink-0 transition-transform group-data-[state=open]/fold:rotate-180 motion-reduce:transition-none"
+          />
+        </Button>
+      </CollapsibleTrigger>
+      <CollapsibleContent>{children}</CollapsibleContent>
+    </Collapsible>
   );
 }
 
@@ -147,25 +148,29 @@ export function LevelNext({
   return (
     <PanelActions>
       {next && (
-        <Link to={levelHref(next.id)} replace className={primary}>
-          <span className="min-w-0">
-            {next.kind === "mock"
-              ? "Next: the mock test"
-              : `Next: level ${next.n}, ${next.title}`}
-          </span>
-          <Icon icon={ArrowRightIcon} size={16} className="shrink-0" />
-        </Link>
+        <Button variant="game-gold" asChild className={primary}>
+          <Link to={levelHref(next.id)} replace>
+            <span className="min-w-0">
+              {next.kind === "mock"
+                ? "Next: the mock test"
+                : `Next: level ${next.n}, ${next.title}`}
+            </span>
+            <Icon icon={ArrowRightIcon} size={16} className="shrink-0" />
+          </Link>
+        </Button>
       )}
       <div className="flex flex-wrap items-center justify-center gap-x-5">
         {children}
         {openLevels ? (
-          <button type="button" onClick={openLevels} className={quiet}>
+          <Button variant="game-link" onClick={openLevels} className={quiet}>
             All levels
-          </button>
+          </Button>
         ) : (
-          <Link to={BOARD_LEVELS_PATH} replace className={quiet}>
-            All levels
-          </Link>
+          <Button variant="game-link" asChild className={quiet}>
+            <Link to={BOARD_LEVELS_PATH} replace>
+              All levels
+            </Link>
+          </Button>
         )}
       </div>
     </PanelActions>
@@ -181,10 +186,14 @@ function SkipOn({ level }: { level: Level }) {
       <p className="m-0 text-center text-[12.5px] leading-snug text-white/65">
         You have done this level before.
       </p>
-      <Link to={levelHref(next.id)} replace className={secondary}>
-        {next.kind === "mock" ? "Go to the mock test" : `Go to level ${next.n}`}
-        <Icon icon={ArrowRightIcon} size={14} />
-      </Link>
+      <Button variant="game-outline" asChild className={secondary}>
+        <Link to={levelHref(next.id)} replace>
+          {next.kind === "mock"
+            ? "Go to the mock test"
+            : `Go to level ${next.n}`}
+          <Icon icon={ArrowRightIcon} size={14} />
+        </Link>
+      </Button>
     </PanelActions>
   );
 }
@@ -365,8 +374,8 @@ function SlidesLevel({
           </p>
         </div>
         <PanelActions>
-          <button
-            type="button"
+          <Button
+            variant="game-outline"
             className={secondary}
             onClick={() => {
               setFinding(false);
@@ -375,7 +384,7 @@ function SlidesLevel({
           >
             <Icon icon={ChevronLeftIcon} size={16} />
             Back to the cards
-          </button>
+          </Button>
         </PanelActions>
       </div>
     );
@@ -414,8 +423,8 @@ function SlidesLevel({
 
       {ended ? (
         <LevelNext level={level}>
-          <button
-            type="button"
+          <Button
+            variant="game-link"
             className={quiet}
             onClick={() => {
               setFinished(false);
@@ -423,22 +432,22 @@ function SlidesLevel({
             }}
           >
             Read it again
-          </button>
+          </Button>
         </LevelNext>
       ) : (
         <PanelActions>
           <div className="flex gap-2">
-            <button
-              type="button"
+            <Button
+              variant="game-outline"
               aria-label="Previous card"
               disabled={at === 0}
               onClick={() => setAt((n) => Math.max(0, n - 1))}
               className={cn(secondary, "w-14 shrink-0 px-0")}
             >
               <Icon icon={ChevronLeftIcon} size={18} />
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="game-gold"
               className={primary}
               onClick={() => {
                 if (!last) {
@@ -463,12 +472,14 @@ function SlidesLevel({
                 icon={last && !target ? CheckIcon : ArrowRightIcon}
                 size={16}
               />
-            </button>
+            </Button>
           </div>
           {done && after && (
-            <Link to={levelHref(after.id)} replace className={quiet}>
-              Done before. Skip to level {after.n}
-            </Link>
+            <Button variant="game-link" asChild className={quiet}>
+              <Link to={levelHref(after.id)} replace>
+                Done before. Skip to level {after.n}
+              </Link>
+            </Button>
           )}
         </PanelActions>
       )}
@@ -832,24 +843,24 @@ function WatchLevel({
   const wayRow = ways.length > 1 && (!route || ended) && (
     <div className="grid gap-2">
       <p className={eyebrow}>{ways.length} ways to get there</p>
-      <div
-        role="radiogroup"
+      <ToggleGroup
+        type="single"
+        variant="game"
         aria-label="Ways to get there"
+        value={String(pick)}
+        // A second tap on the way chosen keeps it chosen.
+        onValueChange={(next) => next && choose(Number(next))}
         className="grid gap-1.5"
       >
         {ways.map((way, i) => (
-          <button
+          <ToggleGroupItem
             key={way.signature}
-            type="button"
-            role="radio"
-            aria-checked={i === pick}
-            onClick={() => choose(i)}
+            value={String(i)}
             className={cn(
-              chip,
-              i === pick
-                ? "border-[#f6c416]/80 bg-white/10 text-white"
-                : chipOff,
-              "flex w-full items-center gap-3",
+              "h-auto w-full justify-start gap-3 px-3 py-2 text-left text-[13.5px] leading-snug whitespace-normal",
+              // Chosen, it keeps the panel's dark ground: the line's colour
+              // must read on it.
+              "data-[state=on]:border-game-gold/80 data-[state=on]:bg-white/10 data-[state=on]:text-white",
             )}
           >
             <span
@@ -863,9 +874,9 @@ function WatchLevel({
               </span>{" "}
               {wayLabel(way, ways[0])}
             </span>
-          </button>
+          </ToggleGroupItem>
         ))}
-      </div>
+      </ToggleGroup>
       <p className="m-0 text-[12.5px] leading-snug text-white/75">
         {wayMeans(chosen, rule?.name ?? null)}
       </p>
@@ -911,8 +922,8 @@ function WatchLevel({
             . You can pause, step back and slow it down.
           </p>
           <PanelActions>
-            <button
-              type="button"
+            <Button
+              variant="game-gold"
               className={primary}
               onClick={() => {
                 setPlayed(pick);
@@ -936,15 +947,13 @@ function WatchLevel({
                   ? "Watch the answer"
                   : `Watch way ${pick + 1}`
                 : "Watch the car drive it"}
-            </button>
+            </Button>
             {done && levelAfter(level) && (
-              <Link
-                to={levelHref(levelAfter(level)!.id)}
-                replace
-                className={quiet}
-              >
-                Done before. Skip to level {levelAfter(level)!.n}
-              </Link>
+              <Button variant="game-link" asChild className={quiet}>
+                <Link to={levelHref(levelAfter(level)!.id)} replace>
+                  Done before. Skip to level {levelAfter(level)!.n}
+                </Link>
+              </Button>
             )}
           </PanelActions>
         </>
@@ -1029,31 +1038,31 @@ export function BoardLevel({
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
             {openLevels && (
-              <button
-                type="button"
+              <Button
+                variant="game-outline"
+                size="icon"
                 aria-label="All levels"
                 onClick={openLevels}
-                className={iconButton}
               >
                 <Icon icon={GridIcon} size={20} />
-              </button>
+              </Button>
             )}
-            <button
-              type="button"
+            <Button
+              variant="game-outline"
+              size="icon"
               aria-label="Settings"
               onClick={onSettings}
-              className={iconButton}
             >
               <Icon icon={SettingsIcon} size={20} />
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="game-outline"
+              size="icon"
               aria-label="Close"
               onClick={exit}
-              className={iconButton}
             >
               <Icon icon={CloseIcon} size={20} />
-            </button>
+            </Button>
           </div>
         </header>
 

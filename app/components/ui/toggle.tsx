@@ -28,6 +28,8 @@ const toggleVariants = cva(
           "border-line bg-surface text-ink hover:border-ink/25 hover:bg-paper-2 data-[state=on]:border-transparent data-[state=on]:bg-ink data-[state=on]:text-paper",
         // Kenya gold when chosen: one pick out of a few, like a seat or a car
         gold: "border-line bg-surface text-ink hover:border-ink/25 hover:bg-paper-2 data-[state=on]:border-transparent data-[state=on]:bg-kenya-gold data-[state=on]:text-kenya-gold-foreground",
+        // On the game's dark ground: gold when chosen
+        game: "border-2 border-white/15 bg-white/5 text-white hover:bg-white/10 focus-visible:outline-white data-[state=on]:border-game-gold data-[state=on]:bg-game-gold data-[state=on]:text-game-gold-foreground",
       },
       size: {
         sm: "h-9 min-w-9 px-2.5 text-[13px]",
