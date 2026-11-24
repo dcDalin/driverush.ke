@@ -12,3 +12,8 @@
 # Marketing (promo videos, their recorder, scripts, captions, schedules and
 # audio) never goes in git. It lives only on the machine that makes them.
 /marketing/
+
+# Supabase CLI (local state and secrets)
+/supabase/.temp/
+/supabase/.branches/
+/supabase/.env

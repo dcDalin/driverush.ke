@@ -1,0 +1,2949 @@
+-- Baseline: every file in supabase/schemas, in config.toml schema_paths order.
+-- Generated once from the schemas; later changes get their own migrations.
+
+-- ── supabase/schemas/_private/extensions.sql
+-- ===================================================
+-- EXTENSIONS
+-- ===================================================
+-- citext: case-insensitive email columns, so a school adding
+-- "Wanjiru@Mail.com" matches the learner who signed up as "wanjiru@mail.com".
+create extension if not exists citext with schema extensions;
+
+-- ── supabase/schemas/_private/private_schema.sql
+-- ===================================================
+-- SCHEMA: private
+-- ===================================================
+-- Every owner-rights (SECURITY DEFINER) function a client can reach lives
+-- here. The Data API serves only the schemas in supabase/config.toml
+-- [api] schemas, and private is not one of them, so nothing here has a
+-- /rest/v1/rpc route. A client reaches a private function only through:
+--
+--   * the SECURITY INVOKER wrapper of the same name in public, which is
+--     the function's Data API name and adds no rights of its own;
+--   * a row level security policy that calls it (is_staff, can_see_branch).
+--
+-- Supabase's rule: a security definer function never lives in an exposed
+-- schema (splinter lints 0028 and 0029). security_function_access enforces
+-- it. Who may execute each function: supabase/schemas/_grants/function_privileges.sql.
+create schema if not exists private;
+
+comment on schema private is
+  'Owner-rights functions clients reach only through public wrappers and policies. Not exposed by the Data API.';
+
+-- ── supabase/schemas/_private/local_stack.sql
+-- ===================================================
+-- FUNCTION: private.is_local_stack
+-- ===================================================
+-- Whether this database is a Supabase CLI stack (local or CI). Their JWT
+-- secret is the CLI's published default, which a hosted project never has,
+-- and an unset secret reads as hosted, so it fails closed. The demo seed asks
+-- it, so a production database never gets demo schools or learners, even
+-- from `supabase db push --include-seed`.
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: the local seed (supabase/seeds/local_demo.sql)
+create or replace function private.is_local_stack()
+returns boolean
+language sql
+stable
+set search_path = ''
+as $$
+  select coalesce(current_setting('app.settings.jwt_secret', true), '')
+       = 'super-secret-jwt-token-with-at-least-32-characters-long';
+$$;
+
+revoke all on function private.is_local_stack() from public;
+grant execute on function private.is_local_stack() to service_role;
+
+comment on function private.is_local_stack() is
+  'Whether this is a Supabase CLI stack (local, CI): its JWT secret is the CLI default. Unset reads as hosted.';
+
+-- ── supabase/schemas/_private/signed_in_with_password.sql
+-- ===================================================
+-- FUNCTION: private.signed_in_with_password
+-- ===================================================
+-- Whether the caller's session signed in with a password. A DriveRush su or
+-- admin role counts only on such a session: an emailed one-time code or a
+-- Google sign-in plays as a plain learner. Reads the token's `amr`, which
+-- Supabase Auth keeps through a refresh. custom_access_token_hook applies the
+-- same rule to the `user_role` claim.
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: private.has_platform_role
+create or replace function private.signed_in_with_password()
+returns boolean
+language sql
+stable
+set search_path = ''
+as $$
+  select exists (
+    select 1
+      from jsonb_array_elements(
+             case when jsonb_typeof(auth.jwt() -> 'amr') = 'array'
+                  then auth.jwt() -> 'amr'
+                  else '[]'::jsonb
+             end
+           ) as m
+     where m ->> 'method' = 'password'
+  );
+$$;
+
+revoke all on function private.signed_in_with_password() from public;
+grant execute on function private.signed_in_with_password() to service_role;
+
+comment on function private.signed_in_with_password() is
+  'Whether the caller''s session signed in with a password. A DriveRush console role counts only on such a session.';
+
+-- ── supabase/schemas/_private/set_updated_at.sql
+-- ===================================================
+-- FUNCTION: private.set_updated_at
+-- ===================================================
+-- Stamps updated_at on every update of a table that has the column.
+--
+-- Access:  trigger
+-- Guard:   none (the grant is the gate)
+-- Callers: trigger on profiles, schools, school_branches, learner_subscriptions, school_subscriptions, learner_progress
+create or replace function private.set_updated_at()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
+revoke all on function private.set_updated_at() from public;
+grant execute on function private.set_updated_at() to service_role;
+
+comment on function private.set_updated_at() is
+  'Trigger: stamps updated_at with now() on update.';
+
+-- ── supabase/schemas/profiles/enums/app_role.sql
+-- ===================================================
+-- ENUM: public.app_role
+-- ===================================================
+-- Platform roles. driverush_su runs the platform and manages staff roles;
+-- driverush_admin creates and runs schools; user is every learner (and every
+-- school owner or admin, whose school rights live in school_members, not here).
+create type public.app_role as enum ('driverush_su', 'driverush_admin', 'user');
+
+comment on type public.app_role is
+  'Platform role: driverush_su, driverush_admin or user. School rights are in school_members.';
+
+-- ── supabase/schemas/profiles/tables/profiles.sql
+-- ===================================================
+-- TABLE: public.profiles
+-- ===================================================
+-- One row per account, created by handle_new_user when Supabase Auth adds
+-- the user. email mirrors auth.users.email (kept in sync by a trigger) so
+-- schools and staff can see who a learner is without reading auth.
+create table public.profiles (
+  id uuid primary key references auth.users (id) on delete cascade,
+  email extensions.citext,
+  full_name text check (full_name is null or char_length(full_name) between 1 and 120),
+  avatar_url text check (avatar_url is null or char_length(avatar_url) <= 2048),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index profiles_email_idx on public.profiles (email);
+
+comment on table public.profiles is
+  'One row per account. email mirrors auth.users; learners edit full_name and avatar_url.';
+
+-- ── supabase/schemas/profiles/tables/user_roles.sql
+-- ===================================================
+-- TABLE: public.user_roles
+-- ===================================================
+-- The platform roles each account holds. Sign-up adds `user`; a su grants
+-- driverush_admin or driverush_su through grant_platform_role.
+create table public.user_roles (
+  user_id uuid not null references auth.users (id) on delete cascade,
+  role public.app_role not null,
+  created_at timestamptz not null default now(),
+  primary key (user_id, role)
+);
+
+comment on table public.user_roles is
+  'Platform roles per account. The access token carries the highest as user_role.';
+
+-- ── supabase/schemas/schools/enums/school_enums.sql
+-- ===================================================
+-- ENUMS: schools
+-- ===================================================
+create type public.school_status as enum ('active', 'suspended', 'archived');
+
+comment on type public.school_status is
+  'active: links learners and shows its livery. suspended or archived: neither.';
+
+-- owner: the school's su, one per school, set by DriveRush staff. admin: added
+-- by the owner and tied to one or more branches (at most 50 per school).
+create type public.school_role as enum ('owner', 'admin');
+
+comment on type public.school_role is
+  'owner (the school su, one per school) or admin (tied to branches, at most 50 per school).';
+
+create type public.invite_status as enum ('pending', 'accepted', 'cancelled');
+
+comment on type public.invite_status is
+  'A school member invite waiting for its email to sign up, taken up, or withdrawn.';
+
+-- ── supabase/schemas/schools/tables/schools.sql
+-- ===================================================
+-- TABLE: public.schools
+-- ===================================================
+-- A driving school, the paying customer. Only DriveRush staff create one
+-- (admin_create_school). sponsor_id names the school's livery art in the app
+-- (app/lib/board/sponsors.ts Sponsor.id); a school without one links learners
+-- but shows plain cars.
+create table public.schools (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique
+    check (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$' and char_length(slug) between 2 and 60),
+  name text not null check (char_length(name) between 2 and 120),
+  status public.school_status not null default 'active',
+  sponsor_id text unique check (sponsor_id is null or sponsor_id ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
+  created_by uuid references auth.users (id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+comment on table public.schools is
+  'A driving school (the paying customer). Created by DriveRush staff only.';
+
+-- ── supabase/schemas/schools/tables/school_branches.sql
+-- ===================================================
+-- TABLE: public.school_branches
+-- ===================================================
+-- A school's branch. Every student link belongs to one branch, and a school
+-- admin sees only the branches they are tied to. (id, school_id) is unique so
+-- member branches and student links can reference the pair and never point at
+-- another school's branch.
+create table public.school_branches (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools (id) on delete cascade,
+  name text not null check (char_length(name) between 2 and 120),
+  town text check (town is null or char_length(town) between 2 and 80),
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (school_id, name),
+  unique (id, school_id)
+);
+
+comment on table public.school_branches is
+  'A school''s branch. Student links and admin scopes are per branch.';
+
+-- ── supabase/schemas/schools/tables/school_members.sql
+-- ===================================================
+-- TABLE: public.school_members
+-- ===================================================
+-- Who runs a school: its one owner and up to 50 admins. A person can be a
+-- member of several schools. The owner sees every branch; an admin sees the
+-- branches in school_member_branches.
+create table public.school_members (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools (id) on delete cascade,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  role public.school_role not null,
+  added_by uuid references auth.users (id) on delete set null,
+  created_at timestamptz not null default now(),
+  unique (school_id, user_id),
+  unique (id, school_id)
+);
+
+-- One owner per school.
+create unique index school_members_one_owner_idx
+  on public.school_members (school_id) where role = 'owner';
+
+create index school_members_user_idx on public.school_members (user_id);
+
+comment on table public.school_members is
+  'A school''s owner (one) and admins (at most 50). Admin branch scope is in school_member_branches.';
+
+-- ── supabase/schemas/schools/tables/school_member_branches.sql
+-- ===================================================
+-- TABLE: public.school_member_branches
+-- ===================================================
+-- The branches an admin works in. Both foreign keys carry school_id, so a
+-- member can only be tied to a branch of their own school.
+create table public.school_member_branches (
+  member_id uuid not null,
+  branch_id uuid not null,
+  school_id uuid not null,
+  primary key (member_id, branch_id),
+  foreign key (member_id, school_id)
+    references public.school_members (id, school_id) on delete cascade,
+  foreign key (branch_id, school_id)
+    references public.school_branches (id, school_id) on delete cascade
+);
+
+create index school_member_branches_branch_idx on public.school_member_branches (branch_id);
+
+comment on table public.school_member_branches is
+  'Which branches a school admin works in (always branches of their own school).';
+
+-- ── supabase/schemas/schools/tables/school_member_invites.sql
+-- ===================================================
+-- TABLE: public.school_member_invites
+-- ===================================================
+-- An owner or admin added by an email that has no confirmed account yet. When
+-- that email confirms, match_pending_invites turns it into a school_members
+-- row (with its branches). A pending admin invite counts toward the 50.
+create table public.school_member_invites (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools (id) on delete cascade,
+  email extensions.citext not null check (email::text ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
+  role public.school_role not null,
+  branch_ids uuid[] not null default '{}',
+  status public.invite_status not null default 'pending',
+  invited_by uuid references auth.users (id) on delete set null,
+  created_at timestamptz not null default now(),
+  closed_at timestamptz,
+  check ((status = 'pending') = (closed_at is null))
+);
+
+create unique index school_member_invites_open_idx
+  on public.school_member_invites (school_id, email) where status = 'pending';
+
+create index school_member_invites_email_idx
+  on public.school_member_invites (email) where status = 'pending';
+
+comment on table public.school_member_invites is
+  'An owner or admin added by an email with no confirmed account yet; taken up on confirmation.';
+
+-- ── supabase/schemas/billing/enums/billing_enums.sql
+-- ===================================================
+-- ENUMS: billing
+-- ===================================================
+create type public.plan_audience as enum ('learner', 'school');
+
+comment on type public.plan_audience is
+  'Who buys the plan: a learner (own subscription) or a school (flat plan per school).';
+
+create type public.subscription_status as enum ('active', 'cancelled');
+
+comment on type public.subscription_status is
+  'active: counts while now() is between starts_at and ends_at. cancelled: never counts.';
+
+create type public.payment_status as enum ('pending', 'succeeded', 'failed', 'refunded');
+
+comment on type public.payment_status is
+  'A payment attempt''s state, whatever the provider.';
+
+-- ── supabase/schemas/billing/tables/plans.sql
+-- ===================================================
+-- TABLE: public.plans
+-- ===================================================
+-- What a learner or a school can buy. Reference rows are a migration
+-- (supabase/migrations/*_reference_plans.sql), changed by a new migration.
+-- limits (school plans): max_branches, max_admins (never above 50),
+-- monthly_student_links.
+create table public.plans (
+  id uuid primary key default gen_random_uuid(),
+  code text not null unique check (code ~ '^[a-z0-9]+(_[a-z0-9]+)*$'),
+  audience public.plan_audience not null,
+  name text not null check (char_length(name) between 2 and 80),
+  price_kes integer not null check (price_kes >= 0),
+  period interval not null check (period > interval '0'),
+  limits jsonb not null default '{}'::jsonb check (jsonb_typeof(limits) = 'object'),
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+comment on table public.plans is
+  'Learner and school plans: price in KES, billing period and (for schools) limits.';
+
+-- ── supabase/schemas/billing/tables/learner_subscriptions.sql
+-- ===================================================
+-- TABLE: public.learner_subscriptions
+-- ===================================================
+-- A learner's own paid time. Written by the payment flow (service role) only.
+-- While a school link is current, the paid time pauses: the subscription's
+-- dates move forward by the school month (subscription_pauses records each
+-- move) and back by any unused part if the link ends early.
+create table public.learner_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  plan_id uuid not null references public.plans (id),
+  status public.subscription_status not null default 'active',
+  starts_at timestamptz not null default now(),
+  ends_at timestamptz not null,
+  source text not null default 'payment' check (source in ('payment', 'grant')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (ends_at > starts_at)
+);
+
+create index learner_subscriptions_user_idx on public.learner_subscriptions (user_id, ends_at);
+
+comment on table public.learner_subscriptions is
+  'A learner''s own paid time. Pauses (dates move forward) while a school link is current.';
+
+-- ── supabase/schemas/billing/tables/school_subscriptions.sql
+-- ===================================================
+-- TABLE: public.school_subscriptions
+-- ===================================================
+-- A school's flat plan for a period. Written by the payment flow or staff
+-- (service role) only. Not yet required for a school to link learners.
+create table public.school_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools (id) on delete cascade,
+  plan_id uuid not null references public.plans (id),
+  status public.subscription_status not null default 'active',
+  starts_at timestamptz not null default now(),
+  ends_at timestamptz not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (ends_at > starts_at)
+);
+
+create index school_subscriptions_school_idx on public.school_subscriptions (school_id, ends_at);
+
+comment on table public.school_subscriptions is
+  'A school''s flat plan for a period.';
+
+-- ── supabase/schemas/billing/tables/payments.sql
+-- ===================================================
+-- TABLE: public.payments
+-- ===================================================
+-- Every payment attempt, whatever the provider (chosen later). Written by the
+-- service role only. A learner pays for themselves (payer_user_id), or a school
+-- pays its plan (school_id, with payer_user_id the member who paid).
+create table public.payments (
+  id uuid primary key default gen_random_uuid(),
+  payer_user_id uuid references auth.users (id) on delete set null,
+  school_id uuid references public.schools (id) on delete set null,
+  plan_id uuid references public.plans (id),
+  amount_kes integer not null check (amount_kes > 0),
+  provider text not null check (char_length(provider) between 2 and 40),
+  provider_ref text,
+  status public.payment_status not null default 'pending',
+  raw jsonb,
+  created_at timestamptz not null default now(),
+  settled_at timestamptz,
+  check (num_nonnulls(payer_user_id, school_id) >= 1),
+  unique (provider, provider_ref)
+);
+
+create index payments_payer_idx on public.payments (payer_user_id);
+create index payments_school_idx on public.payments (school_id);
+
+comment on table public.payments is
+  'Payment attempts, provider-neutral. Service role writes only.';
+
+-- ── supabase/schemas/students/enums/student_enums.sql
+-- ===================================================
+-- ENUMS: students
+-- ===================================================
+-- pending: added by a school, waiting for the email to sign up or for the
+--          learner to choose it. active: the one-month link (counts only
+--          while now() < ends_at). ended: ran its month or ended early.
+--          declined: the learner said no. cancelled: the school withdrew it
+--          before it started.
+create type public.student_link_status as enum ('pending', 'active', 'ended', 'declined', 'cancelled');
+
+comment on type public.student_link_status is
+  'A school-learner link: pending, active (until ends_at), ended, declined or cancelled.';
+
+create type public.link_end_reason as enum ('expired', 'switched', 'released');
+
+comment on type public.link_end_reason is
+  'Why an active link ended: its month ran out, the learner switched school, or the school released them.';
+
+-- ── supabase/schemas/students/tables/school_student_links.sql
+-- ===================================================
+-- TABLE: public.school_student_links
+-- ===================================================
+-- A school adds a learner by email to one of its branches. The link starts
+-- (status active, a month long) when the email matches a confirmed account;
+-- until then it is pending. A learner has at most one active link; another
+-- school's add waits as pending until the learner chooses it
+-- (learner_accept_school_link). Rows are history: re-adding after a month
+-- ends inserts a new row. Writes go through the functions in
+-- students/functions only.
+create table public.school_student_links (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools (id) on delete cascade,
+  branch_id uuid not null,
+  email extensions.citext not null check (email::text ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
+  user_id uuid references auth.users (id) on delete cascade,
+  status public.student_link_status not null default 'pending',
+  added_by uuid references auth.users (id) on delete set null,
+  added_at timestamptz not null default now(),
+  starts_at timestamptz,
+  ends_at timestamptz,
+  ended_at timestamptz,
+  end_reason public.link_end_reason,
+  foreign key (branch_id, school_id)
+    references public.school_branches (id, school_id),
+  -- The dates each status carries.
+  check (
+    case status
+      when 'pending' then starts_at is null and ends_at is null and ended_at is null and end_reason is null
+      when 'active' then user_id is not null and starts_at is not null and ends_at > starts_at
+                         and ended_at is null and end_reason is null
+      when 'ended' then user_id is not null and starts_at is not null and ends_at > starts_at
+                        and ended_at is not null and end_reason is not null
+      else starts_at is null and ends_at is null and ended_at is not null and end_reason is null
+    end
+  )
+);
+
+-- At most one active link per learner (an expired one is closed before
+-- another starts: private.close_expired_links).
+create unique index school_student_links_one_active_idx
+  on public.school_student_links (user_id) where status = 'active';
+
+-- One open link per school and email.
+create unique index school_student_links_open_idx
+  on public.school_student_links (school_id, email) where status in ('pending', 'active');
+
+create index school_student_links_email_idx
+  on public.school_student_links (email) where status = 'pending';
+create index school_student_links_branch_idx
+  on public.school_student_links (branch_id, status);
+
+comment on table public.school_student_links is
+  'A school''s one-month link to a learner, added by email to a branch. History is kept.';
+
+-- ── supabase/schemas/billing/tables/subscription_pauses.sql
+-- ===================================================
+-- TABLE: public.subscription_pauses
+-- ===================================================
+-- Each time a school link pushed a learner's paid time forward: by how much,
+-- and whether the subscription's start moved too (it had not started yet).
+-- When the link ends early, the unused part is taken back from here. Internal:
+-- no client reads it.
+create table public.subscription_pauses (
+  subscription_id uuid not null references public.learner_subscriptions (id) on delete cascade,
+  link_id uuid not null references public.school_student_links (id) on delete cascade,
+  shifted_by interval not null check (shifted_by >= interval '0'),
+  moved_start boolean not null,
+  created_at timestamptz not null default now(),
+  primary key (subscription_id, link_id)
+);
+
+create index subscription_pauses_link_idx on public.subscription_pauses (link_id);
+
+comment on table public.subscription_pauses is
+  'How far each school link pushed a learner''s paid time forward. Internal.';
+
+-- ── supabase/schemas/progress/tables/learner_progress.sql
+-- ===================================================
+-- TABLE: public.learner_progress
+-- ===================================================
+-- A signed-in learner's saved progress: one row per app store, holding what
+-- that store keeps in localStorage today (data) and the store's persist
+-- version. The learner reads and writes their own rows; the owner and branch
+-- admins of the learner's current school read them through
+-- school_student_progress.
+create table public.learner_progress (
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  store text not null check (store in (
+    'board', 'pelican', 'signs3d', 'streak', 'daily-drive', 'test', 'proud'
+  )),
+  data jsonb not null check (jsonb_typeof(data) = 'object' and pg_column_size(data) <= 262144),
+  version integer not null default 1 check (version >= 0),
+  updated_at timestamptz not null default now(),
+  primary key (user_id, store)
+);
+
+comment on table public.learner_progress is
+  'A learner''s saved progress, one row per app store (board, pelican, signs3d, streak, daily-drive, test, proud).';
+
+-- ── supabase/schemas/profiles/functions/platform_roles.sql
+-- ===================================================
+-- FUNCTIONS: platform role checks
+-- ===================================================
+-- Read user_roles directly (not the token's user_role claim), so a revoked
+-- role stops working at once, and only on a password session.
+
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: private.is_staff, private.is_su
+create or replace function private.has_platform_role(p_roles public.app_role[])
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select private.signed_in_with_password()
+     and exists (
+       select 1 from public.user_roles as r
+        where r.user_id = auth.uid() and r.role = any (p_roles)
+     );
+$$;
+
+-- Access:  authenticated (evaluated as the caller inside policies and functions)
+-- Guard:   public (answers for the caller's own roles)
+-- Callers: RLS policies on every table; every admin_* and school_* function
+create or replace function private.is_staff()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select private.has_platform_role(array['driverush_su', 'driverush_admin']::public.app_role[]);
+$$;
+
+-- Access:  authenticated (evaluated as the caller inside policies and functions)
+-- Guard:   public (answers for the caller's own roles)
+-- Callers: RLS policies (user_roles); grant_platform_role, revoke_platform_role
+create or replace function private.is_su()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select private.has_platform_role(array['driverush_su']::public.app_role[]);
+$$;
+
+revoke all on function private.has_platform_role(public.app_role[]) from public;
+revoke all on function private.is_staff() from public;
+revoke all on function private.is_su() from public;
+grant execute on function private.has_platform_role(public.app_role[]) to service_role;
+grant execute on function private.is_staff() to service_role;
+grant execute on function private.is_su() to service_role;
+
+comment on function private.has_platform_role(public.app_role[]) is
+  'Whether the caller holds one of these platform roles, on a password session.';
+comment on function private.is_staff() is
+  'Whether the caller is DriveRush su or admin (password session).';
+comment on function private.is_su() is
+  'Whether the caller is DriveRush su (password session).';
+
+-- ── supabase/schemas/profiles/functions/custom_access_token_hook.sql
+-- ===================================================
+-- FUNCTION: public.custom_access_token_hook
+-- ===================================================
+-- Supabase Auth runs this before it issues a token. It writes the highest
+-- platform role the account holds into the user_role claim, downgraded to
+-- `user` unless the session signed in with a password, so an emailed code or
+-- a Google sign-in never carries a console role. The claim is for the app's
+-- routing only; the database checks user_roles itself (private.is_staff).
+--
+-- Access:  auth_hook
+-- Guard:   none (the grant is the gate)
+-- Callers: Supabase Auth (access token hook)
+create or replace function public.custom_access_token_hook(event jsonb)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_claims jsonb := event -> 'claims';
+  v_role public.app_role;
+begin
+  select r.role into v_role
+    from public.user_roles as r
+   where r.user_id = (event ->> 'user_id')::uuid
+   order by case r.role
+     when 'driverush_su' then 1
+     when 'driverush_admin' then 2
+     else 3
+   end
+   limit 1;
+
+  if v_role in ('driverush_su', 'driverush_admin')
+     and not exists (
+       select 1
+         from jsonb_array_elements(
+                case when jsonb_typeof(v_claims -> 'amr') = 'array'
+                     then v_claims -> 'amr'
+                     else '[]'::jsonb
+                end
+              ) as m
+        where m ->> 'method' = 'password'
+     ) then
+    v_role := 'user';
+  end if;
+
+  v_claims := jsonb_set(v_claims, '{user_role}', coalesce(to_jsonb(v_role), 'null'::jsonb));
+  return jsonb_set(event, '{claims}', v_claims);
+end;
+$$;
+
+revoke all on function public.custom_access_token_hook(jsonb) from public;
+grant execute on function public.custom_access_token_hook(jsonb) to service_role;
+grant usage on schema public to supabase_auth_admin;
+grant execute on function public.custom_access_token_hook(jsonb) to supabase_auth_admin;
+
+comment on function public.custom_access_token_hook(jsonb) is
+  'Supabase Auth hook: adds the highest platform role as user_role (console roles only on a password session).';
+
+-- ── supabase/schemas/schools/functions/school_access.sql
+-- ===================================================
+-- FUNCTIONS: who the caller is to a school
+-- ===================================================
+-- Owner-rights so policies can ask them without reading school_members
+-- through its own policy (which would recurse). Each answers only for the
+-- caller (auth.uid()).
+
+-- Access:  authenticated (evaluated as the caller inside policies and functions)
+-- Guard:   public (answers for the caller)
+-- Callers: RLS policies (schools, school_members, school_member_invites, billing); school_* functions
+create or replace function private.is_school_owner(p_school_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from public.school_members as m
+     where m.school_id = p_school_id and m.user_id = auth.uid() and m.role = 'owner'
+  );
+$$;
+
+-- Access:  authenticated (evaluated as the caller inside policies and functions)
+-- Guard:   public (answers for the caller)
+-- Callers: RLS policies (schools, school_branches, school_members, school_member_branches)
+create or replace function private.is_school_member(p_school_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from public.school_members as m
+     where m.school_id = p_school_id and m.user_id = auth.uid()
+  );
+$$;
+
+-- Whether the caller works in this branch: the school's owner, or an admin
+-- tied to it. Staff are not included (callers add is_staff themselves).
+--
+-- Access:  authenticated (evaluated as the caller inside policies and functions)
+-- Guard:   public (answers for the caller)
+-- Callers: RLS policies (school_student_links); private.can_manage_branch, school_student_progress
+create or replace function private.can_see_branch(p_branch_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+      from public.school_branches as b
+      join public.school_members as m on m.school_id = b.school_id and m.user_id = auth.uid()
+     where b.id = p_branch_id
+       and (m.role = 'owner'
+            or exists (select 1 from public.school_member_branches as mb
+                        where mb.member_id = m.id and mb.branch_id = b.id))
+  );
+$$;
+
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: school_create_branch, school_update_branch, school_add_admin, school_set_admin_branches (+2)
+create or replace function private.can_manage_school(p_school_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select private.is_staff() or private.is_school_owner(p_school_id);
+$$;
+
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: school_add_student, school_release_student, school_cancel_student_invite, school_move_student_branch
+create or replace function private.can_manage_branch(p_branch_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select private.is_staff() or private.can_see_branch(p_branch_id);
+$$;
+
+-- Whether the caller has (or had) a link with this school, so a learner can
+-- read the name and branch of a school that added them.
+--
+-- Access:  authenticated (evaluated as the caller inside policies and functions)
+-- Guard:   public (answers for the caller)
+-- Callers: RLS policies (schools, school_branches)
+create or replace function private.has_school_link(p_school_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from public.school_student_links as l
+     where l.school_id = p_school_id and l.user_id = auth.uid()
+  );
+$$;
+
+revoke all on function private.is_school_owner(uuid) from public;
+revoke all on function private.is_school_member(uuid) from public;
+revoke all on function private.can_see_branch(uuid) from public;
+revoke all on function private.can_manage_school(uuid) from public;
+revoke all on function private.can_manage_branch(uuid) from public;
+revoke all on function private.has_school_link(uuid) from public;
+grant execute on function private.is_school_owner(uuid) to service_role;
+grant execute on function private.is_school_member(uuid) to service_role;
+grant execute on function private.can_see_branch(uuid) to service_role;
+grant execute on function private.can_manage_school(uuid) to service_role;
+grant execute on function private.can_manage_branch(uuid) to service_role;
+grant execute on function private.has_school_link(uuid) to service_role;
+
+comment on function private.is_school_owner(uuid) is
+  'Whether the caller owns this school (is its school su).';
+comment on function private.is_school_member(uuid) is
+  'Whether the caller is this school''s owner or one of its admins.';
+comment on function private.can_see_branch(uuid) is
+  'Whether the caller works in this branch: the school owner, or an admin tied to it.';
+comment on function private.can_manage_school(uuid) is
+  'Whether the caller may run this school: DriveRush staff or the school owner.';
+comment on function private.can_manage_branch(uuid) is
+  'Whether the caller may add and release students in this branch: staff, the owner, or its admin.';
+comment on function private.has_school_link(uuid) is
+  'Whether the caller has or had a student link with this school.';
+
+-- ── supabase/schemas/schools/functions/admin_limit.sql
+-- ===================================================
+-- FUNCTIONS: at most 50 admins per school
+-- ===================================================
+-- Admins are school_members with role admin plus pending admin invites; the
+-- owner does not count. Each check locks the school row first, so two adds at
+-- once cannot both take the 50th place. Refuses with SQLSTATE P0001,
+-- message 'admin_limit'.
+
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: private.enforce_member_admin_limit, private.enforce_invite_admin_limit
+create or replace function private.assert_admin_room(p_school_id uuid)
+returns void
+language plpgsql
+set search_path = ''
+as $$
+declare
+  v_count integer;
+begin
+  perform 1 from public.schools where id = p_school_id for update;
+
+  select (select count(*) from public.school_members
+           where school_id = p_school_id and role = 'admin')
+       + (select count(*) from public.school_member_invites
+           where school_id = p_school_id and role = 'admin' and status = 'pending')
+    into v_count;
+
+  if v_count >= 50 then
+    raise exception 'admin_limit' using
+      errcode = 'P0001',
+      detail = 'A school has at most 50 admins (pending invites count).';
+  end if;
+end;
+$$;
+
+-- Access:  trigger
+-- Guard:   none (the grant is the gate)
+-- Callers: trigger on school_members
+create or replace function private.enforce_member_admin_limit()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if new.role = 'admin' and (tg_op = 'INSERT' or old.role is distinct from 'admin') then
+    perform private.assert_admin_room(new.school_id);
+  end if;
+  return new;
+end;
+$$;
+
+-- Access:  trigger
+-- Guard:   none (the grant is the gate)
+-- Callers: trigger on school_member_invites
+create or replace function private.enforce_invite_admin_limit()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if new.role = 'admin' and new.status = 'pending'
+     and (tg_op = 'INSERT' or old.status is distinct from 'pending' or old.role is distinct from 'admin') then
+    perform private.assert_admin_room(new.school_id);
+  end if;
+  return new;
+end;
+$$;
+
+revoke all on function private.assert_admin_room(uuid) from public;
+revoke all on function private.enforce_member_admin_limit() from public;
+revoke all on function private.enforce_invite_admin_limit() from public;
+grant execute on function private.assert_admin_room(uuid) to service_role;
+grant execute on function private.enforce_member_admin_limit() to service_role;
+grant execute on function private.enforce_invite_admin_limit() to service_role;
+
+comment on function private.assert_admin_room(uuid) is
+  'Refuses (P0001 admin_limit) when the school already has 50 admins, counting pending admin invites.';
+comment on function private.enforce_member_admin_limit() is
+  'Trigger: a new or promoted school admin must fit within the 50.';
+comment on function private.enforce_invite_admin_limit() is
+  'Trigger: a pending admin invite must fit within the 50.';
+
+-- ── supabase/schemas/billing/functions/subscription_pauses.sql
+-- ===================================================
+-- FUNCTIONS: a learner's paid time pauses during a school month
+-- ===================================================
+-- No cron: when a link starts, every live or future subscription of the
+-- learner that overlaps the link is pushed forward by the overlap (a
+-- subscription that had not started yet now starts when the link ends).
+-- When a link ends early, the unused part is taken back. A link that runs
+-- its full month needs nothing: the push was exact.
+
+-- Pushes one subscription past one link and records it.
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: private.pause_subscriptions_for_link, private.pause_new_subscription
+create or replace function private.pause_subscription(p_subscription_id uuid, p_link_id uuid)
+returns void
+language plpgsql
+set search_path = ''
+as $$
+declare
+  v_sub public.learner_subscriptions;
+  v_link public.school_student_links;
+  v_shift interval;
+  v_moved boolean;
+begin
+  select * into v_sub from public.learner_subscriptions where id = p_subscription_id for update;
+  select * into v_link from public.school_student_links where id = p_link_id;
+
+  if v_sub.status <> 'active' or v_link.status <> 'active'
+     or v_sub.ends_at <= v_link.starts_at or v_sub.starts_at >= v_link.ends_at then
+    return;
+  end if;
+
+  v_moved := v_sub.starts_at >= v_link.starts_at;
+  v_shift := v_link.ends_at - greatest(v_sub.starts_at, v_link.starts_at);
+
+  update public.learner_subscriptions
+     set starts_at = case when v_moved then starts_at + v_shift else starts_at end,
+         ends_at = ends_at + v_shift
+   where id = v_sub.id;
+
+  insert into public.subscription_pauses (subscription_id, link_id, shifted_by, moved_start)
+  values (v_sub.id, v_link.id, v_shift, v_moved)
+  on conflict (subscription_id, link_id)
+  do update set shifted_by = public.subscription_pauses.shifted_by + excluded.shifted_by;
+end;
+$$;
+
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: private.activate_link
+create or replace function private.pause_subscriptions_for_link(p_link_id uuid)
+returns void
+language plpgsql
+set search_path = ''
+as $$
+declare
+  v_link public.school_student_links;
+  v_sub_id uuid;
+begin
+  select * into v_link from public.school_student_links where id = p_link_id;
+  for v_sub_id in
+    select s.id from public.learner_subscriptions as s
+     where s.user_id = v_link.user_id
+       and s.status = 'active'
+       and s.ends_at > v_link.starts_at
+       and s.starts_at < v_link.ends_at
+     order by s.starts_at
+  loop
+    perform private.pause_subscription(v_sub_id, p_link_id);
+  end loop;
+end;
+$$;
+
+-- Gives back the part of the pause a link did not use: it ended at p_at,
+-- before its month was up.
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: private.end_link
+create or replace function private.resume_subscriptions_for_link(p_link_id uuid, p_at timestamptz)
+returns void
+language plpgsql
+set search_path = ''
+as $$
+declare
+  v_link public.school_student_links;
+  v_pause public.subscription_pauses;
+  v_back interval;
+begin
+  select * into v_link from public.school_student_links where id = p_link_id;
+  if p_at >= v_link.ends_at then
+    return;
+  end if;
+
+  for v_pause in
+    select * from public.subscription_pauses where link_id = p_link_id for update
+  loop
+    v_back := least(v_link.ends_at - p_at, v_pause.shifted_by);
+    update public.learner_subscriptions
+       set starts_at = case when v_pause.moved_start then starts_at - v_back else starts_at end,
+           ends_at = ends_at - v_back
+     where id = v_pause.subscription_id;
+    update public.subscription_pauses
+       set shifted_by = shifted_by - v_back
+     where subscription_id = v_pause.subscription_id and link_id = p_link_id;
+  end loop;
+end;
+$$;
+
+-- A subscription bought while a school link is current starts when the link ends.
+--
+-- Access:  trigger
+-- Guard:   none (the grant is the gate)
+-- Callers: trigger on learner_subscriptions
+create or replace function private.pause_new_subscription()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+declare
+  v_link_id uuid;
+begin
+  select l.id into v_link_id
+    from public.school_student_links as l
+   where l.user_id = new.user_id and l.status = 'active' and l.ends_at > now()
+   limit 1;
+  if v_link_id is not null then
+    perform private.pause_subscription(new.id, v_link_id);
+  end if;
+  return null;
+end;
+$$;
+
+revoke all on function private.pause_subscription(uuid, uuid) from public;
+revoke all on function private.pause_subscriptions_for_link(uuid) from public;
+revoke all on function private.resume_subscriptions_for_link(uuid, timestamptz) from public;
+revoke all on function private.pause_new_subscription() from public;
+grant execute on function private.pause_subscription(uuid, uuid) to service_role;
+grant execute on function private.pause_subscriptions_for_link(uuid) to service_role;
+grant execute on function private.resume_subscriptions_for_link(uuid, timestamptz) to service_role;
+grant execute on function private.pause_new_subscription() to service_role;
+
+comment on function private.pause_subscription(uuid, uuid) is
+  'Pushes a learner subscription past the part of a school link it overlaps, and records the push.';
+comment on function private.pause_subscriptions_for_link(uuid) is
+  'On a link starting: pauses every overlapping subscription of the learner.';
+comment on function private.resume_subscriptions_for_link(uuid, timestamptz) is
+  'On a link ending early: takes back the unused part of each pause it caused.';
+comment on function private.pause_new_subscription() is
+  'Trigger: a subscription bought during a current school link starts when the link ends.';
+
+-- ── supabase/schemas/students/functions/link_lifecycle.sql
+-- ===================================================
+-- FUNCTIONS: starting and ending a school-learner link
+-- ===================================================
+-- Every status change of school_student_links goes through these, so the
+-- subscription pause and the one-active-link rule are applied in one place.
+
+-- The confirmed account with this email, if any. Only a confirmed address
+-- matches, so nobody claims a school link by typing someone else's email.
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: school_add_student, school_add_admin, private.set_school_owner
+create or replace function private.confirmed_user_id(p_email extensions.citext)
+returns uuid
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select u.id from auth.users as u
+   where u.email::extensions.citext = p_email
+     and u.email_confirmed_at is not null
+   limit 1;
+$$;
+
+-- Closes active links whose month is over (status ended, reason expired) for
+-- this learner or this email, before another link may start.
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: private.activate_link, private.match_pending_invites, school_add_student, learner_accept_school_link
+create or replace function private.close_expired_links(p_user_id uuid, p_email extensions.citext)
+returns void
+language sql
+set search_path = ''
+as $$
+  update public.school_student_links
+     set status = 'ended', end_reason = 'expired', ended_at = ends_at
+   where status = 'active'
+     and ends_at <= now()
+     and (user_id = p_user_id or email = p_email);
+$$;
+
+-- The learner's current link: active and inside its month.
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: private.match_pending_invites, school_add_student, learner_accept_school_link, my_entitlement, school_student_progress
+create or replace function private.current_link_id(p_user_id uuid)
+returns uuid
+language sql
+stable
+set search_path = ''
+as $$
+  select l.id from public.school_student_links as l
+   where l.user_id = p_user_id and l.status = 'active' and l.ends_at > now()
+   limit 1;
+$$;
+
+-- Starts a pending link now for this learner: a month long, pausing their
+-- own paid time.
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: private.match_pending_invites, school_add_student, learner_accept_school_link
+create or replace function private.activate_link(p_link_id uuid, p_user_id uuid)
+returns void
+language plpgsql
+set search_path = ''
+as $$
+begin
+  perform private.close_expired_links(p_user_id, null);
+
+  update public.school_student_links
+     set status = 'active',
+         user_id = p_user_id,
+         starts_at = now(),
+         ends_at = now() + interval '1 month'
+   where id = p_link_id and status = 'pending';
+
+  if not found then
+    raise exception 'not_pending' using errcode = 'P0001';
+  end if;
+
+  perform private.pause_subscriptions_for_link(p_link_id);
+end;
+$$;
+
+-- Ends an active link now (switched or released) and gives back the unused
+-- part of the paid-time pause.
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: school_release_student, learner_accept_school_link
+create or replace function private.end_link(p_link_id uuid, p_reason public.link_end_reason)
+returns void
+language plpgsql
+set search_path = ''
+as $$
+declare
+  v_now timestamptz := now();
+begin
+  update public.school_student_links
+     set status = 'ended', end_reason = p_reason, ended_at = v_now
+   where id = p_link_id and status = 'active' and ends_at > v_now;
+
+  if not found then
+    raise exception 'not_active' using errcode = 'P0001';
+  end if;
+
+  perform private.resume_subscriptions_for_link(p_link_id, v_now);
+end;
+$$;
+
+revoke all on function private.confirmed_user_id(extensions.citext) from public;
+revoke all on function private.close_expired_links(uuid, extensions.citext) from public;
+revoke all on function private.current_link_id(uuid) from public;
+revoke all on function private.activate_link(uuid, uuid) from public;
+revoke all on function private.end_link(uuid, public.link_end_reason) from public;
+grant execute on function private.confirmed_user_id(extensions.citext) to service_role;
+grant execute on function private.close_expired_links(uuid, extensions.citext) to service_role;
+grant execute on function private.current_link_id(uuid) to service_role;
+grant execute on function private.activate_link(uuid, uuid) to service_role;
+grant execute on function private.end_link(uuid, public.link_end_reason) to service_role;
+
+comment on function private.confirmed_user_id(extensions.citext) is
+  'The confirmed account with this email, or null. Unconfirmed addresses never match.';
+comment on function private.close_expired_links(uuid, extensions.citext) is
+  'Marks active links past their month as ended (expired) for a learner or email.';
+comment on function private.current_link_id(uuid) is
+  'The learner''s current link: active and inside its month, or null.';
+comment on function private.activate_link(uuid, uuid) is
+  'Starts a pending link now for a month and pauses the learner''s paid time.';
+comment on function private.end_link(uuid, public.link_end_reason) is
+  'Ends an active link early (switched or released) and gives back unused paused time.';
+
+-- ── supabase/schemas/profiles/functions/match_pending_invites.sql
+-- ===================================================
+-- FUNCTION: private.match_pending_invites
+-- ===================================================
+-- Runs when an account's email is confirmed (sign-up, or an email change).
+--
+-- School member invites for that email become memberships, with their
+-- branches. An owner invite replaces the school's current owner.
+--
+-- Student links for that email are tied to the account. If the learner has no
+-- current link and exactly one pending link, it starts now. With two or more
+-- pending, nothing starts: the learner chooses (learner_accept_school_link).
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: private.handle_new_user, private.handle_auth_user_updated
+create or replace function private.match_pending_invites(p_user_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_email extensions.citext;
+  v_invite public.school_member_invites;
+  v_member_id uuid;
+  v_pending_ids uuid[];
+begin
+  select u.email::extensions.citext into v_email
+    from auth.users as u
+   where u.id = p_user_id and u.email_confirmed_at is not null;
+  if v_email is null then
+    return;
+  end if;
+
+  -- School owners and admins.
+  for v_invite in
+    select * from public.school_member_invites
+     where email = v_email and status = 'pending'
+     order by created_at
+     for update
+  loop
+    update public.school_member_invites
+       set status = 'accepted', closed_at = now()
+     where id = v_invite.id;
+
+    if v_invite.role = 'owner' then
+      delete from public.school_members
+       where school_id = v_invite.school_id and role = 'owner' and user_id <> p_user_id;
+    end if;
+
+    insert into public.school_members (school_id, user_id, role, added_by)
+    values (v_invite.school_id, p_user_id, v_invite.role, v_invite.invited_by)
+    on conflict (school_id, user_id) do update
+      set role = case when excluded.role = 'owner' then 'owner'::public.school_role
+                      else public.school_members.role end
+    returning id into v_member_id;
+
+    if v_invite.role = 'admin' then
+      insert into public.school_member_branches (member_id, branch_id, school_id)
+      select v_member_id, b.id, b.school_id
+        from public.school_branches as b
+       where b.school_id = v_invite.school_id and b.id = any (v_invite.branch_ids)
+      on conflict do nothing;
+    end if;
+  end loop;
+
+  -- Student links.
+  update public.school_student_links
+     set user_id = p_user_id
+   where email = v_email and status = 'pending' and user_id is null;
+
+  perform private.close_expired_links(p_user_id, v_email);
+
+  if private.current_link_id(p_user_id) is null then
+    select array_agg(l.id) into v_pending_ids
+      from public.school_student_links as l
+      join public.schools as s on s.id = l.school_id and s.status = 'active'
+     where l.user_id = p_user_id and l.status = 'pending';
+
+    if coalesce(array_length(v_pending_ids, 1), 0) = 1 then
+      perform private.activate_link(v_pending_ids[1], p_user_id);
+    end if;
+  end if;
+end;
+$$;
+
+revoke all on function private.match_pending_invites(uuid) from public;
+grant execute on function private.match_pending_invites(uuid) to service_role;
+
+comment on function private.match_pending_invites(uuid) is
+  'On email confirmation: takes up school member invites and starts the learner''s only pending school link.';
+
+-- ── supabase/schemas/profiles/functions/handle_auth_users.sql
+-- ===================================================
+-- FUNCTIONS: keeping profiles in step with auth.users
+-- ===================================================
+
+-- A new account gets its profile and the `user` role. If it arrives
+-- confirmed (Google, or created confirmed by an admin), invites match now.
+--
+-- Access:  trigger
+-- Guard:   none (the grant is the gate)
+-- Callers: trigger on auth.users
+create or replace function private.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  insert into public.profiles (id, email, full_name, avatar_url)
+  values (
+    new.id,
+    new.email,
+    nullif(left(coalesce(new.raw_user_meta_data ->> 'full_name', new.raw_user_meta_data ->> 'name', ''), 120), ''),
+    nullif(left(coalesce(new.raw_user_meta_data ->> 'avatar_url', ''), 2048), '')
+  );
+
+  insert into public.user_roles (user_id, role) values (new.id, 'user');
+
+  if new.email_confirmed_at is not null then
+    perform private.match_pending_invites(new.id);
+  end if;
+  return new;
+end;
+$$;
+
+-- An email confirmed or changed: the profile follows, and invites for the
+-- (newly confirmed) address match.
+--
+-- Access:  trigger
+-- Guard:   none (the grant is the gate)
+-- Callers: trigger on auth.users
+create or replace function private.handle_auth_user_updated()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.email is distinct from old.email then
+    update public.profiles set email = new.email where id = new.id;
+  end if;
+
+  if new.email_confirmed_at is not null
+     and (old.email_confirmed_at is null or new.email is distinct from old.email) then
+    perform private.match_pending_invites(new.id);
+  end if;
+  return new;
+end;
+$$;
+
+revoke all on function private.handle_new_user() from public;
+revoke all on function private.handle_auth_user_updated() from public;
+grant execute on function private.handle_new_user() to service_role;
+grant execute on function private.handle_auth_user_updated() to service_role;
+
+comment on function private.handle_new_user() is
+  'Trigger: a new account gets a profile and the user role; a confirmed one matches its invites.';
+comment on function private.handle_auth_user_updated() is
+  'Trigger: keeps profiles.email in step and matches invites when an email is confirmed.';
+
+-- ── supabase/schemas/profiles/functions/grant_platform_role.sql
+-- ===================================================
+-- FUNCTIONS: granting and revoking DriveRush staff roles
+-- ===================================================
+-- Only a DriveRush su (on a password session). The first su is granted by
+-- SQL on the database itself.
+
+-- Access:  authenticated (DriveRush su)
+-- Guard:   su (private.is_su)
+-- Callers: DriveRush console (session)
+create or replace function private.grant_platform_role(p_user_id uuid, p_role public.app_role)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not private.is_su() then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  if not exists (select 1 from auth.users where id = p_user_id) then
+    raise exception 'not_found' using errcode = 'P0002';
+  end if;
+  insert into public.user_roles (user_id, role) values (p_user_id, p_role)
+  on conflict do nothing;
+end;
+$$;
+
+-- Access:  authenticated (DriveRush su)
+-- Guard:   su (private.is_su)
+-- Callers: DriveRush console (session)
+create or replace function private.revoke_platform_role(p_user_id uuid, p_role public.app_role)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not private.is_su() then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  if p_role = 'user' then
+    raise exception 'cannot_revoke_user' using errcode = 'P0001';
+  end if;
+  if p_role = 'driverush_su' and p_user_id = auth.uid() then
+    raise exception 'cannot_revoke_own_su' using errcode = 'P0001';
+  end if;
+  delete from public.user_roles where user_id = p_user_id and role = p_role;
+end;
+$$;
+
+-- Access:  authenticated (DriveRush su)
+-- Guard:   su (the private body checks private.is_su)
+-- Callers: DriveRush console (session)
+create or replace function public.grant_platform_role(p_user_id uuid, p_role public.app_role)
+returns void
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.grant_platform_role(p_user_id, p_role);
+$$;
+
+-- Access:  authenticated (DriveRush su)
+-- Guard:   su (the private body checks private.is_su)
+-- Callers: DriveRush console (session)
+create or replace function public.revoke_platform_role(p_user_id uuid, p_role public.app_role)
+returns void
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.revoke_platform_role(p_user_id, p_role);
+$$;
+
+revoke all on function private.grant_platform_role(uuid, public.app_role) from public;
+revoke all on function private.revoke_platform_role(uuid, public.app_role) from public;
+revoke all on function public.grant_platform_role(uuid, public.app_role) from public;
+revoke all on function public.revoke_platform_role(uuid, public.app_role) from public;
+grant execute on function private.grant_platform_role(uuid, public.app_role) to service_role;
+grant execute on function private.revoke_platform_role(uuid, public.app_role) to service_role;
+grant execute on function public.grant_platform_role(uuid, public.app_role) to service_role;
+grant execute on function public.revoke_platform_role(uuid, public.app_role) to service_role;
+
+comment on function private.grant_platform_role(uuid, public.app_role) is
+  'DriveRush su: gives an account a platform role.';
+comment on function private.revoke_platform_role(uuid, public.app_role) is
+  'DriveRush su: takes a platform role away (never user, never your own su).';
+comment on function public.grant_platform_role(uuid, public.app_role) is
+  'DriveRush su: gives an account a platform role.';
+comment on function public.revoke_platform_role(uuid, public.app_role) is
+  'DriveRush su: takes a platform role away (never user, never your own su).';
+
+-- ── supabase/schemas/schools/functions/admin_schools.sql
+-- ===================================================
+-- FUNCTIONS: DriveRush staff create and run schools
+-- ===================================================
+
+-- Makes the account with this email the school's owner (replacing the
+-- current one), or, if no confirmed account has it yet, leaves an owner
+-- invite that match_pending_invites takes up on confirmation.
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: admin_create_school, admin_transfer_school_owner
+create or replace function private.set_school_owner(
+  p_school_id uuid,
+  p_email extensions.citext,
+  p_actor uuid
+)
+returns text
+language plpgsql
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := private.confirmed_user_id(p_email);
+begin
+  update public.school_member_invites
+     set status = 'cancelled', closed_at = now()
+   where school_id = p_school_id and role = 'owner' and status = 'pending';
+
+  if v_user_id is null then
+    -- An earlier admin invite for the same email gives way to the owner one.
+    update public.school_member_invites
+       set status = 'cancelled', closed_at = now()
+     where school_id = p_school_id and email = p_email and status = 'pending';
+    insert into public.school_member_invites (school_id, email, role, invited_by)
+    values (p_school_id, p_email, 'owner', p_actor);
+    return 'invited';
+  end if;
+
+  delete from public.school_members
+   where school_id = p_school_id and role = 'owner' and user_id <> v_user_id;
+
+  insert into public.school_members (school_id, user_id, role, added_by)
+  values (p_school_id, v_user_id, 'owner', p_actor)
+  on conflict (school_id, user_id) do update set role = 'owner';
+
+  -- The owner sees every branch; branch ties from an admin past are dropped.
+  delete from public.school_member_branches as mb
+   using public.school_members as m
+   where mb.member_id = m.id and m.school_id = p_school_id and m.user_id = v_user_id;
+  return 'added';
+end;
+$$;
+
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (private.is_staff)
+-- Callers: DriveRush console (session)
+create or replace function private.admin_create_school(
+  p_name text,
+  p_slug text,
+  p_sponsor_id text,
+  p_owner_email text
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_school_id uuid;
+begin
+  if not private.is_staff() then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+
+  insert into public.schools (name, slug, sponsor_id, created_by)
+  values (btrim(p_name), lower(btrim(p_slug)), nullif(lower(btrim(p_sponsor_id)), ''), auth.uid())
+  returning id into v_school_id;
+
+  perform private.set_school_owner(v_school_id, lower(btrim(p_owner_email))::extensions.citext, auth.uid());
+  return v_school_id;
+end;
+$$;
+
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (private.is_staff)
+-- Callers: DriveRush console (session)
+create or replace function private.admin_set_school_status(p_school_id uuid, p_status public.school_status)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not private.is_staff() then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  update public.schools set status = p_status where id = p_school_id;
+  if not found then
+    raise exception 'not_found' using errcode = 'P0002';
+  end if;
+end;
+$$;
+
+-- Returns 'added' (the account exists and is now owner) or 'invited'.
+--
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (private.is_staff)
+-- Callers: DriveRush console (session)
+create or replace function private.admin_transfer_school_owner(p_school_id uuid, p_email text)
+returns text
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not private.is_staff() then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  if not exists (select 1 from public.schools where id = p_school_id) then
+    raise exception 'not_found' using errcode = 'P0002';
+  end if;
+  return private.set_school_owner(p_school_id, lower(btrim(p_email))::extensions.citext, auth.uid());
+end;
+$$;
+
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (the private body checks private.is_staff)
+-- Callers: DriveRush console (session)
+create or replace function public.admin_create_school(
+  p_name text,
+  p_slug text,
+  p_sponsor_id text,
+  p_owner_email text
+)
+returns uuid
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.admin_create_school(p_name, p_slug, p_sponsor_id, p_owner_email);
+$$;
+
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (the private body checks private.is_staff)
+-- Callers: DriveRush console (session)
+create or replace function public.admin_set_school_status(p_school_id uuid, p_status public.school_status)
+returns void
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.admin_set_school_status(p_school_id, p_status);
+$$;
+
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (the private body checks private.is_staff)
+-- Callers: DriveRush console (session)
+create or replace function public.admin_transfer_school_owner(p_school_id uuid, p_email text)
+returns text
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.admin_transfer_school_owner(p_school_id, p_email);
+$$;
+
+revoke all on function private.set_school_owner(uuid, extensions.citext, uuid) from public;
+revoke all on function private.admin_create_school(text, text, text, text) from public;
+revoke all on function private.admin_set_school_status(uuid, public.school_status) from public;
+revoke all on function private.admin_transfer_school_owner(uuid, text) from public;
+revoke all on function public.admin_create_school(text, text, text, text) from public;
+revoke all on function public.admin_set_school_status(uuid, public.school_status) from public;
+revoke all on function public.admin_transfer_school_owner(uuid, text) from public;
+grant execute on function private.set_school_owner(uuid, extensions.citext, uuid) to service_role;
+grant execute on function private.admin_create_school(text, text, text, text) to service_role;
+grant execute on function private.admin_set_school_status(uuid, public.school_status) to service_role;
+grant execute on function private.admin_transfer_school_owner(uuid, text) to service_role;
+grant execute on function public.admin_create_school(text, text, text, text) to service_role;
+grant execute on function public.admin_set_school_status(uuid, public.school_status) to service_role;
+grant execute on function public.admin_transfer_school_owner(uuid, text) to service_role;
+
+comment on function private.set_school_owner(uuid, extensions.citext, uuid) is
+  'Makes an email the school owner now (confirmed account) or by invite; replaces the current owner.';
+comment on function private.admin_create_school(text, text, text, text) is
+  'DriveRush staff: creates a school and sets its owner by email.';
+comment on function private.admin_set_school_status(uuid, public.school_status) is
+  'DriveRush staff: sets a school active, suspended or archived.';
+comment on function private.admin_transfer_school_owner(uuid, text) is
+  'DriveRush staff: makes another email the school owner. Returns added or invited.';
+comment on function public.admin_create_school(text, text, text, text) is
+  'DriveRush staff: creates a school and sets its owner by email.';
+comment on function public.admin_set_school_status(uuid, public.school_status) is
+  'DriveRush staff: sets a school active, suspended or archived.';
+comment on function public.admin_transfer_school_owner(uuid, text) is
+  'DriveRush staff: makes another email the school owner. Returns added or invited.';
+
+-- ── supabase/schemas/schools/functions/school_branches.sql
+-- ===================================================
+-- FUNCTIONS: a school owner manages branches
+-- ===================================================
+
+-- Access:  authenticated (school owner or DriveRush staff)
+-- Guard:   admin (private.can_manage_school: owner or staff)
+-- Callers: school dashboard (session)
+create or replace function private.school_create_branch(p_school_id uuid, p_name text, p_town text)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_id uuid;
+begin
+  if not private.can_manage_school(p_school_id) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  insert into public.school_branches (school_id, name, town)
+  values (p_school_id, btrim(p_name), nullif(btrim(p_town), ''))
+  returning id into v_id;
+  return v_id;
+end;
+$$;
+
+-- Access:  authenticated (school owner or DriveRush staff)
+-- Guard:   admin (private.can_manage_school: owner or staff)
+-- Callers: school dashboard (session)
+create or replace function private.school_update_branch(
+  p_branch_id uuid,
+  p_name text,
+  p_town text,
+  p_is_active boolean
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_school_id uuid;
+begin
+  select school_id into v_school_id from public.school_branches where id = p_branch_id;
+  if v_school_id is null or not private.can_manage_school(v_school_id) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  update public.school_branches
+     set name = btrim(p_name), town = nullif(btrim(p_town), ''), is_active = p_is_active
+   where id = p_branch_id;
+end;
+$$;
+
+-- Access:  authenticated (school owner or DriveRush staff)
+-- Guard:   admin (the private body checks private.can_manage_school)
+-- Callers: school dashboard (session)
+create or replace function public.school_create_branch(p_school_id uuid, p_name text, p_town text)
+returns uuid
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.school_create_branch(p_school_id, p_name, p_town);
+$$;
+
+-- Access:  authenticated (school owner or DriveRush staff)
+-- Guard:   admin (the private body checks private.can_manage_school)
+-- Callers: school dashboard (session)
+create or replace function public.school_update_branch(
+  p_branch_id uuid,
+  p_name text,
+  p_town text,
+  p_is_active boolean
+)
+returns void
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.school_update_branch(p_branch_id, p_name, p_town, p_is_active);
+$$;
+
+revoke all on function private.school_create_branch(uuid, text, text) from public;
+revoke all on function private.school_update_branch(uuid, text, text, boolean) from public;
+revoke all on function public.school_create_branch(uuid, text, text) from public;
+revoke all on function public.school_update_branch(uuid, text, text, boolean) from public;
+grant execute on function private.school_create_branch(uuid, text, text) to service_role;
+grant execute on function private.school_update_branch(uuid, text, text, boolean) to service_role;
+grant execute on function public.school_create_branch(uuid, text, text) to service_role;
+grant execute on function public.school_update_branch(uuid, text, text, boolean) to service_role;
+
+comment on function private.school_create_branch(uuid, text, text) is
+  'School owner or staff: adds a branch.';
+comment on function private.school_update_branch(uuid, text, text, boolean) is
+  'School owner or staff: renames, moves or closes a branch.';
+comment on function public.school_create_branch(uuid, text, text) is
+  'School owner or staff: adds a branch.';
+comment on function public.school_update_branch(uuid, text, text, boolean) is
+  'School owner or staff: renames, moves or closes a branch.';
+
+-- ── supabase/schemas/schools/functions/school_admins.sql
+-- ===================================================
+-- FUNCTIONS: a school owner manages admins and their branches
+-- ===================================================
+-- At most 50 admins per school (private.assert_admin_room, via triggers).
+-- An admin always has at least one branch.
+
+-- Refuses unless every id is a branch of this school and there is at least one.
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: school_add_admin, school_set_admin_branches
+create or replace function private.assert_school_branches(p_school_id uuid, p_branch_ids uuid[])
+returns void
+language plpgsql
+stable
+set search_path = ''
+as $$
+begin
+  if coalesce(cardinality(p_branch_ids), 0) = 0
+     or exists (
+       select 1 from unnest(p_branch_ids) as x(id)
+        where not exists (select 1 from public.school_branches as b
+                           where b.id = x.id and b.school_id = p_school_id)
+     ) then
+    raise exception 'invalid_branches' using errcode = 'P0001';
+  end if;
+end;
+$$;
+
+-- Adds an admin by email, tied to these branches. Returns 'added' when a
+-- confirmed account has the email, 'invited' when it waits for sign-up.
+-- Adding an existing admin again replaces their branches.
+--
+-- Access:  authenticated (school owner or DriveRush staff)
+-- Guard:   admin (private.can_manage_school: owner or staff)
+-- Callers: school dashboard (session)
+create or replace function private.school_add_admin(p_school_id uuid, p_email text, p_branch_ids uuid[])
+returns text
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_email extensions.citext := lower(btrim(p_email))::extensions.citext;
+  v_user_id uuid;
+  v_member public.school_members;
+begin
+  if not private.can_manage_school(p_school_id) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  perform private.assert_school_branches(p_school_id, p_branch_ids);
+
+  v_user_id := private.confirmed_user_id(v_email);
+
+  if v_user_id is null then
+    insert into public.school_member_invites (school_id, email, role, branch_ids, invited_by)
+    values (p_school_id, v_email, 'admin', p_branch_ids, auth.uid())
+    on conflict (school_id, email) where status = 'pending'
+    do update set branch_ids = excluded.branch_ids
+    where public.school_member_invites.role = 'admin';
+    if not found then
+      raise exception 'already_owner' using errcode = 'P0001';
+    end if;
+    return 'invited';
+  end if;
+
+  select * into v_member from public.school_members
+   where school_id = p_school_id and user_id = v_user_id;
+
+  if v_member.role = 'owner' then
+    raise exception 'already_owner' using errcode = 'P0001';
+  end if;
+
+  if v_member.id is null then
+    insert into public.school_members (school_id, user_id, role, added_by)
+    values (p_school_id, v_user_id, 'admin', auth.uid())
+    returning * into v_member;
+  end if;
+
+  delete from public.school_member_branches where member_id = v_member.id;
+  insert into public.school_member_branches (member_id, branch_id, school_id)
+  select v_member.id, x.id, p_school_id from unnest(p_branch_ids) as x(id)
+  on conflict do nothing;
+  return 'added';
+end;
+$$;
+
+-- Access:  authenticated (school owner or DriveRush staff)
+-- Guard:   admin (private.can_manage_school: owner or staff)
+-- Callers: school dashboard (session)
+create or replace function private.school_set_admin_branches(p_member_id uuid, p_branch_ids uuid[])
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_member public.school_members;
+begin
+  select * into v_member from public.school_members where id = p_member_id;
+  if v_member.id is null or not private.can_manage_school(v_member.school_id) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  if v_member.role <> 'admin' then
+    raise exception 'not_admin' using errcode = 'P0001';
+  end if;
+  perform private.assert_school_branches(v_member.school_id, p_branch_ids);
+
+  delete from public.school_member_branches where member_id = p_member_id;
+  insert into public.school_member_branches (member_id, branch_id, school_id)
+  select p_member_id, x.id, v_member.school_id from unnest(p_branch_ids) as x(id)
+  on conflict do nothing;
+end;
+$$;
+
+-- Access:  authenticated (school owner or DriveRush staff)
+-- Guard:   admin (private.can_manage_school: owner or staff)
+-- Callers: school dashboard (session)
+create or replace function private.school_remove_admin(p_member_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_member public.school_members;
+begin
+  select * into v_member from public.school_members where id = p_member_id;
+  if v_member.id is null or not private.can_manage_school(v_member.school_id) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  if v_member.role <> 'admin' then
+    raise exception 'not_admin' using errcode = 'P0001';
+  end if;
+  delete from public.school_members where id = p_member_id;
+end;
+$$;
+
+-- Access:  authenticated (school owner or DriveRush staff)
+-- Guard:   admin (private.can_manage_school: owner or staff)
+-- Callers: school dashboard (session)
+create or replace function private.school_cancel_member_invite(p_invite_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_invite public.school_member_invites;
+begin
+  select * into v_invite from public.school_member_invites where id = p_invite_id;
+  if v_invite.id is null or not private.can_manage_school(v_invite.school_id) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  -- Only staff withdraw an owner invite (owners are theirs to set).
+  if v_invite.role = 'owner' and not private.is_staff() then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  update public.school_member_invites
+     set status = 'cancelled', closed_at = now()
+   where id = p_invite_id and status = 'pending';
+end;
+$$;
+
+-- Access:  authenticated (school owner or DriveRush staff)
+-- Guard:   admin (the private body checks private.can_manage_school)
+-- Callers: school dashboard (session)
+create or replace function public.school_add_admin(p_school_id uuid, p_email text, p_branch_ids uuid[])
+returns text
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.school_add_admin(p_school_id, p_email, p_branch_ids);
+$$;
+
+-- Access:  authenticated (school owner or DriveRush staff)
+-- Guard:   admin (the private body checks private.can_manage_school)
+-- Callers: school dashboard (session)
+create or replace function public.school_set_admin_branches(p_member_id uuid, p_branch_ids uuid[])
+returns void
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.school_set_admin_branches(p_member_id, p_branch_ids);
+$$;
+
+-- Access:  authenticated (school owner or DriveRush staff)
+-- Guard:   admin (the private body checks private.can_manage_school)
+-- Callers: school dashboard (session)
+create or replace function public.school_remove_admin(p_member_id uuid)
+returns void
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.school_remove_admin(p_member_id);
+$$;
+
+-- Access:  authenticated (school owner or DriveRush staff)
+-- Guard:   admin (the private body checks private.can_manage_school)
+-- Callers: school dashboard (session)
+create or replace function public.school_cancel_member_invite(p_invite_id uuid)
+returns void
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.school_cancel_member_invite(p_invite_id);
+$$;
+
+revoke all on function private.assert_school_branches(uuid, uuid[]) from public;
+revoke all on function private.school_add_admin(uuid, text, uuid[]) from public;
+revoke all on function private.school_set_admin_branches(uuid, uuid[]) from public;
+revoke all on function private.school_remove_admin(uuid) from public;
+revoke all on function private.school_cancel_member_invite(uuid) from public;
+revoke all on function public.school_add_admin(uuid, text, uuid[]) from public;
+revoke all on function public.school_set_admin_branches(uuid, uuid[]) from public;
+revoke all on function public.school_remove_admin(uuid) from public;
+revoke all on function public.school_cancel_member_invite(uuid) from public;
+grant execute on function private.assert_school_branches(uuid, uuid[]) to service_role;
+grant execute on function private.school_add_admin(uuid, text, uuid[]) to service_role;
+grant execute on function private.school_set_admin_branches(uuid, uuid[]) to service_role;
+grant execute on function private.school_remove_admin(uuid) to service_role;
+grant execute on function private.school_cancel_member_invite(uuid) to service_role;
+grant execute on function public.school_add_admin(uuid, text, uuid[]) to service_role;
+grant execute on function public.school_set_admin_branches(uuid, uuid[]) to service_role;
+grant execute on function public.school_remove_admin(uuid) to service_role;
+grant execute on function public.school_cancel_member_invite(uuid) to service_role;
+
+comment on function private.assert_school_branches(uuid, uuid[]) is
+  'Refuses (P0001 invalid_branches) unless the list is non-empty and every id is a branch of the school.';
+comment on function private.school_add_admin(uuid, text, uuid[]) is
+  'School owner or staff: adds an admin by email tied to branches. Returns added or invited.';
+comment on function private.school_set_admin_branches(uuid, uuid[]) is
+  'School owner or staff: replaces an admin''s branches.';
+comment on function private.school_remove_admin(uuid) is
+  'School owner or staff: removes an admin.';
+comment on function private.school_cancel_member_invite(uuid) is
+  'School owner or staff: withdraws a pending admin invite (owner invites: staff only).';
+comment on function public.school_add_admin(uuid, text, uuid[]) is
+  'School owner or staff: adds an admin by email tied to branches. Returns added or invited.';
+comment on function public.school_set_admin_branches(uuid, uuid[]) is
+  'School owner or staff: replaces an admin''s branches.';
+comment on function public.school_remove_admin(uuid) is
+  'School owner or staff: removes an admin.';
+comment on function public.school_cancel_member_invite(uuid) is
+  'School owner or staff: withdraws a pending admin invite (owner invites: staff only).';
+
+-- ── supabase/schemas/students/functions/school_students.sql
+-- ===================================================
+-- FUNCTIONS: a school adds and releases students
+-- ===================================================
+-- The owner (any branch) or an admin of the branch (or DriveRush staff).
+
+-- Adds a learner's email to a branch and returns the link id. The month
+-- starts now if a confirmed account has the email, it has no current school
+-- link and no other school is waiting for it; otherwise the link is pending.
+-- Adding an email that already has an open link with this school returns
+-- that link unchanged.
+--
+-- Access:  authenticated (school owner, branch admin or DriveRush staff)
+-- Guard:   admin (private.can_manage_branch: owner, admin of the branch, or staff)
+-- Callers: school dashboard (session)
+create or replace function private.school_add_student(p_branch_id uuid, p_email text)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_email extensions.citext := lower(btrim(p_email))::extensions.citext;
+  v_branch public.school_branches;
+  v_link_id uuid;
+  v_user_id uuid;
+begin
+  if not private.can_manage_branch(p_branch_id) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+
+  select * into v_branch from public.school_branches where id = p_branch_id;
+  if v_branch.id is null then
+    raise exception 'not_found' using errcode = 'P0002';
+  end if;
+  if not v_branch.is_active then
+    raise exception 'branch_inactive' using errcode = 'P0001';
+  end if;
+  if not exists (select 1 from public.schools where id = v_branch.school_id and status = 'active') then
+    raise exception 'school_inactive' using errcode = 'P0001';
+  end if;
+
+  perform private.close_expired_links(null, v_email);
+
+  select id into v_link_id from public.school_student_links
+   where school_id = v_branch.school_id and email = v_email and status in ('pending', 'active');
+  if v_link_id is not null then
+    return v_link_id;
+  end if;
+
+  v_user_id := private.confirmed_user_id(v_email);
+
+  insert into public.school_student_links (school_id, branch_id, email, user_id, added_by)
+  values (v_branch.school_id, p_branch_id, v_email, v_user_id, auth.uid())
+  returning id into v_link_id;
+
+  if v_user_id is not null then
+    perform private.close_expired_links(v_user_id, null);
+    if private.current_link_id(v_user_id) is null
+       and not exists (
+         select 1 from public.school_student_links
+          where user_id = v_user_id and status = 'pending' and id <> v_link_id
+       ) then
+      perform private.activate_link(v_link_id, v_user_id);
+    end if;
+  end if;
+
+  return v_link_id;
+end;
+$$;
+
+-- Ends a learner's current link with this school now.
+--
+-- Access:  authenticated (school owner, branch admin or DriveRush staff)
+-- Guard:   admin (private.can_manage_branch on the link's branch)
+-- Callers: school dashboard (session)
+create or replace function private.school_release_student(p_link_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_branch_id uuid;
+begin
+  select branch_id into v_branch_id from public.school_student_links where id = p_link_id;
+  if v_branch_id is null or not private.can_manage_branch(v_branch_id) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  perform private.end_link(p_link_id, 'released');
+end;
+$$;
+
+-- Withdraws a link that has not started.
+--
+-- Access:  authenticated (school owner, branch admin or DriveRush staff)
+-- Guard:   admin (private.can_manage_branch on the link's branch)
+-- Callers: school dashboard (session)
+create or replace function private.school_cancel_student_invite(p_link_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_branch_id uuid;
+begin
+  select branch_id into v_branch_id from public.school_student_links where id = p_link_id;
+  if v_branch_id is null or not private.can_manage_branch(v_branch_id) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  update public.school_student_links
+     set status = 'cancelled', ended_at = now()
+   where id = p_link_id and status = 'pending';
+  if not found then
+    raise exception 'not_pending' using errcode = 'P0001';
+  end if;
+end;
+$$;
+
+-- Moves an open link to another branch of the same school. The caller must
+-- work in both branches.
+--
+-- Access:  authenticated (school owner, admin of both branches, or DriveRush staff)
+-- Guard:   admin (private.can_manage_branch on both branches)
+-- Callers: school dashboard (session)
+create or replace function private.school_move_student_branch(p_link_id uuid, p_branch_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_link public.school_student_links;
+begin
+  select * into v_link from public.school_student_links where id = p_link_id;
+  if v_link.id is null
+     or not private.can_manage_branch(v_link.branch_id)
+     or not private.can_manage_branch(p_branch_id) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  if not exists (select 1 from public.school_branches
+                  where id = p_branch_id and school_id = v_link.school_id and is_active) then
+    raise exception 'invalid_branches' using errcode = 'P0001';
+  end if;
+  update public.school_student_links
+     set branch_id = p_branch_id
+   where id = p_link_id and status in ('pending', 'active');
+  if not found then
+    raise exception 'not_open' using errcode = 'P0001';
+  end if;
+end;
+$$;
+
+-- Access:  authenticated (school owner, branch admin or DriveRush staff)
+-- Guard:   admin (the private body checks private.can_manage_branch)
+-- Callers: school dashboard (session)
+create or replace function public.school_add_student(p_branch_id uuid, p_email text)
+returns uuid
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.school_add_student(p_branch_id, p_email);
+$$;
+
+-- Access:  authenticated (school owner, branch admin or DriveRush staff)
+-- Guard:   admin (the private body checks private.can_manage_branch)
+-- Callers: school dashboard (session)
+create or replace function public.school_release_student(p_link_id uuid)
+returns void
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.school_release_student(p_link_id);
+$$;
+
+-- Access:  authenticated (school owner, branch admin or DriveRush staff)
+-- Guard:   admin (the private body checks private.can_manage_branch)
+-- Callers: school dashboard (session)
+create or replace function public.school_cancel_student_invite(p_link_id uuid)
+returns void
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.school_cancel_student_invite(p_link_id);
+$$;
+
+-- Access:  authenticated (school owner, admin of both branches, or DriveRush staff)
+-- Guard:   admin (the private body checks private.can_manage_branch on both)
+-- Callers: school dashboard (session)
+create or replace function public.school_move_student_branch(p_link_id uuid, p_branch_id uuid)
+returns void
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.school_move_student_branch(p_link_id, p_branch_id);
+$$;
+
+revoke all on function private.school_add_student(uuid, text) from public;
+revoke all on function private.school_release_student(uuid) from public;
+revoke all on function private.school_cancel_student_invite(uuid) from public;
+revoke all on function private.school_move_student_branch(uuid, uuid) from public;
+revoke all on function public.school_add_student(uuid, text) from public;
+revoke all on function public.school_release_student(uuid) from public;
+revoke all on function public.school_cancel_student_invite(uuid) from public;
+revoke all on function public.school_move_student_branch(uuid, uuid) from public;
+grant execute on function private.school_add_student(uuid, text) to service_role;
+grant execute on function private.school_release_student(uuid) to service_role;
+grant execute on function private.school_cancel_student_invite(uuid) to service_role;
+grant execute on function private.school_move_student_branch(uuid, uuid) to service_role;
+grant execute on function public.school_add_student(uuid, text) to service_role;
+grant execute on function public.school_release_student(uuid) to service_role;
+grant execute on function public.school_cancel_student_invite(uuid) to service_role;
+grant execute on function public.school_move_student_branch(uuid, uuid) to service_role;
+
+comment on function private.school_add_student(uuid, text) is
+  'School owner, branch admin or staff: adds a learner email to a branch; starts the month when it can.';
+comment on function private.school_release_student(uuid) is
+  'School owner, branch admin or staff: ends a learner''s current link now.';
+comment on function private.school_cancel_student_invite(uuid) is
+  'School owner, branch admin or staff: withdraws a link that has not started.';
+comment on function private.school_move_student_branch(uuid, uuid) is
+  'School owner, admin of both branches, or staff: moves an open link to another branch.';
+comment on function public.school_add_student(uuid, text) is
+  'School owner, branch admin or staff: adds a learner email to a branch; starts the month when it can.';
+comment on function public.school_release_student(uuid) is
+  'School owner, branch admin or staff: ends a learner''s current link now.';
+comment on function public.school_cancel_student_invite(uuid) is
+  'School owner, branch admin or staff: withdraws a link that has not started.';
+comment on function public.school_move_student_branch(uuid, uuid) is
+  'School owner, admin of both branches, or staff: moves an open link to another branch.';
+
+-- ── supabase/schemas/students/functions/learner_links.sql
+-- ===================================================
+-- FUNCTIONS: a learner chooses among schools that added them
+-- ===================================================
+
+-- Starts a pending link now. A current link with another school ends early
+-- (reason switched; that school sees it in its history).
+--
+-- Access:  authenticated (the learner the link is for)
+-- Guard:   self (the link's user_id is auth.uid())
+-- Callers: web (learner session)
+create or replace function private.learner_accept_school_link(p_link_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_link public.school_student_links;
+  v_current uuid;
+begin
+  select * into v_link from public.school_student_links where id = p_link_id for update;
+  if v_uid is null or v_link.id is null or v_link.user_id is distinct from v_uid then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  if v_link.status <> 'pending' then
+    raise exception 'not_pending' using errcode = 'P0001';
+  end if;
+  if not exists (select 1 from public.schools where id = v_link.school_id and status = 'active') then
+    raise exception 'school_inactive' using errcode = 'P0001';
+  end if;
+
+  perform private.close_expired_links(v_uid, null);
+  v_current := private.current_link_id(v_uid);
+  if v_current is not null then
+    perform private.end_link(v_current, 'switched');
+  end if;
+  perform private.activate_link(p_link_id, v_uid);
+end;
+$$;
+
+-- Access:  authenticated (the learner the link is for)
+-- Guard:   self (the link's user_id is auth.uid())
+-- Callers: web (learner session)
+create or replace function private.learner_decline_school_link(p_link_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_uid uuid := auth.uid();
+begin
+  update public.school_student_links
+     set status = 'declined', ended_at = now()
+   where id = p_link_id and user_id = v_uid and status = 'pending';
+  if not found then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+end;
+$$;
+
+-- Access:  authenticated (the learner the link is for)
+-- Guard:   self (the private body checks the link is the caller's)
+-- Callers: web (learner session)
+create or replace function public.learner_accept_school_link(p_link_id uuid)
+returns void
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.learner_accept_school_link(p_link_id);
+$$;
+
+-- Access:  authenticated (the learner the link is for)
+-- Guard:   self (the private body checks the link is the caller's)
+-- Callers: web (learner session)
+create or replace function public.learner_decline_school_link(p_link_id uuid)
+returns void
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.learner_decline_school_link(p_link_id);
+$$;
+
+revoke all on function private.learner_accept_school_link(uuid) from public;
+revoke all on function private.learner_decline_school_link(uuid) from public;
+revoke all on function public.learner_accept_school_link(uuid) from public;
+revoke all on function public.learner_decline_school_link(uuid) from public;
+grant execute on function private.learner_accept_school_link(uuid) to service_role;
+grant execute on function private.learner_decline_school_link(uuid) to service_role;
+grant execute on function public.learner_accept_school_link(uuid) to service_role;
+grant execute on function public.learner_decline_school_link(uuid) to service_role;
+
+comment on function private.learner_accept_school_link(uuid) is
+  'Learner: starts a pending school link now, ending any current one (switched).';
+comment on function private.learner_decline_school_link(uuid) is
+  'Learner: declines a pending school link.';
+comment on function public.learner_accept_school_link(uuid) is
+  'Learner: starts a pending school link now, ending any current one (switched).';
+comment on function public.learner_decline_school_link(uuid) is
+  'Learner: declines a pending school link.';
+
+-- ── supabase/schemas/billing/functions/my_entitlement.sql
+-- ===================================================
+-- FUNCTION: my_entitlement
+-- ===================================================
+-- What the signed-in learner gets right now, for the app to decide content
+-- and livery:
+--   school  a current link with an active school: full access, that school's
+--           livery (sponsor_id), until ends_at
+--   paid    their own subscription is running: full access, plain cars
+--   free    a free account: progress saved, sponsor schools take turns
+-- A school link beats paid time (which is paused meanwhile).
+-- pending_invites counts schools waiting for the learner to choose them.
+--
+-- Access:  authenticated (the learner)
+-- Guard:   self (answers for auth.uid() only)
+-- Callers: web (learner session)
+create or replace function private.my_entitlement()
+returns table (
+  tier text,
+  school_id uuid,
+  school_name text,
+  sponsor_id text,
+  branch_id uuid,
+  ends_at timestamptz,
+  pending_invites integer
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_link public.school_student_links;
+  v_school public.schools;
+  v_paid_until timestamptz;
+  v_pending integer;
+begin
+  if v_uid is null then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+
+  select count(*)::integer into v_pending
+    from public.school_student_links as l
+    join public.schools as s on s.id = l.school_id and s.status = 'active'
+   where l.user_id = v_uid and l.status = 'pending';
+
+  select * into v_link from public.school_student_links
+   where id = private.current_link_id(v_uid);
+  if v_link.id is not null then
+    select * into v_school from public.schools where id = v_link.school_id and status = 'active';
+  end if;
+
+  if v_school.id is not null then
+    return query select 'school'::text, v_school.id, v_school.name, v_school.sponsor_id,
+                        v_link.branch_id, v_link.ends_at, v_pending;
+    return;
+  end if;
+
+  select max(s.ends_at) into v_paid_until
+    from public.learner_subscriptions as s
+   where s.user_id = v_uid and s.status = 'active'
+     and s.starts_at <= now() and s.ends_at > now();
+
+  if v_paid_until is not null then
+    return query select 'paid'::text, null::uuid, null::text, null::text, null::uuid, v_paid_until, v_pending;
+    return;
+  end if;
+
+  return query select 'free'::text, null::uuid, null::text, null::text, null::uuid, null::timestamptz, v_pending;
+end;
+$$;
+
+-- Access:  authenticated (the learner)
+-- Guard:   self (the private body answers for auth.uid() only)
+-- Callers: web (learner session)
+create or replace function public.my_entitlement()
+returns table (
+  tier text,
+  school_id uuid,
+  school_name text,
+  sponsor_id text,
+  branch_id uuid,
+  ends_at timestamptz,
+  pending_invites integer
+)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select * from private.my_entitlement();
+$$;
+
+revoke all on function private.my_entitlement() from public;
+revoke all on function public.my_entitlement() from public;
+grant execute on function private.my_entitlement() to service_role;
+grant execute on function public.my_entitlement() to service_role;
+
+comment on function private.my_entitlement() is
+  'The signed-in learner''s tier now (school, paid or free), with the school livery and pending invites.';
+comment on function public.my_entitlement() is
+  'The signed-in learner''s tier now (school, paid or free), with the school livery and pending invites.';
+
+-- ── supabase/schemas/progress/functions/school_student_progress.sql
+-- ===================================================
+-- FUNCTION: school_student_progress
+-- ===================================================
+-- The learners a school is linked to right now, with their saved progress
+-- (one object keyed by store). The owner sees every branch, an admin only
+-- their branches, DriveRush staff everything. A learner's progress is visible
+-- only while their link is current.
+--
+-- Access:  authenticated (school owner, school admin or DriveRush staff)
+-- Guard:   admin (private.is_school_member or is_staff; rows filtered by private.can_see_branch)
+-- Callers: school dashboard (session)
+create or replace function private.school_student_progress(p_school_id uuid, p_branch_id uuid default null)
+returns table (
+  link_id uuid,
+  branch_id uuid,
+  user_id uuid,
+  email extensions.citext,
+  full_name text,
+  starts_at timestamptz,
+  ends_at timestamptz,
+  progress jsonb,
+  progress_updated_at timestamptz
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_staff boolean := private.is_staff();
+begin
+  if not v_staff and not private.is_school_member(p_school_id) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+
+  return query
+  select l.id, l.branch_id, l.user_id, l.email, p.full_name, l.starts_at, l.ends_at,
+         coalesce((select jsonb_object_agg(lp.store, lp.data)
+                     from public.learner_progress as lp where lp.user_id = l.user_id), '{}'::jsonb),
+         (select max(lp.updated_at) from public.learner_progress as lp where lp.user_id = l.user_id)
+    from public.school_student_links as l
+    left join public.profiles as p on p.id = l.user_id
+   where l.school_id = p_school_id
+     and l.status = 'active' and l.ends_at > now()
+     and (p_branch_id is null or l.branch_id = p_branch_id)
+     and (v_staff or private.can_see_branch(l.branch_id))
+   order by l.starts_at desc;
+end;
+$$;
+
+-- Access:  authenticated (school owner, school admin or DriveRush staff)
+-- Guard:   admin (the private body checks membership and filters by branch)
+-- Callers: school dashboard (session)
+create or replace function public.school_student_progress(p_school_id uuid, p_branch_id uuid default null)
+returns table (
+  link_id uuid,
+  branch_id uuid,
+  user_id uuid,
+  email extensions.citext,
+  full_name text,
+  starts_at timestamptz,
+  ends_at timestamptz,
+  progress jsonb,
+  progress_updated_at timestamptz
+)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select * from private.school_student_progress(p_school_id, p_branch_id);
+$$;
+
+revoke all on function private.school_student_progress(uuid, uuid) from public;
+revoke all on function public.school_student_progress(uuid, uuid) from public;
+grant execute on function private.school_student_progress(uuid, uuid) to service_role;
+grant execute on function public.school_student_progress(uuid, uuid) to service_role;
+
+comment on function private.school_student_progress(uuid, uuid) is
+  'School owner, admin (own branches) or staff: currently linked learners with their saved progress.';
+comment on function public.school_student_progress(uuid, uuid) is
+  'School owner, admin (own branches) or staff: currently linked learners with their saved progress.';
+
+-- ── supabase/schemas/profiles/triggers/auth_users_triggers.sql
+-- ===================================================
+-- TRIGGERS: auth.users and profiles
+-- ===================================================
+create or replace trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function private.handle_new_user();
+
+create or replace trigger on_auth_user_updated
+  after update of email, email_confirmed_at on auth.users
+  for each row execute function private.handle_auth_user_updated();
+
+create or replace trigger profiles_set_updated_at
+  before update on public.profiles
+  for each row execute function private.set_updated_at();
+
+-- ── supabase/schemas/schools/triggers/school_triggers.sql
+-- ===================================================
+-- TRIGGERS: schools
+-- ===================================================
+create or replace trigger schools_set_updated_at
+  before update on public.schools
+  for each row execute function private.set_updated_at();
+
+create or replace trigger school_branches_set_updated_at
+  before update on public.school_branches
+  for each row execute function private.set_updated_at();
+
+-- At most 50 admins per school, pending admin invites included.
+create or replace trigger school_members_admin_limit
+  before insert or update of role on public.school_members
+  for each row execute function private.enforce_member_admin_limit();
+
+create or replace trigger school_member_invites_admin_limit
+  before insert or update of role, status on public.school_member_invites
+  for each row execute function private.enforce_invite_admin_limit();
+
+-- ── supabase/schemas/billing/triggers/billing_triggers.sql
+-- ===================================================
+-- TRIGGERS: billing
+-- ===================================================
+create or replace trigger learner_subscriptions_set_updated_at
+  before update on public.learner_subscriptions
+  for each row execute function private.set_updated_at();
+
+create or replace trigger school_subscriptions_set_updated_at
+  before update on public.school_subscriptions
+  for each row execute function private.set_updated_at();
+
+-- Paid time bought during a school month starts when the month ends.
+create or replace trigger learner_subscriptions_pause_new
+  after insert on public.learner_subscriptions
+  for each row execute function private.pause_new_subscription();
+
+-- ── supabase/schemas/progress/triggers/progress_triggers.sql
+-- ===================================================
+-- TRIGGERS: progress
+-- ===================================================
+create or replace trigger learner_progress_set_updated_at
+  before update on public.learner_progress
+  for each row execute function private.set_updated_at();
+
+-- ── supabase/schemas/profiles/rls/profiles_rls.sql
+-- ===================================================
+-- ACCESS: public.profiles
+-- ===================================================
+-- Reads:  A learner reads their own profile; DriveRush staff read all.
+--         Schools see their learners' names through school_student_progress.
+-- Writes: A learner updates their own full_name and avatar_url. Rows are
+--         created by handle_new_user; email follows auth.users.
+-- Grants: anon: none; authenticated: SELECT, UPDATE(avatar_url, full_name)
+--         (supabase/schemas/_grants/table_privileges.sql)
+alter table public.profiles enable row level security;
+
+create policy "profiles: read own or staff"
+  on public.profiles for select to authenticated
+  using (id = (select auth.uid()) or (select private.is_staff()));
+
+create policy "profiles: update own"
+  on public.profiles for update to authenticated
+  using (id = (select auth.uid()))
+  with check (id = (select auth.uid()));
+
+-- ── supabase/schemas/profiles/rls/user_roles_rls.sql
+-- ===================================================
+-- ACCESS: public.user_roles
+-- ===================================================
+-- Reads:  Each account reads its own roles; a DriveRush su reads all.
+-- Writes: No client: sign-up adds `user`, grant_platform_role and
+--         revoke_platform_role (su) change the rest.
+-- Grants: anon: none; authenticated: SELECT
+--         (supabase/schemas/_grants/table_privileges.sql)
+alter table public.user_roles enable row level security;
+
+create policy "user_roles: read own or su"
+  on public.user_roles for select to authenticated
+  using (user_id = (select auth.uid()) or (select private.is_su()));
+
+-- ── supabase/schemas/schools/rls/schools_rls.sql
+-- ===================================================
+-- ACCESS: public.schools
+-- ===================================================
+-- Reads:  DriveRush staff; the school's owner and admins; a learner the
+--         school has added (any link, so a pending invite shows its name).
+-- Writes: No client: admin_create_school and admin_set_school_status (staff).
+-- Grants: anon: none; authenticated: SELECT
+alter table public.schools enable row level security;
+
+create policy "schools: staff, members and linked learners read"
+  on public.schools for select to authenticated
+  using ((select private.is_staff()) or private.is_school_member(id) or private.has_school_link(id));
+
+-- ===================================================
+-- ACCESS: public.school_branches
+-- ===================================================
+-- Reads:  DriveRush staff; the school's owner and admins (every branch, so
+--         an admin can see where colleagues work); its linked learners.
+-- Writes: No client: school_create_branch and school_update_branch (owner).
+-- Grants: anon: none; authenticated: SELECT
+alter table public.school_branches enable row level security;
+
+create policy "school_branches: staff, members and linked learners read"
+  on public.school_branches for select to authenticated
+  using ((select private.is_staff()) or private.is_school_member(school_id) or private.has_school_link(school_id));
+
+-- ===================================================
+-- ACCESS: public.school_members
+-- ===================================================
+-- Reads:  DriveRush staff; the school's owner and admins.
+-- Writes: No client: admin_create_school, admin_transfer_school_owner
+--         (staff); school_add_admin and school_remove_admin (owner).
+-- Grants: anon: none; authenticated: SELECT
+alter table public.school_members enable row level security;
+
+create policy "school_members: staff and members read"
+  on public.school_members for select to authenticated
+  using ((select private.is_staff()) or private.is_school_member(school_id));
+
+-- ===================================================
+-- ACCESS: public.school_member_branches
+-- ===================================================
+-- Reads:  DriveRush staff; the school's owner and admins.
+-- Writes: No client: school_add_admin and school_set_admin_branches (owner).
+-- Grants: anon: none; authenticated: SELECT
+alter table public.school_member_branches enable row level security;
+
+create policy "school_member_branches: staff and members read"
+  on public.school_member_branches for select to authenticated
+  using ((select private.is_staff()) or private.is_school_member(school_id));
+
+-- ===================================================
+-- ACCESS: public.school_member_invites
+-- ===================================================
+-- Reads:  DriveRush staff; the school's owner.
+-- Writes: No client: school_add_admin, school_cancel_member_invite (owner),
+--         admin_create_school, admin_transfer_school_owner (staff);
+--         match_pending_invites on confirmation.
+-- Grants: anon: none; authenticated: SELECT
+alter table public.school_member_invites enable row level security;
+
+create policy "school_member_invites: staff and owner read"
+  on public.school_member_invites for select to authenticated
+  using ((select private.is_staff()) or private.is_school_owner(school_id));
+
+-- ── supabase/schemas/billing/rls/billing_rls.sql
+-- ===================================================
+-- ACCESS: public.plans
+-- ===================================================
+-- Reads:  Anyone reads active plans (the pricing page); staff read all.
+-- Writes: No client: a migration (reference rows).
+-- Grants: anon: SELECT; authenticated: SELECT
+alter table public.plans enable row level security;
+
+create policy "plans: anyone reads active"
+  on public.plans for select to anon, authenticated
+  using (is_active);
+
+create policy "plans: staff read all"
+  on public.plans for select to authenticated
+  using ((select private.is_staff()));
+
+-- ===================================================
+-- ACCESS: public.learner_subscriptions
+-- ===================================================
+-- Reads:  A learner reads their own; DriveRush staff read all.
+-- Writes: No client: the payment flow (service role); dates move through
+--         the pause functions while a school link is current.
+-- Grants: anon: none; authenticated: SELECT
+alter table public.learner_subscriptions enable row level security;
+
+create policy "learner_subscriptions: read own or staff"
+  on public.learner_subscriptions for select to authenticated
+  using (user_id = (select auth.uid()) or (select private.is_staff()));
+
+-- ===================================================
+-- ACCESS: public.school_subscriptions
+-- ===================================================
+-- Reads:  The school's owner; DriveRush staff.
+-- Writes: No client: the payment flow or staff (service role).
+-- Grants: anon: none; authenticated: SELECT
+alter table public.school_subscriptions enable row level security;
+
+create policy "school_subscriptions: owner or staff read"
+  on public.school_subscriptions for select to authenticated
+  using ((select private.is_staff()) or private.is_school_owner(school_id));
+
+-- ===================================================
+-- ACCESS: public.payments
+-- ===================================================
+-- Reads:  The learner who paid; the owner of the school paid for; staff.
+-- Writes: No client: the payment flow (service role).
+-- Grants: anon: none; authenticated: SELECT
+alter table public.payments enable row level security;
+
+create policy "payments: payer, school owner or staff read"
+  on public.payments for select to authenticated
+  using (
+    payer_user_id = (select auth.uid())
+    or (select private.is_staff())
+    or (school_id is not null and private.is_school_owner(school_id))
+  );
+
+-- ===================================================
+-- ACCESS: public.subscription_pauses
+-- ===================================================
+-- Reads:  No client (internal bookkeeping of the pause functions).
+-- Writes: No client: private.pause_subscription, resume_subscriptions_for_link.
+-- Grants: anon: none; authenticated: none
+alter table public.subscription_pauses enable row level security;
+
+-- ── supabase/schemas/students/rls/school_student_links_rls.sql
+-- ===================================================
+-- ACCESS: public.school_student_links
+-- ===================================================
+-- Reads:  A learner reads their own links (pending invites included); the
+--         school owner reads every link of the school; an admin reads links
+--         in their branches; DriveRush staff read all.
+-- Writes: No client: school_add_student, school_release_student,
+--         school_cancel_student_invite, school_move_student_branch (school),
+--         learner_accept_school_link, learner_decline_school_link (learner),
+--         match_pending_invites on confirmation.
+-- Grants: anon: none; authenticated: SELECT
+alter table public.school_student_links enable row level security;
+
+create policy "school_student_links: learner, branch staff or staff read"
+  on public.school_student_links for select to authenticated
+  using (
+    user_id = (select auth.uid())
+    or (select private.is_staff())
+    or private.can_see_branch(branch_id)
+  );
+
+-- ── supabase/schemas/progress/rls/learner_progress_rls.sql
+-- ===================================================
+-- ACCESS: public.learner_progress
+-- ===================================================
+-- Reads:  A learner reads their own rows. Their school (owner, branch admin)
+--         and staff read them through school_student_progress.
+-- Writes: A learner inserts, updates and deletes their own rows (the app's
+--         sync upserts one row per store).
+-- Grants: anon: none; authenticated: SELECT, INSERT(data, store, user_id, version),
+--         UPDATE(data, store, user_id, version), DELETE
+alter table public.learner_progress enable row level security;
+
+create policy "learner_progress: read own"
+  on public.learner_progress for select to authenticated
+  using (user_id = (select auth.uid()));
+
+create policy "learner_progress: insert own"
+  on public.learner_progress for insert to authenticated
+  with check (user_id = (select auth.uid()));
+
+create policy "learner_progress: update own"
+  on public.learner_progress for update to authenticated
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));
+
+create policy "learner_progress: delete own"
+  on public.learner_progress for delete to authenticated
+  using (user_id = (select auth.uid()));
+
+-- ── supabase/schemas/_grants/function_privileges.sql
+-- ===================================================
+-- GRANTS: who may execute our functions
+-- ===================================================
+-- The only place that grants EXECUTE to anon or authenticated. Every other
+-- /schemas file grants to service_role at most. The declared intent, with a
+-- guard and callers per function, is tests.function_access in
+-- supabase/tests/database/000_security_manifest.test.sql; the security_*
+-- pgTAP files fail when this file and the manifest disagree.
+--
+-- An owner-rights (SECURITY DEFINER) function a client can reach lives in
+-- schema private, which the Data API does not expose; its Data API name is a
+-- SECURITY INVOKER wrapper of the same name in public. The wrapper runs with
+-- the caller's rights, so a caller needs EXECUTE on both.
+--
+-- Listed last in supabase/config.toml schema_paths (with table_privileges.sql)
+-- and copied verbatim into a migration whenever it changes.
+
+-- ── 1. Nothing is executable by clients by default ──────────────────────
+alter default privileges for role postgres revoke execute on functions from public;
+alter default privileges for role postgres in schema public
+  revoke execute on functions from anon, authenticated;
+alter default privileges for role postgres in schema private
+  grant execute on functions to service_role;
+
+-- ── 2. Start from nothing ───────────────────────────────────────────────
+revoke execute on all functions in schema public from public, anon, authenticated;
+grant execute on all functions in schema public to service_role;
+revoke execute on all functions in schema private from public, anon, authenticated;
+grant execute on all functions in schema private to service_role;
+
+-- A signed-in client resolves a private function only through a public
+-- wrapper or a policy; USAGE lets those calls reach the schema. The Data API
+-- does not expose private, so USAGE alone reaches nothing.
+revoke all on schema private from public;
+grant usage on schema private to authenticated, service_role;
+
+-- ── 3. Row level security helpers (policies run as the caller) ──────────
+grant execute on function private.is_staff() to authenticated;
+grant execute on function private.is_su() to authenticated;
+grant execute on function private.is_school_owner(uuid) to authenticated;
+grant execute on function private.is_school_member(uuid) to authenticated;
+grant execute on function private.can_see_branch(uuid) to authenticated;
+grant execute on function private.has_school_link(uuid) to authenticated;
+
+-- ── 4. Learners, with their own session ─────────────────────────────────
+grant execute on function public.my_entitlement() to authenticated;
+grant execute on function private.my_entitlement() to authenticated;
+grant execute on function public.learner_accept_school_link(uuid) to authenticated;
+grant execute on function private.learner_accept_school_link(uuid) to authenticated;
+grant execute on function public.learner_decline_school_link(uuid) to authenticated;
+grant execute on function private.learner_decline_school_link(uuid) to authenticated;
+
+-- ── 5. School owners and admins (each checks the caller's school role) ──
+grant execute on function public.school_create_branch(uuid, text, text) to authenticated;
+grant execute on function private.school_create_branch(uuid, text, text) to authenticated;
+grant execute on function public.school_update_branch(uuid, text, text, boolean) to authenticated;
+grant execute on function private.school_update_branch(uuid, text, text, boolean) to authenticated;
+grant execute on function public.school_add_admin(uuid, text, uuid[]) to authenticated;
+grant execute on function private.school_add_admin(uuid, text, uuid[]) to authenticated;
+grant execute on function public.school_set_admin_branches(uuid, uuid[]) to authenticated;
+grant execute on function private.school_set_admin_branches(uuid, uuid[]) to authenticated;
+grant execute on function public.school_remove_admin(uuid) to authenticated;
+grant execute on function private.school_remove_admin(uuid) to authenticated;
+grant execute on function public.school_cancel_member_invite(uuid) to authenticated;
+grant execute on function private.school_cancel_member_invite(uuid) to authenticated;
+grant execute on function public.school_add_student(uuid, text) to authenticated;
+grant execute on function private.school_add_student(uuid, text) to authenticated;
+grant execute on function public.school_release_student(uuid) to authenticated;
+grant execute on function private.school_release_student(uuid) to authenticated;
+grant execute on function public.school_cancel_student_invite(uuid) to authenticated;
+grant execute on function private.school_cancel_student_invite(uuid) to authenticated;
+grant execute on function public.school_move_student_branch(uuid, uuid) to authenticated;
+grant execute on function private.school_move_student_branch(uuid, uuid) to authenticated;
+grant execute on function public.school_student_progress(uuid, uuid) to authenticated;
+grant execute on function private.school_student_progress(uuid, uuid) to authenticated;
+
+-- ── 6. DriveRush console (each checks is_staff or is_su) ────────────────
+grant execute on function public.admin_create_school(text, text, text, text) to authenticated;
+grant execute on function private.admin_create_school(text, text, text, text) to authenticated;
+grant execute on function public.admin_set_school_status(uuid, public.school_status) to authenticated;
+grant execute on function private.admin_set_school_status(uuid, public.school_status) to authenticated;
+grant execute on function public.admin_transfer_school_owner(uuid, text) to authenticated;
+grant execute on function private.admin_transfer_school_owner(uuid, text) to authenticated;
+grant execute on function public.grant_platform_role(uuid, public.app_role) to authenticated;
+grant execute on function private.grant_platform_role(uuid, public.app_role) to authenticated;
+grant execute on function public.revoke_platform_role(uuid, public.app_role) to authenticated;
+grant execute on function private.revoke_platform_role(uuid, public.app_role) to authenticated;
+
+-- ── 7. Supabase Auth ────────────────────────────────────────────────────
+grant execute on function public.custom_access_token_hook(jsonb) to supabase_auth_admin;
+
+-- ── supabase/schemas/_grants/table_privileges.sql
+-- ===================================================
+-- GRANTS: who may read and write our tables
+-- ===================================================
+-- The only place that grants table privileges to anon or authenticated.
+-- Row level security then decides which rows; a privilege missing here means
+-- the API refuses the statement before any policy runs. The declared intent
+-- per table is tests.table_access in
+-- supabase/tests/database/000_security_manifest.test.sql.
+--
+-- Listed last in supabase/config.toml schema_paths and copied verbatim into a
+-- migration whenever it changes.
+
+-- ── 1. Nothing is readable or writable by clients by default ────────────
+alter default privileges for role postgres in schema public
+  revoke all on tables from anon, authenticated;
+alter default privileges for role postgres in schema public
+  revoke all on sequences from anon, authenticated;
+
+-- ── 2. Start from nothing ───────────────────────────────────────────────
+revoke all on all tables in schema public from public, anon, authenticated;
+revoke all on all sequences in schema public from public, anon, authenticated;
+grant all on all tables in schema public to service_role;
+grant all on all sequences in schema public to service_role;
+
+-- ── 3. anon: the plans (pricing page) ───────────────────────────────────
+grant select on public.plans to anon;
+
+-- ── 4. authenticated: reads (row level security picks the rows) ─────────
+grant select on public.learner_progress to authenticated;
+grant select on public.learner_subscriptions to authenticated;
+grant select on public.payments to authenticated;
+grant select on public.plans to authenticated;
+grant select on public.profiles to authenticated;
+grant select on public.school_branches to authenticated;
+grant select on public.school_member_branches to authenticated;
+grant select on public.school_member_invites to authenticated;
+grant select on public.school_members to authenticated;
+grant select on public.school_student_links to authenticated;
+grant select on public.school_subscriptions to authenticated;
+grant select on public.schools to authenticated;
+grant select on public.user_roles to authenticated;
+
+-- ── 5. authenticated: the only direct writes ────────────────────────────
+-- A learner's own profile fields.
+grant update (full_name, avatar_url) on public.profiles to authenticated;
+-- A learner's own saved progress (the app upserts one row per store). An
+-- upsert's DO UPDATE sets every column it sends, user_id and store included;
+-- the policies keep user_id the caller's own.
+grant insert (user_id, store, data, version) on public.learner_progress to authenticated;
+grant update (user_id, store, data, version) on public.learner_progress to authenticated;
+grant delete on public.learner_progress to authenticated;
