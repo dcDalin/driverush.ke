@@ -79,9 +79,7 @@ export function ShareButton({
   const scored = payload.kind === "page" ? null : payload;
   // Keyed on the numbers, not the object: callers pass a fresh payload on
   // every render, and the picture should be drawn once per result.
-  const pictureKey = scored
-    ? `${scored.kind}:${scored.total}:${scored.firstTry}`
-    : null;
+  const pictureKey = scored ? JSON.stringify(scored) : null;
 
   // The picture is drawn when the sheet opens, not on the tap that shares it:
   // `navigator.share` has to run straight off a click, with nothing awaited.

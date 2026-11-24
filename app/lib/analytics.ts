@@ -455,6 +455,13 @@ export const analytics = {
   shareOpened: (args: { kind: string; surface: string }) =>
     emit("share_opened", args),
 
+  /**
+   * A proud moment was offered for sharing (`proud-share.tsx`): a unit or the
+   * course finished, a run of days, a passed test. Once per moment. PostHog only.
+   */
+  proudShareShown: (args: { moment: string; n: number }) =>
+    emit("proud_share_shown", args, false),
+
   /** A share was actually dispatched to a channel. */
   shareCompleted: (args: { kind: string; channel: string }) =>
     emit("share_completed", args, {

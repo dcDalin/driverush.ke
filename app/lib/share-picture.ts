@@ -16,6 +16,7 @@
  * The site address is printed on the picture itself, because apps that take
  * the image often drop the caption that carried the link.
  */
+import { UNITS } from "./board/curriculum";
 import { posterPath, posterSchool } from "./board/poster";
 import type { SharePayload } from "./share";
 
@@ -41,6 +42,9 @@ export type SharePictureSpec = {
   art: { src: string; tiles: ArtTile[]; framed: boolean };
 };
 
+/** The units' names, in order: a unit share's `n` counts from 1. */
+const UNIT_TITLES = UNITS.filter((u) => u.id !== "mock").map((u) => u.title);
+
 /**
  * Artwork comes out of files the site already serves (the board poster and
  * the social cards), so the picture adds nothing to download. The tile
@@ -50,6 +54,11 @@ export type SharePictureSpec = {
 const ART: Record<ScoredPayload["kind"], SharePictureSpec["art"]> = {
   board: {
     // today's school's still, the one the board's pages show
+    src: posterPath(posterSchool()),
+    tiles: [{ x: 0, y: 0, w: 1200, h: 630 }],
+    framed: true,
+  },
+  milestone: {
     src: posterPath(posterSchool()),
     tiles: [{ x: 0, y: 0, w: 1200, h: 630 }],
     framed: true,
@@ -68,6 +77,7 @@ const ART: Record<ScoredPayload["kind"], SharePictureSpec["art"]> = {
 
 /** What the picture says. Pure, so the wording can be tested without a canvas. */
 export function sharePictureSpec(payload: ScoredPayload): SharePictureSpec {
+  if (payload.kind === "milestone") return milestoneSpec(payload);
   const { kind, total, firstTry } = payload;
   const art = ART[kind];
 
@@ -102,6 +112,48 @@ export function sharePictureSpec(payload: ScoredPayload): SharePictureSpec {
     challenge: "How many can you name cold?",
     art,
   };
+}
+
+/** A proud moment's picture: the moment big, and a dare under it. */
+function milestoneSpec(
+  payload: Extract<ScoredPayload, { kind: "milestone" }>,
+): SharePictureSpec {
+  const { moment, n } = payload;
+  const art = ART.milestone;
+  switch (moment) {
+    case "unit":
+      return {
+        stamp: "Model Town Board",
+        score: `Unit ${n}`,
+        label: `${UNIT_TITLES[n - 1] ?? "A unit"}: done`,
+        challenge: "Can you drive it clean?",
+        art,
+      };
+    case "course":
+      return {
+        stamp: "Model Town Board",
+        score: `${n}/${n}`,
+        label: "Every level done",
+        challenge: "Ready for the NTSA test. Are you?",
+        art,
+      };
+    case "streak":
+      return {
+        stamp: "NTSA test practice",
+        score: `${n} days`,
+        label: "In a row",
+        challenge: "Practise with me on DriveRush",
+        art,
+      };
+    case "passed":
+      return {
+        stamp: "NTSA driving test",
+        score: "Passed",
+        label: "Practised on DriveRush",
+        challenge: "You're next",
+        art,
+      };
+  }
 }
 
 // ---- drawing --------------------------------------------------------------

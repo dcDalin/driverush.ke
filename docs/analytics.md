@@ -80,7 +80,7 @@ Every event also carries `app_version` (the deploy's commit), `display_mode`
 - `connection` (`4g`, `3g`, `2g`, `slow-2g`, `unknown` on Safari) and
   `save_data`: what the browser says about the learner's connection.
 - `arrived_via_share`: set once, for good, when a valid shared link (`/s`) is
-  opened, to the kind of share (`board`, `pelican`, `signs3d`). Everything that
+  opened, to the kind of share (`board`, `pelican`, `signs3d`, `milestone`). Everything that
   visitor does later can be tied back to the share.
 
 ## Event taxonomy
@@ -205,9 +205,19 @@ level where the course loses people.
 | `share_opened`            | Share is tapped, before a channel is picked   | `kind`, `surface`                  |
 | `share_completed`         | A share is sent                               | `kind`, `channel`                  |
 | `share_landing_viewed`    | Someone opens a shared link                   | `kind`, `valid`                    |
+| `proud_share_shown`       | A proud moment is offered for sharing, once ever (PostHog only) | `moment` (`unit`, `course`, `streak`, `passed`), `n` |
 | `install_prompt_shown`    | The add-to-home-screen card appears           | `platform`, `surface`              |
 | `install_prompt_answered` | It is answered                                | `platform`, `surface`, `outcome`   |
 | `app_installed`           | The browser reports an install                |                                    |
+
+**Proud moments** (since 24 Nov 2026, `proud-moments.ts`, `proud-share.tsx`):
+finishing a unit or the whole course, a practice streak of 3, 7, 14, 30, 60 or
+100 days, and "I passed" on the test card each offer a share card once, ever
+(kept on the device under `driverush:proud`). At the end of a level it takes
+the place of the date question and the install nudge. Its share is kind
+`milestone` (`/s?k=milestone&m=<0 unit, 1 course, 2 streak, 3 passed>&n=<unit
+number, levels or days>`), surface `proud_<moment>`, so `share_opened` and
+`share_completed` by surface show which moments get sent.
 
 ### Monetisation and contact
 

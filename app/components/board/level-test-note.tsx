@@ -12,15 +12,25 @@ import { useShallow } from "zustand/react/shallow";
 import {
   COURSE_LEVELS,
   doneCount,
+  levelById,
   readiness,
   type CourseProgress,
 } from "~/lib/board/curriculum";
 import { useBoardStore } from "~/lib/board-store";
 import { dayKey } from "~/lib/practice-streak";
+import { liveStreak, readPracticeStreak } from "~/lib/practice-streak";
+import {
+  levelMoment,
+  nextMoment,
+  readOffered,
+  streakMoment,
+  type ProudMoment,
+} from "~/lib/proud-moments";
 import { cardStage, today, useTestRecord } from "~/lib/test-date";
 import { planLine, testPlan } from "~/lib/test-plan";
 import { cn } from "~/lib/utils";
 
+import { ProudShare } from "~/components/board/proud-share";
 import { TestCard } from "~/components/board/test-card";
 import { InstallNudge } from "~/components/brand/install-nudge";
 
@@ -61,7 +71,27 @@ export function LevelTestNote({
   const done = doneCount(saved);
   const doneToday =
     saved.daily?.day === dayKey(Date.now()) ? saved.daily.done : 0;
+  // A proud moment this level earned (a unit or the course done, a run of
+  // days), worked out once as the card appears: it outranks the date
+  // question and the install nudge, which wait for the next level.
+  const [proud, setProud] = React.useState<ProudMoment | null>(null);
+  React.useEffect(() => {
+    const level = levelById(levelId);
+    const streak = liveStreak(readPracticeStreak());
+    setProud(
+      nextMoment(
+        [
+          level ? levelMoment(level, saved) : null,
+          streak.practisedToday ? streakMoment(streak.days) : null,
+        ],
+        readOffered(),
+      ),
+    );
+    // Once, for the level just finished: the moment must not move under it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [levelId]);
   const due =
+    !proud &&
     test != null &&
     cardStage(test, done, now) === "date" &&
     (askedThisVisit == null || askedThisVisit === levelId);
@@ -75,6 +105,28 @@ export function LevelTestNote({
   }, [due, levelId]);
 
   if (!test) return null;
+  const line = planLine(
+    testPlan(test, done, COURSE_LEVELS.length, doneToday, now),
+  );
+  const lineEl = line && (
+    <p
+      className={cn(
+        "m-0 text-[13.5px] font-semibold leading-snug",
+        onDark ? "text-white/85" : "text-ink-2",
+        className,
+      )}
+    >
+      {line}
+    </p>
+  );
+  if (proud) {
+    return (
+      <>
+        {lineEl}
+        <ProudShare moment={proud} tone={tone} className={className} />
+      </>
+    );
+  }
   if (asking) {
     return (
       <TestCard
@@ -92,22 +144,9 @@ export function LevelTestNote({
     );
   }
 
-  const line = planLine(
-    testPlan(test, done, COURSE_LEVELS.length, doneToday, now),
-  );
   return (
     <>
-      {line && (
-        <p
-          className={cn(
-            "m-0 text-[13.5px] font-semibold leading-snug",
-            onDark ? "text-white/85" : "text-ink-2",
-            className,
-          )}
-        >
-          {line}
-        </p>
-      )}
+      {lineEl}
       {!due && <InstallNudge surface={surface} tone={tone} />}
     </>
   );

@@ -16,17 +16,33 @@
  * stranger can fabricate a link claiming a perfect run, which is harmless; they
  * cannot make our page say words they chose.
  */
+import { UNITS } from "./board/curriculum";
 import type { OgCardId } from "./og-cards";
 import { SITE } from "./site";
 import { addUtm, UTM_CHANNELS, type UtmChannel } from "./utm";
 
-export type ShareKind = "pelican" | "signs3d" | "board" | "page";
+export type ShareKind = "pelican" | "signs3d" | "board" | "milestone" | "page";
+
+/**
+ * The proud moments a learner is asked to share (`proud-moments.ts`). In the
+ * link each is a number, like every other parameter: the wording is ours.
+ */
+export const MILESTONES = ["unit", "course", "streak", "passed"] as const;
+export type Milestone = (typeof MILESTONES)[number];
+
+/** The course's units that can be finished, in order: `n` of a unit share. */
+const COURSE_UNITS = UNITS.filter((unit) => unit.id !== "mock");
 
 export type SharePayload =
   | { kind: "pelican"; total: number; firstTry: number }
   | { kind: "signs3d"; total: number; firstTry: number }
   /** Board tasks driven, and how many of them clean on the first try. */
   | { kind: "board"; total: number; firstTry: number }
+  /**
+   * A proud moment. `n`: the unit's number (from 1), the levels in the
+   * course, or the days in a row; nothing for a passed test.
+   */
+  | { kind: "milestone"; moment: Milestone; n: number }
   /** Evergreen page: shared as its own URL, no `/s` hop. */
   | { kind: "page"; path: string; title: string; text: string };
 
@@ -89,6 +105,23 @@ export function buildShareLink(payload: SharePayload): ShareLink {
         url: `${BASE}/s?${params}`,
         title: how ? `I drove ${tasks}, ${how}` : `I drove ${tasks}`,
         text: "Free Model Town Board practice on DriveRush. See how many you drive clean.",
+      };
+    }
+    case "milestone": {
+      const { moment, n } = payload;
+      const params = new URLSearchParams({
+        k: "milestone",
+        m: String(MILESTONES.indexOf(moment)),
+        n: String(n),
+      });
+      return {
+        kind: "milestone",
+        url: `${BASE}/s?${params}`,
+        title: milestoneLine(moment, n, "I"),
+        text:
+          moment === "passed"
+            ? "I practised for it on DriveRush, free. The Model Town Board and the road signs."
+            : "Free Model Town Board practice on DriveRush. Learning for the NTSA test? Try it.",
       };
     }
     case "page":
@@ -163,6 +196,7 @@ export const SHARE_OG_CARD: Record<ShareKind | "unknown", OgCardId> = {
   pelican: "pelican",
   signs3d: "signs3d",
   board: "board",
+  milestone: "board",
   page: "default",
   unknown: "default",
 };
@@ -239,8 +273,60 @@ export function resolveShare(params: URLSearchParams): ResolvedShare {
         ctaLabel: "Drive the board",
       };
     }
+    case "milestone": {
+      const code = int(params.get("m"), MILESTONES.length - 1);
+      if (code == null) break;
+      const moment = MILESTONES[code];
+      const n = int(params.get("n"), 1000);
+      if (n == null || !milestoneValid(moment, n)) break;
+      return {
+        valid: true,
+        kind: "milestone",
+        headline: milestoneLine(moment, n, "They"),
+        detail:
+          moment === "passed"
+            ? "They practised on DriveRush: the Model Town Board and the road signs, free, no signup. Your turn."
+            : "Drive the Model Town Board yourself: pick your lane, take the roundabout, and get told which rule you broke. Free, no signup.",
+        ctaHref: "/model-town-board",
+        ctaLabel: "Start the board",
+      };
+    }
   }
   return FALLBACK;
+}
+
+function milestoneValid(moment: Milestone, n: number): boolean {
+  switch (moment) {
+    case "unit":
+      return n >= 1 && n <= COURSE_UNITS.length;
+    case "course":
+    case "streak":
+      return n >= 1;
+    case "passed":
+      return true;
+  }
+}
+
+/** The moment in one line, said by the learner ("I") or of them ("They"). */
+export function milestoneLine(
+  moment: Milestone,
+  n: number,
+  who: "I" | "They",
+): string {
+  const my = who === "I" ? "my" : "their";
+  switch (moment) {
+    case "unit": {
+      const unit = COURSE_UNITS[n - 1];
+      const name = unit ? `: ${unit.title}` : "";
+      return `${who} finished unit ${n} of the Model Town Board${name}`;
+    }
+    case "course":
+      return `${who} finished all ${n} Model Town Board levels`;
+    case "streak":
+      return `${n} days in a row practising for ${my} NTSA test`;
+    case "passed":
+      return `${who} passed ${my} NTSA driving test!`;
+  }
 }
 
 /** Head copy for the landing page, so link previews say something real. */

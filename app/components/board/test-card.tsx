@@ -24,6 +24,7 @@ import { planPromise, testPlan } from "~/lib/test-plan";
 import { googleCalendarUrl, ICS_NAME, icsHref } from "~/lib/test-reminder";
 import { cn } from "~/lib/utils";
 
+import { ProudShare } from "~/components/board/proud-share";
 import { Button } from "~/components/ui/button";
 
 const linkButton =
@@ -110,6 +111,8 @@ export function TestCard({
   const [thanks, setThanks] = React.useState<{
     text: string;
     remind?: TestRecord;
+    /** They passed: the proudest moment there is, offered for sharing. */
+    passed?: boolean;
   } | null>(null);
   const now = today();
   // On the game's cards the tokens take their dark values.
@@ -119,6 +122,15 @@ export function TestCard({
     analytics.testCardShown({ stage, surface });
   }, [stage, surface]);
 
+  if (thanks?.passed) {
+    return (
+      <ProudShare
+        moment={{ moment: "passed", n: 0 }}
+        tone={tone}
+        className={className}
+      />
+    );
+  }
   if (thanks) {
     return (
       <div className={shell} role="status">
@@ -141,6 +153,7 @@ export function TestCard({
         mock_best_clean: mockBestClean,
       });
       setThanks({
+        passed: result === "passed",
         text:
           result === "passed"
             ? "Well done! Thank you for telling us."
