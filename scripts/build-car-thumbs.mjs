@@ -1,21 +1,24 @@
 #!/usr/bin/env node
 /**
  * Photograph each board vehicle from `/tools/car-thumb` into
- * `public/assets/board/cars/thumbs/<id>.webp`: the small pictures beside the
- * names in the board's car menu.
+ * `public/assets/board/cars/thumbs/<id>.webp`, and again in each live driving
+ * school's paint and roof board into `thumbs/<school>/<id>.webp`: the small
+ * pictures beside the names in the board's car menu, which shows the school
+ * on the board at the time, as the car will look when driven.
  *
  * Every vehicle is taken from the same place and shrunk by the same amount,
- * then stood on the same ground line in a picture of the same size. So the
- * van and the lorry stay bigger than the six cars, as they are on the board.
+ * then stood on the same ground line in a picture of the same size, plain and
+ * painted alike (the roof boards set the height). So the van and the lorry
+ * stay bigger than the six cars, as they are on the board.
  *
  * Usage:
  *   npm run dev                  # terminal 1
  *   npm run build:car-thumbs     # terminal 2
  *   DEV_URL=http://localhost:5183 npm run build:car-thumbs
  *
- * After a vehicle's model changes, run this again and bump the `?v=` on
- * `thumb` in `app/lib/board/cars.ts` and in `public/sw.js`. The script prints
- * the picture size to put in `CAR_THUMB_SIZE` there.
+ * After a vehicle's model or a school's paint changes, run this again and bump
+ * `THUMB_V` in `app/lib/board/cars.ts` and the `?v=` in `public/sw.js`. The
+ * script prints the picture size to put in `CAR_THUMB_SIZE` there.
  *
  * Requires Google Chrome, as `build-og-images.mjs` does.
  */
@@ -79,9 +82,30 @@ async function carIds() {
   return [...list.matchAll(/^\s{4}id: "([a-z]+)"/gm)].map((m) => m[1]);
 }
 
+/**
+ * The live schools, read from the app's own list: each entry's `id`, and its
+ * `live` that follows.
+ */
+async function liveSchools() {
+  const source = await readFile(
+    path.join(ROOT, "app", "lib", "board", "sponsors.ts"),
+    "utf8",
+  );
+  const list = source.slice(source.indexOf("export const SPONSORS"));
+  const live = [];
+  let id = null;
+  for (const m of list.matchAll(
+    /^ {4}(id|live): (?:"([a-z]+)"|(true|false))/gm,
+  )) {
+    if (m[1] === "id") id = m[2];
+    else if (id && m[3] === "true") live.push(id);
+  }
+  return live;
+}
+
 /** One vehicle, cut to its own edges. Null if the shot came back empty. */
-async function shoot(chrome, id, tmp, attempt) {
-  const png = path.join(tmp, `${id}.png`);
+async function shoot(chrome, id, school, tmp, attempt) {
+  const png = path.join(tmp, `${school ?? "plain"}-${id}.png`);
   await execFileAsync(
     chrome,
     [
@@ -96,7 +120,7 @@ async function shoot(chrome, id, tmp, attempt) {
       `--window-size=${WIDTH},${HEIGHT}`,
       `--virtual-time-budget=${12000 * attempt}`,
       `--screenshot=${png}`,
-      `${DEV_URL}/tools/car-thumb?car=${id}`,
+      `${DEV_URL}/tools/car-thumb?car=${id}${school ? `&school=${school}` : ""}`,
     ],
     { maxBuffer: 1024 * 1024 * 16 },
   );
@@ -106,7 +130,13 @@ async function shoot(chrome, id, tmp, attempt) {
     .trim()
     .png()
     .toBuffer({ resolveWithObject: true });
-  return { id, data, width: info.width, height: info.height };
+  // A vehicle never fills the window. Something that does is a page error
+  // (the dev server's overlay, say), not a car: take the shot again rather
+  // than let it set the scale for every picture.
+  if (info.width > WIDTH * SCALE * 0.9 || info.height > HEIGHT * SCALE * 0.9) {
+    return null;
+  }
+  return { id, school, data, width: info.width, height: info.height };
 }
 
 async function main() {
@@ -128,35 +158,40 @@ async function main() {
     );
   }
 
+  const schools = await liveSchools();
   const tmp = await mkdtemp(path.join(os.tmpdir(), "car-thumbs-"));
   const shots = [];
   try {
-    for (const id of ids) {
-      process.stdout.write(`  ${id.padEnd(10)} `);
-      let shot = null;
-      for (let attempt = 1; attempt <= MAX_ATTEMPTS && !shot; attempt += 1) {
-        shot = await shoot(chrome, id, tmp, attempt);
-        if (!shot) process.stdout.write(`(blank, retry ${attempt}) `);
+    for (const school of [null, ...schools]) {
+      for (const id of ids) {
+        const name = `${school ?? "plain"}/${id}`;
+        process.stdout.write(`  ${name.padEnd(18)} `);
+        let shot = null;
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS && !shot; attempt += 1) {
+          shot = await shoot(chrome, id, school, tmp, attempt);
+          if (!shot) process.stdout.write(`(blank, retry ${attempt}) `);
+        }
+        if (!shot) {
+          throw new Error(
+            `${name} rendered blank. Check ${DEV_URL}/tools/car-thumb?car=${id}${school ? `&school=${school}` : ""} in a real browser.`,
+          );
+        }
+        console.log(`${shot.width}×${shot.height}`);
+        shots.push(shot);
       }
-      if (!shot) {
-        throw new Error(
-          `${id} rendered blank. Check ${DEV_URL}/tools/car-thumb?car=${id} in a real browser.`,
-        );
-      }
-      console.log(`${shot.width}×${shot.height}`);
-      shots.push(shot);
     }
 
     const shrink = OUT_WIDTH / Math.max(...shots.map((s) => s.width));
     const outHeight = Math.ceil(
       Math.max(...shots.map((s) => s.height)) * shrink,
     );
-    await mkdir(OUT_DIR, { recursive: true });
     for (const shot of shots) {
       const width = Math.round(shot.width * shrink);
       const height = Math.round(shot.height * shrink);
       const small = await sharp(shot.data).resize(width, height).toBuffer();
-      const out = path.join(OUT_DIR, `${shot.id}.webp`);
+      const dir = shot.school ? path.join(OUT_DIR, shot.school) : OUT_DIR;
+      await mkdir(dir, { recursive: true });
+      const out = path.join(dir, `${shot.id}.webp`);
       await sharp({
         create: {
           width: OUT_WIDTH,
@@ -177,7 +212,7 @@ async function main() {
         .toFile(out);
       const { size } = await stat(out);
       console.log(
-        `  ${shot.id.padEnd(10)} ${(size / 1024).toFixed(1)} kB  →  ${path.relative(ROOT, out)}`,
+        `  ${`${shot.school ?? "plain"}/${shot.id}`.padEnd(18)} ${(size / 1024).toFixed(1)} kB  →  ${path.relative(ROOT, out)}`,
       );
     }
     console.log(

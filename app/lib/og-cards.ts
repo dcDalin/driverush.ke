@@ -17,6 +17,8 @@
  *   npm run build:og       # in another
  */
 
+import { boardCardPath, posterSchool } from "./board/poster";
+
 /** Facebook/X/WhatsApp all render 1.91:1 well; 1200×630 is the safe size. */
 export const OG_WIDTH = 1200;
 export const OG_HEIGHT = 630;
@@ -45,7 +47,7 @@ export const OG_CARDS: OgCard[] = [
   {
     id: "board",
     blurb: "The home page and the Model Town Board pages.",
-    alt: "The Model Town Board game: a yellow car going round the roundabout, with a pale yellow cross marking each road",
+    alt: "The Model Town Board game: a driving school's car going round the roundabout, with a pale yellow cross marking each road",
   },
   {
     id: "pelican",
@@ -73,8 +75,13 @@ export const OG_CARDS: OgCard[] = [
  */
 const JPEG_CARDS: ReadonlySet<OgCardId> = new Set(["board"]);
 
-/** Site-relative path to a card's image. */
+/**
+ * Site-relative path to a card's image. The board's card shows the cars in a
+ * driving school's paint: today's school, one card per school
+ * (`lib/board/poster.ts`).
+ */
 export function ogCardPath(id: OgCardId): string {
+  if (id === "board") return boardCardPath(posterSchool());
   return `/og/${id}.${JPEG_CARDS.has(id) ? "jpg" : "png"}`;
 }
 

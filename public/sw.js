@@ -39,7 +39,12 @@ const SHELL = [
   "/logo.svg",
   "/logo-dark.svg",
 ];
-/** The board's cars, their menu pictures and still, from `app/lib/board/cars.ts` and `board-thumb.tsx`. */
+/**
+ * The board's cars and their menu pictures, from `app/lib/board/cars.ts`. The
+ * board's still is one per driving school, a different one each day
+ * (`app/lib/board/poster.ts`), so it is not saved here: it is kept once seen,
+ * like any other picture.
+ */
 const BOARD_FILES = [
   "/assets/board/cars/saloon.glb?v=6",
   "/assets/board/cars/hatchback.glb?v=6",
@@ -49,15 +54,14 @@ const BOARD_FILES = [
   "/assets/board/cars/van.glb?v=2",
   "/assets/board/cars/lorry.glb?v=2",
   "/assets/board/cars/crossover.glb?v=1",
-  "/assets/board/cars/thumbs/saloon.webp?v=1",
-  "/assets/board/cars/thumbs/hatchback.webp?v=1",
-  "/assets/board/cars/thumbs/wagon.webp?v=1",
-  "/assets/board/cars/thumbs/pickup.webp?v=1",
-  "/assets/board/cars/thumbs/suv.webp?v=1",
-  "/assets/board/cars/thumbs/van.webp?v=1",
-  "/assets/board/cars/thumbs/lorry.webp?v=1",
-  "/assets/board/cars/thumbs/crossover.webp?v=1",
-  "/assets/board/poster.jpg",
+  "/assets/board/cars/thumbs/saloon.webp?v=2",
+  "/assets/board/cars/thumbs/hatchback.webp?v=2",
+  "/assets/board/cars/thumbs/wagon.webp?v=2",
+  "/assets/board/cars/thumbs/pickup.webp?v=2",
+  "/assets/board/cars/thumbs/suv.webp?v=2",
+  "/assets/board/cars/thumbs/van.webp?v=2",
+  "/assets/board/cars/thumbs/lorry.webp?v=2",
+  "/assets/board/cars/thumbs/crossover.webp?v=2",
 ];
 /** Every built file the game needs, lazy ones too. Written by `vite.config.ts`. */
 const GAME_LIST = "/sw-board.json";

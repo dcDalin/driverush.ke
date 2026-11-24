@@ -30,6 +30,7 @@ import {
 } from "~/lib/board/geometry";
 import type { Seat } from "~/lib/board/joystick";
 import { car as boardCar } from "~/lib/board/runtime";
+import { posterPath, posterSchool } from "~/lib/board/poster";
 import { cam, panBy } from "~/lib/board/stage";
 import { regionSpriteStyle } from "~/lib/image-focus";
 import { signCrop } from "~/lib/sign-crops";
@@ -194,10 +195,14 @@ function DefaultCard() {
   );
 }
 
-/** The 3D still of the table, captured from `?card=board-3d` below. */
-const BOARD_STILL = "/assets/board/poster.jpg";
-
+/**
+ * The board's card, with the 3D still of the table (captured from
+ * `?card=board-3d` below) in the paint of the school given with `?sponsor=`,
+ * or today's.
+ */
 function BoardCard() {
+  const [params] = useSearchParams();
+  const still = posterPath(params.get("sponsor") ?? posterSchool());
   return (
     <Card
       id="board"
@@ -222,7 +227,7 @@ function BoardCard() {
           </p>
         </div>
         <img
-          src={BOARD_STILL}
+          src={still}
           alt=""
           className="h-[390px] min-w-0 flex-1 border-2 border-paper object-cover"
         />
@@ -416,8 +421,9 @@ const BoardTable = React.lazy(() => import("~/components/board/board-table"));
  * them, for trying a framing before settling on these.
  */
 /**
- * The other two cars of the pack, beside the yellow saloon, so the picture
- * shows the pack's three cars (the board has more since). Lane and distance from the roundabout.
+ * Two more cars waiting on the road in, beside the saloon going round. With a
+ * school on the board (`?sponsor=`) all three wear its paint, as a lane
+ * lesson's line-up does. Lane and distance from the roundabout.
  */
 const STILL_CARS = [
   { car: "pickup", paint: "#c8102e", plate: "KDA 101B", lane: 1, along: 41 },
@@ -448,8 +454,9 @@ const STILL = {
  * Not a social card either: the picture of the board game, shown wherever
  * there is a way into it (`board-thumb.tsx`), and inside the board's social
  * card above. It is the game's own table, at its best quality, with the
- * yellow car going round the roundabout. Captured by the same script, then
- * compressed into `public/assets/board/poster.jpg`.
+ * car going round the roundabout, in the paint of the school given with
+ * `?sponsor=` (all three cars). Captured by the same script once per live
+ * school, then compressed into `public/assets/board/poster-<school>.jpg`.
  */
 function Board3D() {
   const [params] = useSearchParams();
@@ -510,6 +517,7 @@ function Board3D() {
               car: spot.car,
               paint: spot.paint,
               plate: spot.plate,
+              school: true,
               ...lanePoint("S", "approach", spot.lane, spot.along),
               heading: laneBearing("S", "approach"),
             }))}

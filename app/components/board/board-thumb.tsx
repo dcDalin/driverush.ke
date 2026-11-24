@@ -3,25 +3,24 @@
  * the home page, the Model Town Board page and the guides. It is a still of
  * the game's own table (captured from `/tools/og?card=board-3d`, see
  * `scripts/build-og-images.mjs`), so what a learner sees is what they will
- * drive. One line of text and the play button sit over it, in HTML so they
+ * drive: the cars in a driving school's paint, a different school each day
+ * (`lib/board/poster.ts`). One line of text and the play button sit over it, in HTML so they
  * stay sharp at any size.
  *
  * It is only a picture. Whoever uses it makes it a link.
  */
+import { posterPath, posterSchool } from "~/lib/board/poster";
 import { cn } from "~/lib/utils";
 
 import { Icon } from "~/components/brand/icon";
 import { PlayIcon } from "~/components/brand/icons";
 
-export const BOARD_THUMB_SRC = "/assets/board/poster.jpg";
-/** Twice the size, for sharp screens. Captured together with the one above. */
-const BOARD_THUMB_2X = "/assets/board/poster-2400.jpg";
 /** The small file's own size, so the page keeps its shape while it loads. */
 const WIDTH = 1200;
 const HEIGHT = 630;
 
 export const BOARD_THUMB_ALT =
-  "The Model Town Board game: a yellow car going round the roundabout, past the green island and the pale yellow cross marking each road.";
+  "The Model Town Board game: a driving school's car going round the roundabout, past the green island, with two more of its cars waiting on the road in.";
 
 export function BoardThumb({
   className,
@@ -35,6 +34,9 @@ export function BoardThumb({
   /** It is the first thing on the page: fetch it ahead of everything else. */
   priority?: boolean;
 }) {
+  // Today's school. The UTC day, so the server and the browser agree.
+  const school = posterSchool();
+  const src = posterPath(school);
   return (
     <span
       className={cn("relative block overflow-hidden", className)}
@@ -44,8 +46,8 @@ export function BoardThumb({
     >
       {/* The car is low in the picture, so a shallow crop keeps the bottom. */}
       <img
-        src={BOARD_THUMB_SRC}
-        srcSet={`${BOARD_THUMB_SRC} ${WIDTH}w, ${BOARD_THUMB_2X} ${WIDTH * 2}w`}
+        src={src}
+        srcSet={`${src} ${WIDTH}w, ${posterPath(school, 2400)} ${WIDTH * 2}w`}
         // never wider than the page's text column
         sizes="(min-width: 56rem) 52rem, 100vw"
         alt={BOARD_THUMB_ALT}

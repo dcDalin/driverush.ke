@@ -59,16 +59,17 @@ const fileOf = (card) => (SPONSOR ? `${card.id}-${SPONSOR}` : card.id);
  * catches it and we retry rather than shipping a blank preview.
  */
 const CARDS = [
-  // The 3D still of the board game. It comes first because the board's social
-  // card below shows it. After capturing it, compress it and build again
-  // before capturing "board":
-  // Capture it at twice the size, then make a large and a small file, which
-  // `board-thumb.tsx` offers with srcset:
-  //   SCALE=2 DEV_URL=http://localhost:5190 npm run build:og -- board-3d
-  //   sips -s format jpeg -s formatOptions 82 -Z 2400 public/og/board-3d.png \
-  //     --out public/assets/board/poster-2400.jpg
-  //   sips -s format jpeg -s formatOptions 78 -Z 1200 public/og/board-3d.png \
-  //     --out public/assets/board/poster.jpg && rm public/og/board-3d.png
+  // The 3D still of the board game, one per live school, with the cars in its
+  // paint (`app/lib/board/poster.ts` shows a different school each day). It
+  // comes first because the board's social card below shows it. For each
+  // school, capture it at twice the size, make a large and a small file,
+  // which `board-thumb.tsx` offers with srcset, then capture the card:
+  //   SPONSOR=heltz SCALE=2 npm run build:og -- board-3d
+  //   sips -s format jpeg -s formatOptions 82 -Z 2400 public/og/board-3d-heltz.png \
+  //     --out public/assets/board/poster-heltz-2400.jpg
+  //   sips -s format jpeg -s formatOptions 78 -Z 1200 public/og/board-3d-heltz.png \
+  //     --out public/assets/board/poster-heltz.jpg && rm public/og/board-3d-heltz.png
+  //   SPONSOR=heltz npm run build:og -- board      # public/og/board-heltz.jpg
   { id: "board-3d", settleMs: 25000, minBytes: 200_000 },
   { id: "default", settleMs: 2500, minBytes: 20_000 },
   // Shipped as a JPEG: as a PNG this card is about 300 kB, which is where

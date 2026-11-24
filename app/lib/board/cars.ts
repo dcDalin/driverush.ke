@@ -33,6 +33,9 @@ const CAR_SIZE: CarSize = {
  * given their wrap templates by `scripts/build-car-wrap.mjs`. They look like
  * the cars Kenyans learn in and drive, but carry generic names here.
  */
+/** The car menu pictures' version: bump it when they are taken again. */
+const THUMB_V = 2;
+
 export const BOARD_CARS = [
   // `model`: who made it, and its page. A CC BY model must be credited where
   // the cars are chosen (board-settings-sheet); the others are credited too.
@@ -41,13 +44,14 @@ export const BOARD_CARS = [
   // A new address, so no cache hands out an old one. Keep public/sw.js's
   // BOARD_FILES in step.
   // `thumb`: its small picture for the car menu, taken off the model by
-  // `npm run build:car-thumbs`. Take them again when a model changes, and
-  // give them a new `?v=` here and in sw.js.
+  // `npm run build:car-thumbs` (in each school's paint too: `carThumb`).
+  // Take them again when a model or a school's paint changes, and bump
+  // THUMB_V here and the `?v=` in sw.js.
   {
     id: "saloon",
     label: "Saloon",
     src: "/assets/board/cars/saloon.glb?v=6",
-    thumb: "/assets/board/cars/thumbs/saloon.webp?v=1",
+    thumb: `/assets/board/cars/thumbs/saloon.webp?v=${THUMB_V}`,
     size: CAR_SIZE,
     model: {
       by: "Armored Wave",
@@ -59,7 +63,7 @@ export const BOARD_CARS = [
     id: "hatchback",
     label: "Hatchback",
     src: "/assets/board/cars/hatchback.glb?v=6",
-    thumb: "/assets/board/cars/thumbs/hatchback.webp?v=1",
+    thumb: `/assets/board/cars/thumbs/hatchback.webp?v=${THUMB_V}`,
     size: CAR_SIZE,
     model: {
       by: "snowcappedandescrash",
@@ -71,7 +75,7 @@ export const BOARD_CARS = [
     id: "wagon",
     label: "Wagon",
     src: "/assets/board/cars/wagon.glb?v=6",
-    thumb: "/assets/board/cars/thumbs/wagon.webp?v=1",
+    thumb: `/assets/board/cars/thumbs/wagon.webp?v=${THUMB_V}`,
     size: CAR_SIZE,
     model: {
       by: "tnikita",
@@ -83,7 +87,7 @@ export const BOARD_CARS = [
     id: "pickup",
     label: "Pickup",
     src: "/assets/board/cars/pickup.glb?v=6",
-    thumb: "/assets/board/cars/thumbs/pickup.webp?v=1",
+    thumb: `/assets/board/cars/thumbs/pickup.webp?v=${THUMB_V}`,
     size: CAR_SIZE,
     model: {
       by: "David_Holiday",
@@ -95,7 +99,7 @@ export const BOARD_CARS = [
     id: "suv",
     label: "SUV",
     src: "/assets/board/cars/suv.glb?v=6",
-    thumb: "/assets/board/cars/thumbs/suv.webp?v=1",
+    thumb: `/assets/board/cars/thumbs/suv.webp?v=${THUMB_V}`,
     size: CAR_SIZE,
     model: {
       by: "Daniel Zhabotinsky",
@@ -109,7 +113,7 @@ export const BOARD_CARS = [
     id: "van",
     label: "Van",
     src: "/assets/board/cars/van.glb?v=2",
-    thumb: "/assets/board/cars/thumbs/van.webp?v=1",
+    thumb: `/assets/board/cars/thumbs/van.webp?v=${THUMB_V}`,
     size: { length: 4.74, width: 1.85, wheelbase: 2.55, height: 1.92 },
     big: true,
     model: {
@@ -122,7 +126,7 @@ export const BOARD_CARS = [
     id: "lorry",
     label: "Lorry",
     src: "/assets/board/cars/lorry.glb?v=2",
-    thumb: "/assets/board/cars/thumbs/lorry.webp?v=1",
+    thumb: `/assets/board/cars/thumbs/lorry.webp?v=${THUMB_V}`,
     // Its axles are 3.2 m apart, but it steers by a car's wheelbase: a
     // cab-over lorry's front wheels turn further than a car's, and the turn
     // through a gap in the central reserve is laid out for a car's circle.
@@ -140,7 +144,7 @@ export const BOARD_CARS = [
     id: "crossover",
     label: "Crossover",
     src: "/assets/board/cars/crossover.glb?v=1",
-    thumb: "/assets/board/cars/thumbs/crossover.webp?v=1",
+    thumb: `/assets/board/cars/thumbs/crossover.webp?v=${THUMB_V}`,
     size: CAR_SIZE,
     model: {
       by: "Ruleta",
@@ -149,6 +153,16 @@ export const BOARD_CARS = [
     },
   },
 ] as const;
+
+/**
+ * A vehicle's menu picture in a driving school's paint and roof board, as it
+ * is driven while that school is on the board; the plain one with no school.
+ */
+export function carThumb(car: BoardCarId, school: string | null): string {
+  return school
+    ? `/assets/board/cars/thumbs/${school}/${car}.webp?v=${THUMB_V}`
+    : `/assets/board/cars/thumbs/${car}.webp?v=${THUMB_V}`;
+}
 
 /** The size every `thumb` is saved at: scripts/build-car-thumbs.mjs. */
 export const CAR_THUMB_SIZE = { width: 320, height: 166 } as const;

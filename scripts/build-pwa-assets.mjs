@@ -46,9 +46,11 @@ const SHOTS = [
     settleMs: 6000,
     minBytes: 60_000,
   },
+  // The game in a driving school's paint, as learners see it; a different
+  // school in each picture, so none is favoured (`?sponsor=` pins one).
   {
     file: "screen-drive",
-    url: "/model-town-board/play?level=four-lane",
+    url: "/model-town-board/play?level=four-lane&sponsor=topgear",
     width: 540,
     height: 960,
     scale: 2,
@@ -57,7 +59,7 @@ const SHOTS = [
   },
   {
     file: "screen-drive-wide",
-    url: "/model-town-board/play?level=four-lane",
+    url: "/model-town-board/play?level=four-lane&sponsor=aa",
     width: 1280,
     height: 720,
     scale: 1.5,

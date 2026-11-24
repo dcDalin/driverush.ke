@@ -5,6 +5,7 @@
 import * as React from "react";
 
 import {
+  carThumb,
   BOARD_CARS,
   CAR_THUMB_SIZE,
   CC_BY,
@@ -41,7 +42,10 @@ const SEAT_LABEL: Record<Seat, string> = {
 /** The board, small, as it lies on the table: the bottom side nearest. */
 const TABLE = fullBoardSvg({ numbers: false });
 
-/** `thumb`: the vehicle's picture. "Surprise me" has none, and shows an icon. */
+/**
+ * `thumb`: the vehicle's plain picture; the menu shows it in the paint of the
+ * school on the board (`carThumb`). "Surprise me" has none, and shows an icon.
+ */
 const CAR_CHOICES: {
   value: BoardCarSetting;
   label: string;
@@ -187,7 +191,19 @@ export function BoardSettingsSheet({
                   >
                     {choice.thumb ? (
                       <img
-                        src={choice.thumb}
+                        src={
+                          sponsor?.livery && choice.value !== "random"
+                            ? carThumb(choice.value, sponsor.id)
+                            : choice.thumb
+                        }
+                        // Offline, a school's picture may not be saved yet:
+                        // the plain one is.
+                        onError={(e) => {
+                          const img = e.currentTarget;
+                          if (img.dataset.plain) return;
+                          img.dataset.plain = "1";
+                          img.src = choice.thumb!;
+                        }}
                         alt=""
                         width={CAR_THUMB_SIZE.width}
                         height={CAR_THUMB_SIZE.height}

@@ -16,6 +16,7 @@
  * The site address is printed on the picture itself, because apps that take
  * the image often drop the caption that carried the link.
  */
+import { posterPath, posterSchool } from "./board/poster";
 import type { SharePayload } from "./share";
 
 export const SHARE_PICTURE_WIDTH = 1080;
@@ -48,7 +49,8 @@ export type SharePictureSpec = {
  */
 const ART: Record<ScoredPayload["kind"], SharePictureSpec["art"]> = {
   board: {
-    src: "/assets/board/poster.jpg",
+    // today's school's still, the one the board's pages show
+    src: posterPath(posterSchool()),
     tiles: [{ x: 0, y: 0, w: 1200, h: 630 }],
     framed: true,
   },
