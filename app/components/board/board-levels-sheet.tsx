@@ -29,12 +29,13 @@ import {
   ChevronRightIcon,
   CloseIcon,
 } from "~/components/brand/icons";
+import { Button } from "~/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "~/components/ui/sheet";
 
-const arrow =
-  "inline-flex size-11 shrink-0 items-center justify-center rounded-soft border border-ink/25 bg-surface text-ink no-underline outline-none transition-colors hover:bg-paper-2 focus-visible:bg-paper-2 disabled:opacity-30";
-const go =
-  "inline-flex min-h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-soft bg-rush px-3 text-[14px] font-bold text-white no-underline outline-none transition-[filter] hover:brightness-90 focus-visible:ring-2 focus-visible:ring-ink";
+/** A square paper Button, a thumb wide. */
+const square = "size-11 p-0 disabled:opacity-30";
+/** The rush Button that takes the rest of the row. */
+const go = "min-w-0 flex-1 px-3 text-[14px] font-bold no-underline";
 
 const EMPTY: CourseProgress = { learned: [], bestStars: {} };
 
@@ -52,22 +53,22 @@ function ArrowStep({
 }) {
   if (!to) {
     return (
-      <button type="button" disabled aria-label={label} className={arrow}>
+      <Button variant="paper" disabled aria-label={label} className={square}>
         {children}
-      </button>
+      </Button>
     );
   }
   const name = to.kind === "mock" ? "Mock test" : `level ${to.n}, ${to.title}`;
   return (
-    <button
-      type="button"
+    <Button
+      variant="paper"
       aria-label={`${label}: ${name}`}
       title={to.kind === "mock" ? "Mock test" : `${to.n}. ${to.title}`}
       onClick={() => onGo(to)}
-      className={arrow}
+      className={square}
     >
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -125,14 +126,14 @@ export default function BoardLevelsSheet({
               All levels
             </SheetTitle>
           </div>
-          <button
-            type="button"
+          <Button
+            variant="paper"
             aria-label="Close"
             onClick={close}
-            className="inline-flex size-11 shrink-0 items-center justify-center rounded-soft border border-ink/25 text-ink outline-none transition-colors hover:bg-paper-2 focus-visible:bg-paper-2"
+            className={square}
           >
             <Icon icon={CloseIcon} size={20} />
-          </button>
+          </Button>
         </header>
         <nav
           aria-label="Where to go"
@@ -142,21 +143,23 @@ export default function BoardLevelsSheet({
             <Icon icon={ChevronLeftIcon} size={18} />
           </ArrowStep>
           {here ? (
-            <button type="button" onClick={close} className={go}>
+            <Button variant="rush" onClick={close} className={go}>
               <span className="min-w-0 truncate">
                 Back to level {level.n}, {level.title}
               </span>
               <Icon icon={ArrowRightIcon} size={16} className="shrink-0" />
-            </button>
+            </Button>
           ) : (
-            <Link to={hrefOfLevel(next)} replace onClick={close} className={go}>
-              <span className="min-w-0 truncate">
-                {next.kind === "mock"
-                  ? "Take the mock test"
-                  : `Continue: level ${next.n}, ${next.title}`}
-              </span>
-              <Icon icon={ArrowRightIcon} size={16} className="shrink-0" />
-            </Link>
+            <Button variant="rush" asChild className={go}>
+              <Link to={hrefOfLevel(next)} replace onClick={close}>
+                <span className="min-w-0 truncate">
+                  {next.kind === "mock"
+                    ? "Take the mock test"
+                    : `Continue: level ${next.n}, ${next.title}`}
+                </span>
+                <Icon icon={ArrowRightIcon} size={16} className="shrink-0" />
+              </Link>
+            </Button>
           )}
           <ArrowStep to={after} label="Level after" onGo={goTo}>
             <Icon icon={ChevronRightIcon} size={18} />

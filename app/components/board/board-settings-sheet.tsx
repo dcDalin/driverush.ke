@@ -22,6 +22,7 @@ import { Icon } from "~/components/brand/icon";
 import { RoadIcon, ShuffleIcon, SoundIcon } from "~/components/brand/icons";
 import { SettingSection, ToggleRow } from "~/components/brand/setting-controls";
 import { Button } from "~/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group";
 import { SponsorCredit } from "~/components/board/sponsor-credit";
 import {
   Sheet,
@@ -68,32 +69,15 @@ const PICTURE_CHOICES: { value: BoardQuality; label: string }[] = [
   { value: "high", label: "Sharp" },
 ];
 
+/** The look of every pick in this sheet, on top of the gold Toggle. */
 const CHOICE =
-  "min-h-11 min-w-[5.5rem] border-2 border-ink px-3 py-2 font-display text-[13px] font-extrabold uppercase tracking-wider outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ink";
-const CHOICE_ON = "bg-kenya-gold text-kenya-gold-foreground shadow-stamp";
-const CHOICE_OFF = "bg-surface text-ink hover:bg-paper-3";
+  "h-auto min-h-11 min-w-[5.5rem] py-2 font-display text-[13px] font-extrabold uppercase tracking-wider";
 
-function SeatButton({
-  seat,
-  current,
-  onPick,
-  className,
-}: {
-  seat: Seat;
-  current: Seat;
-  onPick: (seat: Seat) => void;
-  className?: string;
-}) {
-  const active = seat === current;
+function SeatItem({ seat, className }: { seat: Seat; className?: string }) {
   return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={() => onPick(seat)}
-      className={cn(CHOICE, active ? CHOICE_ON : CHOICE_OFF, className)}
-    >
+    <ToggleGroupItem value={seat} className={cn(CHOICE, className)}>
       {SEAT_LABEL[seat]}
-    </button>
+    </ToggleGroupItem>
   );
 }
 
@@ -112,7 +96,6 @@ export function BoardSettingsSheet({
 }) {
   const settings = useBoardStore((s) => s.settings);
   const setSetting = useBoardStore((s) => s.setSetting);
-  const pick = (next: Seat) => setSetting({ seat: next });
   const carChoice = settings.car ?? "random";
   const sponsor = useVisitSponsor();
 
@@ -128,17 +111,21 @@ export function BoardSettingsSheet({
             title="Where you stand at the table"
             description={`Now: ${SEAT_LABEL[seat]}`}
           >
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center justify-items-center gap-2.5">
-              <SeatButton
-                seat="north"
-                current={seat}
-                onPick={pick}
-                className="col-start-2"
-              />
-              <SeatButton
+            <ToggleGroup
+              type="single"
+              variant="gold"
+              aria-label="Where you stand"
+              value={seat}
+              // A second tap on the side shown saves it as chosen, as a first
+              // tap would: the group hands back "" for it.
+              onValueChange={(next) =>
+                setSetting({ seat: (next || seat) as Seat })
+              }
+              className="grid grid-cols-[1fr_auto_1fr] items-center justify-items-center gap-2.5"
+            >
+              <SeatItem seat="north" className="col-start-2" />
+              <SeatItem
                 seat="west"
-                current={seat}
-                onPick={pick}
                 className="col-start-1 row-start-2 justify-self-end"
               />
               <div
@@ -146,19 +133,12 @@ export function BoardSettingsSheet({
                 className="col-start-2 row-start-2 w-24 border-2 border-ink [&>svg]:block [&>svg]:h-auto [&>svg]:w-full"
                 dangerouslySetInnerHTML={{ __html: TABLE }}
               />
-              <SeatButton
+              <SeatItem
                 seat="east"
-                current={seat}
-                onPick={pick}
                 className="col-start-3 row-start-2 justify-self-start"
               />
-              <SeatButton
-                seat="south"
-                current={seat}
-                onPick={pick}
-                className="col-start-2 row-start-3"
-              />
-            </div>
+              <SeatItem seat="south" className="col-start-2 row-start-3" />
+            </ToggleGroup>
             <p className="m-0 text-[12.5px] leading-snug text-ink-2">
               You see the board from that side, like walking round the table. Up
               on the stick is always away from you.
@@ -169,17 +149,23 @@ export function BoardSettingsSheet({
             title="Your car"
             description={`Now: ${CAR_LABEL[car]}`}
           >
-            <div className="grid grid-cols-2 gap-2.5">
+            <ToggleGroup
+              type="single"
+              variant="gold"
+              aria-label="Your car"
+              value={carChoice}
+              onValueChange={(next) =>
+                setSetting({ car: (next || carChoice) as BoardCarSetting })
+              }
+              className="grid grid-cols-2 gap-2.5"
+            >
               {CAR_CHOICES.map((choice) => (
-                <button
+                <ToggleGroupItem
                   key={choice.value}
-                  type="button"
-                  aria-pressed={choice.value === carChoice}
-                  onClick={() => setSetting({ car: choice.value })}
+                  value={choice.value}
                   className={cn(
                     CHOICE,
-                    "flex flex-col p-0",
-                    choice.value === carChoice ? CHOICE_ON : CHOICE_OFF,
+                    "flex w-full flex-col gap-0 overflow-hidden p-0 whitespace-normal",
                   )}
                 >
                   {/* The picture keeps its own plain ground, chosen or not:
@@ -217,9 +203,9 @@ export function BoardSettingsSheet({
                     )}
                   </span>
                   <span className="w-full px-2 py-1.5">{choice.label}</span>
-                </button>
+                </ToggleGroupItem>
               ))}
-            </div>
+            </ToggleGroup>
             <p className="m-0 text-[12.5px] leading-snug text-ink-2">
               The six cars are the same size and drive the same way. The van and
               the lorry are bigger, as they are on the road. Surprise me picks
@@ -232,23 +218,28 @@ export function BoardSettingsSheet({
           </SettingSection>
 
           <SettingSection title="Picture">
-            <div className="grid grid-cols-3 gap-2.5">
+            <ToggleGroup
+              type="single"
+              variant="gold"
+              aria-label="Picture"
+              value={settings.quality}
+              onValueChange={(next) =>
+                setSetting({
+                  quality: (next || settings.quality) as BoardQuality,
+                })
+              }
+              className="grid grid-cols-3 gap-2.5"
+            >
               {PICTURE_CHOICES.map((choice) => (
-                <button
+                <ToggleGroupItem
                   key={choice.value}
-                  type="button"
-                  aria-pressed={choice.value === settings.quality}
-                  onClick={() => setSetting({ quality: choice.value })}
-                  className={cn(
-                    CHOICE,
-                    "min-w-0",
-                    choice.value === settings.quality ? CHOICE_ON : CHOICE_OFF,
-                  )}
+                  value={choice.value}
+                  className={cn(CHOICE, "w-full min-w-0")}
                 >
                   {choice.label}
-                </button>
+                </ToggleGroupItem>
               ))}
-            </div>
+            </ToggleGroup>
             <p className="m-0 text-[12.5px] leading-snug text-ink-2">
               Auto draws the board as sharp as your phone can, and eases off
               only if the drive stutters. Smooth is the lightest picture. Sharp

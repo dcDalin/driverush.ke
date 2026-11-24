@@ -26,6 +26,16 @@ import {
 } from "~/lib/board/network";
 import { cn } from "~/lib/utils";
 
+import { Button } from "~/components/ui/button";
+import { Checkbox } from "~/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
+
 export function meta(_: PageRoute.MetaArgs) {
   return [
     { title: "Board lane network · DriveRush Tools" },
@@ -111,8 +121,9 @@ function routeLines(route: Route, active: number | null): Line[] {
   }));
 }
 
-const selectClass =
-  "w-full border border-line bg-surface px-3 py-2 font-mono text-[12.5px] text-ink rounded-lg";
+const selectClass = "font-mono text-[12.5px] normal-case tracking-normal";
+/** Radix Select keeps "" for "nothing chosen", so "none" stands in for it. */
+const NONE = "none";
 
 export default function BoardNetworkTool() {
   const net = React.useMemo(() => network(), []);
@@ -121,9 +132,9 @@ export default function BoardNetworkTool() {
     const node = net.nodes.get(id);
     return Boolean(
       node &&
-        parkedCars().some(
-          (spot) => Math.hypot(spot.x - node.x, spot.z - node.z) < 1.5,
-        ),
+      parkedCars().some(
+        (spot) => Math.hypot(spot.x - node.x, spot.z - node.z) < 1.5,
+      ),
     );
   };
   const starts = net.places.filter((p) => p.starts);
@@ -298,19 +309,25 @@ export default function BoardNetworkTool() {
               An upside-down car closes a way. Green is the answer the task
               wants, red dashed is the way it would have gone.
             </p>
-            <select
-              aria-label="Blocked-road task"
-              className={cn(selectClass, "mt-3")}
-              value={blockedId}
-              onChange={(e) => setBlockedId(e.target.value)}
+            <Select
+              value={blockedId || NONE}
+              onValueChange={(v) => setBlockedId(v === NONE ? "" : v)}
             >
-              <option value="">None</option>
-              {BLOCKED_TASKS.map((task) => (
-                <option key={task.id} value={task.id}>
-                  {task.title}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger
+                aria-label="Blocked-road task"
+                className={cn(selectClass, "mt-3")}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>None</SelectItem>
+                {BLOCKED_TASKS.map((task) => (
+                  <SelectItem key={task.id} value={task.id}>
+                    {task.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {blockedTask && isRouteTask(blockedTask) && (
               <p className="m-0 mt-3 text-[13.5px] leading-relaxed text-ink">
                 <span className="font-bold">
@@ -327,49 +344,55 @@ export default function BoardNetworkTool() {
             </h2>
             <label className="mt-3 block font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
               From
-              <select
-                className={cn(selectClass, "mt-1")}
-                value={from}
-                onChange={(e) => setFrom(e.target.value)}
+              <Select
+                value={from || NONE}
+                onValueChange={(v) => setFrom(v === NONE ? "" : v)}
               >
-                <option value="">Whole network</option>
-                {starts.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.label.replace(/^From /, "")}
-                    {occupied(p.id) ? " (a car is parked here)" : ""}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className={cn(selectClass, "mt-1")}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>Whole network</SelectItem>
+                  {starts.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.label.replace(/^From /, "")}
+                      {occupied(p.id) ? " (a car is parked here)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </label>
             <label className="mt-3 block font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
               To
-              <select
-                className={cn(selectClass, "mt-1")}
-                value={to}
-                onChange={(e) => setTo(e.target.value)}
+              <Select
+                value={to || NONE}
+                onValueChange={(v) => setTo(v === NONE ? "" : v)}
               >
-                <option value="">Whole network</option>
-                {ends.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.label.replace(/^To /, "")}
-                    {occupied(p.id) ? " (a car is parked here)" : ""}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className={cn(selectClass, "mt-1")}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>Whole network</SelectItem>
+                  {ends.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.label.replace(/^To /, "")}
+                      {occupied(p.id) ? " (a car is parked here)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </label>
             <div className="mt-3 flex gap-2">
               {(["south", "east"] as const).map((side) => (
-                <button
+                <Button
                   key={side}
-                  type="button"
+                  variant={seen === side ? "ink" : "paper"}
+                  size="sm"
+                  aria-pressed={seen === side}
                   onClick={() => setSeen(side)}
-                  className={cn(
-                    "border border-line px-3 py-1.5 font-mono text-[11px] uppercase tracking-widest rounded-lg",
-                    seen === side ? "bg-ink text-paper" : "bg-surface text-ink",
-                  )}
                 >
                   Seen from the {side === "south" ? "bottom" : "right"}
-                </button>
+                </Button>
               ))}
             </div>
 
@@ -445,11 +468,10 @@ export default function BoardNetworkTool() {
                     key={layer.id}
                     className="flex items-center gap-3 text-[14px] text-ink"
                   >
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={shown[layer.id]}
-                      onChange={(e) =>
-                        setShown((s) => ({ ...s, [layer.id]: e.target.checked }))
+                      onCheckedChange={(v) =>
+                        setShown((s) => ({ ...s, [layer.id]: v === true }))
                       }
                     />
                     <span
