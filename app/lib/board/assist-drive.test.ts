@@ -76,7 +76,9 @@ function driveLevel(
   }
   const stopped = new Set<number>();
   let at = 0;
-  for (let i = 0; i < 120 * 60; i += 1) {
+  // the longest level goes most of the way round the board, through the
+  // parking aisle at its slow speed
+  for (let i = 0; i < 240 * 60; i += 1) {
     if (useBoardStore.getState().phase !== "driving") break;
     // where along the route the car is, never jumping back or far ahead
     let gap = Infinity;

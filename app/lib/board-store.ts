@@ -29,7 +29,7 @@ import {
   type QueuePose,
 } from "./board/lane-queue";
 import { shuffleParkingLayout } from "./board/parking-layouts";
-import { challengeRoute, taskParks } from "./board/lessons";
+import { ROUTE_COLOR, challengeRoute, taskParks } from "./board/lessons";
 import { STOPS_ALWAYS, type Fault, type FaultId } from "./board/referee";
 import {
   beginChallenge,
@@ -39,6 +39,7 @@ import {
   drivenMetres,
   judging,
   elapsedSeconds,
+  goalWay,
   hasMoved,
   setBack,
   stopDriving,
@@ -198,6 +199,11 @@ type BoardState = {
   /** That score is the best yet on its task. */
   lastBest: boolean;
   /**
+   * A route task passed by another correct way than the answer: "also" as
+   * good, "longer" a star down. Null when passed by the answer.
+   */
+  lastWay: "also" | "longer" | null;
+  /**
    * The latest small mistake, shown as a toast. `n` restarts its animation.
    * `back` means the car was put back a little instead of the attempt ending.
    */
@@ -268,6 +274,7 @@ const FRESH_RUN = {
   lastSeconds: 0,
   lastPar: 0,
   lastBest: false,
+  lastWay: null,
   notice: null as BoardNotice | null,
   noticeCount: 0,
   lastStars: 0,
@@ -301,6 +308,9 @@ export function rulesBroken(log: readonly FreeEntry[]): FreeEntry[] {
 export function starsFor(faults: number): number {
   return faults === 0 ? 3 : faults === 1 ? 2 : 1;
 }
+
+/** Passed by a correct way that is clearly longer than the answer. */
+const LONGER_WAY: Fault = { id: "longer_way", serious: false };
 
 /** This many small mistakes in one attempt and the examiner stops it. */
 export const SMALL_FAULT_LIMIT = 3;
@@ -556,8 +566,7 @@ export const useBoardStore = create<BoardState>()(
       };
 
       const onGoal = () => {
-        const { queue, pos, faults, taskFaults, tries, hinted, settings } =
-          get();
+        const { queue, pos, settings } = get();
         const challenge = queue[pos];
         if (!challenge) return;
         const off = get().offRoute;
@@ -565,6 +574,41 @@ export const useBoardStore = create<BoardState>()(
           missed(challenge, off);
           return;
         }
+        // Another correct way than the answer. A clearly longer one passes a
+        // star down: Rule 1 wants the shortest. Said at the goal, it never
+        // ends the attempt.
+        const way = goalWay();
+        const other =
+          way && (way.kind === "also" || way.kind === "longer")
+            ? way.kind
+            : null;
+        if (other === "longer") record(LONGER_WAY);
+        set({ lastWay: other });
+        // Side by side on the table: the way driven, and the answer.
+        const answer = other ? challengeRoute(challenge) : null;
+        if (answer) {
+          useStage.getState().show([
+            {
+              id: "answer",
+              points: answer.points,
+              color: ROUTE_COLOR,
+              width: 1.6,
+              opacity: 0.85,
+            },
+            ...(trail.length > 1
+              ? [
+                  {
+                    id: "driven",
+                    points: trail.map(({ x, z }) => ({ x, z })),
+                    color: DRIVEN_COLOR,
+                    width: 1.1,
+                    opacity: 0.9,
+                  },
+                ]
+              : []),
+          ]);
+        }
+        const { faults, taskFaults, tries, hinted } = get();
         const run = get().lanes;
         if (run?.picked) {
           carHome(run, run.picked);
@@ -707,6 +751,7 @@ export const useBoardStore = create<BoardState>()(
           missed: false,
           lastScore: null,
           lastBest: false,
+          lastWay: null,
           notice: null,
           attempt: s.attempt + 1,
         }));

@@ -22,7 +22,7 @@ import {
 import { challengeRoute } from "./lessons";
 import { poseAt } from "./network";
 import { createRef, refStep, type Fault, type RefState } from "./referee";
-import { createRouteRef, routeRefStep } from "./route-referee";
+import { createRouteRef, createWayTrack, routeRefStep } from "./route-referee";
 import { car, loadPhysics, stick, tick } from "./runtime";
 import { WARMUP_LEVEL_ID } from "./warmup";
 
@@ -300,10 +300,12 @@ describe("a route task keeps to the left of a two-way road", () => {
     // lane, facing the way the route goes: no line is crossed on the way
     const ref = createRouteRef();
     // the stop line on the way here has been stopped at
-    route.steps.forEach((_, i) => ref.stopped.push(i));
+    const way = createWayTrack();
+    route.steps.forEach((_, i) => way.stopped.push(i));
+    ref.ways.push(way);
     let fault: Fault | undefined;
     const from = step.from + 2;
-    ref.progress = from;
+    way.progress = from;
     for (let d = from; d < step.to - 1 && !fault; d += SPEED * STEP) {
       const pose = poseAt(route, d);
       // the other lane is on the right of a car that keeps left

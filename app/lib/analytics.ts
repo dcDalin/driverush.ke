@@ -386,6 +386,10 @@ export const analytics = {
   boardLessonViewed: (args: {
     kind: "lane" | "feature" | "route" | "parking";
     lesson_id: string;
+    /** Which of the lesson's correct ways was played, where it has more than one. */
+    way?: number;
+    ways?: number;
+    way_kind?: "answer" | "also" | "longer" | "wrong_parking";
   }) => emit("board_lesson_viewed", args),
 
   /** A tab in the phone's bottom bar was tapped. Shows how people move about. */

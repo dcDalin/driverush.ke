@@ -19,9 +19,10 @@ import {
   type FreeState,
   type Pose,
 } from "./free-referee";
-import { challengeRoute, taskParks, taskStart } from "./lessons";
+import { challengeWays, taskParks, taskStart } from "./lessons";
 import { bearingOf, wrapPi } from "./geometry";
 import { poseAt, type Route } from "./network";
+import type { Way } from "./ways";
 import {
   AISLE_SPEED,
   STICK_DEADZONE,
@@ -157,9 +158,15 @@ let loading: Promise<void> | null = null;
 let challenge: BoardChallenge | null = null;
 let physics: Physics | null = null;
 let ref: RefState = createRef();
-/** A route task's own referee, and the line it checks the drive against. */
+/**
+ * A route task's own referee, the correct ways it checks the drive against,
+ * and the one of them the car is on, for hints, assist and the box.
+ */
 let routeRef: RouteRefState = createRouteRef();
+let taskWays: Way[] = [];
 let taskRoute: Route | null = null;
+/** The way the goal was reached by, once it has been. */
+let reached: Way | null = null;
 let taskParking = false;
 let assist: AssistState = createAssist();
 
@@ -243,7 +250,9 @@ export function beginChallenge(next: BoardChallenge, cb: Callbacks): void {
   car.z = start.z;
   car.heading = start.heading;
   routeRef = createRouteRef();
-  taskRoute = isRouteTask(next) ? challengeRoute(next) : null;
+  taskWays = isRouteTask(next) ? challengeWays(next) : [];
+  taskRoute = taskWays[0]?.route ?? null;
+  reached = null;
   taskParking = taskParks(next);
   freeRun = isFreeDrive(next);
   free = createFree();
@@ -303,6 +312,7 @@ export function setBack(metres: number): boolean {
   car.steer = 0;
   ref = structuredClone(snap.ref);
   routeRef = structuredClone(snap.routeRef);
+  taskRoute = taskWays[routeRef.way]?.route ?? taskWays[0]?.route ?? null;
   assist = { ...snap.assist };
   physics = engine.createPhysics(challenge, car, vehicle);
   view.others = physics.poses;
@@ -362,6 +372,22 @@ export function placeCar(pose: Pose): void {
 export function deviation(): Fault | null {
   if (!challenge) return null;
   return isRouteTask(challenge) ? routeRef.off : ref.off;
+}
+
+/**
+ * The correct way a route task's goal was reached by: the answer, another way
+ * as good, or a longer one. Null for a turn task, or off the route.
+ */
+export function goalWay(): Way | null {
+  return reached;
+}
+
+/**
+ * The line of the correct way a route task's car is on, or was last on. The
+ * hints follow it, so they never call a learner back off a correct way.
+ */
+export function currentWay(): Route | null {
+  return taskRoute;
 }
 
 /** Metres driven this attempt. */
@@ -599,7 +625,7 @@ export function tick(frameSeconds: number): void {
       ? taskRoute
         ? routeRefStep(
             routeRef,
-            taskRoute,
+            taskWays.map((one) => one.route),
             taskParking,
             car,
             physics.contacts,
@@ -630,7 +656,11 @@ export function tick(frameSeconds: number): void {
       // A no-fail drive may have put the car back: start the next step clean.
       continue;
     }
+    if (isRouteTask(challenge) && taskWays.length > 0) {
+      taskRoute = taskWays[routeRef.way]?.route ?? taskRoute;
+    }
     if (result.goal) {
+      reached = result.way != null ? (taskWays[result.way] ?? null) : null;
       stopDriving();
       callbacks.onGoal();
       return;

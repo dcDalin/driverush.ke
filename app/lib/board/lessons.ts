@@ -35,6 +35,7 @@ import {
   type Route,
 } from "./network";
 import { parkingLayout, targetBays } from "./parking-layouts";
+import { accepted, findWays, type Way } from "./ways";
 
 // ---- where each lane can take you ---------------------------------------------------
 
@@ -406,6 +407,26 @@ export const BLOCKED_ROUTES: readonly Lesson[] = [
     block: "street",
   },
   {
+    id: "blocked-gaps",
+    group: "routes",
+    level: "Hard",
+    title: "Both gaps are blocked",
+    ask: "You are in lane 1 at the continuous lines on the three-lane road, and you are asked to come back down this road. Both gaps in the central reserve are blocked.",
+    from: `At the continuous lines on ${THREE_LEFT}, lane 1`,
+    to: `To ${THREE_LEFT}, lane 3`,
+    block: "gaps",
+  },
+  {
+    id: "blocked-lane-exit",
+    group: "routes",
+    level: "Hard",
+    title: "Lane 4 and the exit are blocked",
+    ask: "From lane 4, come back down this road. Lane 4 is blocked, and so is the exit straight ahead.",
+    from: `From ${DUAL_BOTTOM}, lane 4`,
+    to: `To ${DUAL_BOTTOM}, lane 1`,
+    block: "lane-exit",
+  },
+  {
     id: "blocked-parking",
     group: "parking",
     level: "Hard",
@@ -414,6 +435,26 @@ export const BLOCKED_ROUTES: readonly Lesson[] = [
     from: `From ${DUAL_TOP}, lane 1`,
     to: ANGLE_BAY,
     block: "parking",
+  },
+  {
+    id: "parking-only",
+    group: "routes",
+    level: "Hard",
+    title: "Only the parking is left",
+    ask: "You are in lane 1 at the continuous lines on the top road, and you are asked to come back up this road. Lane 4 on the roundabout is blocked.",
+    from: `At the continuous lines on ${DUAL_TOP}, lane 1`,
+    to: `To ${DUAL_TOP}, lane 3`,
+    block: "ring",
+  },
+  {
+    id: "parking-only-long",
+    group: "routes",
+    level: "Hard",
+    title: "The long way, through the parking",
+    ask: "You are in lane 3 at the continuous lines on the three-lane road, and you are asked to turn left. Lane 4 on the roundabout is blocked.",
+    from: `At the continuous lines on ${THREE_LEFT}, lane 3`,
+    to: `To ${DUAL_TOP}, lane 3`,
+    block: "ring",
   },
 ];
 
@@ -438,25 +479,49 @@ function closedFor(id: string): ReadonlySet<NetEdge> {
 
 const lessonCache = new Map<string, Plan | null>();
 
-/** The route for a lesson, with the route rule that picked it. */
-export function lessonPlan(lesson: Lesson): Plan | null {
-  const key = layoutKey(lesson.id, lesson.group === "parking");
-  if (lessonCache.has(key)) return lessonCache.get(key) ?? null;
+/** Where a lesson starts and ends on the network, and what is closed. */
+function lessonEnds(lesson: Lesson) {
   const places = network().places;
   const from = places.find((p) => p.label === placeLabel(lesson.from));
   const to = places.find((p) => p.label === placeLabel(lesson.to));
   const block = lesson.block ? blockById(lesson.block) : undefined;
-  const plan =
-    from && to
-      ? planRoute(
-          from.id,
-          to.id,
-          lesson.arrive,
-          block ? closedFor(block.id) : undefined,
-        )
-      : null;
+  return from && to
+    ? {
+        from: from.id,
+        to: to.id,
+        avoid: block ? closedFor(block.id) : undefined,
+      }
+    : null;
+}
+
+/** The route for a lesson, with the route rule that picked it. */
+export function lessonPlan(lesson: Lesson): Plan | null {
+  const key = layoutKey(lesson.id, lesson.group === "parking");
+  if (lessonCache.has(key)) return lessonCache.get(key) ?? null;
+  const ends = lessonEnds(lesson);
+  const plan = ends
+    ? planRoute(ends.from, ends.to, lesson.arrive, ends.avoid)
+    : null;
   lessonCache.set(key, plan);
   return plan;
+}
+
+const waysCache = new Map<string, Way[]>();
+
+/**
+ * Every way through a lesson: the answer first, then the other correct ways,
+ * then the way through the parking area when that is the wrong one.
+ */
+export function lessonWays(lesson: Lesson): Way[] {
+  const key = layoutKey(lesson.id, lesson.group === "parking");
+  const kept = waysCache.get(key);
+  if (kept) return kept;
+  const ends = lessonEnds(lesson);
+  const ways = ends
+    ? findWays(ends.from, ends.to, lesson.arrive, ends.avoid).ways
+    : [];
+  waysCache.set(key, ways);
+  return ways;
 }
 
 export function lessonRoute(lesson: Lesson): Route | null {
@@ -499,18 +564,7 @@ export function challengeRoute(challenge: BoardChallenge): Route | null {
     const key = layoutKey(challenge.id, lesson?.group === "parking");
     if (taskCache.has(key)) return taskCache.get(key) ?? null;
     const whole = lesson ? lessonRoute(lesson) : null;
-    // A road's end is the frame of the board: start a car's length in from
-    // it, and stop short of it.
-    const route =
-      lesson && whole
-        ? trimRoute(
-            whole,
-            lesson.from.startsWith("From ") ? START_IN : 0,
-            lesson.to.startsWith("To ")
-              ? whole.length - STOP_SHORT
-              : whole.length,
-          )
-        : null;
+    const route = lesson && whole ? trimForTask(lesson, whole) : null;
     taskCache.set(key, route);
     return route;
   }
@@ -554,6 +608,45 @@ export function challengeRoute(challenge: BoardChallenge): Route | null {
   return route;
 }
 
+/**
+ * A road's end is the frame of the board: a task starts a car's length in
+ * from it, and stops short of it.
+ */
+function trimForTask(lesson: Lesson, whole: Route): Route {
+  return trimRoute(
+    whole,
+    lesson.from.startsWith("From ") ? START_IN : 0,
+    lesson.to.startsWith("To ") ? whole.length - STOP_SHORT : whole.length,
+  );
+}
+
+const taskWaysCache = new Map<string, Way[]>();
+
+/**
+ * The ways a task may be driven along and pass: its route first, then the
+ * other correct ways, trimmed the same. A turn task has only its route.
+ */
+export function challengeWays(challenge: BoardChallenge): Way[] {
+  const answer = challengeRoute(challenge);
+  if (!answer) return [];
+  const only: Way[] = [
+    { route: answer, kind: "answer", signature: "", shape: "" },
+  ];
+  if (!isRouteTask(challenge)) return only;
+  const lesson = lessonById(challenge.lesson);
+  if (!lesson) return only;
+  const key = layoutKey(challenge.id, lesson.group === "parking");
+  const kept = taskWaysCache.get(key);
+  if (kept) return kept;
+  const ways = accepted(lessonWays(lesson)).map((one, i) =>
+    i === 0
+      ? { ...one, route: answer }
+      : { ...one, route: trimForTask(lesson, one.route) },
+  );
+  taskWaysCache.set(key, ways.length > 0 ? ways : only);
+  return taskWaysCache.get(key) as Way[];
+}
+
 /** True when a task ends in a parking bay and not on a road. */
 export function taskParks(challenge: BoardChallenge): boolean {
   if (!isRouteTask(challenge)) return false;
@@ -567,7 +660,7 @@ export function taskParks(challenge: BoardChallenge): boolean {
  */
 export function taskUsesAngleBay(challenge: BoardChallenge): boolean {
   if (!isRouteTask(challenge)) return false;
-  const lesson = LESSONS.find((one) => one.id === challenge.lesson);
+  const lesson = lessonById(challenge.lesson);
   return lesson?.from === ANGLE_BAY || lesson?.to === ANGLE_BAY;
 }
 

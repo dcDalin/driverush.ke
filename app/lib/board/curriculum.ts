@@ -364,6 +364,8 @@ const UNIT_DEFS: readonly {
       drive("blocked-ring", "A lane on the roundabout is blocked", "Hard"),
       drive("blocked-gap", "The gap is blocked", "Hard"),
       drive("blocked-street", "The street is blocked", "Hard"),
+      drive("blocked-gaps", "Both gaps are blocked", "Hard"),
+      drive("blocked-lane-exit", "Lane 4 and the exit are blocked", "Hard"),
     ],
   },
   {
@@ -409,6 +411,27 @@ const UNIT_DEFS: readonly {
       watch("leave-flush", "Pull out of flush parking", "Easy"),
       drive("leave-flush", "Pull out of flush parking", "Easy"),
       drive("blocked-parking", "The way into the parking is blocked", "Hard"),
+      slides(
+        "parking-last-resort",
+        "When the parking is the only way",
+        [
+          {
+            title: "Every other way is closed",
+            note: "Sometimes upside-down cars and continuous lines close every way but one, and that one goes through the parking area. Then, and only then, you drive through it. That is Rule 3: parking only as a last option.",
+            at: "roundabout",
+            block: "ring",
+          },
+          {
+            title: "Pass through, don't park",
+            note: "Drive along the aisle at its slow speed and out at the other end, giving way where it meets the road. You are only passing through: do not stop in a bay.",
+            at: "parking-aisle",
+          },
+          { rule: "last_resort", at: "parking-aisle" },
+        ],
+        "Hard",
+      ),
+      drive("parking-only", "Only the parking is left", "Hard"),
+      drive("parking-only-long", "The long way, through the parking", "Hard"),
     ],
   },
   {

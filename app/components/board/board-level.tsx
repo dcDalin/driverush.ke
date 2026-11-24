@@ -29,8 +29,9 @@ import {
   ROUTE_COLOR,
   ROUTE_RULES,
   lessonPlan,
-  lessonRoute,
+  lessonWays,
 } from "~/lib/board/lessons";
+import { shownWays, type Way } from "~/lib/board/ways";
 import type { Route } from "~/lib/board/network";
 import { shuffleParkingLayout } from "~/lib/board/parking-layouts";
 import {
@@ -708,6 +709,50 @@ function LanesLevel({
 
 // ---- a route, driven for the learner ----------------------------------------------------
 
+/** Each correct way that is not the answer, on the table and in its chip. */
+const OTHER_WAY_COLOR = "#7dd3fc";
+/** The way through the parking area, the wrong answer. */
+const WRONG_WAY_COLOR = "#ff6b5e";
+
+const wayColor = (way: Way) =>
+  way.kind === "answer"
+    ? ROUTE_COLOR
+    : way.kind === "wrong_parking"
+      ? WRONG_WAY_COLOR
+      : OTHER_WAY_COLOR;
+
+/** What a way is, in a few words, for its chip. */
+function wayLabel(way: Way, answer: Way): string {
+  switch (way.kind) {
+    case "answer":
+      return "The answer";
+    case "also":
+      return "Also correct, just as good";
+    case "longer": {
+      const more = Math.round((way.route.length - answer.route.length) / 5) * 5;
+      return `Also correct, ${more} m longer`;
+    }
+    case "wrong_parking":
+      return "Wrong: through the parking";
+  }
+}
+
+/** What the way means for a drive, said under the chips. */
+function wayMeans(way: Way, rule: string | null): string {
+  switch (way.kind) {
+    case "answer":
+      return rule
+        ? `${rule} picks this way. It is the one an examiner wants.`
+        : "The way an examiner wants.";
+    case "also":
+      return "No rule is broken and it is no longer, so it passes in full.";
+    case "longer":
+      return "No rule is broken, so it passes, but a star down: Rule 1 wants the shortest correct route.";
+    case "wrong_parking":
+      return "Shorter, but it cuts through the parking area. Rule 3: parking only when there is no other way. It is not a pass.";
+  }
+}
+
 function WatchLevel({
   level,
   done,
@@ -722,6 +767,7 @@ function WatchLevel({
   const ended = useStage((s) => s.ended);
   const show = useStage((s) => s.show);
   const watch = useStage((s) => s.watch);
+  const clear = useStage((s) => s.clear);
   // The farthest free bay moves with the parked cars.
   const layout = useParkingLayout();
   const lesson = LESSONS.find((l) => l.id === level.lesson);
@@ -731,30 +777,46 @@ function WatchLevel({
     if (parking) shuffleParkingLayout();
   }, [parking]);
 
-  const line = React.useMemo(
-    () => (lesson ? lessonRoute(lesson) : null),
+  // Every way worth showing, one per way through the board, the answer first.
+  const ways = React.useMemo(
+    () => (lesson ? shownWays(lessonWays(lesson)) : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- see `layout`
     [lesson, layout],
   );
+  const [pick, setPick] = React.useState(0);
+  // The way that was played last: only the answer finishes the level.
+  const [played, setPlayed] = React.useState(0);
+  const chosen = ways[pick] ?? ways[0];
+  const line = chosen?.route ?? null;
   const picked = lesson && !parking ? lessonPlan(lesson)?.rule : null;
   const rule = picked ? ROUTE_RULES[picked] : null;
 
-  // Before Play, the whole route lies on the table to be looked at.
+  // Before Play, every way lies on the table, the chosen one brightest.
   React.useEffect(() => {
-    if (route) show(routeLines(route, step, ROUTE_COLOR));
+    if (route) show(routeLines(route, step, wayColor(ways[played] ?? ways[0])));
     else if (line) {
       show([
-        { id: "whole", points: line.points, color: ROUTE_COLOR, width: 2 },
+        ...ways
+          .map((way, i) => ({ way, i }))
+          .filter(({ i }) => i !== pick)
+          .map(({ way, i }) => ({
+            id: `way-${i}`,
+            points: way.route.points,
+            color: wayColor(way),
+            width: 1.2,
+            opacity: 0.35,
+          })),
+        { id: "whole", points: line.points, color: wayColor(chosen), width: 2 },
       ]);
       fitTable();
     }
-  }, [route, step, line, show]);
+  }, [route, step, line, show, ways, pick, played, chosen]);
 
   React.useEffect(() => {
-    if (ended && route) onDone();
-  }, [ended, route, onDone]);
+    if (ended && route && played === 0) onDone();
+  }, [ended, route, played, onDone]);
 
-  if (!lesson || !line) {
+  if (!lesson || !line || !chosen) {
     return (
       <p className="m-0 text-[14px] leading-snug text-white/80">
         This route could not be worked out. Try another level.
@@ -762,9 +824,57 @@ function WatchLevel({
     );
   }
 
+  const choose = (i: number) => {
+    if (route) clear();
+    setPick(i);
+  };
+
+  const wayRow = ways.length > 1 && (!route || ended) && (
+    <div className="grid gap-2">
+      <p className={eyebrow}>{ways.length} ways to get there</p>
+      <div
+        role="radiogroup"
+        aria-label="Ways to get there"
+        className="grid gap-1.5"
+      >
+        {ways.map((way, i) => (
+          <button
+            key={way.signature}
+            type="button"
+            role="radio"
+            aria-checked={i === pick}
+            onClick={() => choose(i)}
+            className={cn(
+              chip,
+              i === pick
+                ? "border-[#f6c416]/80 bg-white/10 text-white"
+                : chipOff,
+              "flex w-full items-center gap-3",
+            )}
+          >
+            <span
+              aria-hidden
+              className="h-1.5 w-7 shrink-0 rounded-full"
+              style={{ background: wayColor(way) }}
+            />
+            <span className="min-w-0 flex-1">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-white/55">
+                Way {i + 1}
+              </span>{" "}
+              {wayLabel(way, ways[0])}
+            </span>
+          </button>
+        ))}
+      </div>
+      <p className="m-0 text-[12.5px] leading-snug text-white/75">
+        {wayMeans(chosen, rule?.name ?? null)}
+      </p>
+    </div>
+  );
+
   return (
     <div className="grid gap-3">
-      {route && ended && (
+      {route && ended && played === 0 && (
         <LevelDone level={level}>Level {level.n} done.</LevelDone>
       )}
       <div>
@@ -785,6 +895,7 @@ function WatchLevel({
           <Fold label={`Steps (${route.steps.length})`}>
             <RouteSteps route={route} step={step} />
           </Fold>
+          {ended && wayRow}
           {ended ? (
             <LevelNext level={level} />
           ) : (
@@ -793,6 +904,7 @@ function WatchLevel({
         </>
       ) : (
         <>
+          {wayRow}
           <p className="m-0 text-[12.5px] leading-snug text-white/65">
             {line.steps.length} steps
             {line.steps.some((s) => s.gear === "reverse") && ", with reversing"}
@@ -803,15 +915,27 @@ function WatchLevel({
               type="button"
               className={primary}
               onClick={() => {
+                setPlayed(pick);
                 watch(line);
                 analytics.boardLessonViewed({
                   kind: parking ? "parking" : "route",
                   lesson_id: lesson.id,
+                  ...(ways.length > 1
+                    ? {
+                        way: pick + 1,
+                        ways: ways.length,
+                        way_kind: chosen.kind,
+                      }
+                    : {}),
                 });
               }}
             >
               <Icon icon={PlayIcon} size={16} />
-              Watch the car drive it
+              {ways.length > 1
+                ? pick === 0
+                  ? "Watch the answer"
+                  : `Watch way ${pick + 1}`
+                : "Watch the car drive it"}
             </button>
             {done && levelAfter(level) && (
               <Link

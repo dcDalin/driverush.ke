@@ -41,6 +41,8 @@ export type Block = {
   what: string;
   /** The line across what is closed. */
   line: readonly [Vec, Vec];
+  /** More lines, where one block closes more than one place. */
+  more?: readonly (readonly [Vec, Vec])[];
   /** The upside-down cars standing on it. */
   cars: readonly BlockCar[];
 };
@@ -125,6 +127,27 @@ function build(): Block[] {
     });
   }
 
+  // Both gaps in the central reserve: there is no turning back on the top
+  // road at all, so a car held in the wrong lane has nowhere to turn round.
+  {
+    const out = ARMS.N.out;
+    const at = (along: number): Vec => ({ x: out.x * along, z: out.z * along });
+    const heading = bearingOf(out.x, out.z);
+    const [first, ...rest] = U_TURN_GAPS.map(
+      (gap) => [at(gap.from), at(gap.to)] as const,
+    );
+    blocks.push({
+      id: "gaps",
+      what: "both gaps in the central reserve",
+      line: first,
+      more: rest,
+      cars: U_TURN_GAPS.map((gap) => ({
+        ...at((gap.from + gap.to) / 2),
+        heading,
+      })),
+    });
+  }
+
   // One lane on the roundabout: lane 4, beside the island, between the
   // left-hand road and the top one. Nothing that came in from the bottom road
   // can go on round in that lane.
@@ -175,7 +198,28 @@ function build(): Block[] {
     }
   }
 
+  // Two closed at once, for a drive with only one way left: lane 4 and the
+  // exit straight ahead, so there is neither a U-turn on the roundabout nor a
+  // gap to turn back through.
+  blocks.push(both(blocks, "lane-exit", "lane 4 and the exit straight ahead"));
+
   return blocks;
+}
+
+/** Two blocks as one: all their lines and all their cars. */
+function both(made: readonly Block[], id: string, what: string): Block {
+  const [first, second] = id.split("-").map((one) => {
+    const block = made.find((b) => b.id === one);
+    if (!block) throw new Error(`no block ${one}`);
+    return block;
+  });
+  return {
+    id,
+    what,
+    line: first.line,
+    more: [...(first.more ?? []), second.line, ...(second.more ?? [])],
+    cars: [...first.cars, ...second.cars],
+  };
 }
 
 let built: Block[] | null = null;
@@ -223,12 +267,12 @@ export function closedEdges(block: Block): ReadonlySet<NetEdge> {
   const kept = closedCache.get(block.id);
   if (kept) return kept;
   const closed = new Set<NetEdge>();
-  const [a, b] = block.line;
+  const lines = [block.line, ...(block.more ?? [])];
   for (const e of network().edges) {
     for (let i = 1; i < e.points.length; i += 1) {
       const p = e.points[i - 1];
       const q = e.points[i];
-      let hit = crosses(p, q, a, b);
+      let hit = lines.some(([a, b]) => crosses(p, q, a, b));
       // walk the piece half a metre at a time
       const steps = Math.max(
         1,

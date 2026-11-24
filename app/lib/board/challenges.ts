@@ -261,12 +261,36 @@ const BLOCKED_TASKS: readonly RouteChallenge[] = [
     prompt: `Reach the top of the two-way road. The upside-down car means the street is blocked. ${FIND_IT}`,
   }),
   blockedTask({
+    id: "blocked-gaps",
+    block: "gaps",
+    title: "Both gaps are blocked",
+    prompt: `You are in lane 1 at the continuous lines on the three-lane road, and you are asked to come back down this road. Lane 1 only goes straight or left, and the upside-down cars mean both gaps in the central reserve are blocked. ${FIND_IT}`,
+  }),
+  blockedTask({
+    id: "blocked-lane-exit",
+    block: "lane-exit",
+    title: "Lane 4 and the exit are blocked",
+    prompt: `You are in lane 4. Come back down this road. The upside-down cars mean lane 4 is blocked, and so is the exit straight ahead. ${FIND_IT}`,
+  }),
+  blockedTask({
     id: "blocked-parking",
     block: "parking",
     parks: true,
     title: "The way into the parking is blocked",
     prompt:
       "Park nose first in the farthest free angle bay. It has the green box. The upside-down car means the turn into the parking is blocked. Find the next correct route.",
+  }),
+  blockedTask({
+    id: "parking-only",
+    block: "ring",
+    title: "Only the parking is left",
+    prompt: `You are in lane 1 at the continuous lines on the top road, and you are asked to come back up this road. Lane 1 only goes straight or left, and the upside-down car means lane 4 on the roundabout is blocked. ${FIND_IT}`,
+  }),
+  blockedTask({
+    id: "parking-only-long",
+    block: "ring",
+    title: "The long way, through the parking",
+    prompt: `You are in lane 3 at the continuous lines on the three-lane road, and you are asked to turn left. The upside-down car means lane 4 on the roundabout is blocked, so there is no Q-turn. ${FIND_IT}`,
   }),
 ];
 

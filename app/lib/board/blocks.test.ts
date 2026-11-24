@@ -139,8 +139,22 @@ describe("the route finder, with a way closed", () => {
 
 describe("the blocked-road tasks", () => {
   it("are one for each kind of block the owner asked for", () => {
+    // The six kinds, then both gaps at once and two blocks at once for the
+    // one-way drives, and the roundabout lane again for the two drives where
+    // only the parking is left.
     expect(BLOCKED.map((c) => c.block).sort()).toEqual(
-      ["exit", "gap", "lane", "parking", "ring", "street"].sort(),
+      [
+        "exit",
+        "gap",
+        "gaps",
+        "lane",
+        "lane-exit",
+        "parking",
+        "ring",
+        "ring",
+        "ring",
+        "street",
+      ].sort(),
     );
     for (const task of BLOCKED) {
       expect(blockById(task.block!), task.id).toBeDefined();
@@ -218,6 +232,8 @@ describe("the blocked-road tasks", () => {
       expect(Math.hypot(car.x - start.x, car.z - start.z)).toBeLessThan(0.5);
       const stood = view.others.map((o) => ({ ...o }));
       let progress = 0;
+      // A stop line on the way there is stopped at, as a learner would.
+      const waited = new Set<number>();
       for (let i = 0; i < 200 / STEP && !over; i += 1) {
         let best = Infinity;
         for (let d = Math.max(0, progress - 3); d <= progress + 8; d += 0.25) {
@@ -227,6 +243,20 @@ describe("the blocked-road tasks", () => {
             best = gap;
             progress = d;
           }
+        }
+        const line = closed.steps.findIndex(
+          (s, n) =>
+            s.control === "stop" &&
+            !waited.has(n) &&
+            s.from - progress < 5 &&
+            s.from - progress > -1.5,
+        );
+        if (line >= 0) {
+          stick.x = 0;
+          stick.y = 0;
+          if (Math.abs(car.speed) < 0.05) waited.add(line);
+          tick(STEP);
+          continue;
         }
         const aim = poseAt(closed, Math.min(closed.length, progress + 4.5));
         const bearing = bearingOf(aim.x - car.x, aim.z - car.z);

@@ -47,7 +47,7 @@ import {
   targetBays,
 } from "./parking-layouts";
 import { createPhysics, physicsStep } from "./physics";
-import type { Fault } from "./referee";
+import { STOPS_ALWAYS, type Fault } from "./referee";
 import { OFF_ROUTE_SCORE, SCORE_MAX } from "./score";
 import {
   beginChallenge,
@@ -1422,15 +1422,17 @@ describe("leaving the route breaks no rule, but it is not a pass", () => {
     expect(s.bestScores).toEqual({});
   });
 
-  it("off the route, a continuous line still ends the attempt", () => {
-    // Straying from the start, lane assist takes the car over lane by lane
-    // while the lines are broken. Straying just before the continuous lines,
-    // it is off its route as it reaches them, and crosses one.
+  it("on another correct way, a lane rule still ends the attempt", () => {
+    // Straying two lanes over just before the continuous lines puts the car in
+    // lane 2, itself a longer correct way to the two-way road (straight on and
+    // back through the gap), so it has not left the route. Following the
+    // answer's turn from there, it goes on round past lane 2's only exit.
     const s = roam("to-two-way", { stray: 7.4, asideFrom: 12 });
-    expect(s.offRoute).toMatchObject({ id: "off_route" });
+    expect(s.offRoute).toBeNull();
     expect(s.phase).toBe("fault");
     expect(s.missed).toBe(false);
-    expect(s.fault).toMatchObject({ id: "solid_line", serious: true });
+    expect(s.fault?.serious).toBe(true);
+    expect(STOPS_ALWAYS.has(s.fault!.id)).toBe(true);
   });
 
   it("off the route, a stop line still has to be stopped at", () => {

@@ -17,13 +17,7 @@
  * Pure data, no three.js. Top view, metres, the same axes as `geometry.ts`.
  */
 import { laneRule } from "./board-rules";
-import {
-  BOUNDS,
-  ROADS,
-  SOLID_TO,
-  U_TURN_GAPS,
-  type Box,
-} from "./full-board";
+import { BOUNDS, ROADS, SOLID_TO, U_TURN_GAPS, type Box } from "./full-board";
 import {
   ARMS,
   ARM_ORDER,
@@ -1070,12 +1064,55 @@ const CHANGE_COST = 4;
 /** An unconfirmed connection is only used when it clearly helps. */
 const UNSURE_COST = 6;
 
+/** A small binary min-heap of (cost, node id), for `shortest`. */
+class Heap {
+  private items: [number, string][] = [];
+  get size(): number {
+    return this.items.length;
+  }
+  push(cost: number, id: string): void {
+    const items = this.items;
+    items.push([cost, id]);
+    let i = items.length - 1;
+    while (i > 0) {
+      const up = (i - 1) >> 1;
+      if (items[up][0] <= items[i][0]) break;
+      [items[up], items[i]] = [items[i], items[up]];
+      i = up;
+    }
+  }
+  pop(): [number, string] {
+    const items = this.items;
+    const top = items[0];
+    const last = items.pop() as [number, string];
+    if (items.length > 0) {
+      items[0] = last;
+      let i = 0;
+      for (;;) {
+        const l = i * 2 + 1;
+        const r = l + 1;
+        let low = i;
+        if (l < items.length && items[l][0] < items[low][0]) low = l;
+        if (r < items.length && items[r][0] < items[low][0]) low = r;
+        if (low === i) break;
+        [items[low], items[i]] = [items[i], items[low]];
+        i = low;
+      }
+    }
+    return top;
+  }
+}
+
 function bayOf(id: string): string | null {
   const m = /^(bay:[LR]\d+|flush:\d+):/.exec(id);
   return m ? m[1] : null;
 }
 
-function shortest(
+/**
+ * The cheapest way from one node to another, as edges. `ways.ts` calls it many
+ * times over to find every correct way, so it keeps its open nodes in a heap.
+ */
+export function shortest(
   from: string,
   to: string,
   parking: boolean,
@@ -1089,13 +1126,17 @@ function shortest(
   const cost = new Map<string, number>([[from, 0]]);
   const via = new Map<string, NetEdge>();
   const done = new Set<string>();
+  const open = new Heap();
+  open.push(0, from);
   for (;;) {
     let here: string | null = null;
     let best = Infinity;
-    for (const [id, c] of cost) {
-      if (!done.has(id) && c < best) {
+    while (open.size > 0) {
+      const [c, id] = open.pop();
+      if (!done.has(id) && c === cost.get(id)) {
         best = c;
         here = id;
+        break;
       }
     }
     if (here === null) return null;
@@ -1114,6 +1155,7 @@ function shortest(
       if (next < (cost.get(e.to) ?? Infinity)) {
         cost.set(e.to, next);
         via.set(e.to, e);
+        open.push(next, e.to);
       }
     }
   }

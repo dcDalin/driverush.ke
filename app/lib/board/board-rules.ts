@@ -212,6 +212,10 @@ const RULES: Record<FaultId, RuleWords> = {
     title: "Not straight in the bay",
     rule: "Park with the whole car inside the lines, straight in the bay.",
   },
+  longer_way: {
+    title: "A longer correct way",
+    rule: "Rule 1: take the shortest correct route without parking.",
+  },
 };
 
 function reasonFor(fault: Fault): string {
@@ -297,6 +301,8 @@ function reasonFor(fault: Fault): string {
       return "You stood still beside a yellow kerb. A brief pause is fine, but a yellow kerb means no stopping, no waiting, no parking and no overtaking. Keep moving, and stop only at a stop or give way line, or in a parking bay.";
     case "bay_line":
       return "The car is in the bay but over a line or at an angle. Straighten up so the whole car sits inside the lines. You can reverse a little to line it up.";
+    case "longer_way":
+      return "You got there by a correct way and broke no rule, so it is a pass. But Rule 1 picks a shorter way, and an examiner wants the shortest correct route that avoids the parking area. Watch the right way to see it.";
     case "board_edge":
       return "You reached the frame of the board, where the road runs off it. On a real board the instructor picks the car up and puts it back on the road: here a car driven to the end is turned round onto the other side, facing back the way it came. No rule was broken.";
     case "past_end":

@@ -30,7 +30,12 @@ export type SmallFaultId =
   | "kerb_stop"
   | "bay_line"
   /** Free drive only: the car reached the frame and was turned round. */
-  | "board_edge";
+  | "board_edge"
+  /**
+   * A route task passed by a correct way that is clearly longer than the one
+   * the route rules pick. Said at the goal, a star down.
+   */
+  | "longer_way";
 export type SeriousFaultId =
   | "wrong_exit"
   | "wrong_destination"
@@ -127,6 +132,11 @@ export type RefResult = {
    */
   deviation?: Fault;
   goal?: boolean;
+  /**
+   * The way a route task's goal was reached by, as an index into
+   * `challengeWays`. Left out when the car had left the route.
+   */
+  way?: number;
 };
 
 export const COLLISION: Fault = { id: "collision", serious: true };

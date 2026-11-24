@@ -28,5 +28,9 @@ export const TASK_NAMES: readonly TaskName[] = [
   { id: "blocked-exit", title: "An exit is blocked" },
   { id: "blocked-gap", title: "The gap is blocked" },
   { id: "blocked-street", title: "The street is blocked" },
+  { id: "blocked-gaps", title: "Both gaps are blocked" },
+  { id: "blocked-lane-exit", title: "Lane 4 and the exit are blocked" },
   { id: "blocked-parking", title: "The way into the parking is blocked" },
+  { id: "parking-only", title: "Only the parking is left" },
+  { id: "parking-only-long", title: "The long way, through the parking" },
 ];

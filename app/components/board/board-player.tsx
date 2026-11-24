@@ -48,6 +48,7 @@ import {
 import { distanceNear, poseAt, stepPoints } from "~/lib/board/network";
 import {
   car,
+  currentWay,
   drive,
   elapsedSeconds,
   hasMoved,
@@ -265,7 +266,8 @@ function Minimap({
 
 /** Where on a task's route the car is now, as a step of it. */
 function stepUnderCar(challenge: BoardChallenge) {
-  const route = challengeRoute(challenge);
+  // the correct way the car is on, which need not be the answer
+  const route = currentWay() ?? challengeRoute(challenge);
   if (!route) return null;
   const index = poseAt(route, distanceNear(route, car)).step;
   return { route, index };
@@ -730,6 +732,7 @@ export function BoardGame() {
       lastSeconds: st.lastSeconds,
       lastPar: st.lastPar,
       lastBest: st.lastBest,
+      lastWay: st.lastWay,
       attempt: st.attempt,
       lanes: st.lanes,
       freeLog: st.freeLog,
@@ -1732,6 +1735,35 @@ export function BoardGame() {
                       ? "Right way, right lane, and you stopped in the box."
                       : "Right lane, right exit, and you stopped in the box."}
           </p>
+          {s.lastWay && (
+            <div
+              data-msg="other-way"
+              className="space-y-1.5 border-2 border-ink bg-paper-2 p-3 text-left"
+            >
+              <p className="m-0 text-[14px] font-bold leading-snug text-ink">
+                {s.lastWay === "longer"
+                  ? "Passed another correct way. Rule 1 picks a shorter one."
+                  : "Passed another correct way, just as good."}
+              </p>
+              <p className="m-0 flex items-center gap-2 text-[12.5px] font-semibold leading-snug text-ink-2">
+                <span
+                  aria-hidden
+                  className="inline-block h-1.5 w-7 shrink-0 rounded-full"
+                  style={{ background: ROUTE_COLOR }}
+                />
+                {s.lastWay === "longer"
+                  ? "The yellow line is the shortest correct route, the one an examiner wants. It cost a star."
+                  : "The yellow line is the way the route rules pick."}
+              </p>
+              <p className="m-0 flex items-center gap-2 text-[12.5px] font-semibold leading-snug text-ink-2">
+                <span
+                  aria-hidden
+                  className="inline-block h-1.5 w-7 shrink-0 rounded-full bg-[#ff6b5e]"
+                />
+                The red line is the way you drove.
+              </p>
+            </div>
+          )}
           {!warmup && s.lastScore != null && (
             <div
               data-msg="score"
