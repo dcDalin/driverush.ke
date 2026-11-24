@@ -390,4 +390,6 @@ export type SponsorPlace =
   /** Named on screen during the opening turn round the car. */
   | "showcase"
   /** The site footer's row of schools on the board. */
-  | "footer";
+  | "footer"
+  /** The About page's section on the schools. */
+  | "about";

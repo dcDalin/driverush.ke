@@ -1,4 +1,8 @@
 import { SITE, GONASI } from "~/lib/site";
+import {
+  BoardSchools,
+  boardSchoolNames,
+} from "~/components/board/sponsor-credit";
 
 DriveRush helps Kenyan learners practise the Model Town Board and memorise road signs for the NTSA test. There are three free trainers: the [Model Town Board](/model-town-board), which you drive on a table like the one at a driving school, and the Pelican chart and 3D signs for the road signs. There are also guides to the [NTSA test](/ntsa-test) and [driving schools](/driving-schools-kenya). It's free, with no signup.
 
@@ -13,6 +17,14 @@ DriveRush is built in Nairobi by <a href={GONASI.url}>{GONASI.name}</a>, which m
 ## Where the signs come from
 
 The chart and 3D models were made by the DriveRush team. The Pelican Signs name and logo are used with permission.
+
+## The driving schools on the board
+
+The learner cars on the [Model Town Board](/model-town-board) wear the colours of real Kenyan driving schools: {boardSchoolNames()}. Each school's paint is copied from its own cars, and you meet a different school with each new task. The schools sponsor the board, which keeps DriveRush free with no ads. Tap a logo to visit the school's site.
+
+<BoardSchools place="about" onInk={false} className="not-prose my-5" />
+
+Showing a school here isn't a ranking or a review. Whichever school you choose, [check it is licensed by NTSA](/driving-schools-kenya) before you pay.
 
 ## How we check facts
 

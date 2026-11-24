@@ -118,18 +118,38 @@ export function SponsorReadyCard({
   );
 }
 
+/** The live schools' names as one English list ("A, B and C"). */
+export function boardSchoolNames(): string {
+  return new Intl.ListFormat("en", { type: "conjunction" }).format(
+    SPONSORS.filter((s) => s.live).map((s) => s.school),
+  );
+}
+
 /**
- * Every live school on the board, for the site footer: their logos on white
- * tiles, each a link to the school's site when it has one. The cars on the
- * board wear these schools' colours, so the site says whose they are.
+ * Every live school on the board, for the site footer and the About page:
+ * their logos on white tiles, each a link to the school's site when it has
+ * one. The cars on the board wear these schools' colours, so the site says
+ * whose they are.
  */
-export function BoardSchools({ className }: { className?: string }) {
+export function BoardSchools({
+  place = "footer",
+  onInk = true,
+  className,
+}: {
+  /** Where the row is, for `sponsor_link_clicked`. */
+  place?: Extract<SponsorPlace, "footer" | "about">;
+  /** On the ink footer the tile's edge takes the footer's ink. */
+  onInk?: boolean;
+  className?: string;
+}) {
   const schools = SPONSORS.filter((s) => s.live);
   if (schools.length === 0) return null;
-  // The school's logo is a 1024 x 401 lockup: tiles keep its shape. The
-  // edge takes the footer's ink, so a white tile shows on either theme.
-  const tile =
-    "flex aspect-[1024/401] w-full items-center justify-center overflow-hidden rounded-md border border-paper/25 bg-white sm:w-[132px]";
+  // The school's logo is a 1024 x 401 lockup: tiles keep its shape, and the
+  // edge keeps a white tile visible in either theme.
+  const tile = cn(
+    "flex aspect-[1024/401] w-full items-center justify-center overflow-hidden rounded-md border bg-white sm:w-[132px]",
+    onInk ? "border-paper/25" : "border-line",
+  );
   return (
     <ul
       className={cn(
@@ -145,18 +165,18 @@ export function BoardSchools({ className }: { className?: string }) {
             width={1024}
             height={401}
             loading="lazy"
-            className="block h-full w-full object-contain"
+            className="m-0 block h-full w-full object-contain"
           />
         );
         return (
-          <li key={school.id}>
+          <li key={school.id} className="m-0 p-0">
             {school.url ? (
               <a
                 href={school.url}
                 target="_blank"
                 rel="noopener"
                 title={`${school.school} (opens their site)`}
-                onClick={() => sponsorLinkClicked(school, "footer")}
+                onClick={() => sponsorLinkClicked(school, place)}
                 className={cn(
                   tile,
                   "outline-none transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-rush",
