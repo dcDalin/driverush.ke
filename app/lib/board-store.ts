@@ -105,6 +105,8 @@ export type BoardMode = "drive" | "learn" | "level";
  */
 export type LanesRun = {
   arm: ArmId;
+  /** The lanes this level covers, when it is not every lane of the road. */
+  only?: readonly number[];
   /** Where each car that has been driven home stopped, by car id. */
   rest: Record<string, QueuePose>;
   /** The car being driven now. */
@@ -455,7 +457,7 @@ export const useBoardStore = create<BoardState>()(
         stopDriving();
         useStage.getState().clear();
         forgetDriveZoom();
-        const all = queueCars(run.arm).every((one) => rest[one.id]);
+        const all = queueCars(run.arm, run.only).every((one) => rest[one.id]);
         const levelId = get().level;
         set((s) => {
           // Kept so the line-up can be left and come back to. Once every car
@@ -608,7 +610,7 @@ export const useBoardStore = create<BoardState>()(
         // A car from a line-up is told its option: its line is on the table.
         const run = get().lanes;
         const picked = run?.picked
-          ? queueCars(run.arm).find((one) => one.id === run.picked)
+          ? queueCars(run.arm, run.only).find((one) => one.id === run.picked)
           : undefined;
         if (picked) {
           const points = picked.option.route.points;
@@ -833,6 +835,7 @@ export const useBoardStore = create<BoardState>()(
               level.kind === "lanes"
                 ? {
                     arm: level.arm,
+                    only: level.lanes,
                     rest: get().homes?.[level.id] ?? {},
                     picked: null,
                   }
@@ -843,7 +846,7 @@ export const useBoardStore = create<BoardState>()(
         pickCar: (id) => {
           const { lanes, phase, settings } = get();
           if (!lanes || lanes.picked || phase === "driving") return;
-          const cars = queueCars(lanes.arm);
+          const cars = queueCars(lanes.arm, lanes.only);
           const picked = pickable(cars, Object.keys(lanes.rest)).find(
             (one) => one.id === id,
           );

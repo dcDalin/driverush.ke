@@ -1,6 +1,7 @@
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { useBoardStore } from "../board-store";
+import { COURSE_LEVELS } from "./curriculum";
 import type { CarState } from "./car";
 import { bearingOf, locate, wrapPi, type ArmId } from "./geometry";
 import { network } from "./network";
@@ -33,17 +34,25 @@ function hold(x: number, y: number, until: () => boolean, most = 30) {
  * home already, out of the way.
  */
 function driveHome(
-  level: string,
   arm: ArmId,
   id: string,
   bias = 0,
   /** How far, in degrees, the thumb wobbles either side of where it means. */
   wobble = 0,
 ) {
-  const cars = queueCars(arm);
-  const one = cars.find((c) => c.id === id)!;
+  const one = queueCars(arm).find((c) => c.id === id)!;
+  // The level whose line-up holds this car: a road's lanes can be split
+  // over more than one.
+  const level = COURSE_LEVELS.find(
+    (l) =>
+      l.kind === "lanes" &&
+      l.arm === arm &&
+      (!l.lanes || l.lanes.includes(one.lane)),
+  );
+  if (level?.kind !== "lanes") throw new Error(`no level has ${id}`);
+  const cars = queueCars(arm, level.lanes);
   useBoardStore.getState().exit();
-  useBoardStore.getState().startLevel(level);
+  useBoardStore.getState().startLevel(level.id);
   const ahead = cars.filter((c) => c.lane === one.lane && c.slot < one.slot);
   const rest = Object.fromEntries(
     ahead.map((c, k) => [c.id, { x: 500 + k * 10, z: 500, heading: 0 }]),
@@ -224,12 +233,9 @@ describe("lane assist out of the roundabout", () => {
     "takes every car of both line-ups home along its line",
     { timeout: 30_000 },
     () => {
-      for (const [level, arm] of [
-        ["four-lane", "S"],
-        ["three-lane", "W"],
-      ] as const) {
+      for (const arm of ["S", "W"] as const) {
         for (const one of queueCars(arm)) {
-          const { fault, home, goal } = driveHome(level, arm, one.id);
+          const { fault, home, goal } = driveHome(arm, one.id);
           expect(fault, one.id).toBeNull();
           expect(home, one.id).toBe(true);
           const at = locate(car.x, car.z);
@@ -243,7 +249,7 @@ describe("lane assist out of the roundabout", () => {
     // Lane 3 of the three-lane road turning left: its exit comes up while the
     // car is still crossing the outer ring lanes on its way in. It leaves
     // into its own exit lane, not one of those it crosses.
-    const { fault, home, goal } = driveHome("three-lane", "W", "rb:W3:left");
+    const { fault, home, goal } = driveHome("W", "rb:W3:left");
     expect(fault).toBeNull();
     expect(home).toBe(true);
     const at = locate(car.x, car.z);
@@ -251,7 +257,7 @@ describe("lane assist out of the roundabout", () => {
   });
 
   it("goes into lane 4 when the rule allows lane 3 or lane 4", () => {
-    const { fault, home } = driveHome("three-lane", "W", "rb:W3:right:4");
+    const { fault, home } = driveHome("W", "rb:W3:right:4");
     expect(fault).toBeNull();
     expect(home).toBe(true);
     const at = locate(car.x, car.z);
@@ -260,14 +266,14 @@ describe("lane assist out of the roundabout", () => {
 
   it.each([
     // leaning toward lane 3 from the start: the lane has a car standing in it
-    ["four-lane", "S", "rb:S4:straight", -15],
+    ["S", "rb:S4:straight", -15],
     // leaning out along the ring past the left exit: not asking to leave
-    ["three-lane", "W", "rb:W2:straight", -15],
-    ["four-lane", "S", "rb:S1:left", 15],
+    ["W", "rb:W2:straight", -15],
+    ["S", "rb:S1:left", 15],
   ] as const)(
-    "%s %s %s comes home with a thumb %d degrees off",
-    (level, arm, id, bias) => {
-      const { fault, home } = driveHome(level, arm, id, bias);
+    "%s %s comes home with a thumb %d degrees off",
+    (arm, id, bias) => {
+      const { fault, home } = driveHome(arm, id, bias);
       expect(fault).toBeNull();
       expect(home).toBe(true);
     },
@@ -277,13 +283,7 @@ describe("lane assist out of the roundabout", () => {
     // The exit into lane 4 comes late and tight. A wobble used to drop the
     // turn halfway out, and the car was then held to the ring lane it was
     // crossing, not the one it came round in.
-    const { fault, home } = driveHome(
-      "three-lane",
-      "W",
-      "rb:W3:right:4",
-      0,
-      30,
-    );
+    const { fault, home } = driveHome("W", "rb:W3:right:4", 0, 30);
     expect(fault).toBeNull();
     expect(home).toBe(true);
   });

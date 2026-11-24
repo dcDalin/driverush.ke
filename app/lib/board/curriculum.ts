@@ -47,8 +47,18 @@ export type LevelDef =
   /** The first drive (`warmup.ts`): a short straight road, nothing graded. */
   | (LevelBase & { kind: "warmup" })
   | (LevelBase & { kind: "slides"; slides: readonly SlideRef[] })
-  /** Every lane of one road into the roundabout, and where each may go. */
-  | (LevelBase & { kind: "lanes"; arm: "S" | "N" | "W" | "E" })
+  /**
+   * The lanes of one road into the roundabout, and where each may go: every
+   * lane, or only `lanes` (counted from the kerb). `formerly` is the id of an
+   * older level that covered these cars: finishing it counts, and a link to
+   * it opens the first level that took its place.
+   */
+  | (LevelBase & {
+      kind: "lanes";
+      arm: "S" | "N" | "W" | "E";
+      lanes?: readonly number[];
+      formerly?: string;
+    })
   /** A lesson from `lessons.ts`, driven by a car a step at a time. */
   | (LevelBase & { kind: "watch"; lesson: string })
   /** A task from `challenges.ts`, driven by the learner. */
@@ -171,12 +181,26 @@ const UNIT_DEFS: readonly {
         difficulty: "Easy",
         arm: "S",
       },
+      // One level of eight cars lost most of the learners who started it
+      // (PostHog, 2026-11-24: 6 of 15 finished; those who stopped had driven
+      // one or two). Two shorter ones, so a level is done sooner.
       {
         kind: "lanes",
-        id: "three-lane",
-        title: "The three-lane road: 215",
+        id: "three-lane-1-2",
+        title: "The three-lane road: lanes 1 and 2",
+        difficulty: "Easy",
+        arm: "W",
+        lanes: [1, 2],
+        formerly: "three-lane",
+      },
+      {
+        kind: "lanes",
+        id: "three-lane-3",
+        title: "The three-lane road: lane 3",
         difficulty: "Medium",
         arm: "W",
+        lanes: [3],
+        formerly: "three-lane",
       },
       slides("changing-lanes", "Changing lanes", [
         {
@@ -406,7 +430,12 @@ export const COURSE_LEVELS: readonly Level[] = ALL_LEVELS.filter(
 export const MOCK_LEVEL_ID = "mock-test";
 
 export function levelById(id: string | null | undefined): Level | undefined {
-  return id ? ALL_LEVELS.find((l) => l.id === id) : undefined;
+  if (!id) return undefined;
+  return (
+    ALL_LEVELS.find((l) => l.id === id) ??
+    // An old link to a level since split: the first of its parts.
+    ALL_LEVELS.find((l) => l.kind === "lanes" && l.formerly === id)
+  );
 }
 
 export function unitOf(level: Level): Unit {
@@ -446,6 +475,11 @@ export function levelDone(level: Level, saved: CourseProgress): boolean {
       return (
         Boolean(saved.learned?.includes(learnedKey(level))) ||
         Object.values(saved.bestStars).some((stars) => stars > 0)
+      );
+    case "lanes":
+      return Boolean(
+        saved.learned?.includes(learnedKey(level)) ||
+        (level.formerly && saved.learned?.includes(`lv:${level.formerly}`)),
       );
     default:
       return Boolean(saved.learned?.includes(learnedKey(level)));

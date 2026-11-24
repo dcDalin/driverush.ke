@@ -854,7 +854,7 @@ export function BoardGame() {
   // A lane options level: every car of one road is out, and one is driven at
   // a time. The one being driven is the learner's car for now.
   const lineUp = React.useMemo(
-    () => (s.lanes ? queueCars(s.lanes.arm) : null),
+    () => (s.lanes ? queueCars(s.lanes.arm, s.lanes.only) : null),
     [s.lanes],
   );
   const pickedCar = lineUp?.find((one) => one.id === s.lanes?.picked) ?? null;

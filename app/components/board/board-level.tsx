@@ -480,9 +480,9 @@ function SlidesLevel({
  * line-up and the roundabout. On a phone that would make the cars too small to
  * tap one from the next, so it is the line-up alone.
  */
-function lineUpBox(arm: ArmId, close: boolean) {
+function lineUpBox(arm: ArmId, close: boolean, only?: readonly number[]) {
   const out = ARMS[arm].out;
-  const cars = queueCars(arm);
+  const cars = queueCars(arm, only);
   const back = Math.max(...cars.map((car) => car.along)) + 5;
   if (close) {
     const xs = cars.map((car) => car.start.x);
@@ -523,7 +523,8 @@ function LanesLevel({
   const rest = useBoardStore((s) => s.lanes?.rest);
   const pickCar = useBoardStore((s) => s.pickCar);
   const show = useStage((s) => s.show);
-  const cars = React.useMemo(() => queueCars(arm), [arm]);
+  const only = level.lanes;
+  const cars = React.useMemo(() => queueCars(arm, only), [arm, only]);
   const home = React.useMemo(() => Object.keys(rest ?? {}), [rest]);
   const front = React.useMemo(() => pickable(cars, home), [cars, home]);
   const road = APPROACHES.find((a) => a.arm === arm);
@@ -535,8 +536,8 @@ function LanesLevel({
   React.useEffect(() => {
     show([]);
     const phone = window.matchMedia("(max-width: 639px)").matches;
-    flyTo(lineUpBox(arm, phone), sideways);
-  }, [arm, sideways, show]);
+    flyTo(lineUpBox(arm, phone, only), sideways);
+  }, [arm, only, sideways, show]);
 
   const carRow = (car: (typeof cars)[number], compact: boolean) => {
     const isHome = home.includes(car.id);
@@ -672,21 +673,25 @@ function LanesLevel({
           </strong>
           : the number of options in each lane, counted from the kerb. There is
           one car for each option.
+          {only &&
+            ` This level has the cars of ${only.length === 1 ? `lane ${only[0]}` : `lanes ${only.join(" and ")}`}.`}
         </p>
-        {Array.from({ length: lanes }, (_, i) => i + 1).map((lane) => (
-          <section key={lane} aria-label={`Lane ${lane}`}>
-            <p className="m-0 text-[13px] font-semibold leading-snug text-white/80">
-              {laneRule(lanes, lane)}
-            </p>
-            <ul className="m-0 mt-1.5 grid list-none gap-1.5 p-0">
-              {cars
-                .filter((car) => car.lane === lane)
-                .map((car) => (
-                  <li key={car.id}>{carRow(car, false)}</li>
-                ))}
-            </ul>
-          </section>
-        ))}
+        {(only ?? Array.from({ length: lanes }, (_, i) => i + 1)).map(
+          (lane) => (
+            <section key={lane} aria-label={`Lane ${lane}`}>
+              <p className="m-0 text-[13px] font-semibold leading-snug text-white/80">
+                {laneRule(lanes, lane)}
+              </p>
+              <ul className="m-0 mt-1.5 grid list-none gap-1.5 p-0">
+                {cars
+                  .filter((car) => car.lane === lane)
+                  .map((car) => (
+                    <li key={car.id}>{carRow(car, false)}</li>
+                  ))}
+              </ul>
+            </section>
+          ),
+        )}
       </Fold>
 
       {allHome ? <LevelNext level={level} /> : done && <SkipOn level={level} />}

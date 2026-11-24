@@ -119,8 +119,17 @@ function lineModels(
   return { models, between };
 }
 
-/** Every car of the lesson on one road, kerb lane first, front car first. */
-export function queueCars(arm: ArmId): QueueCar[] {
+/**
+ * Every car of the lesson on one road, kerb lane first, front car first. With
+ * `only`, the cars of those lanes alone (a level that covers part of the
+ * road), each where it stands in the whole line-up.
+ */
+export function queueCars(arm: ArmId, only?: readonly number[]): QueueCar[] {
+  const all = allQueueCars(arm);
+  return only ? all.filter((car) => only.includes(car.lane)) : all;
+}
+
+function allQueueCars(arm: ArmId): QueueCar[] {
   const cached = cache.get(arm);
   if (cached) return cached;
   const cars: QueueCar[] = [];
