@@ -16,6 +16,7 @@ import { SPONSORS, sponsorById } from "~/lib/board/sponsors";
 import { cn } from "~/lib/utils";
 
 import { Button } from "~/components/ui/button";
+import { Checkbox } from "~/components/ui/checkbox";
 import {
   SponsorCredit,
   SponsorReadyCard,
@@ -181,10 +182,9 @@ export default function SponsorTool() {
             note="The school's art on this car's wrap template. Turn on the template to see where the bodywork, glass and the safe boxes for lettering fall."
           >
             <label className="mb-2 flex items-center gap-2 text-[14px]">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={overlay}
-                onChange={(e) => setOverlay(e.target.checked)}
+                onCheckedChange={(v) => setOverlay(v === true)}
               />
               Show the template over it
             </label>
@@ -229,18 +229,16 @@ export default function SponsorTool() {
             </div>
             <div className="mb-3 flex flex-wrap gap-x-5 gap-y-1 text-[14px]">
               <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={roll}
-                  onChange={(e) => setRoll(e.target.checked)}
+                  onCheckedChange={(v) => setRoll(v === true)}
                 />
                 Turn the wheels
               </label>
               <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={steer}
-                  onChange={(e) => setSteer(e.target.checked)}
+                  onCheckedChange={(v) => setSteer(v === true)}
                 />
                 Steer left and right
               </label>

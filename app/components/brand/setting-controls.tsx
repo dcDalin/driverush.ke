@@ -15,6 +15,7 @@ import {
 } from "~/components/ui/select";
 import { Slider } from "~/components/ui/slider";
 import { Switch } from "~/components/ui/switch";
+import { Toggle } from "~/components/ui/toggle";
 
 /**
  * Shared brutalist settings widgets — used by `/tools/image-coords`'s playback
@@ -277,21 +278,19 @@ export function ChipToggle({
   children: React.ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      aria-pressed={active}
+    <Toggle
+      variant="outline"
+      size="sm"
+      pressed={active}
       disabled={disabled}
-      onClick={onToggle}
+      onPressedChange={onToggle}
       className={cn(
-        "border border-line px-2.5 py-1 font-sans text-[10.5px] font-semibold uppercase tracking-wider outline-none transition-colors rounded-lg",
-        "focus-visible:shadow-stamp-rush",
-        "disabled:pointer-events-none disabled:opacity-40",
-        active
-          ? "bg-ink text-paper"
-          : "bg-surface text-ink-3 hover:bg-paper-3 hover:text-ink",
+        "h-auto min-w-0 rounded-lg px-2.5 py-1 text-[10.5px] uppercase tracking-wider",
+        "text-ink-3 hover:bg-paper-3 hover:text-ink data-[state=on]:hover:bg-ink data-[state=on]:hover:text-paper",
+        "disabled:opacity-40",
       )}
     >
       {children}
-    </button>
+    </Toggle>
   );
 }

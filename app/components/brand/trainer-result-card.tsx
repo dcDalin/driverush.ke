@@ -29,6 +29,7 @@ import {
 import { Button } from "~/components/ui/button";
 import { Progress } from "~/components/ui/progress";
 import { CelebrationConfetti } from "~/components/brand/celebration-confetti";
+import { ConfirmAction } from "~/components/brand/confirm-action";
 import { ShareButton } from "~/components/brand/share-button";
 import { RoundDoneScene } from "~/components/brand/art/scenes";
 
@@ -244,23 +245,21 @@ export function TrainerResultCard({
                 </p>
               )}
               {allKnown && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    // It wipes everything learned, so it asks first.
-                    if (
-                      window.confirm(
-                        "Reset your progress? Everything marked as known starts again.",
-                      )
-                    ) {
-                      onResetMastery();
-                    }
-                  }}
-                  className="mt-2 inline-flex items-center gap-1.5 font-sans text-[10px] uppercase tracking-wider text-ink-3 outline-none hover:text-ink focus-visible:text-ink font-medium"
+                // It wipes everything learned, so it asks first.
+                <ConfirmAction
+                  title="Reset your progress?"
+                  description="Everything marked as known starts again."
+                  confirm="Reset"
+                  onConfirm={onResetMastery}
                 >
-                  <Icon icon={RefreshIcon} size={11} />
-                  Reset progress
-                </button>
+                  <button
+                    type="button"
+                    className="mt-2 inline-flex items-center gap-1.5 font-sans text-[10px] uppercase tracking-wider text-ink-3 outline-none hover:text-ink focus-visible:text-ink font-medium"
+                  >
+                    <Icon icon={RefreshIcon} size={11} />
+                    Reset progress
+                  </button>
+                </ConfirmAction>
               )}
             </motion.div>
           )}
