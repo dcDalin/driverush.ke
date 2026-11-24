@@ -475,6 +475,12 @@ function SlidesLevel({
   );
 }
 
+/** "lane 4", "lanes 1 and 2", "lanes 1, 2 and 3". */
+function laneList(lanes: readonly number[]): string {
+  if (lanes.length === 1) return `lane ${lanes[0]}`;
+  return `lanes ${lanes.slice(0, -1).join(", ")} and ${lanes[lanes.length - 1]}`;
+}
+
 // ---- the lanes of one road --------------------------------------------------------------
 
 /**
@@ -675,8 +681,7 @@ function LanesLevel({
           </strong>
           : the number of options in each lane, counted from the kerb. There is
           one car for each option.
-          {only &&
-            ` This level has the cars of ${only.length === 1 ? `lane ${only[0]}` : `lanes ${only.join(" and ")}`}.`}
+          {only && ` This level has the cars of ${laneList(only)}.`}
         </p>
         {(only ?? Array.from({ length: lanes }, (_, i) => i + 1)).map(
           (lane) => (

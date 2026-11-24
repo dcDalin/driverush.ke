@@ -28,7 +28,7 @@ export type BoardTopic = {
 
 export const BOARD_TOPICS: readonly BoardTopic[] = [
   { id: "board", title: "The board and its roads", level: "roads" },
-  { id: "lanes", title: "Lanes", level: "four-lane" },
+  { id: "lanes", title: "Lanes", level: "four-lane-1-3" },
   { id: "roundabout", title: "The roundabout", level: "roundabout-rules" },
   { id: "routes", title: "Routes", level: "route-rules" },
   { id: "signs", title: "Signs on the board", level: "stops" },

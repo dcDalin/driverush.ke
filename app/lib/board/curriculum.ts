@@ -174,12 +174,26 @@ const UNIT_DEFS: readonly {
         { feature: "lane-numbers" },
         { feature: "lane-arrows" },
       ]),
+      // Split like the three-lane road below (owner, 2026-11-24): the outer
+      // lanes, then the innermost lane on its own, where the U-turn, the
+      // Q-turn and the full circle are.
       {
         kind: "lanes",
-        id: "four-lane",
-        title: "The four-lane road: 2124",
+        id: "four-lane-1-3",
+        title: "The four-lane road: lanes 1 to 3",
         difficulty: "Easy",
         arm: "S",
+        lanes: [1, 2, 3],
+        formerly: "four-lane",
+      },
+      {
+        kind: "lanes",
+        id: "four-lane-4",
+        title: "The four-lane road: lane 4",
+        difficulty: "Medium",
+        arm: "S",
+        lanes: [4],
+        formerly: "four-lane",
       },
       // One level of eight cars lost most of the learners who started it
       // (PostHog, 2026-11-24: 6 of 15 finished; those who stopped had driven

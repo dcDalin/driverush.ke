@@ -18,7 +18,7 @@ import { MDX } from "~/components/brand/mdx-components";
 type Road = "S" | "W";
 
 const ROADS: Record<Road, { name: string; code: string; level: string }> = {
-  S: { name: "four-lane road", code: "2124", level: "four-lane" },
+  S: { name: "four-lane road", code: "2124", level: "four-lane-1-3" },
   // Its options are taught in two levels; the guide links the first.
   W: { name: "three-lane road", code: "215", level: "three-lane-1-2" },
 };

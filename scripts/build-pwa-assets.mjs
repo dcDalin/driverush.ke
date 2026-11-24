@@ -50,7 +50,7 @@ const SHOTS = [
   // school in each picture, so none is favoured (`?sponsor=` pins one).
   {
     file: "screen-drive",
-    url: "/model-town-board/play?level=four-lane&sponsor=topgear",
+    url: "/model-town-board/play?level=four-lane-1-3&sponsor=topgear",
     width: 540,
     height: 960,
     scale: 2,
@@ -59,7 +59,7 @@ const SHOTS = [
   },
   {
     file: "screen-drive-wide",
-    url: "/model-town-board/play?level=four-lane&sponsor=aa",
+    url: "/model-town-board/play?level=four-lane-1-3&sponsor=aa",
     width: 1280,
     height: 720,
     scale: 1.5,

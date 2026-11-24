@@ -51,10 +51,23 @@ describe("lane options levels", () => {
     for (const l of lanesLevels.filter((one) => one.arm === "W")) {
       expect(levelDone(l, saved), l.id).toBe(true);
     }
-    expect(levelDone(levelById("four-lane")!, saved)).toBe(false);
+    expect(levelDone(levelById("four-lane-1-3")!, saved)).toBe(false);
+    const fourLane = { learned: ["lv:four-lane"], bestStars: {} };
+    for (const l of lanesLevels.filter((one) => one.arm === "S")) {
+      expect(levelDone(l, fourLane), l.id).toBe(true);
+    }
+  });
+
+  it("split the four-lane road: lanes 1 to 3, then lane 4", () => {
+    const parts = lanesLevels.filter((l) => l.arm === "S");
+    expect(parts.map((l) => l.lanes)).toEqual([[1, 2, 3], [4]]);
+    expect(parts[1].n).toBe(parts[0].n + 1);
+    expect(queueCars("S", parts[0].lanes)).toHaveLength(5);
+    expect(queueCars("S", parts[1].lanes)).toHaveLength(4);
   });
 
   it("open the first part from an old link to the whole road", () => {
     expect(levelById("three-lane")?.id).toBe("three-lane-1-2");
+    expect(levelById("four-lane")?.id).toBe("four-lane-1-3");
   });
 });

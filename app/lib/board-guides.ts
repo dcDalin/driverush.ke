@@ -18,7 +18,7 @@ export const BOARD_PLAY_PATH = `${BOARD_PATH}/play`;
  * or carries on the course; this is where a learner jumps to any level.
  */
 export const BOARD_LEVELS_PATH = `${BOARD_PATH}/levels`;
-export const BOARD_LEVELS_TITLE = "All 53 Model Town Board levels";
+export const BOARD_LEVELS_TITLE = "All 54 Model Town Board levels";
 export const BOARD_LEVELS_DESCRIPTION =
   "Every level of the Model Town Board course, with a picture of each: lanes, the roundabout, routes, blocked roads and parking. Free, every level open.";
 /** The game opened on one level of the course. */
