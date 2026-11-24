@@ -1,5 +1,9 @@
 import { Link } from "react-router";
 import { Accordion, AccordionItem } from "~/components/brand/accordion";
+import {
+  BoardSchools,
+  boardSchoolNames,
+} from "~/components/board/sponsor-credit";
 
 You can't skip this step: NTSA's [Provisional Driving Licence page](https://ntsa.go.ke/services/service/provisional-driving-licence-pdl) says a learner is required to enrol at a licensed driving school. This guide covers what schools charge, how to check that one is licensed, and what to ask before you pay.
 
@@ -53,6 +57,14 @@ Your school teaches you to drive. The [NTSA test](/ntsa-test) also expects you t
 
 All of these are free, with no signup, and work alongside your school, not instead of it.
 
+## Driving schools on our Model Town Board
+
+The learner cars on our [Model Town Board](/model-town-board) wear the colours of real Kenyan driving schools: {boardSchoolNames()}. Each school's paint is copied from its own cars. These schools sponsor the board, which keeps it free with no ads. Tap a logo to visit the school's site.
+
+<BoardSchools place="guide" onInk={false} className="not-prose my-5" />
+
+Being on the board isn't a ranking or a review, and it isn't how a school gets into the price table above: that still needs a price on the school's own page. Ask these schools the same questions as any other, starting with their NTSA licence.
+
 ## Common questions about driving schools in Kenya
 
 <Accordion className="my-6">
@@ -78,9 +90,9 @@ All of these are free, with no signup, and work alongside your school, not inste
     classes](/blogs/class-b-c-d-licence-kenya).
   </AccordionItem>
   <AccordionItem summary="Is there a list of driving schools in Nairobi?">
-    Not here yet. We only list schools we can confirm. AA Kenya has branches
-    across major towns, and NTSA can confirm whether a school near you is
-    licensed.
+    Not a full one. We only list prices we can confirm, and the schools on our
+    Model Town Board are named above. AA Kenya has branches across major towns,
+    and NTSA can confirm whether a school near you is licensed.
   </AccordionItem>
 </Accordion>
 

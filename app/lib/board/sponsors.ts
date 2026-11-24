@@ -392,4 +392,6 @@ export type SponsorPlace =
   /** The site footer's row of schools on the board. */
   | "footer"
   /** The About page's section on the schools. */
-  | "about";
+  | "about"
+  /** The driving schools guide's section on the schools. */
+  | "guide";

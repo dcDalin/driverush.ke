@@ -126,7 +126,8 @@ export function boardSchoolNames(): string {
 }
 
 /**
- * Every live school on the board, for the site footer and the About page:
+ * Every live school on the board, for the site footer, the About page and
+ * the driving schools guide:
  * their logos on white tiles, each a link to the school's site when it has
  * one. The cars on the board wear these schools' colours, so the site says
  * whose they are.
@@ -137,7 +138,7 @@ export function BoardSchools({
   className,
 }: {
   /** Where the row is, for `sponsor_link_clicked`. */
-  place?: Extract<SponsorPlace, "footer" | "about">;
+  place?: Extract<SponsorPlace, "footer" | "about" | "guide">;
   /** On the ink footer the tile's edge takes the footer's ink. */
   onInk?: boolean;
   className?: string;
