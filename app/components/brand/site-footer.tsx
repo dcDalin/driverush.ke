@@ -7,7 +7,7 @@ import { Icon } from "~/components/brand/icon";
 import { PhoneIcon, MailIcon } from "~/components/brand/icons";
 
 import { analytics } from "~/lib/analytics";
-import { SIGN_BRAND, SIGN_SOURCE } from "~/lib/sign-credits";
+import { SIGN_SOURCE } from "~/lib/sign-credits";
 import {
   BOARD_GUIDES,
   BOARD_PATH,
@@ -135,9 +135,6 @@ export function SiteFooter() {
 
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-paper/20 py-5">
           <SignCredit size="sm" onInk />
-          <span className="font-sans text-[10.5px] uppercase tracking-wider opacity-70 font-medium">
-            {SIGN_BRAND.name} name and logo used with permission
-          </span>
           <span className="font-sans text-[10.5px] uppercase tracking-wider opacity-70 font-medium">
             Based on the{" "}
             <a

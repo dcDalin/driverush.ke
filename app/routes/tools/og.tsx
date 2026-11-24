@@ -569,9 +569,8 @@ function PrintableChart() {
         className="mt-2 block h-auto w-full"
       />
       <p className="m-0 mt-1 text-[8px] text-[#5b6068]">
-        Free from DriveRush (driverush.ke). {SIGN_BRAND.name} name and logo used
-        with permission. Not affiliated with the NTSA. Practise the signs free
-        at driverush.ke/road-signs.
+        Free from DriveRush (driverush.ke). Not affiliated with the NTSA.
+        Practise the signs free at driverush.ke/road-signs.
       </p>
     </div>
   );
