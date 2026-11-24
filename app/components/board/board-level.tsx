@@ -47,6 +47,7 @@ import { cn } from "~/lib/utils";
 import { LevelCheer } from "~/components/board/board-cheer";
 import { useOpenLevels } from "~/components/board/levels-sheet-context";
 import { LevelTestNote } from "~/components/board/level-test-note";
+import { DailyDriveLink } from "~/components/board/daily-drive-row";
 import { BoardSpotPicks } from "~/components/board/board-spot-picks";
 import { Icon } from "~/components/brand/icon";
 import {
@@ -200,6 +201,7 @@ function LevelDone({
       <DoneNote>{children}</DoneNote>
       <LevelCheer level={level} />
       <LevelTestNote levelId={level.id} surface="level_done" />
+      <DailyDriveLink surface="level_done" />
     </div>
   );
 }

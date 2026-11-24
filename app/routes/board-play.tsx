@@ -13,9 +13,11 @@ import * as React from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import type { Route } from "./+types/board-play";
 
+import { analytics } from "~/lib/analytics";
 import { BOARD_PATH } from "~/lib/board-guides";
 import { challengeById } from "~/lib/board/challenges";
 import { useBoardStore } from "~/lib/board-store";
+import { isDailyDrive, kenyaDay } from "~/lib/daily-drive";
 import {
   enterPlay,
   schoolHeld,
@@ -89,6 +91,9 @@ export default function BoardPlay() {
   const learn = params.get("learn") === "1";
   const task = params.get("task");
   const level = params.get("level");
+  // Today's drive (`daily-drive.ts`): only today's task, opened as such. An
+  // old daily link opened another day is an ordinary drive of that task.
+  const daily = isDailyDrive(task, params.get("daily"), kenyaDay(Date.now()));
   /** The game is being shut by this page itself: to change level, or to go. */
   const swapping = React.useRef(false);
 
@@ -99,13 +104,14 @@ export default function BoardPlay() {
       else if (learn) store.learn();
       // A task that doesn't exist (an old or mistyped link) is a round.
       else store.start(task && challengeById(task) ? [task] : undefined);
+      if (daily && task) analytics.dailyDriveStarted({ challenge_id: task });
     }
     return () => {
       swapping.current = true;
       useBoardStore.getState().exit();
       swapping.current = false;
     };
-  }, [learn, task, level]);
+  }, [learn, task, level, daily]);
 
   // Close takes the learner back to the page they opened the game from. The
   // store is listened to directly, not read from a render: moving from one

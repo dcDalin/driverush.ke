@@ -502,6 +502,29 @@ export const analytics = {
     days_until: number;
   }) => emit("test_reminder_added", args),
 
+  // ----- today's drive (one task a day, the same for everyone) -----
+
+  /** A "Today's drive" row or link was tapped. */
+  dailyDriveOpened: (args: {
+    challenge_id: string;
+    surface: "home" | "course_page" | "level_done" | "level_passed";
+    /** It had already been passed today. */
+    done_today: boolean;
+  }) => emit("daily_drive_opened", args),
+
+  /** The game opened on today's drive. */
+  dailyDriveStarted: (args: { challenge_id: string }) =>
+    emit("daily_drive_started", args),
+
+  /** Today's drive was passed. `streak_days` counts today. */
+  dailyDrivePassed: (args: {
+    challenge_id: string;
+    clean: boolean;
+    stars: number;
+    tries: number;
+    streak_days: number;
+  }) => emit("daily_drive_passed", args),
+
   /** The learner said how their NTSA test went. */
   testResultReported: (args: {
     result: "passed" | "failed" | "not_yet";

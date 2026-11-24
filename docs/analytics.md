@@ -175,6 +175,24 @@ link or an .ics file.
 | `test_result_reported` | How the test went                        | `result` (`passed`, `failed`, `not_yet`), `days_after_test`, `levels_done`, `readiness`, `mock_best_clean` |
 | `test_card_dismissed`  | "Not now" (PostHog only)                 | `stage`                                                                   |
 
+### Today's drive
+
+One driving task a day, the same for every learner in Kenya (`daily-drive.ts`:
+the day is Nairobi's, the tasks come round in a fixed shuffled order, every
+one before any repeats). It opens as `/model-town-board/play?task=<id>&daily=1`
+from a row under the home page's Continue button and under the Board page's
+course card (`daily-drive-row.tsx`), and from a quiet link at the end of a
+level while it is still to do. Its pass card says "Today's drive is done. Day
+N in a row. See you tomorrow." and leads on to the course. Any practice keeps
+the streak (`practice-streak.ts`), as before; today's drive is the quickest.
+A daily link opened on another day is an ordinary drive of that task.
+
+| Event                | Fires when                                  | Key properties                                                                 |
+| -------------------- | ------------------------------------------- | ------------------------------------------------------------------------------ |
+| `daily_drive_opened` | A "Today's drive" row or link is tapped     | `challenge_id`, `surface` (`home`, `course_page`, `level_done`, `level_passed`), `done_today` |
+| `daily_drive_started`| The game opens on today's drive             | `challenge_id`                                                                 |
+| `daily_drive_passed` | Today's drive is passed                     | `challenge_id`, `clean`, `stars`, `tries`, `streak_days` (counting today)      |
+
 `board_faulted` broken down by `rule` is the "which rules trip people up"
 report; `board_level_started` → `board_level_completed` by `number` shows the
 level where the course loses people.

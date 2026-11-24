@@ -42,6 +42,7 @@ import { CourseLabel } from "~/components/board/course-label";
 import { Icon } from "~/components/brand/icon";
 import { InstallNudge } from "~/components/brand/install-nudge";
 import { TestCard } from "~/components/board/test-card";
+import { DailyDriveRow } from "~/components/board/daily-drive-row";
 import {
   CheckIcon,
   ChevronRightIcon,
@@ -198,6 +199,10 @@ export function BoardLevels({ className }: { className?: string }) {
           )}
         </div>
       </div>
+
+      {/* Today's drive: one task a day, the same for everyone, and the
+          streak it keeps. */}
+      <DailyDriveRow surface="course_page" />
 
       {/* After a finished level, not before: a first visit is not asked for
           anything. */}

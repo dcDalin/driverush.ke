@@ -6,7 +6,7 @@
  */
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { useShallow } from "zustand/react/shallow";
 
 import {
@@ -65,6 +65,8 @@ import {
 } from "~/lib/board-store";
 import { analytics } from "~/lib/analytics";
 import { levelHref } from "~/lib/board-guides";
+import { isDailyDrive, kenyaDay, recordDailyPass } from "~/lib/daily-drive";
+import { liveStreak, readPracticeStreak } from "~/lib/practice-streak";
 import { COURSE_LEVELS, levelAfter, levelById } from "~/lib/board/curriculum";
 import { signCounts } from "~/lib/pelican-progress";
 import { cn } from "~/lib/utils";
@@ -74,6 +76,7 @@ import { useParkingLayout } from "~/components/board/use-parking-layout";
 import { Icon } from "~/components/brand/icon";
 import { ShareButton } from "~/components/brand/share-button";
 import {
+  CheckIcon,
   ChevronLeftIcon,
   CloseIcon,
   GridIcon,
@@ -92,6 +95,8 @@ import {
 import { BoardCarPicks } from "~/components/board/board-car-picks";
 import { BoardControls } from "~/components/board/board-controls";
 import { LevelTestNote } from "~/components/board/level-test-note";
+import { DailyDriveLink } from "~/components/board/daily-drive-row";
+import { useCourseStart } from "~/components/board/use-course-start";
 import { BoardFaultTip } from "~/components/board/board-fault-tip";
 import { BoardFinishCue } from "~/components/board/board-finish-cue";
 import { BoardFps } from "~/components/board/board-fps";
@@ -929,6 +934,38 @@ export function BoardGame() {
     challenge != null && isRouteTask(challenge) && challenge.reverse;
   const last = s.pos >= s.queue.length - 1;
 
+  // Today's drive (`daily-drive.ts`): the one task opened with `&daily=1` on
+  // its own day. Its pass is the day's practice done: it is kept, counted,
+  // and the pass card says the streak and "See you tomorrow".
+  const [params] = useSearchParams();
+  const daily =
+    !level &&
+    challenge != null &&
+    isDailyDrive(challenge.id, params.get("daily"), kenyaDay(Date.now()));
+  const course = useCourseStart();
+  const [dailyStreak, setDailyStreak] = React.useState(0);
+  const dailyPass =
+    daily && s.phase === "passed" && challenge
+      ? `${challenge.id}:${s.attempt}`
+      : null;
+  React.useEffect(() => {
+    if (!dailyPass || !challenge) return;
+    const clean = s.taskFaults === 0 && !s.hinted;
+    recordDailyPass(challenge.id, clean);
+    // The store has counted today by now (`bumpPracticeStreak` on a pass).
+    const streak = liveStreak(readPracticeStreak()).days;
+    setDailyStreak(streak);
+    analytics.dailyDrivePassed({
+      challenge_id: challenge.id,
+      clean,
+      stars: s.lastStars,
+      tries: s.tries,
+      streak_days: streak,
+    });
+    // Once a pass: the key changes with every attempt.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dailyPass]);
+
   // Lock the page behind the overlay, and give the keyboard its shortcuts.
   React.useEffect(() => {
     if (!s.overlayOpen) return;
@@ -1546,13 +1583,28 @@ export function BoardGame() {
                   ? `Passed on try ${s.tries}.`
                   : challenge.title}
           </h2>
+          {daily && (
+            <p
+              role="status"
+              className="m-0 flex items-center gap-2 text-[14.5px] font-bold leading-snug text-ink"
+            >
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-kenya-green text-kenya-green-foreground">
+                <Icon icon={CheckIcon} size={14} />
+              </span>
+              Today's drive is done.{" "}
+              {dailyStreak > 1
+                ? `Day ${dailyStreak} in a row.`
+                : "Day 1 of your streak."}{" "}
+              See you tomorrow.
+            </p>
+          )}
           <p className="m-0 text-[13.5px] leading-snug text-ink-2">
             {warmup
               ? "Push to go, let go to stop. That is all the control there is. Now learn the board you will drive on."
               : s.taskFaults > 0
-                ? `You got there with ${s.taskFaults} ${s.taskFaults === 1 ? "mistake" : "mistakes"}. ${level ? "Drive it again for all three stars, or carry on." : "It will come back in a later round."}`
+                ? `You got there with ${s.taskFaults} ${s.taskFaults === 1 ? "mistake" : "mistakes"}. ${level || daily ? "Drive it again for all three stars, or carry on." : "It will come back in a later round."}`
                 : s.hinted
-                  ? level
+                  ? level || daily
                     ? "You got there with help. Try it again on your own, or carry on."
                     : "You got there with help. It will come back in a later round, to do on your own."
                   : taskParks(challenge)
@@ -1603,6 +1655,9 @@ export function BoardGame() {
               onDark={false}
             />
           )}
+          {level && !warmup && (
+            <DailyDriveLink surface="level_passed" onDark={false} />
+          )}
           {/* Wraps on a phone: Share drops to its own full-width row. */}
           <div className="flex flex-wrap gap-2">
             {level ? (
@@ -1625,6 +1680,13 @@ export function BoardGame() {
                   All levels
                 </Button>
               </>
+            ) : daily ? (
+              // The day's drive is done: on with the course.
+              <Button asChild variant="rush" size="lg" className="flex-1">
+                <Link to={course.href} replace autoFocus>
+                  {course.label}
+                </Link>
+              </Button>
             ) : (
               <Button
                 variant="rush"
