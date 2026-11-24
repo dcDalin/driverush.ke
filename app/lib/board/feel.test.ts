@@ -150,12 +150,18 @@ describe("a car wedged on a kerb", () => {
     // Then the thumb asks for the road again, without ever letting go.
     input.steer = 1;
     let fastest = 0;
+    let freed = false;
     for (let i = 0; i < 5 / STEP; i += 1) {
       physicsStep(physics, state, input);
       fastest = Math.max(fastest, state.speed);
+      // Pointing up the road again and rolling. Full lock is held all along,
+      // so after that it carries on round: when it was free is what counts.
+      if (Math.abs(wrapPi(state.heading)) < 15 * DEG && state.speed > 1) {
+        freed = true;
+      }
     }
-    // Within a few seconds it is pointing up the road again and rolling.
-    expect(Math.abs(wrapPi(state.heading))).toBeLessThan(60 * DEG);
+    // Within a few seconds.
+    expect(freed).toBe(true);
     expect(fastest).toBeGreaterThan(2);
   });
 

@@ -5,7 +5,7 @@
  * goes through React.
  */
 import type { CarInput, CarState } from "./car";
-import type { BoardCarId } from "./cars";
+import { sizeOf, type BoardCarId } from "./cars";
 import { isRouteTask, type BoardChallenge } from "./challenges";
 import { challengeRoute, taskParks, taskStart } from "./lessons";
 import { bearingOf, wrapPi } from "./geometry";
@@ -55,6 +55,14 @@ let vehicle: BoardCarId = "saloon";
 export function setVehicle(id: BoardCarId) {
   if (id === vehicle) return;
   vehicle = id;
+  // Still on the start line: stand where this vehicle fits on the board.
+  if (challenge && driving && !moved && snaps.length === 1) {
+    Object.assign(car, taskStart(challenge, sizeOf(vehicle)));
+    snaps[0].car = { ...car };
+    trail.length = 0;
+    trail.push({ x: car.x, z: car.z });
+    settle();
+  }
   if (engine && physics && challenge) {
     physics = engine.createPhysics(challenge, car, vehicle);
     view.others = physics.poses;
@@ -207,7 +215,7 @@ export function resetInput(): void {
 
 /** Put the car on its start line and hand control to the learner. */
 export function beginChallenge(next: BoardChallenge, cb: Callbacks): void {
-  const start = taskStart(next);
+  const start = taskStart(next, sizeOf(vehicle));
   car.x = start.x;
   car.z = start.z;
   car.heading = start.heading;

@@ -4,8 +4,9 @@
  * parking, and the right way through each driving task.
  */
 import { blockById, closedEdges } from "./blocks";
+import { CAR } from "./car";
 import { isRouteTask, type BoardChallenge } from "./challenges";
-import { goalBox, type Box } from "./full-board";
+import { goalBox, startOnBoard, type Box } from "./full-board";
 import {
   ARMS,
   armForTurn,
@@ -569,7 +570,20 @@ export function taskUsesAngleBay(challenge: BoardChallenge): boolean {
 }
 
 /** Where a task's car starts, and the way it faces. */
-export function taskStart(challenge: BoardChallenge): {
+export function taskStart(
+  challenge: BoardChallenge,
+  /** The vehicle's size: a long one is set further in, clear of the frame. */
+  size: { length: number; width: number } = CAR,
+): {
+  x: number;
+  z: number;
+  heading: number;
+} {
+  return startOnBoard(placedStart(challenge), size.length, size.width);
+}
+
+/** Where a task starts, by the middle of a car. */
+function placedStart(challenge: BoardChallenge): {
   x: number;
   z: number;
   heading: number;

@@ -14,7 +14,14 @@ import Matter from "matter-js";
 import { CAR, type CarInput, type CarState } from "./car";
 import { modelBeside, sizeOf, type BoardCarId, type CarSize } from "./cars";
 import type { BoardChallenge } from "./challenges";
-import { BOUNDS, kerbSegments, onTarmac, reserves } from "./full-board";
+import {
+  BOUNDS,
+  carCorners,
+  frameShift,
+  kerbSegments,
+  onTarmac,
+  reserves,
+} from "./full-board";
 import { ISLAND_R } from "./geometry";
 
 const { Bodies, Body, Composite, Engine, Events } = Matter;
@@ -40,6 +47,8 @@ const BACKOFF_TIME = 0.4;
 const BACKOFF_SPEED = 0.9;
 /** Kerbs are drawn thin but stop the car like a wall this thick. */
 const KERB_DEPTH = 2;
+/** A car's corner this close to the frame is up against it. */
+const FRAME_NEAR = 0.02;
 
 /** What the learner's car has just touched. */
 export type Contact =
@@ -58,6 +67,9 @@ export type Physics = {
   player: Matter.Body;
   /** The driven vehicle's wheelbase: a long one turns in a wider circle. */
   wheelbase: number;
+  /** Its length and width, square-cornered, as it is drawn. */
+  length: number;
+  width: number;
   others: Matter.Body[];
   /** Where the other cars are now. Read by the scene. */
   poses: OtherPose[];
@@ -76,6 +88,13 @@ export type Physics = {
   touching: boolean;
   /** Time left backing off a kerb it was wedged on. */
   backoff: number;
+  /**
+   * Which way out of each wall the car is against, as unit vectors pointing
+   * from the wall towards the car. The engine never pushes it further in.
+   */
+  walls: { x: number; z: number }[];
+  /** The car is up against the frame, by its drawn corners. */
+  atFrame: boolean;
 };
 
 function carBody(
@@ -185,6 +204,8 @@ export function createPhysics(
     engine,
     player,
     wheelbase: size.wheelbase,
+    length: size.length,
+    width: size.width,
     others,
     poses: challenge.otherCars.map(({ x, z, heading }) => ({ x, z, heading })),
     contacts: [],
@@ -196,6 +217,8 @@ export function createPhysics(
     stalled: 0,
     touching: false,
     backoff: 0,
+    walls: [],
+    atFrame: false,
   };
 
   Events.on(engine, "collisionActive", (event) => {
@@ -300,12 +323,106 @@ function driveCar(physics: Physics, input: CarInput): void {
   physics.touching = false;
   const yaw = (rolling / physics.wheelbase) * Math.tan(physics.steer);
 
+  // Against a wall, the engine's push into it is dropped and only the slide
+  // along it is kept. Driving at it again and again otherwise sinks the car
+  // into the kerb or the frame a little further each step.
+  let moveX = sin * forward + cos * across;
+  let moveZ = -cos * forward + sin * across;
+  for (const out of physics.walls) {
+    const into = moveX * out.x + moveZ * out.z;
+    if (into < 0) {
+      moveX -= into * out.x;
+      moveZ -= into * out.z;
+    }
+  }
   // Matter measures speed per step, not per second.
   Body.setVelocity(player, {
-    x: ((sin * forward + cos * across) * SCALE) / 60,
-    y: ((-cos * forward + sin * across) * SCALE) / 60,
+    x: (moveX * SCALE) / 60,
+    y: (moveZ * SCALE) / 60,
   });
   Body.setAngularVelocity(player, yaw / 60);
+}
+
+/** The corners of the car as it is drawn: square, where its body is rounded. */
+function drawnCorners(physics: Physics) {
+  const { player } = physics;
+  return carCorners(
+    {
+      x: player.position.x / SCALE,
+      z: player.position.y / SCALE,
+      heading: player.angle,
+    },
+    physics.length,
+    physics.width,
+  );
+}
+
+/**
+ * The frame is solid wood: no part of the car is ever drawn inside it. The
+ * body has rounded corners and Matter lets it sink a little way into what it
+ * hits, so at an angle a square bumper would show buried in the wood. The car
+ * is set back against the frame's inner face by its drawn corners.
+ */
+function holdInFrame(physics: Physics): void {
+  const { player } = physics;
+  const shift = frameShift(drawnCorners(physics));
+  const into = shift.x !== 0 || shift.z !== 0;
+  if (into) {
+    // Arriving at the frame is a contact, as hitting it is, even when the
+    // rounded body never got into its wall.
+    if (!physics.atFrame && !physics.contacts.includes("end")) {
+      physics.contacts.push("end");
+      physics.impact = Math.min(
+        1,
+        Math.max(0.35, (Body.getSpeed(player) * 60) / SCALE / CAR.maxSpeed),
+      );
+    }
+    Body.setPosition(player, {
+      x: player.position.x + shift.x * SCALE,
+      y: player.position.y + shift.z * SCALE,
+    });
+    // Nor does it keep moving into the frame.
+    const velocity = { ...player.velocity };
+    if (shift.x * velocity.x < 0) velocity.x = 0;
+    if (shift.z * velocity.y < 0) velocity.y = 0;
+    Body.setVelocity(player, velocity);
+  }
+  const against = frameShift(drawnCorners(physics), FRAME_NEAR);
+  physics.atFrame = against.x !== 0 || against.z !== 0;
+  // Wedged nose first on the frame, it backs off as it would from a kerb.
+  if (physics.atFrame) physics.touching = true;
+}
+
+/** Every wall the car is against after this step, and which way is out. */
+function findWalls(physics: Physics): void {
+  const { player } = physics;
+  physics.walls.length = 0;
+  for (const pair of physics.engine.pairs.list) {
+    if (!pair.isActive) continue;
+    const other =
+      pair.bodyA === player
+        ? pair.bodyB
+        : pair.bodyB === player
+          ? pair.bodyA
+          : null;
+    if (!other?.isStatic) continue;
+    let { x, y } = pair.collision.normal;
+    // Turned to point from the wall towards the car.
+    if (
+      x * (player.position.x - other.position.x) +
+        y * (player.position.y - other.position.y) <
+      0
+    ) {
+      x = -x;
+      y = -y;
+    }
+    physics.walls.push({ x, z: y });
+  }
+  // The frame, which the car may have been set back against just now.
+  if (!physics.atFrame) return;
+  const out = frameShift(drawnCorners(physics), FRAME_NEAR);
+  if (out.x !== 0) physics.walls.push({ x: Math.sign(out.x), z: 0 });
+  if (out.z !== 0) physics.walls.push({ x: 0, z: Math.sign(out.z) });
 }
 
 /**
@@ -322,6 +439,8 @@ export function physicsStep(
   if (!physics.crashed) driveCar(physics, input);
 
   Engine.update(physics.engine, STEP_MS);
+  holdInFrame(physics);
+  findWalls(physics);
 
   physics.others.forEach((body, i) => {
     const pose = physics.poses[i];

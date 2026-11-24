@@ -48,6 +48,79 @@ export const SOLID_TO = RING_R + 12.5;
  */
 export const BOUNDS = { x0: -59.7, x1: 78.1, z0: -151.6, z1: 64.3 } as const;
 
+/** A vehicle set out on the board keeps its tail this far in from the frame. */
+export const FRAME_ROOM = 0.7;
+
+type Pose = { x: number; z: number; heading: number };
+
+/**
+ * How far a vehicle's footprint pokes past the frame, as the shift that would
+ * bring it back on the board: 0, 0 when all of it is on. `room` keeps it that
+ * much further in. Points come as x, z pairs: a footprint's corners.
+ */
+export function frameShift(
+  points: readonly { x: number; z: number }[],
+  room = 0,
+): { x: number; z: number } {
+  let x0 = Infinity;
+  let x1 = -Infinity;
+  let z0 = Infinity;
+  let z1 = -Infinity;
+  for (const p of points) {
+    x0 = Math.min(x0, p.x);
+    x1 = Math.max(x1, p.x);
+    z0 = Math.min(z0, p.z);
+    z1 = Math.max(z1, p.z);
+  }
+  return {
+    x:
+      Math.max(0, BOUNDS.x0 + room - x0) - Math.max(0, x1 - (BOUNDS.x1 - room)),
+    z:
+      Math.max(0, BOUNDS.z0 + room - z0) - Math.max(0, z1 - (BOUNDS.z1 - room)),
+  };
+}
+
+/** The four corners of a vehicle this long and wide standing at `pose`. */
+export function carCorners(
+  pose: Pose,
+  length: number,
+  width: number,
+): { x: number; z: number }[] {
+  const sin = Math.sin(pose.heading);
+  const cos = Math.cos(pose.heading);
+  const corners: { x: number; z: number }[] = [];
+  for (const along of [-length / 2, length / 2]) {
+    for (const across of [-width / 2, width / 2]) {
+      corners.push({
+        x: pose.x + sin * along + cos * across,
+        z: pose.z - cos * along + sin * across,
+      });
+    }
+  }
+  return corners;
+}
+
+/**
+ * A start pose moved forward along its heading until the whole vehicle stands
+ * on the board, `FRAME_ROOM` in from the frame. A start is placed by a car's
+ * middle, so a longer vehicle on the same spot would have its tail in the
+ * frame. A pose that already fits is given back as it is.
+ */
+export function startOnBoard<P extends Pose>(
+  pose: P,
+  length: number,
+  width: number,
+): P {
+  const sin = Math.sin(pose.heading);
+  const cos = Math.cos(pose.heading);
+  for (let ahead = 0; ahead <= 12; ahead += 0.05) {
+    const moved = { ...pose, x: pose.x + sin * ahead, z: pose.z - cos * ahead };
+    const shift = frameShift(carCorners(moved, length, width), FRAME_ROOM);
+    if (shift.x === 0 && shift.z === 0) return moved;
+  }
+  return pose;
+}
+
 /** Half-widths of the two roads through the roundabout. */
 const WIDE = RESERVE + 4 * LANE;
 const NARROW = 3 * LANE;
