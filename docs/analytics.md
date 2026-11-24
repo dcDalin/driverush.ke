@@ -149,17 +149,29 @@ before 21 Nov 2026 13:20 UTC have no `sponsor`.
 
 ### The NTSA test
 
-The course page (`board-levels.tsx`) shows a small card (`test-card.tsx`).
-After 3 finished levels it asks "When is your NTSA test?". From the day after
-that date it asks "How did it go?". The rules are in `test-date.ts`: "Not now",
-"Not booked yet" and "Not taken yet" each wait 14 days before asking again,
-and a passed or failed answer ends it. The answer is stored on the device under
-`driverush:test`. With a date set, the page also shows "Your NTSA test is in N
-days". The privacy page says the date and result go to analytics.
+A small card (`test-card.tsx`) asks for the test date on the course page
+(`board-levels.tsx`) and, once a visit, at the end of a level in the game
+(`level-test-note.tsx`, in place of the install nudge). After 3 finished
+levels it asks "When is your NTSA test?". From the day after that date it asks
+"How did it go?". The rules are in `test-date.ts`: "Not now", "Not booked yet"
+and "Not taken yet" each wait 14 days before asking again, and a passed or
+failed answer ends it. The answer is stored on the device under
+`driverush:test`. The privacy page says the date and result go to analytics.
+
+A date buys a plan (`test-plan.ts`, since 24 Nov 2026): the levels left spread
+over the days left, ready the day before, so many levels a day. It is said in
+one line (`planLine`) under the home button, on the course page (whose "Today"
+dots follow it) and at the end of every level: "Test in 12 days. 1 of 4 levels
+today.", then "Today's 4 are done. See you tomorrow." Saving a date offers a
+daily practice reminder in the learner's own calendar (`test-reminder.ts`):
+19:00 Nairobi, from tomorrow to the day before the test, as a Google Calendar
+link or an .ics file.
 
 | Event                  | Fires when                               | Key properties                                                            |
 | ---------------------- | ---------------------------------------- | ------------------------------------------------------------------------- |
-| `test_date_set`        | A date is saved, or "Not booked yet"     | `booked`, `days_until`                                                    |
+| `test_card_shown`      | The card asks its question (PostHog only) | `stage` (`date`, `result`), `surface` (`course_page`, `level_done`)      |
+| `test_date_set`        | A date is saved, or "Not booked yet"     | `booked`, `days_until`, `surface`                                         |
+| `test_reminder_added`  | A calendar link is tapped after saving   | `calendar` (`google`, `ics`), `days_until`                                |
 | `test_result_reported` | How the test went                        | `result` (`passed`, `failed`, `not_yet`), `days_after_test`, `levels_done`, `readiness`, `mock_best_clean` |
 | `test_card_dismissed`  | "Not now" (PostHog only)                 | `stage`                                                                   |
 
@@ -201,7 +213,7 @@ On mount, route change and tab focus, once past `visitor`, it writes:
 `board_levels_total`, `board_readiness` (0 to 100, the course page's figure),
 `board_mock_best_clean`, `practice_streak_days`, `learner_stage`,
 `test_date`, `test_days_left_bucket` (`none`, `past`, `0-7`, `8-30`, `31+`),
-`test_result`, and `first_seen_at` (set once). GA gets `test_booked` (`yes` or
+`test_per_day` (levels a day the plan asks for, 0 with none), `test_result`, and `first_seen_at` (set once). GA gets `test_booked` (`yes` or
 `no`) as a user property.
 
 `learner_stage` is also a **super property**, registered for _everyone_

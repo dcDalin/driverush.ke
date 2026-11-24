@@ -29,11 +29,11 @@ import {
 import { dayKey, usePracticeStreak } from "~/lib/practice-streak";
 import {
   cardStage,
-  daysLeft,
   today as todayKey,
   useTestRecord,
   type TestCardStage,
 } from "~/lib/test-date";
+import { planLine, testPlan } from "~/lib/test-plan";
 import { useCourseProgress } from "~/lib/use-course-progress";
 import { cn } from "~/lib/utils";
 
@@ -53,6 +53,8 @@ import { Button } from "~/components/ui/button";
 import { Progress } from "~/components/ui/progress";
 
 const TOTAL = COURSE_LEVELS.length;
+/** More levels today than this are said as "2 of 9", not drawn as dots. */
+const MAX_DOTS = 6;
 
 const quiet =
   "inline-flex min-h-11 items-center font-sans text-[14.5px] font-bold text-ink underline decoration-rush decoration-2 underline-offset-4 outline-none hover:text-rush focus-visible:text-rush";
@@ -82,7 +84,11 @@ export function BoardLevels({ className }: { className?: string }) {
   const [test, updateTest] = useTestRecord();
   const now = todayKey();
   const testStage = test && saved ? cardStage(test, done, now) : null;
-  const testIn = test ? daysLeft(test, now) : null;
+  // What the date buys: levels a day to be ready in time, and today's share.
+  const plan = test
+    ? testPlan(test, done, TOTAL, today, now)
+    : ({ kind: "none" } as const);
+  const goal = plan.kind === "levels" ? plan.perDay : DAILY_GOAL;
   // Once asked, the card stays for this visit, so its thanks can be read.
   const [testCard, setTestCard] = React.useState<TestCardStage | null>(null);
   React.useEffect(() => {
@@ -153,29 +159,36 @@ export function BoardLevels({ className }: { className?: string }) {
                 <dt className="font-mono text-[9.5px] font-bold uppercase tracking-widest text-ink-3">
                   Today
                 </dt>
-                <dd
-                  className="m-0 mt-1.5 flex items-center justify-center gap-1.5"
-                  aria-label={`${Math.min(today, DAILY_GOAL)} of ${DAILY_GOAL} levels today`}
-                >
-                  {Array.from({ length: DAILY_GOAL }, (_, i) => (
-                    <span
-                      key={i}
-                      aria-hidden
-                      className={cn(
-                        "size-3 rounded-full border border-ink/40",
-                        i < today ? "bg-kenya-green" : "bg-paper-2",
-                      )}
-                    />
-                  ))}
-                </dd>
+                {/* With a test date, today's share of the plan; more than
+                    a row of dots holds is said as a count. */}
+                {goal > MAX_DOTS ? (
+                  <dd className="m-0 mt-0.5 font-display text-[20px] font-extrabold leading-none tabular-nums text-ink">
+                    {Math.min(today, goal)}
+                    <span className="text-[13px] text-ink-3"> of {goal}</span>
+                  </dd>
+                ) : (
+                  <dd
+                    className="m-0 mt-1.5 flex items-center justify-center gap-1.5"
+                    aria-label={`${Math.min(today, goal)} of ${goal} levels today`}
+                  >
+                    {Array.from({ length: goal }, (_, i) => (
+                      <span
+                        key={i}
+                        aria-hidden
+                        className={cn(
+                          "size-3 rounded-full border border-ink/40",
+                          i < today ? "bg-kenya-green" : "bg-paper-2",
+                        )}
+                      />
+                    ))}
+                  </dd>
+                )}
               </div>
             </dl>
           )}
-          {saved && done > 0 && testIn != null && (
-            <p className="m-0 text-center text-[13.5px] font-semibold text-ink-2">
-              {testIn === 0
-                ? "Your NTSA test is today. Good luck!"
-                : `Your NTSA test is in ${testIn} ${testIn === 1 ? "day" : "days"}.`}
+          {saved && planLine(plan) && (
+            <p className="m-0 text-center text-[14px] font-bold text-ink">
+              {planLine(plan)}
             </p>
           )}
           {weakest && weakest.kind === "drive" && (
@@ -195,8 +208,10 @@ export function BoardLevels({ className }: { className?: string }) {
           record={test}
           update={updateTest}
           levelsDone={done}
+          doneToday={today}
           readiness={ready}
           mockBestClean={saved?.mockBest?.clean ?? 0}
+          surface="course_page"
         />
       ) : (
         done >= 1 && <InstallNudge surface="levels_page" />

@@ -7,6 +7,8 @@ import { Link } from "react-router";
 
 import { COURSE_LEVELS } from "~/lib/board/curriculum";
 import { stagger } from "~/lib/motion";
+import { today, useTestRecord } from "~/lib/test-date";
+import { planLine, testPlan } from "~/lib/test-plan";
 
 import { CourseLabel } from "~/components/board/course-label";
 import { useCourseStart } from "~/components/board/use-course-start";
@@ -16,7 +18,16 @@ import { PlayIcon } from "~/components/brand/icons";
 import { Button } from "~/components/ui/button";
 
 export function HomeHero() {
-  const { href, label, detail, done, ready } = useCourseStart();
+  const { href, label, detail, done, ready, saved } = useCourseStart();
+  // With a test date, the line under the button is the plan: days left and
+  // today's share. The reason to open the app again tomorrow.
+  const [test] = useTestRecord();
+  const now = today();
+  const doneToday = saved?.daily?.day === now ? saved.daily.done : 0;
+  const plan =
+    test && saved
+      ? planLine(testPlan(test, done, COURSE_LEVELS.length, doneToday, now))
+      : null;
   return (
     <section
       id="try-now"
@@ -30,8 +41,7 @@ export function HomeHero() {
           style={stagger(1)}
           className="dr-rise m-0 font-display text-[clamp(26px,7.6vw,60px)] font-semibold leading-[0.92] tracking-tighter text-ink"
         >
-          Model Town Board.{" "}
-          <span className="block text-rush">Drive it.</span>
+          Model Town Board. <span className="block text-rush">Drive it.</span>
         </h1>
         <p
           style={stagger(2)}
@@ -75,9 +85,15 @@ export function HomeHero() {
           </Button>
           <p className="m-0 min-w-0 flex-1 text-[14px] leading-snug text-ink-2">
             <strong className="block text-ink">{detail}</strong>
-            <span className="font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
-              {done} of {COURSE_LEVELS.length} levels done
-            </span>
+            {plan ? (
+              <span className="block text-[13.5px] font-semibold text-rush">
+                {plan}
+              </span>
+            ) : (
+              <span className="font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
+                {done} of {COURSE_LEVELS.length} levels done
+              </span>
+            )}
           </p>
         </div>
       </div>

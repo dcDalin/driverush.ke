@@ -33,6 +33,7 @@ import {
 } from "./pelican-progress";
 import { liveStreak, readPracticeStreak } from "./practice-streak";
 import { readTestRecord, testBucket, today } from "./test-date";
+import { testPlan } from "./test-plan";
 import {
   COURSE_LEVELS,
   doneCount,
@@ -87,6 +88,17 @@ function learnerStage(
 
 type LearnerProfile = Record<string, string | number | boolean>;
 
+function perDay(
+  test: ReturnType<typeof readTestRecord>,
+  levelsDone: number,
+  course: ReturnType<typeof readCourse>,
+): number {
+  const day = today();
+  const doneToday = course.daily?.day === day ? course.daily.done : 0;
+  const plan = testPlan(test, levelsDone, COURSE_LEVELS.length, doneToday, day);
+  return plan.kind === "levels" ? plan.perDay : 0;
+}
+
 function buildProfile(): LearnerProfile {
   const pelican = readProgress(TRAINER_STORAGE_KEYS.pelican);
   const signs3d = readProgress(TRAINER_STORAGE_KEYS["3d"]);
@@ -114,6 +126,8 @@ function buildProfile(): LearnerProfile {
     // The NTSA test, from the course page's card: when, and how it went.
     test_date: test.date ?? "",
     test_days_left_bucket: testBucket(test, today()),
+    // Levels a day the test plan asks for (0 with no plan, or every level done).
+    test_per_day: perDay(test, boardLevelsDone, course),
     test_result: test.result ?? "",
   };
 }

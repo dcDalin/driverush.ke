@@ -1,6 +1,9 @@
 /**
- * The course page's question about the learner's NTSA test. Before the test:
- * "When is your NTSA test?" After the day has gone by: "How did it go?" Which
+ * The question about the learner's NTSA test, on the course page and, from
+ * the third finished level, at the end of a level in the game. Before the
+ * test: "When is your NTSA test?", and the answer buys a plan (levels a day,
+ * `test-plan.ts`) and a daily reminder in their own calendar
+ * (`test-reminder.ts`). After the day has gone by: "How did it go?" Which
  * one, and when, is decided by `cardStage` in `test-date.ts`. The answer stays
  * on this device; the date and result go to analytics, so DriveRush can see
  * whether learners pass.
@@ -8,6 +11,7 @@
 import * as React from "react";
 
 import { analytics } from "~/lib/analytics";
+import { COURSE_LEVELS } from "~/lib/board/curriculum";
 import {
   daysBetween,
   isDay,
@@ -16,6 +20,8 @@ import {
   type TestRecord,
   type TestResult,
 } from "~/lib/test-date";
+import { planPromise, testPlan } from "~/lib/test-plan";
+import { googleCalendarUrl, ICS_NAME, icsHref } from "~/lib/test-reminder";
 import { cn } from "~/lib/utils";
 
 import { Button } from "~/components/ui/button";
@@ -35,35 +41,91 @@ function shortDay(day: string): string {
   });
 }
 
+/** A daily practice reminder in the learner's own calendar, two ways in. */
+function Reminder({ record, now }: { record: TestRecord; now: string }) {
+  const google = googleCalendarUrl(record, now);
+  const ics = icsHref(record, now, Date.now());
+  if (!google || !ics || !record.date) return null;
+  const days_until = daysBetween(now, record.date);
+  return (
+    <span className="flex w-full flex-wrap items-center gap-x-1">
+      <span className="text-[13.5px] text-ink-2">
+        Remind me to practise every evening:
+      </span>
+      <a
+        href={google}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={cn(linkButton, "inline-flex items-center")}
+        onClick={() =>
+          analytics.testReminderAdded({ calendar: "google", days_until })
+        }
+      >
+        Google Calendar
+      </a>
+      <a
+        href={ics}
+        download={ICS_NAME}
+        className={cn(linkButton, "inline-flex items-center")}
+        onClick={() =>
+          analytics.testReminderAdded({ calendar: "ics", days_until })
+        }
+      >
+        iPhone or other calendar
+      </a>
+    </span>
+  );
+}
+
 export function TestCard({
   stage,
   record,
   update,
   levelsDone,
+  doneToday,
   readiness,
   mockBestClean,
+  surface,
+  tone = "page",
   className,
 }: {
   stage: TestCardStage;
   record: TestRecord;
   update: (patch: Partial<TestRecord>) => TestRecord;
   levelsDone: number;
+  /** Levels finished today, for the plan said back on saving. */
+  doneToday: number;
   /** 0 to 100, the "Board ready" figure. */
   readiness: number;
   mockBestClean: number;
+  /** Where it is asked, for analytics. */
+  surface: "course_page" | "level_done";
+  /** `game` sits on the board's dark cards. */
+  tone?: "page" | "game";
   className?: string;
 }) {
   const [day, setDay] = React.useState("");
-  // A word back once it is answered, in place of the question.
-  const [thanks, setThanks] = React.useState<string | null>(null);
+  // A word back once it is answered, in place of the question; with a date
+  // saved, the calendar reminder under it.
+  const [thanks, setThanks] = React.useState<{
+    text: string;
+    remind?: TestRecord;
+  } | null>(null);
   const now = today();
+  // On the game's cards the tokens take their dark values.
+  const shell = cn(card, tone === "game" && "dark bg-paper-2", className);
+
+  React.useEffect(() => {
+    analytics.testCardShown({ stage, surface });
+  }, [stage, surface]);
 
   if (thanks) {
     return (
-      <div className={cn(card, className)} role="status">
+      <div className={shell} role="status">
         <p className="m-0 min-w-0 flex-1 basis-48 text-[14px] font-semibold leading-snug text-ink">
-          {thanks}
+          {thanks.text}
         </p>
+        {thanks.remind && <Reminder record={thanks.remind} now={now} />}
       </div>
     );
   }
@@ -78,16 +140,17 @@ export function TestCard({
         readiness,
         mock_best_clean: mockBestClean,
       });
-      setThanks(
-        result === "passed"
-          ? "Well done! Thank you for telling us."
-          : result === "failed"
-            ? "Sorry it didn't go your way. Your progress is saved for the next try."
-            : "Thanks. We'll ask again in a couple of weeks.",
-      );
+      setThanks({
+        text:
+          result === "passed"
+            ? "Well done! Thank you for telling us."
+            : result === "failed"
+              ? "Sorry it didn't go your way. Your progress is saved for the next try."
+              : "Thanks. We'll ask again in a couple of weeks.",
+      });
     };
     return (
-      <div className={cn(card, className)}>
+      <div className={shell}>
         <p className="m-0 min-w-0 flex-1 basis-48 text-[14px] font-semibold leading-snug text-ink">
           Your NTSA test was on {shortDay(record.date)}. How did it go?
         </p>
@@ -113,40 +176,50 @@ export function TestCard({
   const putOff = (notBooked: boolean) => {
     update({ putOff: now });
     if (notBooked) {
-      analytics.testDateSet({ booked: false });
-      setThanks("Thanks. We'll ask again in a couple of weeks.");
+      analytics.testDateSet({ booked: false, surface });
+      setThanks({ text: "Thanks. We'll ask again in a couple of weeks." });
     } else {
       analytics.testCardDismissed({ stage: "date" });
-      setThanks("No problem. We'll ask another time.");
+      setThanks({ text: "No problem. We'll ask another time." });
     }
   };
   const valid = isDay(day) && daysBetween(now, day) >= 0;
 
   return (
     <form
-      className={cn(card, className)}
+      className={shell}
       onSubmit={(e) => {
         e.preventDefault();
         if (!valid) return;
         const days = daysBetween(now, day);
-        update({ date: day, putOff: undefined });
-        analytics.testDateSet({ booked: true, days_until: days });
-        setThanks(
-          days === 0
-            ? "Saved. Good luck today!"
-            : `Saved. Your test is in ${days} ${days === 1 ? "day" : "days"}.`,
+        const saved = update({ date: day, putOff: undefined });
+        analytics.testDateSet({ booked: true, days_until: days, surface });
+        const promise = planPromise(
+          testPlan(saved, levelsDone, COURSE_LEVELS.length, doneToday, now),
         );
+        setThanks({
+          text:
+            days === 0
+              ? "Saved. Good luck today!"
+              : promise
+                ? `Saved. ${promise}`
+                : `Saved. Your test is in ${days} ${days === 1 ? "day" : "days"}.`,
+          remind: saved,
+        });
       }}
     >
-      <label
-        htmlFor="test-day"
-        className="m-0 min-w-0 flex-1 basis-48 text-[14px] font-semibold leading-snug text-ink"
-      >
-        When is your NTSA test?
-      </label>
+      <span className="m-0 min-w-0 flex-1 basis-48 text-[14px] leading-snug text-ink">
+        <label htmlFor={`test-day-${surface}`} className="block font-semibold">
+          When is your NTSA test?
+        </label>
+        <span id={`test-day-${surface}-why`}>
+          Set it and we'll plan your levels so you're ready in time.
+        </span>
+      </span>
       <span className="flex flex-wrap items-center gap-2">
         <input
-          id="test-day"
+          id={`test-day-${surface}`}
+          aria-describedby={`test-day-${surface}-why`}
           type="date"
           min={now}
           value={day}

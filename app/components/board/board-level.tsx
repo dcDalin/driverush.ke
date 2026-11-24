@@ -46,9 +46,9 @@ import { cn } from "~/lib/utils";
 
 import { LevelCheer } from "~/components/board/board-cheer";
 import { useOpenLevels } from "~/components/board/levels-sheet-context";
+import { LevelTestNote } from "~/components/board/level-test-note";
 import { BoardSpotPicks } from "~/components/board/board-spot-picks";
 import { Icon } from "~/components/brand/icon";
-import { InstallNudge } from "~/components/brand/install-nudge";
 import {
   ArrowRightIcon,
   CheckIcon,
@@ -199,7 +199,7 @@ function LevelDone({
     <div className="grid gap-2 rounded-md border-2 border-kenya-green/50 bg-kenya-green/10 p-3">
       <DoneNote>{children}</DoneNote>
       <LevelCheer level={level} />
-      <InstallNudge surface="level_done" tone="game" />
+      <LevelTestNote levelId={level.id} surface="level_done" />
     </div>
   );
 }

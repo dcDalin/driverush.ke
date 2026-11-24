@@ -486,7 +486,21 @@ export const analytics = {
     booked: boolean;
     /** Days from today to the test; left out when not booked. */
     days_until?: number;
+    /** Where it was asked. */
+    surface: "course_page" | "level_done";
   }) => emit("test_date_set", args),
+
+  /** The test card asked its question. PostHog only. */
+  testCardShown: (args: {
+    stage: "date" | "result";
+    surface: "course_page" | "level_done";
+  }) => emit("test_card_shown", args, false),
+
+  /** A daily practice reminder was added to the learner's own calendar. */
+  testReminderAdded: (args: {
+    calendar: "google" | "ics";
+    days_until: number;
+  }) => emit("test_reminder_added", args),
 
   /** The learner said how their NTSA test went. */
   testResultReported: (args: {

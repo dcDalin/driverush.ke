@@ -91,6 +91,7 @@ import {
 } from "~/components/board/board-camera";
 import { BoardCarPicks } from "~/components/board/board-car-picks";
 import { BoardControls } from "~/components/board/board-controls";
+import { LevelTestNote } from "~/components/board/level-test-note";
 import { BoardFaultTip } from "~/components/board/board-fault-tip";
 import { BoardFinishCue } from "~/components/board/board-finish-cue";
 import { BoardFps } from "~/components/board/board-fps";
@@ -102,7 +103,6 @@ import { BoardSettingsSheet } from "~/components/board/board-settings-sheet";
 import { BoardSheet } from "~/components/board/board-sheet";
 import { BoardSignCue } from "~/components/board/board-sign-cue";
 import { BoardViewer } from "~/components/board/board-viewer";
-import { InstallNudge } from "~/components/brand/install-nudge";
 
 // Only needed at the end of a round, and it brings framer-motion with it, so
 // people who land here to read the guide never download it.
@@ -1594,9 +1594,14 @@ export function BoardGame() {
               </Link>
             </Button>
           )}
-          {/* Not after the first drive: that is only push to go. */}
+          {/* Not after the first drive: that is only push to go. The test
+              plan, or the date asked for, or else the install nudge. */}
           {level && !warmup && (
-            <InstallNudge surface="level_passed" tone="game" />
+            <LevelTestNote
+              levelId={level.id}
+              surface="level_passed"
+              onDark={false}
+            />
           )}
           {/* Wraps on a phone: Share drops to its own full-width row. */}
           <div className="flex flex-wrap gap-2">
