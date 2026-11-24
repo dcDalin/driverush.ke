@@ -35,6 +35,14 @@ import {
 import { cn } from "~/lib/utils";
 
 import { Button } from "~/components/ui/button";
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+} from "~/components/ui/item";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Textarea } from "~/components/ui/textarea";
@@ -475,68 +483,77 @@ export default function ImageCoordsTool({ loaderData }: Route.ComponentProps) {
                 const active = r.id === selectedRegionId;
                 const named = r.name.trim().length > 0;
                 return (
-                  <li
+                  <Item
                     key={r.id}
+                    asChild
+                    size="sm"
                     className={cn(
-                      "flex items-center gap-2 px-3 py-2.5",
+                      // The list's dividers, drawn here: Item's own border
+                      // would hide the list's divide-y.
+                      "flex-nowrap gap-2 rounded-none border-0 px-3 py-2.5 not-last:border-b-2 not-last:border-line",
                       active && "bg-paper-3",
                     )}
                   >
-                    <span
-                      className={cn(
-                        "flex size-6 shrink-0 items-center justify-center border border-line font-mono text-[11px] font-bold rounded-md",
-                        named
-                          ? "bg-kenya-green text-kenya-green-foreground"
-                          : "bg-hazard text-hazard-foreground",
-                      )}
-                    >
-                      {i + 1}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedRegionId(r.id)}
-                      className="min-w-0 flex-1 text-left outline-none"
-                    >
-                      <span className="block truncate font-display text-[13px] font-bold tracking-tight text-ink">
-                        {r.name || "(unnamed)"}
-                      </span>
-                      <span className="block truncate font-mono text-[9.5px] uppercase tracking-widest text-ink-3">
-                        {r.code ? `${r.code} · ` : ""}
-                        {getSignCategory(r.category).label} · {Math.round(r.x)},
-                        {Math.round(r.y)} · {Math.round(r.width)}×
-                        {Math.round(r.height)}
-                      </span>
-                    </button>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <IconBtn
-                        label="Move up"
-                        icon={ChevronUpIcon}
-                        disabled={i === 0}
-                        onClick={() => moveRegion(r.id, -1)}
-                      />
-                      <IconBtn
-                        label="Move down"
-                        icon={ChevronDownIcon}
-                        disabled={i === regions.length - 1}
-                        onClick={() => moveRegion(r.id, 1)}
-                      />
-                      <IconBtn
-                        label="Edit crop"
-                        icon={EditIcon}
-                        onClick={() => {
-                          setEditingRegionId(r.id);
-                          setSelectedRegionId(r.id);
-                          setMode("crop");
-                        }}
-                      />
-                      <IconBtn
-                        label="Delete"
-                        icon={DeleteIcon}
-                        danger
-                        onClick={() => deleteRegion(r.id)}
-                      />
-                    </div>
-                  </li>
+                    <li>
+                      <ItemMedia
+                        className={cn(
+                          "size-6 border border-line font-mono text-[11px] font-bold rounded-md group-has-[[data-slot=item-description]]/item:self-center",
+                          named
+                            ? "bg-kenya-green text-kenya-green-foreground"
+                            : "bg-hazard text-hazard-foreground",
+                        )}
+                      >
+                        {i + 1}
+                      </ItemMedia>
+                      <ItemContent>
+                        <button
+                          type="button"
+                          aria-pressed={active}
+                          onClick={() => setSelectedRegionId(r.id)}
+                          className="min-w-0 text-left outline-none focus-visible:underline"
+                        >
+                          <ItemTitle className="block truncate font-display text-[13px] font-bold tracking-tight text-ink">
+                            {r.name || "(unnamed)"}
+                          </ItemTitle>
+                          <ItemDescription className="truncate font-mono text-[9.5px] uppercase tracking-widest text-ink-3">
+                            {r.code ? `${r.code} · ` : ""}
+                            {getSignCategory(r.category).label} · {Math.round(r.x)},
+                            {Math.round(r.y)} · {Math.round(r.width)}×
+                            {Math.round(r.height)}
+                          </ItemDescription>
+                        </button>
+                      </ItemContent>
+                      <ItemActions className="gap-1">
+                        <IconBtn
+                          label="Move up"
+                          icon={ChevronUpIcon}
+                          disabled={i === 0}
+                          onClick={() => moveRegion(r.id, -1)}
+                        />
+                        <IconBtn
+                          label="Move down"
+                          icon={ChevronDownIcon}
+                          disabled={i === regions.length - 1}
+                          onClick={() => moveRegion(r.id, 1)}
+                        />
+                        <IconBtn
+                          label="Edit crop"
+                          icon={EditIcon}
+                          onClick={() => {
+                            setEditingRegionId(r.id);
+                            setSelectedRegionId(r.id);
+                            setMode("crop");
+                          }}
+                        />
+                        <IconBtn
+                          label="Delete"
+                          icon={DeleteIcon}
+                          danger
+                          onClick={() => deleteRegion(r.id)}
+                        />
+                      </ItemActions>
+                    </li>
+                  </Item>
                 );
               })}
             </ul>
@@ -675,21 +692,21 @@ function IconBtn({
   danger?: boolean;
 }) {
   return (
-    <button
-      type="button"
+    <Button
+      variant="paper"
+      size="icon-sm"
       aria-label={label}
       title={label}
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "flex size-7 items-center justify-center border border-line bg-surface text-ink outline-none transition-colors rounded-md",
-        "hover:bg-ink hover:text-paper focus-visible:bg-ink focus-visible:text-paper",
-        "disabled:pointer-events-none disabled:opacity-40",
-        danger && "hover:bg-rush focus-visible:bg-rush",
+        "disabled:opacity-40",
+        danger &&
+          "hover:border-transparent hover:bg-rush hover:text-primary-foreground",
       )}
     >
       <Icon icon={icon} size={13} />
-    </button>
+    </Button>
   );
 }
 
