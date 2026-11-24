@@ -206,7 +206,7 @@ export function BoardLevels({ className }: { className?: string }) {
       <DailyDriveRow surface="course_page" />
 
       {/* No task: the whole board to drive, every rule still said. */}
-      <FreeDriveRow />
+      <FreeDriveRow surface="course_page" />
 
       {/* After a finished level, not before: a first visit is not asked for
           anything. */}

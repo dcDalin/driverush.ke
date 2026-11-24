@@ -1,7 +1,7 @@
 /**
- * Free drive, as one quiet row on the Board page, under Today's drive: the
- * whole board with no task, every rule still said and counted. Start or
- * Continue stays the one big button there.
+ * Free drive, as one quiet row under Today's drive, on home and on the Board
+ * page: the whole board with no task, every rule still said and counted.
+ * Start or Continue stays the one big button on both.
  */
 import { Link } from "react-router";
 
@@ -12,12 +12,20 @@ import { Icon } from "~/components/brand/icon";
 import { ChevronRightIcon, GoIcon } from "~/components/brand/icons";
 
 /** `from` says where it was opened, for analytics: the play page passes it on. */
-export const FREE_DRIVE_HREF = `${BOARD_PLAY_PATH}?free=1&from=course_page`;
+export const freeDriveHref = (from: string) =>
+  `${BOARD_PLAY_PATH}?free=1&from=${from}`;
 
-export function FreeDriveRow({ className }: { className?: string }) {
+export function FreeDriveRow({
+  surface,
+  className,
+}: {
+  /** Where it sits, for analytics. */
+  surface: "home" | "course_page";
+  className?: string;
+}) {
   return (
     <Link
-      to={FREE_DRIVE_HREF}
+      to={freeDriveHref(surface)}
       data-free-drive-row
       className={cn(
         "flex min-h-16 items-center gap-3 rounded-lg border border-ink/25 bg-surface px-4 py-3 text-ink no-underline outline-none transition-colors hover:bg-paper-2 focus-visible:bg-paper-2",

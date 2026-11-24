@@ -12,6 +12,7 @@ import { planLine, testPlan } from "~/lib/test-plan";
 
 import { CourseLabel } from "~/components/board/course-label";
 import { DailyDriveRow } from "~/components/board/daily-drive-row";
+import { FreeDriveRow } from "~/components/board/free-drive-row";
 import { useCourseStart } from "~/components/board/use-course-start";
 import { BoardThumb } from "~/components/board/board-thumb";
 import { Icon } from "~/components/brand/icon";
@@ -100,6 +101,8 @@ export function HomeHero() {
         {/* One task a day, the same for everyone, and the streak it keeps.
             A quiet row: Continue stays the one button. */}
         <DailyDriveRow surface="home" />
+        {/* No task: the whole board to drive, every rule still said. */}
+        <FreeDriveRow surface="home" />
       </div>
     </section>
   );
