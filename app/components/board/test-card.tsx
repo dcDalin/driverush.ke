@@ -25,7 +25,15 @@ import { googleCalendarUrl, ICS_NAME, icsHref } from "~/lib/test-reminder";
 import { cn } from "~/lib/utils";
 
 import { ProudShare } from "~/components/board/proud-share";
+import { Icon } from "~/components/brand/icon";
+import { CalendarIcon } from "~/components/brand/icons";
 import { Button } from "~/components/ui/button";
+import { Calendar } from "~/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "~/components/ui/popover";
 
 const linkButton =
   "min-h-11 px-3 text-[13.5px] font-semibold text-ink-2 underline underline-offset-4 outline-none hover:text-ink focus-visible:text-ink";
@@ -40,6 +48,78 @@ function shortDay(day: string): string {
     day: "numeric",
     month: "short",
   });
+}
+
+/** A day as "2026-12-03" and back, in the learner's own time zone. */
+function dayToDate(day: string): Date {
+  const [y, m, d] = day.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+function dateToDay(date: Date): string {
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${mm}-${dd}`;
+}
+
+/**
+ * The test day, picked on a calendar (shadcn's date picker): a button that
+ * says the day, and a month to choose it from. Days before today are out.
+ */
+function TestDayPicker({
+  id,
+  describedBy,
+  day,
+  now,
+  onPick,
+}: {
+  id: string;
+  describedBy: string;
+  day: string;
+  now: string;
+  onPick: (day: string) => void;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const picked = isDay(day) ? dayToDate(day) : undefined;
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          id={id}
+          type="button"
+          variant="paper"
+          aria-describedby={describedBy}
+          className={cn(
+            "min-w-44 justify-start font-medium",
+            !picked && "text-ink-3",
+          )}
+        >
+          <Icon icon={CalendarIcon} size={18} />
+          {picked
+            ? picked.toLocaleDateString("en-KE", {
+                weekday: "short",
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })
+            : "Pick the day"}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={picked}
+          defaultMonth={picked ?? dayToDate(now)}
+          disabled={{ before: dayToDate(now) }}
+          onSelect={(date) => {
+            if (!date) return;
+            onPick(dateToDay(date));
+            setOpen(false);
+          }}
+          autoFocus
+        />
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 /** A daily practice reminder in the learner's own calendar, two ways in. */
@@ -230,14 +310,12 @@ export function TestCard({
         </span>
       </span>
       <span className="flex flex-wrap items-center gap-2">
-        <input
+        <TestDayPicker
           id={`test-day-${surface}`}
-          aria-describedby={`test-day-${surface}-why`}
-          type="date"
-          min={now}
-          value={day}
-          onChange={(e) => setDay(e.target.value)}
-          className="h-11 rounded-md border border-ink/25 bg-surface px-3 text-[14.5px] text-ink outline-none focus-visible:border-ink"
+          describedBy={`test-day-${surface}-why`}
+          day={day}
+          now={now}
+          onPick={setDay}
         />
         <Button type="submit" variant="ink" disabled={!valid}>
           Save

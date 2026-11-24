@@ -229,6 +229,10 @@ export const RoadIcon: IconDef = {
   b: "M8.5 3h7l5 18h-17z",
   sign: "road",
 };
+export const CalendarIcon: IconDef = {
+  s: "M5 6h14v14H5zM5 10.5h14M9 3.5v4M15 3.5v4",
+  b: "M5 6h14v14H5z",
+};
 export const PinIcon: IconDef = {
   s: "M12 21.5s-7-6-7-12a7 7 0 0 1 14 0c0 6-7 12-7 12z" + circle(12, 9.5, 2.5),
   b: "M12 21.5s-7-6-7-12a7 7 0 0 1 14 0c0 6-7 12-7 12z",
