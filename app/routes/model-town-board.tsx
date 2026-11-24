@@ -36,7 +36,7 @@ import { MDX } from "~/components/brand/mdx-components";
 const PATH = BOARD_PATH;
 const CHECKED = BOARD_CHECKED;
 const TITLE = "Model Town Board Kenya: free online simulator";
-const DESCRIPTION = `A free Model Town Board simulator: ${COURSE_LEVELS.length} levels on a 3D board you drive yourself, from the lanes to the roundabout and parking. No signup.`;
+const DESCRIPTION = `Learn the Model Town Board free: ${COURSE_LEVELS.length} levels on a 3D board you drive yourself, from the lanes to the roundabout and parking. No signup.`;
 /** What the course teaches, unit by unit, for search engines. */
 const TEACHES = UNITS.filter((unit) => unit.id !== "mock").map(
   (unit) => unit.title,
