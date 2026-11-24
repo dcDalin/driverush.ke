@@ -47,6 +47,14 @@ import { cn } from "~/lib/utils";
 
 import { Button } from "~/components/ui/button";
 import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+} from "~/components/ui/item";
+import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
@@ -77,9 +85,6 @@ import {
 } from "~/components/board/board-playback";
 import { useParkingLayout } from "~/components/board/use-parking-layout";
 
-const chip =
-  "min-h-11 rounded-md border-2 px-3 py-2 text-left text-[13.5px] font-semibold leading-snug outline-none transition-colors focus-visible:border-white";
-const chipOff = "border-white/15 bg-white/5 text-white hover:bg-white/10";
 const eyebrow =
   "m-0 font-mono text-[10px] font-bold uppercase tracking-widest text-white/55";
 /** Layout for the panel's main Button: a long level name wraps. */
@@ -237,32 +242,38 @@ function RouteSteps({ route, step }: { route: Route; step: number }) {
     <ol className="m-0 grid list-none gap-1 p-0">
       {route.steps.map((s, i) => (
         <li key={`${s.from}-${s.title}`}>
-          <button
-            type="button"
-            onClick={() => toStep(i)}
-            aria-current={i === step ? "step" : undefined}
+          <Item
+            asChild
+            variant="game-ghost"
+            size="sm"
             className={cn(
-              "flex min-h-11 w-full items-start gap-2.5 rounded-md border-2 px-2.5 py-2.5 text-left outline-none transition-colors focus-visible:border-white",
-              i === step
-                ? "border-white/40 bg-white/10"
-                : "border-transparent hover:bg-white/5",
+              "flex-nowrap items-start gap-2.5 px-2.5 py-2.5",
+              i === step ? "border-white/40 bg-white/10" : "border-transparent",
             )}
           >
-            <span className="mt-px font-mono text-[11px] font-bold text-white/55">
-              {i + 1}
-            </span>
-            <span className="min-w-0 flex-1 text-[13.5px] font-semibold leading-snug">
-              {s.title}
-              <span className="ml-1.5 inline-flex gap-1 align-middle font-mono text-[9.5px] font-bold uppercase tracking-widest">
-                <StepTags step={s} />
-              </span>
-              {!s.confirmed && (
-                <span className="mt-0.5 block text-[12px] font-semibold text-kenya-gold">
-                  {UNSURE_NOTE}
-                </span>
-              )}
-            </span>
-          </button>
+            <button
+              type="button"
+              onClick={() => toStep(i)}
+              aria-current={i === step ? "step" : undefined}
+            >
+              <ItemMedia className="mt-px font-mono text-[11px] font-bold text-white/55">
+                {i + 1}
+              </ItemMedia>
+              <ItemContent>
+                <ItemTitle>
+                  {s.title}
+                  <span className="ml-1.5 inline-flex gap-1 align-middle font-mono text-[9.5px] font-bold uppercase tracking-widest">
+                    <StepTags step={s} />
+                  </span>
+                </ItemTitle>
+                {!s.confirmed && (
+                  <ItemDescription className="font-semibold text-kenya-gold">
+                    {UNSURE_NOTE}
+                  </ItemDescription>
+                )}
+              </ItemContent>
+            </button>
+          </Item>
         </li>
       ))}
     </ol>
@@ -563,72 +574,79 @@ function LanesLevel({
     const isHome = home.includes(car.id);
     const canTake = front.includes(car) && !isHome;
     return (
-      <button
-        type="button"
-        disabled={!canTake}
-        onClick={() => pickCar(car.id)}
+      <Item
+        asChild
+        variant="game"
+        size="sm"
         className={cn(
-          chip,
-          canTake
-            ? "border-[#f6c416]/70 bg-white/5 text-white hover:bg-white/10"
-            : chipOff,
-          "flex w-full items-center gap-3 disabled:hover:bg-white/5",
+          "flex-nowrap text-[13.5px] font-semibold leading-snug",
+          canTake && "border-game-gold/70",
           // On a phone the panel has half the screen: one line per car.
           compact && "max-sm:min-h-10 max-sm:py-1.5",
           !canTake && !isHome && "opacity-55",
         )}
       >
-        <span
-          aria-hidden
-          // The colour of its way through, as the line on the table is drawn:
-          // the cars themselves all wear the school's paint.
-          className="h-4 w-7 shrink-0 rounded-[5px] border border-white/40"
-          style={{ background: car.option.color }}
-        />
-        <span className="min-w-0 flex-1">
-          {compact && (
-            <span className="block font-mono text-[10px] font-bold uppercase tracking-widest text-white/55 max-sm:mr-1.5 max-sm:inline">
-              Lane {car.lane}
-            </span>
-          )}
-          <span className={cn(compact && "max-sm:truncate")}>
-            {car.option.label}{" "}
-            <span className="font-mono text-[11px] text-white/55">
-              {car.option.degrees}
-            </span>
-          </span>
-          {!compact && (
-            <span className="mt-0.5 block text-[12px] leading-snug text-white/60">
-              {car.option.how}
-            </span>
-          )}
-          {!car.option.confirmed && (
-            <span
-              className={cn(
-                "mt-0.5 block text-[12px] font-semibold text-kenya-gold",
-                // The full list under "Where each lane may go" still says it.
-                compact && "max-sm:hidden",
+        <button
+          type="button"
+          disabled={!canTake}
+          onClick={() => pickCar(car.id)}
+        >
+          <ItemMedia
+            aria-hidden
+            // The colour of its way through, as the line on the table is
+            // drawn: the cars themselves all wear the school's paint.
+            className="h-4 w-7 rounded-[5px] border border-white/40 group-has-[[data-slot=item-description]]/item:self-center"
+            style={{ background: car.option.color }}
+          />
+          <ItemContent className="gap-0">
+            <ItemTitle className="font-semibold">
+              {compact && (
+                <span className="block font-mono text-[10px] font-bold uppercase tracking-widest text-white/55 max-sm:mr-1.5 max-sm:inline">
+                  Lane {car.lane}
+                </span>
               )}
-            >
-              {UNSURE_NOTE}
-            </span>
-          )}
-        </span>
-        {isHome ? (
-          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-kenya-green text-kenya-green-foreground">
-            <Icon icon={CheckIcon} size={12} />
-            <span className="sr-only">Home</span>
-          </span>
-        ) : canTake ? (
-          <span className="shrink-0 rounded-[4px] bg-[#f6c416] px-2 py-1 font-mono text-[10.5px] font-bold uppercase leading-none tracking-widest text-[#17181b]">
-            Drive
-          </span>
-        ) : (
-          <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-widest text-white/55">
-            Waiting
-          </span>
-        )}
-      </button>
+              <span className={cn(compact && "max-sm:truncate")}>
+                {car.option.label}{" "}
+                <span className="font-mono text-[11px] text-white/55">
+                  {car.option.degrees}
+                </span>
+              </span>
+            </ItemTitle>
+            {!compact && (
+              <ItemDescription className="mt-0.5">
+                {car.option.how}
+              </ItemDescription>
+            )}
+            {!car.option.confirmed && (
+              <ItemDescription
+                className={cn(
+                  "mt-0.5 font-semibold text-kenya-gold",
+                  // The full list under "Where each lane may go" still says it.
+                  compact && "max-sm:hidden",
+                )}
+              >
+                {UNSURE_NOTE}
+              </ItemDescription>
+            )}
+          </ItemContent>
+          <ItemActions>
+            {isHome ? (
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-kenya-green text-kenya-green-foreground">
+                <Icon icon={CheckIcon} size={12} />
+                <span className="sr-only">Home</span>
+              </span>
+            ) : canTake ? (
+              <span className="shrink-0 rounded-[4px] bg-game-gold px-2 py-1 font-mono text-[10.5px] font-bold uppercase leading-none tracking-widest text-game-gold-foreground">
+                Drive
+              </span>
+            ) : (
+              <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-widest text-white/55">
+                Waiting
+              </span>
+            )}
+          </ItemActions>
+        </button>
+      </Item>
     );
   };
 

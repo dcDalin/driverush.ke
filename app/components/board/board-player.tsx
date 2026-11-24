@@ -236,20 +236,22 @@ function Minimap({
   const sideways = seat === "east" || seat === "west";
   const end = finish ? placeOnPage(finish.x, finish.z, seat) : null;
   return (
-    <button
-      type="button"
+    <Button
+      variant="game"
       aria-label={end ? "Show where this task ends" : "Show the whole board"}
       data-board-minimap
       disabled={!live}
       onClick={onPeek}
       className={cn(
-        "pointer-events-auto relative block overflow-hidden rounded-md border-2 border-white/80 p-0 shadow-[0_3px_0_rgba(0,0,0,0.45)] outline-none focus-visible:border-kenya-gold",
+        // A picture of the board, not a chip: no fill, a light frame that
+        // reads on any part of the table, and full colour while it waits.
+        "pointer-events-auto relative block h-auto overflow-hidden border-white/80 bg-transparent p-0 hover:bg-transparent hover:brightness-110 disabled:opacity-100",
         sideways ? "w-28 sm:w-40" : "w-[4.5rem] sm:w-24",
       )}
       style={{ aspectRatio: sideways ? 1 / BOARD_ASPECT : BOARD_ASPECT }}
     >
-      <div
-        className="size-full [&>svg]:block [&>svg]:size-full"
+      <span
+        className="block size-full [&>svg]:block [&>svg]:size-full"
         dangerouslySetInnerHTML={{ __html: svg }}
       />
       {/* The finish, ringed so it shows at this size. */}
@@ -266,7 +268,7 @@ function Minimap({
         ref={dot}
         className="absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-ink bg-kenya-gold"
       />
-    </button>
+    </Button>
   );
 }
 

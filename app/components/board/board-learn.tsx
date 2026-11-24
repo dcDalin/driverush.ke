@@ -32,6 +32,14 @@ import { useBoardStore } from "~/lib/board-store";
 import { cn } from "~/lib/utils";
 
 import { Button } from "~/components/ui/button";
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+} from "~/components/ui/item";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group";
 
@@ -72,8 +80,6 @@ type Showing = {
   rule?: string;
 };
 
-const chip =
-  "min-h-11 rounded-md border-2 px-3 py-2 text-left text-[13.5px] font-semibold leading-snug outline-none transition-colors focus-visible:border-white";
 const chipOff = "border-white/15 bg-white/5 text-white hover:bg-white/10";
 /** A pick in a ToggleGroup: the chip's type, a Toggle's colours. */
 const pick =
@@ -201,42 +207,44 @@ export function BoardLearn({
     const done = learned?.includes(lesson.id);
     return (
       <li key={lesson.id}>
-        <button
-          type="button"
-          className={cn(chip, chipOff, "flex w-full items-center gap-3")}
-          onClick={() =>
-            play(
-              {
-                kind: lesson.group === "parking" ? "parking" : "route",
-                id: lesson.id,
-                title: lesson.title,
-                ask: lesson.ask,
-                color: ROUTE_COLOR,
-                rule: rule ? `${rule.name}. ${rule.says}` : undefined,
-              },
-              line,
-            )
-          }
-        >
-          <span
-            className={cn(
-              "flex size-8 shrink-0 items-center justify-center rounded-full border-2",
-              done
-                ? "border-kenya-green bg-kenya-green text-kenya-green-foreground"
-                : "border-white/25 text-white",
-            )}
+        <Item asChild variant="game" size="sm" className="flex-nowrap">
+          <button
+            type="button"
+            onClick={() =>
+              play(
+                {
+                  kind: lesson.group === "parking" ? "parking" : "route",
+                  id: lesson.id,
+                  title: lesson.title,
+                  ask: lesson.ask,
+                  color: ROUTE_COLOR,
+                  rule: rule ? `${rule.name}. ${rule.says}` : undefined,
+                },
+                line,
+              )
+            }
           >
-            <Icon icon={done ? CheckIcon : PlayIcon} size={14} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block">{lesson.title}</span>
-            <span className="mt-0.5 block font-mono text-[10px] font-bold uppercase tracking-widest text-white/55">
-              {lesson.level} · {rule ? `${rule.name} · ` : ""}
-              {line.steps.length} steps
-              {line.steps.some((s) => s.gear === "reverse") && " · reversing"}
-            </span>
-          </span>
-        </button>
+            <ItemMedia
+              variant="icon"
+              className={cn(
+                "border-2 group-has-[[data-slot=item-description]]/item:self-center",
+                done
+                  ? "border-kenya-green bg-kenya-green text-kenya-green-foreground"
+                  : "border-white/25 bg-transparent text-white",
+              )}
+            >
+              <Icon icon={done ? CheckIcon : PlayIcon} size={14} />
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle>{lesson.title}</ItemTitle>
+              <ItemDescription className="font-mono text-[10px] font-bold uppercase tracking-widest text-white/55">
+                {lesson.level} · {rule ? `${rule.name} · ` : ""}
+                {line.steps.length} steps
+                {line.steps.some((s) => s.gear === "reverse") && " · reversing"}
+              </ItemDescription>
+            </ItemContent>
+          </button>
+        </Item>
       </li>
     );
   };
@@ -329,32 +337,40 @@ export function BoardLearn({
                 <ol className="m-0 grid list-none gap-1 p-0">
                   {route.steps.map((s, i) => (
                     <li key={`${s.from}-${s.title}`}>
-                      <button
-                        type="button"
-                        onClick={() => toStep(i)}
-                        aria-current={i === step ? "step" : undefined}
+                      <Item
+                        asChild
+                        variant="game-ghost"
+                        size="sm"
                         className={cn(
-                          "flex min-h-11 w-full items-start gap-2.5 rounded-md border-2 px-2.5 py-2.5 text-left outline-none transition-colors focus-visible:border-white",
+                          "flex-nowrap items-start gap-2.5 px-2.5 py-2.5",
                           i === step
                             ? "border-white/40 bg-white/10"
-                            : "border-transparent hover:bg-white/5",
+                            : "border-transparent",
                         )}
                       >
-                        <span className="mt-px font-mono text-[11px] font-bold text-white/55">
-                          {i + 1}
-                        </span>
-                        <span className="min-w-0 flex-1 text-[13.5px] font-semibold leading-snug">
-                          {s.title}
-                          <span className="ml-1.5 inline-flex gap-1 align-middle font-mono text-[9.5px] font-bold uppercase tracking-widest">
-                            <StepTags step={s} />
-                          </span>
-                          {!s.confirmed && (
-                            <span className="mt-0.5 block text-[12px] font-semibold text-kenya-gold">
-                              {UNSURE_NOTE}
-                            </span>
-                          )}
-                        </span>
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => toStep(i)}
+                          aria-current={i === step ? "step" : undefined}
+                        >
+                          <ItemMedia className="mt-px font-mono text-[11px] font-bold text-white/55">
+                            {i + 1}
+                          </ItemMedia>
+                          <ItemContent>
+                            <ItemTitle>
+                              {s.title}
+                              <span className="ml-1.5 inline-flex gap-1 align-middle font-mono text-[9.5px] font-bold uppercase tracking-widest">
+                                <StepTags step={s} />
+                              </span>
+                            </ItemTitle>
+                            {!s.confirmed && (
+                              <ItemDescription className="font-semibold text-kenya-gold">
+                                {UNSURE_NOTE}
+                              </ItemDescription>
+                            )}
+                          </ItemContent>
+                        </button>
+                      </Item>
                     </li>
                   ))}
                 </ol>
@@ -430,47 +446,51 @@ export function BoardLearn({
                 <ul className="m-0 grid list-none gap-1.5 p-0">
                   {options.map((option) => (
                     <li key={option.id}>
-                      <button
-                        type="button"
-                        className={cn(
-                          chip,
-                          chipOff,
-                          "flex w-full items-center gap-3",
-                        )}
-                        onClick={() =>
-                          play(
-                            {
-                              kind: "lane",
-                              id: `${arm}${lane}-${option.id}`,
-                              title: `Lane ${lane}: ${option.label.toLowerCase()}`,
-                              ask: laneRule(ARMS[arm].lanes, lane),
-                              color: option.color,
-                            },
-                            option.route,
-                          )
-                        }
+                      <Item
+                        asChild
+                        variant="game"
+                        size="sm"
+                        className="flex-nowrap"
                       >
-                        <span
-                          aria-hidden
-                          className="h-2.5 w-7 shrink-0 rounded-full"
-                          style={{ background: option.color }}
-                        />
-                        <span className="flex-1">
-                          {option.label}{" "}
-                          <span className="font-mono text-[11px] text-white/55">
-                            {option.degrees}
-                          </span>
-                          <span className="mt-0.5 block text-[12px] leading-snug text-white/60">
-                            {option.how}
-                          </span>
-                          {!option.confirmed && (
-                            <span className="mt-0.5 block text-[12px] font-semibold text-kenya-gold">
-                              {UNSURE_NOTE}
-                            </span>
-                          )}
-                        </span>
-                        <Icon icon={PlayIcon} size={14} />
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            play(
+                              {
+                                kind: "lane",
+                                id: `${arm}${lane}-${option.id}`,
+                                title: `Lane ${lane}: ${option.label.toLowerCase()}`,
+                                ask: laneRule(ARMS[arm].lanes, lane),
+                                color: option.color,
+                              },
+                              option.route,
+                            )
+                          }
+                        >
+                          <ItemMedia
+                            aria-hidden
+                            className="h-2.5 w-7 rounded-full group-has-[[data-slot=item-description]]/item:self-center"
+                            style={{ background: option.color }}
+                          />
+                          <ItemContent>
+                            <ItemTitle>
+                              {option.label}{" "}
+                              <span className="font-mono text-[11px] text-white/55">
+                                {option.degrees}
+                              </span>
+                            </ItemTitle>
+                            <ItemDescription>{option.how}</ItemDescription>
+                            {!option.confirmed && (
+                              <ItemDescription className="font-semibold text-kenya-gold">
+                                {UNSURE_NOTE}
+                              </ItemDescription>
+                            )}
+                          </ItemContent>
+                          <ItemActions>
+                            <Icon icon={PlayIcon} size={14} />
+                          </ItemActions>
+                        </button>
+                      </Item>
                     </li>
                   ))}
                 </ul>
