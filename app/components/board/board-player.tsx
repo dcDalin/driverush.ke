@@ -84,6 +84,7 @@ import {
   CheckIcon,
   ChevronLeftIcon,
   CloseIcon,
+  GoIcon,
   GridIcon,
   InfoIcon,
   PlayIcon,
@@ -105,6 +106,7 @@ import { useCourseStart } from "~/components/board/use-course-start";
 import { BoardFaultTip } from "~/components/board/board-fault-tip";
 import { BoardFinishCue } from "~/components/board/board-finish-cue";
 import { BoardFreeSummary } from "~/components/board/board-free-summary";
+import { freeDriveHref } from "~/components/board/free-drive-row";
 import { BoardFps } from "~/components/board/board-fps";
 import { BoardLearn } from "~/components/board/board-learn";
 import { BoardLevel } from "~/components/board/board-level";
@@ -1317,6 +1319,21 @@ export function BoardGame() {
                   >
                     <Icon icon={GridIcon} size={18} />
                     All levels
+                  </button>
+                )}
+                {/* The whole board with no task. In place of this drive, as
+                    moving between levels is, so Close still leaves the game. */}
+                {!free && (
+                  <button
+                    type="button"
+                    className={moreItem}
+                    onClick={() => {
+                      setMoreOpen(false);
+                      navigate(freeDriveHref("more_menu"), { replace: true });
+                    }}
+                  >
+                    <Icon icon={GoIcon} size={18} />
+                    Free drive
                   </button>
                 )}
                 <button

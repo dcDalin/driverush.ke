@@ -11,8 +11,11 @@ import { cn } from "~/lib/utils";
 import { Icon } from "~/components/brand/icon";
 import { ChevronRightIcon, GoIcon } from "~/components/brand/icons";
 
+/** Where free drive was opened from. */
+export type FreeDriveSurface = "home" | "course_page" | "more_menu";
+
 /** `from` says where it was opened, for analytics: the play page passes it on. */
-export const freeDriveHref = (from: string) =>
+export const freeDriveHref = (from: FreeDriveSurface) =>
   `${BOARD_PLAY_PATH}?free=1&from=${from}`;
 
 export function FreeDriveRow({
