@@ -6,8 +6,8 @@
  * data as the questions page, so the file and the page always match.
  *
  * Run against a built app:
- *   npm run build && PORT=5190 npm run start
- *   DEV_URL=http://localhost:5190 npm run build:board-pdf
+ *   npm run build && PORT=5740 npm run start
+ *   DEV_URL=http://localhost:5740 npm run build:board-pdf
  *
  * Re-run whenever `app/data/board-questions.ts` changes.
  */
@@ -17,7 +17,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
-const DEV_URL = process.env.DEV_URL ?? "http://localhost:5173";
+const DEV_URL = process.env.DEV_URL ?? "http://localhost:5730";
 
 const CHROME_CANDIDATES = [
   process.env.CHROME_PATH,

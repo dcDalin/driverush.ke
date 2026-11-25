@@ -4,10 +4,10 @@ import { defineConfig, devices } from "@playwright/test";
 // Supabase stack (thinkrush `apps/e2e`). Chromium only, one worker: the specs
 // sign real accounts in and share the demo seed.
 //
-//   locally  reuses the dev server on 5173 if it is up, else starts it
+//   locally  reuses the dev server on 5730 if it is up, else starts it
 //   CI       builds the app and serves the build (`npm run start`)
 const CI = !!process.env.CI;
-const PORT = 5173;
+const PORT = 5730;
 
 export default defineConfig({
   testDir: "./e2e/specs",

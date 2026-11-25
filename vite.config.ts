@@ -89,6 +89,10 @@ export default defineConfig({
   build: {
     sourcemap: UPLOAD_SOURCEMAPS,
   },
+  // DriveRush's own port block (573x dev, 574x built previews): 5173 is
+  // Vite's default and other projects on this Mac use it. Supabase's
+  // site_url and redirect list (supabase/config.toml) follow this port.
+  server: { port: 5730, strictPort: true },
   // Dev server only: pre-bundle what lazily loaded code imports (the sign-in
   // sheet, the board game, the 3D trainers), so opening one never makes Vite
   // re-bundle mid-session, which loads a second React and breaks its hooks.

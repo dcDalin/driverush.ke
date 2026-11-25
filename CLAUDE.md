@@ -42,7 +42,7 @@ remix-hook-form, shadcn everywhere. Guides: `docs/forms-and-data.md`,
   (migrations plus the demo seed; every demo password is
   `driverush-local-1`). Local codes land in Mailpit at http://127.0.0.1:54724.
 - `npm run test:db` (pgTAP, database and route suites), `npm run test:e2e`
-  (Playwright; reuses the dev server on 5173).
+  (Playwright; reuses the dev server on 5730).
 
 ## Database (Supabase, schema first)
 

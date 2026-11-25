@@ -28,7 +28,7 @@ const execFileAsync = promisify(execFile);
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OUT_DIR = path.join(ROOT, "public", "og");
-const DEV_URL = process.env.DEV_URL ?? "http://localhost:5173";
+const DEV_URL = process.env.DEV_URL ?? "http://localhost:5730";
 
 const WIDTH = 1200;
 const HEIGHT = 630;
@@ -44,7 +44,7 @@ const SCALE = Number(process.env.SCALE ?? 1);
  * taken with the learner's car in that school's paint and its logo on the
  * table, and saved as `<card>-<id>.png`, for the school's sales deck and
  * socials. The site's own cards are never taken this way.
- *   SPONSOR=heltz SCALE=2 DEV_URL=http://localhost:5190 npm run build:og -- board-3d
+ *   SPONSOR=heltz SCALE=2 DEV_URL=http://localhost:5740 npm run build:og -- board-3d
  */
 const SPONSOR = process.env.SPONSOR ?? "";
 const fileOf = (card) => (SPONSOR ? `${card.id}-${SPONSOR}` : card.id);

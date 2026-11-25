@@ -14,7 +14,7 @@
  * Usage:
  *   npm run dev                  # terminal 1
  *   npm run build:car-thumbs     # terminal 2
- *   DEV_URL=http://localhost:5183 npm run build:car-thumbs
+ *   DEV_URL=http://localhost:5732 npm run build:car-thumbs
  *
  * After a vehicle's model or a school's paint changes, run this again and bump
  * `THUMB_V` in `app/lib/board/cars.ts` and the `?v=` in `public/sw.js`. The
@@ -35,7 +35,7 @@ const execFileAsync = promisify(execFile);
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OUT_DIR = path.join(ROOT, "public", "assets", "board", "cars", "thumbs");
-const DEV_URL = process.env.DEV_URL ?? "http://localhost:5173";
+const DEV_URL = process.env.DEV_URL ?? "http://localhost:5730";
 
 /** Keep in step with WIDTH and HEIGHT in `app/routes/tools/car-thumb.tsx`. */
 const WIDTH = 640;

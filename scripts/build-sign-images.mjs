@@ -7,8 +7,8 @@
  * always match. The signs in search are read from the app's own sitemap.
  *
  * Run against a built app:
- *   npm run build && PORT=5190 npm run start
- *   DEV_URL=http://localhost:5190 npm run build:sign-images
+ *   npm run build && PORT=5740 npm run start
+ *   DEV_URL=http://localhost:5740 npm run build:sign-images
  *
  * Re-run when a sign is confirmed (it joins the sitemap) or the chart is
  * redrawn.
@@ -19,7 +19,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
-const DEV_URL = process.env.DEV_URL ?? "http://localhost:5173";
+const DEV_URL = process.env.DEV_URL ?? "http://localhost:5730";
 const SIZE = 512;
 const OUT_DIR = path.join(process.cwd(), "public/assets/road-signs/signs");
 // Signs that are classes of signs, not a sign each.
