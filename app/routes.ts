@@ -75,6 +75,8 @@ export default [
   // A driving school's dashboard (owners and branch admins). Signed in only.
   route("school", "routes/school-home.tsx"),
   route("school/:schoolId", "routes/school-dashboard.tsx"),
+  // Resource routes for fetchers (no page of their own).
+  route("api/me/school-invites", "routes/api/me.school-invites.ts"),
   // DriveRush staff: schools, owners and staff roles. Signed in only.
   route("console", "routes/console.tsx"),
 

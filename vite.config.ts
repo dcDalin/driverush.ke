@@ -89,6 +89,21 @@ export default defineConfig({
   build: {
     sourcemap: UPLOAD_SOURCEMAPS,
   },
+  // Dev server only: pre-bundle what the lazily loaded sign-in sheet and
+  // account code import, so opening the sheet never makes Vite re-bundle
+  // mid-session (which loads a second React and breaks its hooks).
+  optimizeDeps: {
+    include: [
+      "@hookform/resolvers/zod",
+      "@supabase/ssr",
+      "@supabase/supabase-js",
+      "input-otp",
+      "react-hook-form",
+      "remix-hook-form",
+      "remix-utils/honeypot/react",
+      "zod",
+    ],
+  },
   plugins: [
     // MDX must run before reactRouter so .mdx files are JSX by the time the
     // router plugin sees them. `frontmatter` is exported as a named export so

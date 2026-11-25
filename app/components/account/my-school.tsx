@@ -1,17 +1,21 @@
 /**
  * The learner's school, in the account menu: the school they are linked to
  * this month, and any school waiting for them to say yes. With two schools
- * waiting, or one while already linked, the learner chooses (switching ends
- * the current school's month early; that school sees why).
+ * waiting, or one while already linked, the learner chooses (joining ends the
+ * current school's month early; that school sees why).
+ *
+ * Data comes from the `/api/me/school-invites` resource route through typed
+ * fetchers: one loads the list, one per invite posts the answer.
  */
 import * as React from "react";
+import { useFetcher } from "react-router";
 import { toast } from "sonner";
 
 import { Button } from "~/components/ui/button";
 import { refreshEntitlement, useEntitlement } from "~/lib/auth/entitlement";
-import { loadClient } from "~/lib/auth/session";
+import type { action, loader } from "~/routes/api/me.school-invites";
 
-type Invite = { id: string; school: string; branch: string };
+export const SCHOOL_INVITES_PATH = "/api/me/school-invites";
 
 const DATE = new Intl.DateTimeFormat("en-KE", {
   day: "numeric",
@@ -20,49 +24,15 @@ const DATE = new Intl.DateTimeFormat("en-KE", {
 
 export function MySchool({ userId }: { userId: string }) {
   const entitlement = useEntitlement();
-  const [invites, setInvites] = React.useState<Invite[] | null>(null);
-  const [busy, setBusy] = React.useState<string | null>(null);
-
-  const load = React.useCallback(async () => {
-    const supabase = await loadClient();
-    const { data } = await supabase
-      .from("school_student_links")
-      .select("id, schools(name), school_branches(name)")
-      .eq("user_id", userId)
-      .eq("status", "pending")
-      .order("added_at");
-    setInvites(
-      (data ?? []).map((row) => ({
-        id: row.id,
-        school: row.schools?.name ?? "A school",
-        branch: row.school_branches?.name ?? "",
-      })),
-    );
-  }, [userId]);
+  const list = useFetcher<typeof loader>({ key: "school-invites" });
 
   React.useEffect(() => {
-    void load();
-  }, [load]);
+    if (list.state === "idle" && !list.data) list.load(SCHOOL_INVITES_PATH);
+  }, [list]);
 
-  async function answer(id: string, accept: boolean) {
-    setBusy(id);
-    const supabase = await loadClient();
-    const { error } = accept
-      ? await supabase.rpc("learner_accept_school_link", { p_link_id: id })
-      : await supabase.rpc("learner_decline_school_link", { p_link_id: id });
-    setBusy(null);
-    if (error) {
-      toast.error("That did not work. Try again.");
-      return;
-    }
-    toast.success(
-      accept ? "You are now with this school for a month." : "Declined.",
-    );
-    await Promise.all([load(), refreshEntitlement(userId)]);
-  }
-
+  const invites = list.data?.invites ?? [];
   const linked = entitlement?.tier === "school" && entitlement.school_name;
-  if (!linked && !invites?.length) return null;
+  if (!linked && invites.length === 0) return null;
 
   return (
     <div className="mb-3 flex flex-col gap-2 border-b border-line pb-3">
@@ -76,35 +46,83 @@ export function MySchool({ userId }: { userId: string }) {
             ` until ${DATE.format(new Date(entitlement.ends_at))}`}
         </p>
       )}
-      {invites?.map((invite) => (
-        <div key={invite.id} className="flex flex-col gap-1.5">
-          <p className="text-[13px] text-ink-2">
-            <span className="font-semibold text-ink">{invite.school}</span>
-            {invite.branch && ` (${invite.branch})`} added you.
-            {linked && " Joining ends your month with your current school."}
-          </p>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant="rush"
-              disabled={busy !== null}
-              onClick={() => answer(invite.id, true)}
-            >
-              Join
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              disabled={busy !== null}
-              onClick={() => answer(invite.id, false)}
-            >
-              No thanks
-            </Button>
-          </div>
-        </div>
+      {invites.map((invite) => (
+        <InviteRow
+          key={invite.id}
+          invite={invite}
+          linked={Boolean(linked)}
+          onAnswered={() => {
+            list.load(SCHOOL_INVITES_PATH);
+            void refreshEntitlement(userId);
+          }}
+        />
       ))}
+    </div>
+  );
+}
+
+function InviteRow({
+  invite,
+  linked,
+  onAnswered,
+}: {
+  invite: { id: string; school: string; branch: string };
+  linked: boolean;
+  onAnswered: () => void;
+}) {
+  const answer = useFetcher<typeof action>({
+    key: `school-invite:${invite.id}`,
+  });
+  const busy = answer.state !== "idle";
+  const sent = answer.formData?.get("intent");
+
+  React.useEffect(() => {
+    if (answer.state !== "idle" || !answer.data) return;
+    if (answer.data.ok) {
+      toast.success(answer.data.message);
+      onAnswered();
+    } else {
+      toast.error(answer.data.message);
+    }
+    // Only when this answer settles.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answer.state, answer.data]);
+
+  const submit = (intent: "join" | "decline") =>
+    answer.submit(
+      { intent, linkId: invite.id },
+      { method: "POST", action: SCHOOL_INVITES_PATH },
+    );
+
+  return (
+    <div className="flex flex-col gap-1.5" aria-busy={busy || undefined}>
+      <p className="text-[13px] text-ink-2">
+        <span className="font-semibold text-ink">{invite.school}</span>
+        {invite.branch && ` (${invite.branch})`} added you.
+        {linked && " Joining ends your month with your current school."}
+      </p>
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          size="sm"
+          variant="rush"
+          isLoading={sent === "join"}
+          disabled={busy}
+          onClick={() => submit("join")}
+        >
+          Join
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          isLoading={sent === "decline"}
+          disabled={busy}
+          onClick={() => submit("decline")}
+        >
+          No thanks
+        </Button>
+      </div>
     </div>
   );
 }

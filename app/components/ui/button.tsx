@@ -2,6 +2,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { Slot } from "radix-ui";
 import type * as React from "react";
 
+import { TrafficLoader } from "~/components/brand/traffic-loader";
 import { cn } from "~/lib/utils";
 
 const buttonVariants = cva(
@@ -55,6 +56,8 @@ const buttonVariants = cva(
 type ButtonProps = React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean;
+    /** Waiting on its action: disabled, marked busy, with the traffic-light loader. */
+    isLoading?: boolean;
   };
 
 function Button({
@@ -62,6 +65,9 @@ function Button({
   variant,
   size,
   asChild = false,
+  isLoading = false,
+  disabled,
+  children,
   ...props
 }: ButtonProps) {
   const Comp = asChild ? Slot.Root : "button";
@@ -72,8 +78,20 @@ function Button({
       data-variant={variant ?? "paper"}
       data-size={size ?? "default"}
       className={cn(buttonVariants({ variant, size, className }))}
+      disabled={disabled || isLoading}
+      aria-busy={isLoading || undefined}
       {...props}
-    />
+    >
+      {/* `asChild` hands its one child to Slot untouched (Slot needs exactly one). */}
+      {asChild ? (
+        children
+      ) : (
+        <>
+          {isLoading && <TrafficLoader size="sm" aria-hidden />}
+          {children}
+        </>
+      )}
+    </Comp>
   );
 }
 

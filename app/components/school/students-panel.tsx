@@ -3,11 +3,15 @@
  * by branch. A student's progress shows while their month runs.
  */
 import * as React from "react";
+import { HoneypotInputs } from "remix-utils/honeypot/react";
 
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
+import {
+  InputField,
+  SelectField,
+  ServerFormProvider,
+} from "~/components/ui/forms/server";
 import {
   Select,
   SelectContent,
@@ -15,19 +19,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import type { ProgressSummary } from "~/lib/school/progress-summary";
-
-import { useActionForm } from "./action-form";
-
-export type StudentRow = {
-  id: string;
-  email: string;
-  name: string | null;
-  branchId: string;
-  status: "pending" | "active" | "ended";
-  endsAt: string | null;
-  summary: ProgressSummary | null;
-};
+import type { StudentRow } from "~/database/schools/dashboard";
+import { useInlineAction } from "~/lib/forms/use-inline-action";
+import { useServerForm } from "~/lib/forms/use-server-form";
+import { AddStudentSchema } from "~/schemas/school";
 
 type Branch = { id: string; name: string; is_active: boolean };
 
@@ -101,48 +96,54 @@ export function StudentsPanel({
 }
 
 function AddStudent({ branches }: { branches: Branch[] }) {
-  const { Form, busy, ok } = useActionForm();
-  const formRef = React.useRef<HTMLFormElement>(null);
-  React.useEffect(() => {
-    if (ok) formRef.current?.reset();
-  }, [ok]);
+  const { methods, fetcher, formRef, busy } = useServerForm({
+    schema: AddStudentSchema,
+    key: "add-student",
+    resetOnSuccess: true,
+    defaultValues: {
+      intent: "add-student",
+      email: "",
+      branchId: branches[0]?.id ?? "",
+    },
+  });
   return (
-    <Form
-      ref={formRef}
-      method="post"
-      className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4 sm:flex-row sm:items-end"
-    >
-      <input type="hidden" name="intent" value="add-student" />
-      <div className="flex flex-1 flex-col gap-1.5">
-        <Label htmlFor="student-email">Student's email</Label>
-        <Input
-          id="student-email"
+    <ServerFormProvider methods={methods}>
+      <fetcher.Form
+        ref={formRef}
+        method="post"
+        onSubmit={methods.handleSubmit}
+        noValidate
+        className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4 sm:flex-row sm:items-start"
+      >
+        <HoneypotInputs />
+        <InputField
           name="email"
-          type="email"
-          required
-          placeholder="name@gmail.com"
+          label="Student's email"
+          className="flex-1"
           disabled={busy}
+          inputProps={{
+            type: "email",
+            inputMode: "email",
+            placeholder: "name@gmail.com",
+          }}
         />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Label>Branch</Label>
-        <Select name="branchId" defaultValue={branches[0]?.id} disabled={busy}>
-          <SelectTrigger className="w-48" aria-label="Branch">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {branches.map((b) => (
-              <SelectItem key={b.id} value={b.id}>
-                {b.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <Button type="submit" variant="rush" disabled={busy}>
-        Add student
-      </Button>
-    </Form>
+        <SelectField
+          name="branchId"
+          label="Branch"
+          disabled={busy}
+          triggerClassName="w-48"
+          options={branches.map((b) => ({ label: b.name, value: b.id }))}
+        />
+        <Button
+          type="submit"
+          variant="rush"
+          isLoading={busy}
+          className="sm:mt-6"
+        >
+          Add student
+        </Button>
+      </fetcher.Form>
+    </ServerFormProvider>
   );
 }
 
@@ -155,10 +156,14 @@ function StudentItem({
   branchName: string;
   moveTo: Branch[];
 }) {
-  const { Form, busy } = useActionForm();
+  const { pending, busy, submit } = useInlineAction(`student:${student.id}`);
+  const [target, setTarget] = React.useState(moveTo[0]?.id ?? "");
   const s = student.summary;
   return (
-    <li className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+    <li
+      className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+      aria-busy={busy || undefined}
+    >
       <div className="flex min-w-0 flex-col gap-1">
         <p className="truncate font-semibold">
           {student.name ?? student.email}
@@ -195,14 +200,8 @@ function StudentItem({
       </div>
       <div className="flex flex-wrap gap-2">
         {moveTo.length > 0 && student.status !== "ended" && (
-          <Form method="post" className="flex gap-2">
-            <input type="hidden" name="intent" value="move-student" />
-            <input type="hidden" name="linkId" value={student.id} />
-            <Select
-              name="branchId"
-              defaultValue={moveTo[0]!.id}
-              disabled={busy}
-            >
+          <div className="flex gap-2">
+            <Select value={target} onValueChange={setTarget} disabled={busy}>
               <SelectTrigger
                 size="sm"
                 className="w-36"
@@ -218,28 +217,51 @@ function StudentItem({
                 ))}
               </SelectContent>
             </Select>
-            <Button type="submit" size="sm" variant="paper" disabled={busy}>
+            <Button
+              type="button"
+              size="sm"
+              variant="paper"
+              disabled={busy || !target}
+              isLoading={pending === "move-student"}
+              onClick={() =>
+                submit({
+                  intent: "move-student",
+                  linkId: student.id,
+                  branchId: target,
+                })
+              }
+            >
               Move
             </Button>
-          </Form>
+          </div>
         )}
         {student.status === "active" && (
-          <Form method="post">
-            <input type="hidden" name="intent" value="release-student" />
-            <input type="hidden" name="linkId" value={student.id} />
-            <Button type="submit" size="sm" variant="ghost" disabled={busy}>
-              Release
-            </Button>
-          </Form>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            disabled={busy}
+            isLoading={pending === "release-student"}
+            onClick={() =>
+              submit({ intent: "release-student", linkId: student.id })
+            }
+          >
+            Release
+          </Button>
         )}
         {student.status === "pending" && (
-          <Form method="post">
-            <input type="hidden" name="intent" value="cancel-student" />
-            <input type="hidden" name="linkId" value={student.id} />
-            <Button type="submit" size="sm" variant="ghost" disabled={busy}>
-              Withdraw
-            </Button>
-          </Form>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            disabled={busy}
+            isLoading={pending === "cancel-student"}
+            onClick={() =>
+              submit({ intent: "cancel-student", linkId: student.id })
+            }
+          >
+            Withdraw
+          </Button>
         )}
       </div>
     </li>

@@ -6,11 +6,11 @@
  *            reactivate; hand a school to another owner; open its dashboard.
  *   Staff    (su only) who holds a staff role; grant or revoke by email.
  *
- * Staff only see this page; the database checks every call again
- * (private.is_staff, private.is_su), so the page only hides what a caller
- * could not do anyway.
+ * The loader reads `getConsoleOverview`; the action validates each intent
+ * and calls the matching `~/database/console` function. The database checks
+ * every call again (private.is_staff, private.is_su).
  */
-import { data, Link, redirect } from "react-router";
+import { data, Link } from "react-router";
 
 import { SiteNav } from "~/components/brand/site-nav";
 import {
@@ -19,14 +19,25 @@ import {
   StaffPanel,
 } from "~/components/console/console-panels";
 import { NeedsSignIn, NothingHere } from "~/components/school/signed-out";
-import { SPONSORS } from "~/lib/board/sponsors";
+import { isStaffRole, isSuRole } from "~/database/auth/roles";
+import * as consoleDb from "~/database/console/mutations";
 import {
-  type ActionResult,
-  reasonFor,
-  signedInRequest,
-} from "~/lib/school/server";
-import { isStaff } from "~/lib/supabase/caller.server";
-import type { AppRole, SchoolRole } from "~/lib/supabase/types";
+  findAccountIdByEmail,
+  getConsoleOverview,
+} from "~/database/console/queries";
+import type { Result } from "~/database/result";
+import { getRequestClient, requireStaff } from "~/lib/auth/require.server";
+import { SPONSORS } from "~/lib/board/sponsors";
+import { formFields, readFormIntent } from "~/lib/forms/form-intent";
+import { dataWithError, dataWithSuccess } from "~/lib/forms/toast.server";
+import { validateForm } from "~/lib/forms/validate-form.server";
+import {
+  ConsoleActionSchema,
+  CreateSchoolSchema,
+  GrantRoleSchema,
+  NO_LIVERY,
+  TransferOwnerSchema,
+} from "~/schemas/console";
 
 import type { Route } from "./+types/console";
 
@@ -38,168 +49,120 @@ export function meta() {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { supabase, headers, caller } = await signedInRequest(request);
+  const { supabase, headers, caller } = await getRequestClient(request);
   if (!caller.signedIn)
     return data({ state: "signed-out" as const }, { headers });
-  if (!isStaff(caller))
+  if (!isStaffRole(caller.role))
     return data({ state: "not-staff" as const }, { headers });
-  const su = caller.role === "driverush_su";
-
-  const [
-    { data: schools },
-    { data: members },
-    { data: branches },
-    { data: links },
-    roles,
-  ] = await Promise.all([
-    supabase
-      .from("schools")
-      .select("id, name, slug, status, sponsor_id, created_at")
-      .order("name"),
-    supabase.from("school_members").select("school_id, user_id, role"),
-    supabase.from("school_branches").select("school_id"),
-    supabase
-      .from("school_student_links")
-      .select("school_id, ends_at")
-      .eq("status", "active"),
-    su
-      ? supabase.from("user_roles").select("user_id, role").neq("role", "user")
-      : Promise.resolve({ data: [] as { user_id: string; role: AppRole }[] }),
-  ]);
-
-  const owners = (members ?? []).filter(
-    (m) => m.role === ("owner" satisfies SchoolRole),
-  );
-  const userIds = [
-    ...new Set([
-      ...owners.map((o) => o.user_id),
-      ...(roles.data ?? []).map((r) => r.user_id),
-    ]),
-  ];
-  const { data: profiles } = userIds.length
-    ? await supabase
-        .from("profiles")
-        .select("id, email, full_name")
-        .in("id", userIds)
-    : { data: [] };
-  const emailOf = new Map((profiles ?? []).map((p) => [p.id, p.email]));
-  const now = Date.now();
-
+  const su = isSuRole(caller.role);
+  const overview = await getConsoleOverview(supabase, { su });
   return data(
     {
       state: "ok" as const,
       su,
       me: caller.userId,
       sponsors: SPONSORS.map((s) => ({ id: s.id, school: s.school })),
-      schools: (schools ?? []).map((s) => {
-        const owner = owners.find((o) => o.school_id === s.id);
-        return {
-          ...s,
-          ownerEmail: owner ? (emailOf.get(owner.user_id) ?? null) : null,
-          admins: (members ?? []).filter(
-            (m) => m.school_id === s.id && m.role === "admin",
-          ).length,
-          branches: (branches ?? []).filter((b) => b.school_id === s.id).length,
-          students: (links ?? []).filter(
-            (l) =>
-              l.school_id === s.id && l.ends_at && Date.parse(l.ends_at) > now,
-          ).length,
-        };
-      }),
-      staff: (roles.data ?? []).map((r) => ({
-        userId: r.user_id,
-        role: r.role,
-        email: emailOf.get(r.user_id) ?? null,
-      })),
+      ...overview,
     },
     { headers },
   );
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { supabase, headers, caller } = await signedInRequest(request);
-  if (!caller.signedIn) throw redirect("/console", { headers });
-  const form = await request.formData();
-  const intent = String(form.get("intent") ?? "");
-  const text = (name: string) => String(form.get(name) ?? "").trim();
-  const reply = (result: ActionResult) => data(result, { headers });
+  const { supabase, headers } = await requireStaff(request);
+  const formData = await request.formData();
+  const intent = readFormIntent(formData);
 
-  if (intent === "grant-role" || intent === "revoke-role") {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("email", text("email"))
-      .maybeSingle();
-    if (!profile)
-      return reply({
-        ok: false,
-        message: "No account has that email. They sign up first.",
-      });
-    const role = text("role") as AppRole;
-    const { error } =
-      intent === "grant-role"
-        ? await supabase.rpc("grant_platform_role", {
-            p_user_id: profile.id,
-            p_role: role,
-          })
-        : await supabase.rpc("revoke_platform_role", {
-            p_user_id: profile.id,
-            p_role: role,
-          });
-    return reply(
-      error
-        ? { ok: false, message: reasonFor(error) }
-        : { ok: true, message: "Roles saved." },
+  const reply = (result: Result<unknown>, message: string) =>
+    result.error
+      ? dataWithError({ ok: false as const }, result.error, { headers })
+      : dataWithSuccess({ ok: true as const }, message, { headers });
+  const invalid = (errors: unknown) =>
+    dataWithError(
+      { ok: false as const, errors },
+      "Check the highlighted fields.",
+      { headers },
     );
-  }
+  const noAccount = () =>
+    dataWithError(
+      { ok: false as const },
+      "No account has that email. They sign up first.",
+      {
+        headers,
+      },
+    );
 
   if (intent === "create-school") {
-    const { error } = await supabase.rpc("admin_create_school", {
-      p_name: text("name"),
-      p_slug: text("slug"),
-      p_sponsor_id: text("sponsorId") === "none" ? "" : text("sponsorId"),
-      p_owner_email: text("ownerEmail"),
-    });
-    return reply(
-      error
-        ? { ok: false, message: reasonFor(error) }
-        : { ok: true, message: "School created." },
+    const { errors, data: v } = await validateForm(
+      formData,
+      CreateSchoolSchema,
     );
-  }
-
-  if (intent === "set-status") {
-    const { error } = await supabase.rpc("admin_set_school_status", {
-      p_school_id: text("schoolId"),
-      p_status: text("status") as "active" | "suspended" | "archived",
-    });
+    if (errors || !v) return invalid(errors);
     return reply(
-      error
-        ? { ok: false, message: reasonFor(error) }
-        : { ok: true, message: "Status saved." },
+      await consoleDb.createSchool(supabase, {
+        name: v.name,
+        slug: v.slug,
+        sponsorId: v.sponsorId === NO_LIVERY ? null : v.sponsorId,
+        ownerEmail: v.ownerEmail,
+      }),
+      "School created.",
     );
   }
 
   if (intent === "transfer-owner") {
-    const { data: outcome, error } = await supabase.rpc(
-      "admin_transfer_school_owner",
-      {
-        p_school_id: text("schoolId"),
-        p_email: text("email"),
-      },
+    const { errors, data: v } = await validateForm(
+      formData,
+      TransferOwnerSchema,
     );
-    if (error) return reply({ ok: false, message: reasonFor(error) });
-    return reply({
-      ok: true,
-      message:
-        outcome === "invited"
-          ? "Invited: they become owner when they sign up."
-          : "New owner set.",
-    });
+    if (errors || !v) return invalid(errors);
+    const result = await consoleDb.transferSchoolOwner(
+      supabase,
+      v.schoolId,
+      v.email,
+    );
+    return reply(
+      result,
+      result.data === "invited"
+        ? "Invited: they become owner when they sign up."
+        : "New owner set.",
+    );
   }
 
-  return data<ActionResult>(
-    { ok: false, message: "Unknown action." },
-    { status: 400, headers },
+  if (intent === "grant-role") {
+    const { errors, data: v } = await validateForm(formData, GrantRoleSchema);
+    if (errors || !v) return invalid(errors);
+    const userId = await findAccountIdByEmail(supabase, v.email);
+    if (!userId) return noAccount();
+    return reply(
+      await consoleDb.grantPlatformRole(supabase, userId, v.role),
+      "Role granted.",
+    );
+  }
+
+  // Inline actions from keyed fetchers.
+  const parsed = ConsoleActionSchema.safeParse(formFields(formData));
+  if (!parsed.success) {
+    return dataWithError(
+      { ok: false as const },
+      "Something is missing. Reload and try again.",
+      {
+        status: 400,
+        headers,
+      },
+    );
+  }
+  const v = parsed.data;
+  if (v.intent === "set-status") {
+    return reply(
+      await consoleDb.setSchoolStatus(supabase, v.schoolId, v.status),
+      "Status saved.",
+    );
+  }
+  const userId = await findAccountIdByEmail(supabase, v.email);
+  if (!userId) return noAccount();
+  return reply(
+    await consoleDb.revokePlatformRole(supabase, userId, v.role),
+    "Role revoked.",
   );
 }
 
@@ -226,13 +189,17 @@ export default function Console({ loaderData }: Route.ComponentProps) {
             <section className="flex flex-col gap-4">
               <h2 className="font-display text-[20px] font-bold">Schools</h2>
               <CreateSchool sponsors={loaderData.sponsors} />
-              <ul className="flex flex-col divide-y divide-line rounded-lg border border-line bg-surface">
-                {loaderData.schools.map((school) => (
-                  <SchoolRow key={school.id} school={school} />
-                ))}
-              </ul>
-              {loaderData.schools.length === 0 && (
+              {loaderData.schools.length === 0 ? (
                 <p className="text-[14px] text-ink-3">No schools yet.</p>
+              ) : (
+                <ul className="flex flex-col divide-y divide-line rounded-lg border border-line bg-surface">
+                  {loaderData.schools.map((school) => (
+                    <SchoolRow
+                      key={`${school.id}:${school.status}`}
+                      school={school}
+                    />
+                  ))}
+                </ul>
               )}
             </section>
             {loaderData.su && (

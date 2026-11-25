@@ -8,19 +8,22 @@
  *   3. Email and password, for people who have set one (school and
  *      DriveRush staff need it for their consoles).
  *
- * A school that added the learner's email links them the moment the code is
+ * Browser-side forms (the session lives in the browser's client), so plain
+ * react-hook-form with the shared zod schemas and the client field kit. A
+ * school that added the learner's email links them the moment the code is
  * confirmed; that happens in the database, not here.
  */
+import { zodResolver } from "@hookform/resolvers/zod";
 import * as React from "react";
+import { FormProvider, useForm } from "react-hook-form";
 import { useLocation } from "react-router";
 import { toast } from "sonner";
 
 import { Icon } from "~/components/brand/icon";
 import { ArrowLeftIcon, LockIcon, MailIcon } from "~/components/brand/icons";
-import { TrafficLoader } from "~/components/brand/traffic-loader";
 import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
+import { InputField, OtpField } from "~/components/ui/forms/client";
+import { FieldError } from "~/components/ui/forms/common";
 import {
   Sheet,
   SheetBody,
@@ -30,17 +33,22 @@ import {
   SheetTitle,
 } from "~/components/ui/sheet";
 import {
-  cleanCode,
   CODE_LENGTH,
   googleEnabled,
-  normalizeEmail,
   sendEmailCode,
-  signInErrorMessage,
   signInWithGoogle,
   signInWithPassword,
   verifyEmailCode,
 } from "~/lib/auth/sign-in";
 import { useSignInSheet } from "~/lib/auth/sign-in-sheet-store";
+import {
+  EmailCodeRequestSchema,
+  type EmailCodeRequestSchemaTypes,
+  PasswordSignInSchema,
+  type PasswordSignInSchemaTypes,
+  VerifyEmailCodeSchema,
+  type VerifyEmailCodeSchemaTypes,
+} from "~/schemas/auth";
 
 type Step = "email" | "code" | "password";
 
@@ -53,96 +61,19 @@ export default function SignInSheet() {
   const open = useSignInSheet((s) => s.open);
   const reason = useSignInSheet((s) => s.reason);
   const setOpen = useSignInSheet((s) => s.setOpen);
-  const { pathname } = useLocation();
 
   const [step, setStep] = React.useState<Step>("email");
   const [email, setEmail] = React.useState("");
-  const [code, setCode] = React.useState("");
-  const [password, setPassword] = React.useState("");
-  const [busy, setBusy] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
 
   // Start fresh each time the sheet opens.
   React.useEffect(() => {
-    if (open) {
-      setStep("email");
-      setCode("");
-      setPassword("");
-      setError(null);
-      setBusy(false);
-    }
+    if (open) setStep("email");
   }, [open]);
 
   const done = () => {
     setOpen(false);
     toast.success("You are signed in.");
   };
-
-  async function onSendCode(event?: { preventDefault(): void }) {
-    event?.preventDefault();
-    const clean = normalizeEmail(email);
-    if (!clean) {
-      setError("Type a full email address, like name@gmail.com.");
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    const failure = await sendEmailCode(clean);
-    setBusy(false);
-    if (failure) {
-      setError(signInErrorMessage(failure));
-      return;
-    }
-    setEmail(clean);
-    setCode("");
-    setStep("code");
-  }
-
-  async function onVerify(event: React.FormEvent) {
-    event.preventDefault();
-    if (code.length !== CODE_LENGTH) {
-      setError(`The code has ${CODE_LENGTH} digits.`);
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    const failure = await verifyEmailCode(email, code);
-    setBusy(false);
-    if (failure) {
-      setError(signInErrorMessage(failure));
-      return;
-    }
-    done();
-  }
-
-  async function onPassword(event: React.FormEvent) {
-    event.preventDefault();
-    const clean = normalizeEmail(email);
-    if (!clean || !password) {
-      setError("Type your email and password.");
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    const failure = await signInWithPassword(clean, password);
-    setBusy(false);
-    if (failure) {
-      setError(signInErrorMessage(failure));
-      return;
-    }
-    done();
-  }
-
-  async function onGoogle() {
-    setBusy(true);
-    setError(null);
-    const failure = await signInWithGoogle(pathname);
-    // On success the browser is already leaving for Google.
-    if (failure) {
-      setBusy(false);
-      setError(signInErrorMessage(failure));
-    }
-  }
 
   const description =
     step === "code"
@@ -164,163 +95,242 @@ export default function SignInSheet() {
             {description}
           </SheetDescription>
           {step === "email" && (
-            <>
-              <form
-                onSubmit={onSendCode}
-                className="flex flex-col gap-3"
-                noValidate
-              >
-                <Label htmlFor="sign-in-email">Email</Label>
-                <Input
-                  id="sign-in-email"
-                  type="email"
-                  inputMode="email"
-                  autoComplete="email"
-                  placeholder="name@gmail.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  aria-invalid={error ? true : undefined}
-                  disabled={busy}
-                  autoFocus
-                />
-                <Button type="submit" variant="rush" disabled={busy}>
-                  {busy ? (
-                    <TrafficLoader size="sm" aria-label="Sending" />
-                  ) : (
-                    <Icon icon={MailIcon} size={16} />
-                  )}
-                  Email me a code
-                </Button>
-              </form>
-              {googleEnabled() && (
-                <Button
-                  type="button"
-                  variant="paper"
-                  onClick={onGoogle}
-                  disabled={busy}
-                >
-                  Continue with Google
-                </Button>
-              )}
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="self-start"
-                onClick={() => {
-                  setError(null);
-                  setStep("password");
-                }}
-              >
-                <Icon icon={LockIcon} size={14} />
-                Sign in with a password
-              </Button>
-            </>
+            <EmailStep
+              defaultEmail={email}
+              onSent={(sentTo) => {
+                setEmail(sentTo);
+                setStep("code");
+              }}
+              onPassword={() => setStep("password")}
+            />
           )}
-
           {step === "code" && (
-            <form
-              onSubmit={onVerify}
-              className="flex flex-col gap-3"
-              noValidate
-            >
-              <Label htmlFor="sign-in-code">Code</Label>
-              <Input
-                id="sign-in-code"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                placeholder="123456"
-                value={code}
-                onChange={(e) => setCode(cleanCode(e.target.value))}
-                aria-invalid={error ? true : undefined}
-                className="font-mono text-[20px] tracking-[0.3em]"
-                disabled={busy}
-                autoFocus
-              />
-              <Button type="submit" variant="rush" disabled={busy}>
-                {busy && <TrafficLoader size="sm" aria-label="Checking" />}
-                Sign in
-              </Button>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setError(null);
-                    setStep("email");
-                  }}
-                >
-                  <Icon icon={ArrowLeftIcon} size={14} />
-                  Use a different email
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={onSendCode}
-                  disabled={busy}
-                >
-                  Send a new code
-                </Button>
-              </div>
-            </form>
+            <CodeStep
+              email={email}
+              onDone={done}
+              onBack={() => setStep("email")}
+            />
           )}
-
           {step === "password" && (
-            <form
-              onSubmit={onPassword}
-              className="flex flex-col gap-3"
-              noValidate
-            >
-              <Label htmlFor="sign-in-password-email">Email</Label>
-              <Input
-                id="sign-in-password-email"
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={busy}
-                autoFocus
-              />
-              <Label htmlFor="sign-in-password">Password</Label>
-              <Input
-                id="sign-in-password"
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                aria-invalid={error ? true : undefined}
-                disabled={busy}
-              />
-              <Button type="submit" variant="rush" disabled={busy}>
-                {busy && <TrafficLoader size="sm" aria-label="Signing in" />}
-                Sign in
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="self-start"
-                onClick={() => {
-                  setError(null);
-                  setStep("email");
-                }}
-              >
-                <Icon icon={ArrowLeftIcon} size={14} />
-                Use an email code instead
-              </Button>
-            </form>
-          )}
-
-          {error && (
-            <p role="alert" className="text-[14px] font-medium text-rush">
-              {error}
-            </p>
+            <PasswordStep
+              defaultEmail={email}
+              onDone={done}
+              onBack={() => setStep("email")}
+            />
           )}
         </SheetBody>
       </SheetContent>
     </Sheet>
+  );
+}
+
+function EmailStep({
+  defaultEmail,
+  onSent,
+  onPassword,
+}: {
+  defaultEmail: string;
+  onSent: (email: string) => void;
+  onPassword: () => void;
+}) {
+  const { pathname } = useLocation();
+  const [failure, setFailure] = React.useState<string | null>(null);
+  const [googleBusy, setGoogleBusy] = React.useState(false);
+  const methods = useForm<EmailCodeRequestSchemaTypes>({
+    resolver: zodResolver(EmailCodeRequestSchema),
+    defaultValues: { email: defaultEmail },
+    mode: "onTouched",
+  });
+  const busy = methods.formState.isSubmitting;
+
+  const onSubmit = methods.handleSubmit(async ({ email }) => {
+    setFailure(null);
+    const { error } = await sendEmailCode(email);
+    if (error) setFailure(error);
+    else onSent(email);
+  });
+
+  return (
+    <>
+      <FormProvider {...methods}>
+        <form onSubmit={onSubmit} className="flex flex-col gap-3" noValidate>
+          <InputField
+            name="email"
+            label="Email"
+            disabled={busy}
+            inputProps={{
+              type: "email",
+              inputMode: "email",
+              autoComplete: "email",
+              placeholder: "name@gmail.com",
+              autoFocus: true,
+            }}
+          />
+          <Button type="submit" variant="rush" isLoading={busy}>
+            {!busy && <Icon icon={MailIcon} size={16} />}
+            Email me a code
+          </Button>
+        </form>
+      </FormProvider>
+      {googleEnabled() && (
+        <Button
+          type="button"
+          variant="paper"
+          isLoading={googleBusy}
+          onClick={async () => {
+            setGoogleBusy(true);
+            setFailure(null);
+            const { error } = await signInWithGoogle(pathname);
+            // On success the browser is already leaving for Google.
+            if (error) {
+              setGoogleBusy(false);
+              setFailure(error);
+            }
+          }}
+        >
+          Continue with Google
+        </Button>
+      )}
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="self-start"
+        onClick={onPassword}
+      >
+        <Icon icon={LockIcon} size={14} />
+        Sign in with a password
+      </Button>
+      {failure && <FieldError>{failure}</FieldError>}
+    </>
+  );
+}
+
+function CodeStep({
+  email,
+  onDone,
+  onBack,
+}: {
+  email: string;
+  onDone: () => void;
+  onBack: () => void;
+}) {
+  const [failure, setFailure] = React.useState<string | null>(null);
+  const [resending, setResending] = React.useState(false);
+  const methods = useForm<VerifyEmailCodeSchemaTypes>({
+    resolver: zodResolver(VerifyEmailCodeSchema),
+    defaultValues: { code: "" },
+    mode: "onSubmit",
+  });
+  const busy = methods.formState.isSubmitting;
+
+  const onSubmit = methods.handleSubmit(async ({ code }) => {
+    setFailure(null);
+    const { error } = await verifyEmailCode(email, code);
+    if (error) setFailure(error);
+    else onDone();
+  });
+
+  return (
+    <FormProvider {...methods}>
+      <form onSubmit={onSubmit} className="flex flex-col gap-3" noValidate>
+        <OtpField
+          name="code"
+          label="Code"
+          length={CODE_LENGTH}
+          disabled={busy}
+          autoFocus
+        />
+        <Button type="submit" variant="rush" isLoading={busy}>
+          Sign in
+        </Button>
+        {failure && <FieldError>{failure}</FieldError>}
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="ghost" size="sm" onClick={onBack}>
+            <Icon icon={ArrowLeftIcon} size={14} />
+            Use a different email
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            isLoading={resending}
+            disabled={busy}
+            onClick={async () => {
+              setResending(true);
+              const { error } = await sendEmailCode(email);
+              setResending(false);
+              if (error) setFailure(error);
+              else toast("A new code is on its way.");
+            }}
+          >
+            Send a new code
+          </Button>
+        </div>
+      </form>
+    </FormProvider>
+  );
+}
+
+function PasswordStep({
+  defaultEmail,
+  onDone,
+  onBack,
+}: {
+  defaultEmail: string;
+  onDone: () => void;
+  onBack: () => void;
+}) {
+  const [failure, setFailure] = React.useState<string | null>(null);
+  const methods = useForm<PasswordSignInSchemaTypes>({
+    resolver: zodResolver(PasswordSignInSchema),
+    defaultValues: { email: defaultEmail, password: "" },
+    mode: "onTouched",
+  });
+  const busy = methods.formState.isSubmitting;
+
+  const onSubmit = methods.handleSubmit(async ({ email, password }) => {
+    setFailure(null);
+    const { error } = await signInWithPassword(email, password);
+    if (error) setFailure(error);
+    else onDone();
+  });
+
+  return (
+    <FormProvider {...methods}>
+      <form onSubmit={onSubmit} className="flex flex-col gap-3" noValidate>
+        <InputField
+          name="email"
+          label="Email"
+          disabled={busy}
+          inputProps={{
+            type: "email",
+            inputMode: "email",
+            autoComplete: "email",
+            autoFocus: true,
+          }}
+        />
+        <InputField
+          name="password"
+          label="Password"
+          disabled={busy}
+          inputProps={{ type: "password", autoComplete: "current-password" }}
+        />
+        <Button type="submit" variant="rush" isLoading={busy}>
+          Sign in
+        </Button>
+        {failure && <FieldError>{failure}</FieldError>}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="self-start"
+          onClick={onBack}
+        >
+          <Icon icon={ArrowLeftIcon} size={14} />
+          Use an email code instead
+        </Button>
+      </form>
+    </FormProvider>
   );
 }

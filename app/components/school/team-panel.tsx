@@ -3,60 +3,25 @@
  * to one or more branches), and admins invited by an email that has not
  * signed up yet (they count toward the 50).
  */
+import { HoneypotInputs } from "remix-utils/honeypot/react";
+
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { Checkbox } from "~/components/ui/checkbox";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
-
-import { useActionForm } from "./action-form";
+import {
+  CheckboxGroupField,
+  InputField,
+  ServerFormProvider,
+} from "~/components/ui/forms/server";
+import type { SchoolDashboard } from "~/database/schools/dashboard";
+import { useInlineAction } from "~/lib/forms/use-inline-action";
+import { useServerForm } from "~/lib/forms/use-server-form";
+import { AddAdminSchema, SetAdminBranchesSchema } from "~/schemas/school";
 
 type Branch = { id: string; name: string };
-type Member = {
-  member_id: string;
-  email: string | null;
-  full_name: string | null;
-  role: "owner" | "admin";
-  branch_ids: string[];
-};
-type Invite = {
-  id: string;
-  email: string;
-  role: "owner" | "admin";
-  branch_ids: string[];
-};
+type Member = SchoolDashboard["team"][number];
+type Invite = SchoolDashboard["invites"][number];
 
 export const MAX_ADMINS = 50;
-
-function BranchBoxes({
-  branches,
-  checked,
-  prefix,
-}: {
-  branches: Branch[];
-  checked: string[];
-  prefix: string;
-}) {
-  return (
-    <div className="flex flex-wrap gap-3">
-      {branches.map((b) => (
-        <label
-          key={b.id}
-          htmlFor={`${prefix}-${b.id}`}
-          className="flex items-center gap-2 text-[14px]"
-        >
-          <Checkbox
-            id={`${prefix}-${b.id}`}
-            name="branchIds"
-            value={b.id}
-            defaultChecked={checked.includes(b.id)}
-          />
-          {b.name}
-        </label>
-      ))}
-    </div>
-  );
-}
 
 export function TeamPanel({
   team,
@@ -70,6 +35,7 @@ export function TeamPanel({
   const admins =
     team.filter((m) => m.role === "admin").length +
     invites.filter((i) => i.role === "admin").length;
+  const options = branches.map((b) => ({ label: b.name, value: b.id }));
   const names = (ids: string[]) =>
     ids
       .map((id) => branches.find((b) => b.id === id)?.name)
@@ -84,14 +50,17 @@ export function TeamPanel({
         </p>
       </div>
       {branches.length > 0 && admins < MAX_ADMINS && (
-        <AddAdmin branches={branches} />
+        <AddAdmin
+          options={options}
+          onlyBranch={branches.length === 1 ? branches[0]?.id : undefined}
+        />
       )}
       <ul className="flex flex-col divide-y divide-line rounded-lg border border-line bg-surface">
         {team.map((m) => (
           <MemberItem
-            key={m.member_id}
+            key={`${m.member_id}:${m.branch_ids.join(",")}`}
             member={m}
-            branches={branches}
+            options={options}
             branchNames={names(m.branch_ids)}
           />
         ))}
@@ -103,54 +72,86 @@ export function TeamPanel({
   );
 }
 
-function AddAdmin({ branches }: { branches: Branch[] }) {
-  const { Form, busy } = useActionForm();
+function AddAdmin({
+  options,
+  onlyBranch,
+}: {
+  options: { label: string; value: string }[];
+  onlyBranch?: string;
+}) {
+  const { methods, fetcher, formRef, busy } = useServerForm({
+    schema: AddAdminSchema,
+    key: "add-admin",
+    resetOnSuccess: true,
+    defaultValues: {
+      intent: "add-admin",
+      email: "",
+      branchIds: onlyBranch ? [onlyBranch] : [],
+    },
+  });
   return (
-    <Form
-      method="post"
-      className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4"
-    >
-      <input type="hidden" name="intent" value="add-admin" />
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="admin-email">Admin's email</Label>
-        <Input
-          id="admin-email"
+    <ServerFormProvider methods={methods}>
+      <fetcher.Form
+        ref={formRef}
+        method="post"
+        onSubmit={methods.handleSubmit}
+        noValidate
+        className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4"
+      >
+        <HoneypotInputs />
+        <InputField
           name="email"
-          type="email"
-          required
-          placeholder="name@school.co.ke"
+          label="Admin's email"
+          disabled={busy}
+          inputProps={{
+            type: "email",
+            inputMode: "email",
+            placeholder: "name@school.co.ke",
+          }}
+        />
+        <CheckboxGroupField
+          name="branchIds"
+          label="Branches"
+          options={options}
           disabled={busy}
         />
-      </div>
-      <BranchBoxes
-        branches={branches}
-        checked={branches.length === 1 ? [branches[0]!.id] : []}
-        prefix="new-admin"
-      />
-      <Button
-        type="submit"
-        variant="rush"
-        className="self-start"
-        disabled={busy}
-      >
-        Add admin
-      </Button>
-    </Form>
+        <Button
+          type="submit"
+          variant="rush"
+          className="self-start"
+          isLoading={busy}
+        >
+          Add admin
+        </Button>
+      </fetcher.Form>
+    </ServerFormProvider>
   );
 }
 
 function MemberItem({
   member,
-  branches,
+  options,
   branchNames,
 }: {
   member: Member;
-  branches: Branch[];
+  options: { label: string; value: string }[];
   branchNames: string;
 }) {
-  const { Form, busy } = useActionForm();
+  const remove = useInlineAction(`member:${member.member_id}`);
+  const branches = useServerForm({
+    schema: SetAdminBranchesSchema,
+    key: `admin-branches:${member.member_id}`,
+    defaultValues: {
+      intent: "set-admin-branches",
+      memberId: member.member_id,
+      branchIds: member.branch_ids,
+    },
+  });
   return (
-    <li className="flex flex-col gap-2 px-4 py-3">
+    <li
+      className="flex flex-col gap-2 px-4 py-3"
+      aria-busy={remove.busy || undefined}
+    >
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-semibold">
           {member.full_name ?? member.email}
@@ -169,31 +170,47 @@ function MemberItem({
       </p>
       {member.role === "admin" && (
         <div className="flex flex-wrap items-start gap-3">
-          <Form method="post" className="flex flex-col gap-2">
-            <input type="hidden" name="intent" value="set-admin-branches" />
-            <input type="hidden" name="memberId" value={member.member_id} />
-            <BranchBoxes
-              branches={branches}
-              checked={member.branch_ids}
-              prefix={member.member_id}
-            />
-            <Button
-              type="submit"
-              size="sm"
-              variant="paper"
-              className="self-start"
-              disabled={busy}
+          <ServerFormProvider methods={branches.methods}>
+            <branches.fetcher.Form
+              ref={branches.formRef}
+              method="post"
+              onSubmit={branches.methods.handleSubmit}
+              noValidate
+              className="flex flex-col gap-2"
             >
-              Save branches
-            </Button>
-          </Form>
-          <Form method="post">
-            <input type="hidden" name="intent" value="remove-admin" />
-            <input type="hidden" name="memberId" value={member.member_id} />
-            <Button type="submit" size="sm" variant="ghost" disabled={busy}>
-              Remove
-            </Button>
-          </Form>
+              <HoneypotInputs />
+              <CheckboxGroupField
+                name="branchIds"
+                label="Branches"
+                options={options}
+                disabled={branches.busy}
+              />
+              <Button
+                type="submit"
+                size="sm"
+                variant="paper"
+                className="self-start"
+                isLoading={branches.busy}
+              >
+                Save branches
+              </Button>
+            </branches.fetcher.Form>
+          </ServerFormProvider>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            disabled={remove.busy}
+            isLoading={remove.pending === "remove-admin"}
+            onClick={() =>
+              remove.submit({
+                intent: "remove-admin",
+                memberId: member.member_id,
+              })
+            }
+          >
+            Remove
+          </Button>
         </div>
       )}
     </li>
@@ -207,7 +224,7 @@ function InviteItem({
   invite: Invite;
   branchNames: string;
 }) {
-  const { Form, busy } = useActionForm();
+  const { busy, pending, submit } = useInlineAction(`invite:${invite.id}`);
   return (
     <li className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
@@ -217,13 +234,16 @@ function InviteItem({
           {branchNames ? ` · ${branchNames}` : ""}
         </p>
       </div>
-      <Form method="post">
-        <input type="hidden" name="intent" value="cancel-invite" />
-        <input type="hidden" name="inviteId" value={invite.id} />
-        <Button type="submit" size="sm" variant="ghost" disabled={busy}>
-          Withdraw
-        </Button>
-      </Form>
+      <Button
+        type="button"
+        size="sm"
+        variant="ghost"
+        disabled={busy}
+        isLoading={pending === "cancel-invite"}
+        onClick={() => submit({ intent: "cancel-invite", inviteId: invite.id })}
+      >
+        Withdraw
+      </Button>
     </li>
   );
 }

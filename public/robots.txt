@@ -10,6 +10,7 @@ Disallow: /tools/
 Disallow: /school
 Disallow: /console
 Disallow: /auth
+Disallow: /api
 
 # AI search and assistant crawlers, named so it's plain they are welcome.
 # A named group replaces the * group for that crawler, so it repeats the rules.
@@ -33,5 +34,6 @@ Disallow: /tools/
 Disallow: /school
 Disallow: /console
 Disallow: /auth
+Disallow: /api
 
 Sitemap: https://driverush.ke/sitemap.xml

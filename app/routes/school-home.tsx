@@ -8,7 +8,9 @@ import { data, Link, redirect } from "react-router";
 import { SiteNav } from "~/components/brand/site-nav";
 import { NeedsSignIn, NothingHere } from "~/components/school/signed-out";
 import { Badge } from "~/components/ui/badge";
-import { signedInRequest } from "~/lib/school/server";
+import { Card } from "~/components/ui/card";
+import { listMySchools } from "~/database/schools/queries";
+import { getRequestClient } from "~/lib/auth/require.server";
 
 import type { Route } from "./+types/school-home";
 
@@ -20,19 +22,12 @@ export function meta() {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { supabase, headers, caller } = await signedInRequest(request);
+  const { supabase, headers, caller } = await getRequestClient(request);
   if (!caller.signedIn)
     return data({ signedIn: false as const, schools: [] }, { headers });
-  const { data: rows } = await supabase
-    .from("school_members")
-    .select("role, schools(id, name, status)")
-    .eq("user_id", caller.userId);
-  const schools = (rows ?? [])
-    .filter((row) => row.schools)
-    .map((row) => ({ role: row.role, ...row.schools! }))
-    .sort((a, b) => a.name.localeCompare(b.name));
-  if (schools.length === 1)
-    throw redirect(`/school/${schools[0]!.id}`, { headers });
+  const schools = await listMySchools(supabase, caller.userId);
+  if (schools.length === 1 && schools[0])
+    throw redirect(`/school/${schools[0].id}`, { headers });
   return data({ signedIn: true as const, schools }, { headers });
 }
 
@@ -59,17 +54,19 @@ export default function SchoolHome({ loaderData }: Route.ComponentProps) {
             <ul className="flex flex-col gap-2">
               {loaderData.schools.map((school) => (
                 <li key={school.id}>
-                  <Link
-                    to={`/school/${school.id}`}
-                    className="flex items-center justify-between rounded-lg border border-line bg-surface px-4 py-3 hover:bg-paper-2"
+                  <Card
+                    asChild
+                    className="flex-row items-center justify-between px-4 py-3 hover:bg-paper-2"
                   >
-                    <span className="font-semibold">{school.name}</span>
-                    <Badge
-                      variant={school.role === "owner" ? "ink" : "outline"}
-                    >
-                      {school.role}
-                    </Badge>
-                  </Link>
+                    <Link to={`/school/${school.id}`}>
+                      <span className="font-semibold">{school.name}</span>
+                      <Badge
+                        variant={school.role === "owner" ? "ink" : "outline"}
+                      >
+                        {school.role}
+                      </Badge>
+                    </Link>
+                  </Card>
                 </li>
               ))}
             </ul>

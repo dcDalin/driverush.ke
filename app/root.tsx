@@ -6,6 +6,7 @@ import "~/lib/install";
 
 import * as React from "react";
 import {
+  data,
   isRouteErrorResponse,
   Link,
   Links,
@@ -13,9 +14,12 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  type ShouldRevalidateFunctionArgs,
   useLocation,
   useRouteLoaderData,
 } from "react-router";
+import { HoneypotProvider } from "remix-utils/honeypot/react";
+import { toast } from "sonner";
 
 import { AccountShell } from "~/components/account/account-shell";
 import { EntitlementLivery } from "~/components/account/entitlement-livery";
@@ -33,6 +37,8 @@ import {
   usePageviews,
 } from "~/lib/analytics";
 import { shouldMeasure } from "~/lib/bot-traffic";
+import { honeypot } from "~/lib/forms/honeypot.server";
+import { getToast } from "~/lib/forms/toast.server";
 import { loadWhole, shouldLoadWhole, useFreshBuild } from "~/lib/fresh-build";
 import { GA_MEASUREMENT_ID, gaHeadScript } from "~/lib/ga";
 import { guestVisitScript } from "~/lib/progress/guest-visit";
@@ -60,12 +66,26 @@ const BOARD_INIT_SCRIPT = `try{var s=JSON.parse(localStorage.getItem("driverush:
  * browser run from a data centre (`bot-traffic.ts`). Decided once, from the
  * request that loads the page, and kept for every navigation after it.
  */
-export function loader({ request }: Route.LoaderArgs) {
-  return { measure: shouldMeasure(request) };
+export async function loader({ request }: Route.LoaderArgs) {
+  // A one-time message an action left (remix-toast), and the bot trap's
+  // fields for every server form (remix-utils honeypot).
+  const { toast: flash, headers } = await getToast(request);
+  return data(
+    {
+      measure: shouldMeasure(request),
+      flash: flash ?? null,
+      honeypotInputProps: await honeypot.getInputProps(),
+    },
+    { headers },
+  );
 }
 
-export function shouldRevalidate() {
-  return false;
+/**
+ * The root loads once per visit (the offline app keeps the page it has),
+ * except after a form submission, so the message that action left shows.
+ */
+export function shouldRevalidate({ formMethod }: ShouldRevalidateFunctionArgs) {
+  return formMethod !== undefined && formMethod.toUpperCase() !== "GET";
 }
 
 export const links: Route.LinksFunction = () => [
@@ -238,7 +258,17 @@ export default function App() {
   // progress stores. PostHog itself is initialised in
   // `entry.client.tsx`, before hydration.
   useLearnerAnalytics();
-  return (
+  const loaderData = useRouteLoaderData<typeof loader>("root");
+  // Show the message an action left (remix-toast) with the house toaster.
+  const flash = loaderData?.flash;
+  React.useEffect(() => {
+    if (!flash) return;
+    if (flash.type === "error") toast.error(flash.message);
+    else if (flash.type === "success") toast.success(flash.message);
+    else if (flash.type === "warning") toast.warning(flash.message);
+    else toast(flash.message);
+  }, [flash]);
+  const shell = (
     <>
       {/* Keyed so each new page gets a fresh entrance. There's no exit, so a tap
           never waits on the old page, and the first load isn't animated. */}
@@ -256,6 +286,13 @@ export default function App() {
       {/* The board's livery for the learner's school, plan or neither. */}
       <EntitlementLivery />
     </>
+  );
+  return loaderData?.honeypotInputProps ? (
+    <HoneypotProvider {...loaderData.honeypotInputProps}>
+      {shell}
+    </HoneypotProvider>
+  ) : (
+    shell
   );
 }
 

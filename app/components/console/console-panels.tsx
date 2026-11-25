@@ -1,14 +1,19 @@
 /**
- * The console's forms and rows (`/console`). Each form posts one action to
- * the console route without leaving the page (`useActionForm`).
+ * The console's forms and rows (`/console`): server forms (remix-hook-form
+ * with a keyed fetcher, `useServerForm`) for anything with fields, keyed
+ * inline actions (`useInlineAction`) for one-tap changes.
  */
+import * as React from "react";
 import { Link } from "react-router";
+import { HoneypotInputs } from "remix-utils/honeypot/react";
 
-import { useActionForm } from "~/components/school/action-form";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
+import {
+  InputField,
+  SelectField,
+  ServerFormProvider,
+} from "~/components/ui/forms/server";
 import {
   Select,
   SelectContent,
@@ -16,97 +21,86 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-
-type SchoolStatus = "active" | "suspended" | "archived";
-
-export type ConsoleSchool = {
-  id: string;
-  name: string;
-  slug: string;
-  status: SchoolStatus;
-  sponsor_id: string | null;
-  ownerEmail: string | null;
-  admins: number;
-  branches: number;
-  students: number;
-};
+import type { ConsoleSchool, StaffMember } from "~/database/console/queries";
+import type { SchoolStatus } from "~/database/types";
+import { useInlineAction } from "~/lib/forms/use-inline-action";
+import { useServerForm } from "~/lib/forms/use-server-form";
+import {
+  CreateSchoolSchema,
+  GrantRoleSchema,
+  NO_LIVERY,
+  TransferOwnerSchema,
+} from "~/schemas/console";
 
 export function CreateSchool({
   sponsors,
 }: {
   sponsors: { id: string; school: string }[];
 }) {
-  const { Form, busy } = useActionForm();
+  const { methods, fetcher, formRef, busy } = useServerForm({
+    schema: CreateSchoolSchema,
+    key: "create-school",
+    resetOnSuccess: true,
+    defaultValues: {
+      intent: "create-school",
+      name: "",
+      slug: "",
+      ownerEmail: "",
+      sponsorId: NO_LIVERY,
+    },
+  });
   return (
-    <Form
-      method="post"
-      className="grid gap-3 rounded-lg border border-line bg-surface p-4 sm:grid-cols-2"
-    >
-      <input type="hidden" name="intent" value="create-school" />
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="school-name">School name</Label>
-        <Input
-          id="school-name"
-          name="name"
-          required
-          minLength={2}
-          placeholder="Heltz Driving School"
-          disabled={busy}
-        />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="school-slug">Short name (for links)</Label>
-        <Input
-          id="school-slug"
-          name="slug"
-          required
-          pattern="[a-z0-9]+(-[a-z0-9]+)*"
-          placeholder="heltz"
-          disabled={busy}
-        />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="school-owner">Owner's email</Label>
-        <Input
-          id="school-owner"
-          name="ownerEmail"
-          type="email"
-          required
-          placeholder="owner@school.co.ke"
-          disabled={busy}
-        />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Label>Livery</Label>
-        <Select name="sponsorId" defaultValue="none" disabled={busy}>
-          <SelectTrigger aria-label="Livery">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">None yet (plain cars)</SelectItem>
-            {sponsors.map((s) => (
-              <SelectItem key={s.id} value={s.id}>
-                {s.school}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <Button
-        type="submit"
-        variant="rush"
-        className="self-start sm:col-span-2"
-        disabled={busy}
+    <ServerFormProvider methods={methods}>
+      <fetcher.Form
+        ref={formRef}
+        method="post"
+        onSubmit={methods.handleSubmit}
+        noValidate
+        className="grid gap-3 rounded-lg border border-line bg-surface p-4 sm:grid-cols-2"
       >
-        Create school
-      </Button>
-    </Form>
+        <HoneypotInputs />
+        <InputField
+          name="name"
+          label="School name"
+          disabled={busy}
+          inputProps={{ placeholder: "Heltz Driving School" }}
+        />
+        <InputField
+          name="slug"
+          label="Short name (for links)"
+          disabled={busy}
+          inputProps={{ placeholder: "heltz" }}
+        />
+        <InputField
+          name="ownerEmail"
+          label="Owner's email"
+          disabled={busy}
+          inputProps={{
+            type: "email",
+            inputMode: "email",
+            placeholder: "owner@school.co.ke",
+          }}
+        />
+        <SelectField
+          name="sponsorId"
+          label="Livery"
+          disabled={busy}
+          options={[
+            { label: "None yet (plain cars)", value: NO_LIVERY },
+            ...sponsors.map((s) => ({ label: s.school, value: s.id })),
+          ]}
+        />
+        <Button
+          type="submit"
+          variant="rush"
+          className="self-start sm:col-span-2"
+          isLoading={busy}
+        >
+          Create school
+        </Button>
+      </fetcher.Form>
+    </ServerFormProvider>
   );
-}
-
-/** "1 branch", "2 branches". */
-function count(n: number, one: string, many = `${one}s`) {
-  return `${n} ${n === 1 ? one : many}`;
 }
 
 const STATUS_BADGE = {
@@ -115,9 +109,20 @@ const STATUS_BADGE = {
   archived: "outline",
 } as const;
 
+/** "1 branch", "2 branches". */
+function count(n: number, one: string, many = `${one}s`) {
+  return `${n} ${n === 1 ? one : many}`;
+}
+
 export function SchoolRow({ school }: { school: ConsoleSchool }) {
-  const status = useActionForm();
-  const owner = useActionForm();
+  const status = useInlineAction(`school-status:${school.id}`);
+  const [next, setNext] = React.useState<SchoolStatus>(school.status);
+  const owner = useServerForm({
+    schema: TransferOwnerSchema,
+    key: `transfer-owner:${school.id}`,
+    resetOnSuccess: true,
+    defaultValues: { intent: "transfer-owner", schoolId: school.id, email: "" },
+  });
   return (
     <li className="flex flex-col gap-3 px-4 py-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -138,13 +143,11 @@ export function SchoolRow({ school }: { school: ConsoleSchool }) {
         {count(school.branches, "branch", "branches")} ·{" "}
         {count(school.students, "student")} this month
       </p>
-      <div className="flex flex-wrap items-end gap-3">
-        <status.Form method="post" className="flex gap-2">
-          <input type="hidden" name="intent" value="set-status" />
-          <input type="hidden" name="schoolId" value={school.id} />
+      <div className="flex flex-wrap items-start gap-3">
+        <div className="flex gap-2">
           <Select
-            name="status"
-            defaultValue={school.status}
+            value={next}
+            onValueChange={(v) => setNext(v as SchoolStatus)}
             disabled={status.busy}
           >
             <SelectTrigger size="sm" className="w-36" aria-label="Status">
@@ -157,30 +160,49 @@ export function SchoolRow({ school }: { school: ConsoleSchool }) {
             </SelectContent>
           </Select>
           <Button
-            type="submit"
+            type="button"
             size="sm"
             variant="paper"
-            disabled={status.busy}
+            disabled={status.busy || next === school.status}
+            isLoading={status.busy}
+            onClick={() =>
+              status.submit({
+                intent: "set-status",
+                schoolId: school.id,
+                status: next,
+              })
+            }
           >
             Save
           </Button>
-        </status.Form>
-        <owner.Form method="post" className="flex gap-2">
-          <input type="hidden" name="intent" value="transfer-owner" />
-          <input type="hidden" name="schoolId" value={school.id} />
-          <Input
-            name="email"
-            type="email"
-            required
-            placeholder="New owner's email"
-            aria-label="New owner's email"
-            className="h-9 w-56"
-            disabled={owner.busy}
-          />
-          <Button type="submit" size="sm" variant="ghost" disabled={owner.busy}>
-            Change owner
-          </Button>
-        </owner.Form>
+        </div>
+        <ServerFormProvider methods={owner.methods}>
+          <owner.fetcher.Form
+            ref={owner.formRef}
+            method="post"
+            onSubmit={owner.methods.handleSubmit}
+            noValidate
+            className="flex items-start gap-2"
+          >
+            <HoneypotInputs />
+            <InputField
+              name="email"
+              label="New owner's email"
+              className="w-56"
+              disabled={owner.busy}
+              inputProps={{ type: "email", inputMode: "email" }}
+            />
+            <Button
+              type="submit"
+              size="sm"
+              variant="ghost"
+              className="mt-6"
+              isLoading={owner.busy}
+            >
+              Change owner
+            </Button>
+          </owner.fetcher.Form>
+        </ServerFormProvider>
       </div>
     </li>
   );
@@ -190,45 +212,54 @@ export function StaffPanel({
   staff,
   me,
 }: {
-  staff: { userId: string; role: string; email: string | null }[];
+  staff: StaffMember[];
   me: string;
 }) {
-  const grant = useActionForm();
+  const grant = useServerForm({
+    schema: GrantRoleSchema,
+    key: "grant-role",
+    resetOnSuccess: true,
+    defaultValues: { intent: "grant-role", email: "", role: "driverush_admin" },
+  });
   return (
     <section className="flex flex-col gap-4">
       <h2 className="font-display text-[20px] font-bold">Staff</h2>
-      <grant.Form
-        method="post"
-        className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4 sm:flex-row sm:items-end"
-      >
-        <input type="hidden" name="intent" value="grant-role" />
-        <div className="flex flex-1 flex-col gap-1.5">
-          <Label htmlFor="staff-email">Email</Label>
-          <Input
-            id="staff-email"
-            name="email"
-            type="email"
-            required
-            disabled={grant.busy}
-          />
-        </div>
-        <Select
-          name="role"
-          defaultValue="driverush_admin"
-          disabled={grant.busy}
+      <ServerFormProvider methods={grant.methods}>
+        <grant.fetcher.Form
+          ref={grant.formRef}
+          method="post"
+          onSubmit={grant.methods.handleSubmit}
+          noValidate
+          className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4 sm:flex-row sm:items-start"
         >
-          <SelectTrigger className="w-48" aria-label="Role">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="driverush_admin">Admin</SelectItem>
-            <SelectItem value="driverush_su">Su</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button type="submit" variant="rush" disabled={grant.busy}>
-          Grant
-        </Button>
-      </grant.Form>
+          <HoneypotInputs />
+          <InputField
+            name="email"
+            label="Email"
+            className="flex-1"
+            disabled={grant.busy}
+            inputProps={{ type: "email", inputMode: "email" }}
+          />
+          <SelectField
+            name="role"
+            label="Role"
+            triggerClassName="w-48"
+            disabled={grant.busy}
+            options={[
+              { label: "Admin", value: "driverush_admin" },
+              { label: "Su", value: "driverush_su" },
+            ]}
+          />
+          <Button
+            type="submit"
+            variant="rush"
+            className="sm:mt-6"
+            isLoading={grant.busy}
+          >
+            Grant
+          </Button>
+        </grant.fetcher.Form>
+      </ServerFormProvider>
       <ul className="flex flex-col divide-y divide-line rounded-lg border border-line bg-surface">
         {staff.map((s) => (
           <StaffRow
@@ -242,14 +273,10 @@ export function StaffPanel({
   );
 }
 
-function StaffRow({
-  member,
-  isMe,
-}: {
-  member: { role: string; email: string | null };
-  isMe: boolean;
-}) {
-  const { Form, busy } = useActionForm();
+function StaffRow({ member, isMe }: { member: StaffMember; isMe: boolean }) {
+  const { busy, submit } = useInlineAction(
+    `staff:${member.userId}:${member.role}`,
+  );
   return (
     <li className="flex items-center justify-between gap-3 px-4 py-3">
       <div className="flex items-center gap-2">
@@ -259,14 +286,21 @@ function StaffRow({
         </Badge>
       </div>
       {!(isMe && member.role === "driverush_su") && member.email && (
-        <Form method="post">
-          <input type="hidden" name="intent" value="revoke-role" />
-          <input type="hidden" name="email" value={member.email} />
-          <input type="hidden" name="role" value={member.role} />
-          <Button type="submit" size="sm" variant="ghost" disabled={busy}>
-            Revoke
-          </Button>
-        </Form>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          isLoading={busy}
+          onClick={() =>
+            submit({
+              intent: "revoke-role",
+              email: member.email!,
+              role: member.role,
+            })
+          }
+        >
+          Revoke
+        </Button>
       )}
     </li>
   );
