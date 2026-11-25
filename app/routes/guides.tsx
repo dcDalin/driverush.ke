@@ -102,10 +102,10 @@ export default function Guides() {
         <div className="grid gap-8">
           {GROUPS.map((group) => (
             <section key={group.title} aria-label={group.title}>
-              <h2 className="m-0 mb-2 font-sans text-[11px] font-semibold uppercase tracking-wider text-ink-3">
+              <h2 className="m-0 mb-2 font-sans text-[11px] font-semibold tracking-wider text-ink-3 uppercase">
                 {group.title}
               </h2>
-              <ul className="m-0 grid list-none border border-ink/25 bg-surface p-0 rounded-lg">
+              <ul className="m-0 grid list-none rounded-lg border border-ink/25 bg-surface p-0">
                 {group.items.map((item) => (
                   <li
                     key={item.to}
@@ -113,10 +113,10 @@ export default function Guides() {
                   >
                     <Link
                       to={item.to}
-                      className="flex min-h-14 items-center gap-3 px-4 py-3 text-ink no-underline outline-none transition-colors hover:bg-paper-2 focus-visible:bg-paper-2"
+                      className="flex min-h-14 items-center gap-3 px-4 py-3 text-ink no-underline transition-colors outline-none hover:bg-paper-2 focus-visible:bg-paper-2"
                     >
                       <span className="min-w-0 flex-1">
-                        <span className="block text-[15px] font-bold leading-snug">
+                        <span className="block text-[15px] leading-snug font-bold">
                           {item.title}
                         </span>
                         <span className="mt-0.5 block text-[13.5px] leading-snug text-ink-2">

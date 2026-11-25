@@ -103,14 +103,12 @@ describe("a school links a learner by email", () => {
   it("lets the learner save progress, and only their branch's admin read it", async () => {
     const learner = await signInWithEmailCode(email);
     const { data: me } = await learner.auth.getUser();
-    const { error } = await learner
-      .from("learner_progress")
-      .upsert({
-        user_id: me.user!.id,
-        store: "board",
-        data: { finished: 4 },
-        version: 1,
-      });
+    const { error } = await learner.from("learner_progress").upsert({
+      user_id: me.user!.id,
+      store: "board",
+      data: { finished: 4 },
+      version: 1,
+    });
     expect(error).toBeNull();
 
     const heltz = await serviceClient()

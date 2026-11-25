@@ -108,7 +108,7 @@ export function PelicanSettingsSheet() {
             }
           >
             {regions.length === 0 ? (
-              <p className="font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
+              <p className="font-sans text-[10.5px] font-medium tracking-wider text-ink-3 uppercase">
                 No signs on the board yet
               </p>
             ) : (
@@ -214,17 +214,15 @@ export function PelicanSettingsSheet() {
               <strong>known</strong>: a meter that builds across runs (a miss
               only nudges it down a notch). Saved on this device only.
             </p>
-            <div className="flex items-center justify-between gap-3 border border-line bg-paper-3 px-3 py-2 rounded-lg">
-              <span className="font-sans text-[10.5px] uppercase tracking-wider text-ink-2 font-medium">
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paper-3 px-3 py-2">
+              <span className="font-sans text-[10.5px] font-medium tracking-wider text-ink-2 uppercase">
                 Known {mastered} / {regions.length}
               </span>
               <Button
                 variant="paper"
                 size="sm"
                 onClick={() => {
-                  if (
-                    window.confirm("Reset your progress on all signs?")
-                  )
+                  if (window.confirm("Reset your progress on all signs?"))
                     resetProgress();
                 }}
               >

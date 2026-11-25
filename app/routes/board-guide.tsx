@@ -93,7 +93,7 @@ export default function BoardGuide({ loaderData }: Route.ComponentProps) {
         <>
           <nav
             aria-label="Breadcrumb"
-            className="mb-4 flex flex-wrap items-center gap-2 font-mono text-[10.5px] uppercase tracking-widest text-ink-3"
+            className="mb-4 flex flex-wrap items-center gap-2 font-mono text-[10.5px] tracking-widest text-ink-3 uppercase"
           >
             <Link to={BOARD_PATH} className="hover:text-ink hover:underline">
               Model Town Board

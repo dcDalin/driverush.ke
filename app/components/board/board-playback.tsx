@@ -124,23 +124,23 @@ export function BoardPlayback({
     <div className={cn("grid gap-3", className)}>
       {step && (
         <div aria-live="polite">
-          <p className="m-0 flex flex-wrap items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-kenya-gold">
+          <p className="m-0 flex flex-wrap items-center gap-1.5 font-mono text-[10px] font-bold tracking-widest text-kenya-gold uppercase">
             Step {index + 1} of {total}
             <StepTags step={step} />
           </p>
           {note && (
-            <p className="m-0 mt-1.5 text-[12.5px] font-bold leading-snug text-[#ff9d8a]">
+            <p className="m-0 mt-1.5 text-[12.5px] leading-snug font-bold text-[#ff9d8a]">
               {note}
             </p>
           )}
-          <p className="m-0 mt-1.5 text-[15.5px] font-bold leading-snug text-white">
+          <p className="m-0 mt-1.5 text-[15.5px] leading-snug font-bold text-white">
             {step.title}
           </p>
           <p className="m-0 mt-1 text-[13.5px] leading-snug text-white/80">
             {step.why}
           </p>
           {!step.confirmed && (
-            <p className="m-0 mt-1.5 text-[12.5px] font-semibold leading-snug text-kenya-gold">
+            <p className="m-0 mt-1.5 text-[12.5px] leading-snug font-semibold text-kenya-gold">
               {UNSURE_NOTE}
             </p>
           )}
@@ -175,7 +175,7 @@ export function BoardPlayback({
         <button
           type="button"
           aria-label={ended ? "Play again" : playing ? "Pause" : "Play"}
-          className="inline-flex h-11 min-w-0 flex-1 items-center justify-center rounded-md border-2 border-[#f6c416] bg-[#f6c416] text-[#17181b] outline-none transition-colors hover:bg-[#ffd84d] focus-visible:border-white"
+          className="inline-flex h-11 min-w-0 flex-1 items-center justify-center rounded-md border-2 border-[#f6c416] bg-[#f6c416] text-[#17181b] transition-colors outline-none hover:bg-[#ffd84d] focus-visible:border-white"
           onClick={() => {
             cam.follow = true;
             setPlaying(!playing);
@@ -185,7 +185,7 @@ export function BoardPlayback({
             icon={ended ? RefreshIcon : playing ? PauseIcon : PlayIcon}
             size={18}
           />
-          <span className="ml-2 font-mono text-[11px] font-bold uppercase tracking-widest">
+          <span className="ml-2 font-mono text-[11px] font-bold tracking-widest uppercase">
             {ended ? "Again" : playing ? "Pause" : "Play"}
           </span>
         </button>
@@ -204,7 +204,9 @@ export function BoardPlayback({
           className={cn(iconButton, "w-14 font-mono text-[12px] font-bold")}
           onClick={() => {
             const next =
-              PLAY_RATES[(PLAY_RATES.indexOf(rate as 1) + 1) % PLAY_RATES.length];
+              PLAY_RATES[
+                (PLAY_RATES.indexOf(rate as 1) + 1) % PLAY_RATES.length
+              ];
             setRate(next);
           }}
         >

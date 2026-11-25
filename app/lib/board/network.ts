@@ -1160,7 +1160,7 @@ export function shortest(
     }
   }
   const path: NetEdge[] = [];
-  for (let id = to; id !== from; ) {
+  for (let id = to; id !== from;) {
     const e = via.get(id);
     if (!e) return null;
     path.unshift(e);

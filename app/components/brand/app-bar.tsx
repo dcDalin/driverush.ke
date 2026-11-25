@@ -87,9 +87,9 @@ function AppBarLink({
       data-active={active || undefined}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "relative inline-flex items-center border border-transparent px-3 py-2 rounded-lg",
+        "relative inline-flex items-center rounded-lg border border-transparent px-3 py-2",
         "text-[14px] font-medium text-ink-2",
-        "outline-none transition-colors duration-100 ease-snap",
+        "transition-colors duration-100 ease-snap outline-none",
         "hover:bg-paper-2 hover:text-ink focus-visible:border-line focus-visible:bg-paper-2 focus-visible:text-ink",
         // Active rail: bottom-edge bar in rush red, inset to the text padding
         // (`inset-x-3`) and dropped 2px below the link so it meets the

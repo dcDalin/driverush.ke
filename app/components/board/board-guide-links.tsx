@@ -39,9 +39,9 @@ export function BoardGuideLinks({
         <li key={link.to}>
           <Link
             to={link.to}
-            className="grid h-full gap-1 border-2 border-ink bg-paper-3 p-4 no-underline outline-none transition-colors hover:bg-surface focus-visible:bg-surface"
+            className="grid h-full gap-1 border-2 border-ink bg-paper-3 p-4 no-underline transition-colors outline-none hover:bg-surface focus-visible:bg-surface"
           >
-            <span className="font-display text-[14px] font-extrabold uppercase leading-tight tracking-[0.02em] text-ink">
+            <span className="font-display text-[14px] leading-tight font-extrabold tracking-[0.02em] text-ink uppercase">
               {link.title}
             </span>
             <span className="text-[14px] leading-snug text-ink-2">

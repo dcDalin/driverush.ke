@@ -33,15 +33,15 @@ export function HomeHero() {
   return (
     <section
       id="try-now"
-      className="mx-auto w-full max-w-4xl scroll-mt-20 px-5 pb-10 pt-5 sm:px-9"
+      className="mx-auto w-full max-w-4xl scroll-mt-20 px-5 pt-5 pb-10 sm:px-9"
     >
       <header className="grid gap-3">
-        <p className="dr-rise m-0 font-sans text-[10.5px] font-semibold uppercase tracking-wider text-ink-3">
+        <p className="dr-rise m-0 font-sans text-[10.5px] font-semibold tracking-wider text-ink-3 uppercase">
           For your NTSA test · Free, no signup
         </p>
         <h1
           style={stagger(1)}
-          className="dr-rise m-0 font-display text-[clamp(26px,7.6vw,60px)] font-semibold leading-[0.92] tracking-tighter text-ink"
+          className="dr-rise m-0 font-display text-[clamp(26px,7.6vw,60px)] leading-[0.92] font-semibold tracking-tighter text-ink"
         >
           Model Town Board. <span className="block text-rush">Drive it.</span>
         </h1>
@@ -92,7 +92,7 @@ export function HomeHero() {
                 {plan}
               </span>
             ) : (
-              <span className="font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
+              <span className="font-sans text-[11px] font-medium tracking-wider text-ink-3 uppercase">
                 {done} of {COURSE_LEVELS.length} levels done
               </span>
             )}

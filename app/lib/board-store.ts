@@ -90,12 +90,7 @@ export const DEFAULT_BOARD_SETTINGS: BoardSettings = {
 
 /** "watch" is the drive paused while the right way is played back. */
 export type BoardPhase =
-  | "ready"
-  | "driving"
-  | "fault"
-  | "watch"
-  | "passed"
-  | "complete";
+  "ready" | "driving" | "fault" | "watch" | "passed" | "complete";
 
 /**
  * Driving the tasks, learning the board with no task on, or a level of the

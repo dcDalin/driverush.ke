@@ -44,8 +44,9 @@ function installUnlock() {
   // Without this, iOS routes Web Audio through the ringer and the silent switch
   // mutes it. Safari 16.4+; ignored elsewhere.
   try {
-    const session = (navigator as unknown as { audioSession?: { type: string } })
-      .audioSession;
+    const session = (
+      navigator as unknown as { audioSession?: { type: string } }
+    ).audioSession;
     if (session) session.type = "playback";
   } catch {
     /* ignore */

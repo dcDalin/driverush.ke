@@ -169,7 +169,9 @@ describe("parking", () => {
     for (const bay of free) {
       const into = planRoute(laneStart("S", 1), bay.id);
       expect(into.route, `into ${bay.label}`).not.toBeNull();
-      expect(into.rule).toBe(bay.group === "angle_bay" ? "parking" : "shortest");
+      expect(into.rule).toBe(
+        bay.group === "angle_bay" ? "parking" : "shortest",
+      );
       const out = planRoute(
         bay.id,
         place("To the dual carriageway, bottom end, lane 1").id,
@@ -249,8 +251,9 @@ describe("what Learn mode teaches", () => {
         );
         expect(new Set(options.map((o) => o.id)).size).toBe(options.length);
         for (const option of options) {
-          expect(option.route.edges.some((e) => e.maneuver === "lane_change"))
-            .toBe(false);
+          expect(
+            option.route.edges.some((e) => e.maneuver === "lane_change"),
+          ).toBe(false);
           expect(option.route.steps.map((s) => s.maneuver)).toEqual(
             expect.arrayContaining(["hold_lane", "ring", "exit"]),
           );
@@ -336,7 +339,9 @@ describe("what Learn mode teaches", () => {
         challenge.start.along,
       );
       const first = poseAt(route!, 0);
-      expect(Math.hypot(first.x - start.x, first.z - start.z)).toBeLessThan(0.5);
+      expect(Math.hypot(first.x - start.x, first.z - start.z)).toBeLessThan(
+        0.5,
+      );
       const end = poseAt(route!, route!.length);
       const box = goalBox(challenge.goal);
       expect(end.x, challenge.id).toBeGreaterThan(box.x0);

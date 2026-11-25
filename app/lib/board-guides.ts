@@ -34,12 +34,7 @@ export const BOARD_QUESTIONS_PDF = "/downloads/model-town-board-questions.pdf";
 export const BOARD_CHECKED = "2026-11-21";
 
 export type BoardGuideId =
-  | "diagram"
-  | "lane-options"
-  | "questions"
-  | "roundabout"
-  | "rules"
-  | "parking";
+  "diagram" | "lane-options" | "questions" | "roundabout" | "rules" | "parking";
 
 export type BoardGuide = {
   id: BoardGuideId;

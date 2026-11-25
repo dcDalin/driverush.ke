@@ -11,10 +11,7 @@ import { cn } from "~/lib/utils";
  * - `idle` — nothing happening; bar is collapsed and hidden
  */
 export type NavigationProgressPhase =
-  | "idle"
-  | "submitting"
-  | "loading"
-  | "finishing";
+  "idle" | "submitting" | "loading" | "finishing";
 
 // Width + colour per phase. The colour SNAPS between phases (no colour
 // transition) — a traffic light flips, it doesn't cross-fade — while the width

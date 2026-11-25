@@ -33,7 +33,7 @@ export function BoardQuestionsPrint() {
       </p>
 
       <header className="border-b-2 border-[#0e1014] pb-2">
-        <h1 className="m-0 font-display text-[24px] font-extrabold uppercase leading-none tracking-tight">
+        <h1 className="m-0 font-display text-[24px] leading-none font-extrabold tracking-tight uppercase">
           Model Town Board questions and answers
         </h1>
         <p className="m-0 mt-1 text-[11px]">
@@ -56,7 +56,7 @@ export function BoardQuestionsPrint() {
           const index = COURSE_LEVELS.findIndex((l) => l.id === topic.level);
           return (
             <section key={topic.id} className="mb-3">
-              <h2 className="bq-topic m-0 mb-1 border-b border-[#0e1014] font-display text-[13px] font-extrabold uppercase tracking-tight">
+              <h2 className="bq-topic m-0 mb-1 border-b border-[#0e1014] font-display text-[13px] font-extrabold tracking-tight uppercase">
                 {topic.title}
               </h2>
               {boardQuestionsIn(topic.id).map((question) => {

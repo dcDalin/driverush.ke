@@ -124,7 +124,7 @@ function RegionCropper({
 
   return (
     <div className="space-y-4">
-      <div className="relative h-[clamp(280px,52vh,560px)] w-full overflow-hidden border border-line bg-ink rounded-lg">
+      <div className="relative h-[clamp(280px,52vh,560px)] w-full overflow-hidden rounded-lg border border-line bg-ink">
         <Cropper
           image={imageSrc}
           crop={crop}
@@ -186,7 +186,7 @@ function RegionCropper({
       </div>
 
       <div className="flex flex-wrap items-center gap-5">
-        <label className="flex cursor-pointer items-center gap-2 font-sans text-[11px] uppercase tracking-wider text-ink-2 font-medium">
+        <label className="flex cursor-pointer items-center gap-2 font-sans text-[11px] font-medium tracking-wider text-ink-2 uppercase">
           <Checkbox
             checked={showGrid}
             onCheckedChange={(c) => setShowGrid(c === true)}
@@ -194,14 +194,14 @@ function RegionCropper({
           <Icon icon={GridIcon} size={13} />
           Grid
         </label>
-        <label className="flex cursor-pointer items-center gap-2 font-sans text-[11px] uppercase tracking-wider text-ink-2 font-medium">
+        <label className="flex cursor-pointer items-center gap-2 font-sans text-[11px] font-medium tracking-wider text-ink-2 uppercase">
           <Checkbox
             checked={restrictPosition}
             onCheckedChange={(c) => setRestrictPosition(c === true)}
           />
           Restrict to image
         </label>
-        <p className="font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
+        <p className="font-sans text-[10.5px] font-medium tracking-wider text-ink-3 uppercase">
           {croppedArea
             ? `x ${round(croppedArea.x)}% · y ${round(croppedArea.y)}% · w ${round(croppedArea.width)}% · h ${round(croppedArea.height)}%`
             : "drag to position the box"}
@@ -284,13 +284,13 @@ export function ImageRegionEditor({
           <Icon icon={PlusIcon} size={16} />
           New region
         </Button>
-        <span className="font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
+        <span className="font-sans text-[10.5px] font-medium tracking-wider text-ink-3 uppercase">
           {regions.length} region{regions.length === 1 ? "" : "s"} · click a box
           to edit its crop
         </span>
       </div>
 
-      <div className="relative inline-block w-full border border-line bg-paper-3 rounded-lg">
+      <div className="relative inline-block w-full rounded-lg border border-line bg-paper-3">
         <img
           src={imageSrc}
           alt="Source"
@@ -318,12 +318,12 @@ export function ImageRegionEditor({
                 onRequestEditRegion(r.id);
               }}
               className={cn(
-                "group/box absolute cursor-pointer outline-none transition-colors",
+                "group/box absolute cursor-pointer transition-colors outline-none",
                 active
-                  ? "border border-rush bg-rush/20 rounded-lg"
+                  ? "rounded-lg border border-rush bg-rush/20"
                   : named
-                    ? "border border-kenya-green/80 bg-kenya-green/15 hover:bg-kenya-green/25 rounded-lg"
-                    : "border border-hazard/80 bg-hazard/15 hover:bg-hazard/25 rounded-lg",
+                    ? "rounded-lg border border-kenya-green/80 bg-kenya-green/15 hover:bg-kenya-green/25"
+                    : "rounded-lg border border-hazard/80 bg-hazard/15 hover:bg-hazard/25",
               )}
               style={{
                 left: `${r.x}%`,
@@ -335,7 +335,7 @@ export function ImageRegionEditor({
             >
               <span
                 className={cn(
-                  "absolute -top-px left-0 px-1 py-px font-mono text-[9px] font-bold leading-none",
+                  "absolute -top-px left-0 px-1 py-px font-mono text-[9px] leading-none font-bold",
                   active
                     ? "bg-rush text-white"
                     : named
@@ -349,7 +349,7 @@ export function ImageRegionEditor({
                 icon={EditIcon}
                 size={12}
                 className={cn(
-                  "absolute right-0.5 top-0.5 opacity-0 transition-opacity group-hover/box:opacity-100",
+                  "absolute top-0.5 right-0.5 opacity-0 transition-opacity group-hover/box:opacity-100",
                   active
                     ? "text-rush"
                     : named

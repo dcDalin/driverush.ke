@@ -113,7 +113,7 @@ function LevelCard({
           onPick?.(level);
         }}
         className={cn(
-          "group relative flex h-full min-h-[76px] items-center gap-3 rounded-soft border p-3 text-ink no-underline outline-none transition-[background-color,border-color,transform] active:scale-[0.99] motion-reduce:transition-none",
+          "group relative flex h-full min-h-[76px] items-center gap-3 rounded-soft border p-3 text-ink no-underline transition-[background-color,border-color,transform] outline-none active:scale-[0.99] motion-reduce:transition-none",
           next
             ? "border-2 border-ink bg-state-next text-state-next-foreground"
             : done
@@ -157,16 +157,16 @@ function LevelCard({
             {!mock && (done || locked) && (
               <span
                 aria-hidden
-                className="font-mono text-[10.5px] font-bold tabular-nums text-ink-3"
+                className="font-mono text-[10.5px] font-bold text-ink-3 tabular-nums"
               >
                 {level.n}
               </span>
             )}
             <span
               className={cn(
-                "block min-w-0 font-bold leading-snug",
+                "block min-w-0 leading-snug font-bold",
                 mock
-                  ? "font-display text-[16px] font-extrabold uppercase tracking-tight"
+                  ? "font-display text-[16px] font-extrabold tracking-tight uppercase"
                   : "text-[14px]",
                 locked && "text-neutral-strong",
               )}
@@ -191,7 +191,7 @@ function LevelCard({
               <span
                 aria-hidden
                 className={cn(
-                  "font-mono text-[10px] font-bold uppercase tracking-widest",
+                  "font-mono text-[10px] font-bold tracking-widest uppercase",
                   now
                     ? "text-state-now"
                     : done
@@ -341,7 +341,7 @@ export function LevelPicker({
                 href={`#unit-${unit.id}`}
                 onClick={(event) => jump(event, unit.id)}
                 className={cn(
-                  "inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-soft border px-3 text-[13px] font-bold no-underline outline-none transition-colors hover:bg-paper-2 focus-visible:bg-paper-2",
+                  "inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-soft border px-3 text-[13px] font-bold no-underline transition-colors outline-none hover:bg-paper-2 focus-visible:bg-paper-2",
                   state === "done"
                     ? "border-success-line bg-state-done-soft text-ink"
                     : state === "current"
@@ -400,12 +400,12 @@ export function LevelPicker({
           >
             {!mock && (
               <header className="mb-3">
-                <p className="m-0 font-mono text-[10px] font-bold uppercase tracking-widest text-ink-3">
+                <p className="m-0 font-mono text-[10px] font-bold tracking-widest text-ink-3 uppercase">
                   Unit {i + 1} · {unit.levels.length} levels
                 </p>
                 <h2
                   id={`unit-${unit.id}-title`}
-                  className="m-0 mt-0.5 font-display text-[20px] font-extrabold uppercase leading-tight tracking-tight text-ink"
+                  className="m-0 mt-0.5 font-display text-[20px] leading-tight font-extrabold tracking-tight text-ink uppercase"
                 >
                   {unit.title}
                 </h2>
@@ -421,7 +421,7 @@ export function LevelPicker({
                       aria-label={`${unit.title}: levels done`}
                       className="h-1.5 flex-1"
                     />
-                    <span className="shrink-0 font-mono text-[10.5px] font-bold uppercase tracking-widest tabular-nums text-ink-3">
+                    <span className="shrink-0 font-mono text-[10.5px] font-bold tracking-widest text-ink-3 uppercase tabular-nums">
                       {count} of {unit.levels.length} done
                     </span>
                   </div>

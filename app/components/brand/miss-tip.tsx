@@ -10,11 +10,12 @@ import { signPagePath } from "~/lib/road-sign-pages";
 
 import { SignImage } from "~/components/brand/sign-image";
 
-const LABEL = "m-0 font-sans text-[10px] uppercase tracking-wider text-ink-3 font-medium";
+const LABEL =
+  "m-0 font-sans text-[10px] uppercase tracking-wider text-ink-3 font-medium";
 
 export function MissTip({ tip }: { tip: Tip }) {
   return (
-    <div className="space-y-3 border border-line bg-paper-2 p-3 rounded-lg">
+    <div className="space-y-3 rounded-lg border border-line bg-paper-2 p-3">
       {tip.remember ? (
         <div className="space-y-1">
           <p className={LABEL}>How to remember it</p>
@@ -39,7 +40,7 @@ export function MissTip({ tip }: { tip: Tip }) {
             <SignImage
               sign={tip.lookAlike.sign}
               label={tip.lookAlike.sign.name}
-              className="size-12 shrink-0 border border-line rounded-lg"
+              className="size-12 shrink-0 rounded-lg border border-line"
             />
             <div className="min-w-0 space-y-0.5">
               <p className="m-0 text-[13px] leading-snug">
@@ -51,7 +52,7 @@ export function MissTip({ tip }: { tip: Tip }) {
                   {tip.lookAlike.sign.name}
                 </Link>
                 {tip.lookAlike.sign.code && (
-                  <span className="ml-1.5 font-sans text-[10px] uppercase tracking-wider text-ink-3 font-medium">
+                  <span className="ml-1.5 font-sans text-[10px] font-medium tracking-wider text-ink-3 uppercase">
                     {tip.lookAlike.sign.code}
                   </span>
                 )}

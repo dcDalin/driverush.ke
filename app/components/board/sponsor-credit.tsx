@@ -93,7 +93,7 @@ export function SponsorReadyCard({
         className="h-12 w-auto max-w-full object-contain"
         loading="lazy"
       />
-      <p className="m-0 text-[13.5px] font-semibold leading-snug">
+      <p className="m-0 text-[13.5px] leading-snug font-semibold">
         {ready
           ? "Ready for the real test? Book lessons on a real board."
           : "Want an instructor to go over it with you on a real board?"}
@@ -180,7 +180,7 @@ export function BoardSchools({
                 onClick={() => sponsorLinkClicked(school, place)}
                 className={cn(
                   tile,
-                  "outline-none transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-rush",
+                  "transition-opacity outline-none hover:opacity-85 focus-visible:ring-2 focus-visible:ring-rush",
                 )}
               >
                 {logo}

@@ -24,12 +24,12 @@ export function PracticeQuestions({
       {questions.map((question, index) => (
         <li
           key={question.prompt}
-          className="border border-line bg-paper-3 p-4 sm:p-5 rounded-lg"
+          className="rounded-lg border border-line bg-paper-3 p-4 sm:p-5"
         >
-          <p className="m-0 font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
+          <p className="m-0 font-sans text-[10.5px] font-medium tracking-wider text-ink-3 uppercase">
             Question {start + index}
           </p>
-          <p className="m-0 mt-1.5 text-[16px] font-semibold leading-snug text-ink">
+          <p className="m-0 mt-1.5 text-[16px] leading-snug font-semibold text-ink">
             {question.prompt}
           </p>
           <ul className="m-0 mt-3 grid list-none gap-1 p-0 text-[15px] leading-snug text-ink-2">
@@ -43,7 +43,7 @@ export function PracticeQuestions({
             ))}
           </ul>
           <details className="mt-3 border-t border-line pt-2.5">
-            <summary className="cursor-pointer font-sans text-[11px] uppercase tracking-wider text-rush outline-none focus-visible:underline font-medium">
+            <summary className="cursor-pointer font-sans text-[11px] font-medium tracking-wider text-rush uppercase outline-none focus-visible:underline">
               Show the answer
             </summary>
             <p className="m-0 mt-2 text-[15px] leading-snug text-ink">
@@ -53,7 +53,7 @@ export function PracticeQuestions({
               </strong>{" "}
               {question.why}
             </p>
-            <p className="m-0 mt-1.5 font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
+            <p className="m-0 mt-1.5 font-sans text-[10.5px] font-medium tracking-wider text-ink-3 uppercase">
               Source: {question.source}
             </p>
           </details>

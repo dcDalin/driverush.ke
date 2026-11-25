@@ -295,7 +295,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   }
 
   return (
-    <main className="mx-auto grid w-full max-w-xl gap-6 px-5 pb-16 pt-12 text-ink">
+    <main className="mx-auto grid w-full max-w-xl gap-6 px-5 pt-12 pb-16 text-ink">
       {/* Read by the tab and by Google Analytics' page title report. */}
       <title>{`${
         isRouteErrorResponse(error) && error.status === 404
@@ -306,7 +306,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         <RoadClosedScene title="A road barrier with a number plate reading KDR 404" />
       </ScenePlate>
       <div className="grid gap-3">
-        <h1 className="m-0 font-display text-[clamp(30px,7vw,48px)] font-semibold leading-[0.95] tracking-tighter">
+        <h1 className="m-0 font-display text-[clamp(30px,7vw,48px)] leading-[0.95] font-semibold tracking-tighter">
           {message}
         </h1>
         <p className="m-0 font-serif text-lg leading-snug text-ink-2">
@@ -317,7 +317,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         </Button>
       </div>
       {stack && (
-        <pre className="w-full overflow-x-auto border border-line bg-paper-3 p-4 text-xs rounded-lg">
+        <pre className="w-full overflow-x-auto rounded-lg border border-line bg-paper-3 p-4 text-xs">
           <code>{stack}</code>
         </pre>
       )}

@@ -24,7 +24,11 @@ import {
   signPagePath,
 } from "~/lib/road-sign-pages";
 import { signClassPage } from "~/lib/sign-class-pages";
-import { absUrl, breadcrumbLd, graphLd, pageMeta,
+import {
+  absUrl,
+  breadcrumbLd,
+  graphLd,
+  pageMeta,
   TITLE_SUFFIX,
 } from "~/lib/site";
 import { trainerHref } from "~/lib/trainer-rounds";
@@ -124,10 +128,10 @@ export default function RoadSign({ loaderData }: Route.ComponentProps) {
       <SiteNav />
       <main className="min-h-screen text-ink">
         <Rail />
-        <div className="mx-auto w-full max-w-4xl px-5 pb-20 pt-6 sm:px-9 sm:pt-10">
+        <div className="mx-auto w-full max-w-4xl px-5 pt-6 pb-20 sm:px-9 sm:pt-10">
           <nav
             aria-label="Breadcrumb"
-            className="mb-6 flex flex-wrap items-center gap-2 font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium"
+            className="mb-6 flex flex-wrap items-center gap-2 font-sans text-[10.5px] font-medium tracking-wider text-ink-3 uppercase"
           >
             <Link to="/road-signs" className="hover:text-ink hover:underline">
               Road signs
@@ -151,20 +155,20 @@ export default function RoadSign({ loaderData }: Route.ComponentProps) {
                 width={SIGN_IMAGE_SIZE}
                 height={SIGN_IMAGE_SIZE}
                 fetchPriority="high"
-                className="block aspect-square w-full max-w-[240px] border border-ink/25 bg-white rounded-lg"
+                className="block aspect-square w-full max-w-[240px] rounded-lg border border-ink/25 bg-white"
               />
             ) : (
               <SignImage
                 sign={sign}
                 label={`${sign.name} road sign (${sign.code})`}
-                className="aspect-square w-full max-w-[240px] border border-ink/25 rounded-lg"
+                className="aspect-square w-full max-w-[240px] rounded-lg border border-ink/25"
               />
             )}
             <div className="grid justify-items-start gap-3">
-              <p className="m-0 font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
+              <p className="m-0 font-sans text-[10.5px] font-medium tracking-wider text-ink-3 uppercase">
                 Kenyan {guide.singular} · {sign.code}
               </p>
-              <h1 className="m-0 font-display text-[clamp(30px,5.6vw,56px)] font-semibold leading-[0.95] tracking-tighter">
+              <h1 className="m-0 font-display text-[clamp(30px,5.6vw,56px)] leading-[0.95] font-semibold tracking-tighter">
                 {signHeading(sign.name!)}
               </h1>
               <div className="mt-1 flex flex-wrap gap-2.5">
@@ -222,7 +226,7 @@ export default function RoadSign({ loaderData }: Route.ComponentProps) {
                         >
                           <SignImage
                             sign={other}
-                            className="size-14 border border-line rounded-lg"
+                            className="size-14 rounded-lg border border-line"
                           />
                           <p className="m-0">
                             <Link
@@ -267,20 +271,20 @@ export default function RoadSign({ loaderData }: Route.ComponentProps) {
                 <li key={other.slug}>
                   <Link
                     to={signPagePath(other)}
-                    className="grid h-full grid-cols-[48px_1fr] items-center gap-2.5 border border-line bg-paper-3 p-2.5 outline-none transition-colors hover:bg-surface focus-visible:bg-surface rounded-lg"
+                    className="grid h-full grid-cols-[48px_1fr] items-center gap-2.5 rounded-lg border border-line bg-paper-3 p-2.5 transition-colors outline-none hover:bg-surface focus-visible:bg-surface"
                   >
                     <SignImage
                       sign={other}
-                      className="size-12 border border-line rounded-lg"
+                      className="size-12 rounded-lg border border-line"
                     />
-                    <span className="font-display text-[11.5px] font-bold uppercase leading-tight tracking-[0.02em]">
+                    <span className="font-display text-[11.5px] leading-tight font-bold tracking-[0.02em] uppercase">
                       {other.name}
                     </span>
                   </Link>
                 </li>
               ))}
             </ul>
-            <p className="mb-0 mt-5 text-[14.5px] leading-snug text-ink-2">
+            <p className="mt-5 mb-0 text-[14.5px] leading-snug text-ink-2">
               On the way to your test? Read{" "}
               <Link
                 to="/ntsa-test"

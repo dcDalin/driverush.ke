@@ -92,13 +92,13 @@ export default function ShareLanding({ loaderData }: Route.ComponentProps) {
     <>
       <SiteNav />
       <main className="mx-auto w-full max-w-3xl px-5 py-14 sm:px-9 sm:py-20">
-        <div className="grid justify-items-center gap-6 border border-line bg-surface px-6 py-12 text-center shadow-stamp sm:px-10 rounded-lg">
+        <div className="grid justify-items-center gap-6 rounded-lg border border-line bg-surface px-6 py-12 text-center shadow-stamp sm:px-10">
           {resolved.valid && <SignIcon name="finish" size={64} />}
           <div>
-            <p className="m-0 font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
+            <p className="m-0 font-sans text-[11px] font-medium tracking-wider text-ink-3 uppercase">
               {resolved.valid ? "Shared with you" : "Sent to you"}
             </p>
-            <h1 className="m-0 mt-2 font-display text-[clamp(26px,5vw,42px)] font-semibold leading-[0.95] tracking-tight text-ink">
+            <h1 className="m-0 mt-2 font-display text-[clamp(26px,5vw,42px)] leading-[0.95] font-semibold tracking-tight text-ink">
               {resolved.headline}
             </h1>
           </div>
@@ -121,7 +121,7 @@ export default function ShareLanding({ loaderData }: Route.ComponentProps) {
         {/* Every landing, valid or not, offers the full set of front doors.
             A broken payload should still leave someone with somewhere to go. */}
         <section className="mt-10">
-          <h2 className="m-0 mb-4 text-center font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
+          <h2 className="m-0 mb-4 text-center font-sans text-[11px] font-medium tracking-wider text-ink-3 uppercase">
             Free, no signup
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -129,9 +129,9 @@ export default function ShareLanding({ loaderData }: Route.ComponentProps) {
               <Link
                 key={e.href}
                 to={e.href}
-                className="grid gap-1.5 border border-line bg-surface p-5 shadow-stamp-sm outline-none transition-colors hover:bg-paper-3 focus-visible:bg-paper-3 rounded-lg"
+                className="grid gap-1.5 rounded-lg border border-line bg-surface p-5 shadow-stamp-sm transition-colors outline-none hover:bg-paper-3 focus-visible:bg-paper-3"
               >
-                <span className="font-display text-[15px] font-bold leading-tight tracking-tight text-ink">
+                <span className="font-display text-[15px] leading-tight font-bold tracking-tight text-ink">
                   {e.title}
                 </span>
                 <span className="text-[13px] leading-snug text-ink-2">

@@ -49,5 +49,4 @@ export function reasonFor(
 }
 
 export type ActionResult =
-  | { ok: true; message: string }
-  | { ok: false; message: string };
+  { ok: true; message: string } | { ok: false; message: string };

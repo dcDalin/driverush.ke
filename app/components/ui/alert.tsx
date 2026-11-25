@@ -13,7 +13,7 @@ import { SignIcon } from "~/components/brand/art/sign-glyphs";
 import { cn } from "~/lib/utils";
 
 const alertVariants = cva(
-  "grid grid-cols-[48px_1fr_auto] items-center gap-3.5 border border-line px-4 py-3.5 rounded-xl",
+  "grid grid-cols-[48px_1fr_auto] items-center gap-3.5 rounded-xl border border-line px-4 py-3.5",
   {
     variants: {
       variant: {
@@ -146,7 +146,7 @@ function AlertAction({ className, ...props }: React.ComponentProps<"button">) {
       data-slot="alert-action"
       className={cn(
         "rounded-md border border-line bg-surface px-2.5 py-1 text-[12.5px] font-semibold text-ink",
-        "outline-none transition-colors duration-100 hover:bg-paper-2",
+        "transition-colors duration-100 outline-none hover:bg-paper-2",
         "focus-visible:ring-4 focus-visible:ring-rush/15",
         className,
       )}

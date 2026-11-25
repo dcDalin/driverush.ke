@@ -148,8 +148,7 @@ export const SIGN_DETAILS: Record<string, string> = {
     "Used on stretches where overtaking a long or slow goods vehicle would take too long to be safe.",
   "P.25":
     "The number in the red ring is your maximum speed in km/h. It replaces the general limit for that road until the limit ends.",
-  "P.26":
-    "A noise ban, so you'll usually find it where quiet matters.",
+  "P.26": "A noise ban, so you'll usually find it where quiet matters.",
   "P.27a":
     "Marks a point where officials check vehicles. Keep going only once you've been cleared.",
   "P.27b":

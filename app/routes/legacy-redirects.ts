@@ -26,7 +26,9 @@ const TARGETS: Record<string, string> = {
 export function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const target =
-    EXACT_TARGETS[url.pathname] ?? TARGETS[url.pathname.split("/")[1] ?? ""] ?? "/";
+    EXACT_TARGETS[url.pathname] ??
+    TARGETS[url.pathname.split("/")[1] ?? ""] ??
+    "/";
   const utm = new URLSearchParams();
   for (const [key, value] of url.searchParams) {
     if (key.startsWith("utm_")) utm.append(key, value);

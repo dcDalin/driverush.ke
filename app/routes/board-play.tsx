@@ -145,7 +145,7 @@ export default function BoardPlay() {
       <LoadingPanel label="Loading the board" size="lg" onDark />
       <Link
         to={BOARD_PATH}
-        className="font-mono text-[11px] font-bold uppercase tracking-widest text-white/70 underline underline-offset-4 outline-none hover:text-white focus-visible:text-white"
+        className="font-mono text-[11px] font-bold tracking-widest text-white/70 uppercase underline underline-offset-4 outline-none hover:text-white focus-visible:text-white"
       >
         Back to the Model Town Board
       </Link>

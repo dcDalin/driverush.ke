@@ -109,7 +109,7 @@ export function Sign3DSettingsSheet() {
             }
           >
             {signs.length === 0 ? (
-              <p className="font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+              <p className="font-mono text-[10.5px] tracking-widest text-ink-3 uppercase">
                 No signs on the board yet
               </p>
             ) : (
@@ -216,16 +216,14 @@ export function Sign3DSettingsSheet() {
               trainer, on this device only.
             </p>
             <div className="flex items-center justify-between gap-3 border-2 border-ink bg-paper-3 px-3 py-2">
-              <span className="font-mono text-[10.5px] uppercase tracking-widest text-ink-2">
+              <span className="font-mono text-[10.5px] tracking-widest text-ink-2 uppercase">
                 Known {mastered} / {signs.length}
               </span>
               <Button
                 variant="paper"
                 size="sm"
                 onClick={() => {
-                  if (
-                    window.confirm("Reset your progress on all signs?")
-                  )
+                  if (window.confirm("Reset your progress on all signs?"))
                     resetProgress();
                 }}
               >

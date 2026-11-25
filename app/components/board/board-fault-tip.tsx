@@ -26,7 +26,7 @@ export function BoardFaultTip({
       </div>
       <div className="space-y-1">
         <p className={LABEL}>{offRoute ? "What to do" : "The rule"}</p>
-        <p className="m-0 text-[13.5px] font-semibold leading-snug text-ink">
+        <p className="m-0 text-[13.5px] leading-snug font-semibold text-ink">
           {tip.rule}
         </p>
         <p className="m-0 text-[11.5px] leading-snug text-ink-3">

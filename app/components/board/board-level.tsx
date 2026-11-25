@@ -113,7 +113,7 @@ function Fold({
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="flex min-h-11 w-full items-center justify-between gap-2 rounded-md border-2 border-white/15 px-3 text-left text-[13.5px] font-semibold outline-none transition-colors hover:bg-white/10 focus-visible:border-white"
+        className="flex min-h-11 w-full items-center justify-between gap-2 rounded-md border-2 border-white/15 px-3 text-left text-[13.5px] font-semibold transition-colors outline-none hover:bg-white/10 focus-visible:border-white"
       >
         {label}
         <Icon
@@ -211,7 +211,7 @@ function DoneNote({ children }: { children: React.ReactNode }) {
   return (
     <p
       role="status"
-      className="m-0 flex items-center gap-2 text-[14px] font-bold leading-snug text-white"
+      className="m-0 flex items-center gap-2 text-[14px] leading-snug font-bold text-white"
     >
       <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-kenya-green text-kenya-green-foreground">
         <Icon icon={CheckIcon} size={14} />
@@ -233,7 +233,7 @@ function RouteSteps({ route, step }: { route: Route; step: number }) {
             onClick={() => toStep(i)}
             aria-current={i === step ? "step" : undefined}
             className={cn(
-              "flex min-h-11 w-full items-start gap-2.5 rounded-md border-2 px-2.5 py-2.5 text-left outline-none transition-colors focus-visible:border-white",
+              "flex min-h-11 w-full items-start gap-2.5 rounded-md border-2 px-2.5 py-2.5 text-left transition-colors outline-none focus-visible:border-white",
               i === step
                 ? "border-white/40 bg-white/10"
                 : "border-transparent hover:bg-white/5",
@@ -242,9 +242,9 @@ function RouteSteps({ route, step }: { route: Route; step: number }) {
             <span className="mt-px font-mono text-[11px] font-bold text-white/55">
               {i + 1}
             </span>
-            <span className="min-w-0 flex-1 text-[13.5px] font-semibold leading-snug">
+            <span className="min-w-0 flex-1 text-[13.5px] leading-snug font-semibold">
               {s.title}
-              <span className="ml-1.5 inline-flex gap-1 align-middle font-mono text-[9.5px] font-bold uppercase tracking-widest">
+              <span className="ml-1.5 inline-flex gap-1 align-middle font-mono text-[9.5px] font-bold tracking-widest uppercase">
                 <StepTags step={s} />
               </span>
               {!s.confirmed && (
@@ -355,7 +355,7 @@ function SlidesLevel({
           className="rounded-md border-2 border-[#f6c416] bg-white/5 p-3"
         >
           <p className={eyebrow}>Find it on the board</p>
-          <h3 className="m-0 mt-1 text-[17px] font-bold leading-snug">
+          <h3 className="m-0 mt-1 text-[17px] leading-snug font-bold">
             Which pin is on: {target.name}?
           </h3>
           <p className="m-0 mt-1.5 text-[14px] leading-snug text-white/85">
@@ -392,7 +392,7 @@ function SlidesLevel({
         <p className={eyebrow}>
           {at + 1} of {cards.length}
         </p>
-        <h3 className="m-0 mt-1 text-[17px] font-bold leading-snug">
+        <h3 className="m-0 mt-1 text-[17px] leading-snug font-bold">
           {card.title}
         </h3>
         <p className="m-0 mt-1.5 text-[14px] leading-snug text-white/85">
@@ -407,7 +407,7 @@ function SlidesLevel({
             <Icon icon={ArrowRightIcon} size={13} />
           </Link>
         )}
-        <p className="m-0 mt-2 font-mono text-[10px] uppercase tracking-widest text-white/50">
+        <p className="m-0 mt-2 font-mono text-[10px] tracking-widest text-white/50 uppercase">
           {card.block ? BLOCK_SOURCE : `${RULES_SOURCE}, Unit 3`}
         </p>
       </div>
@@ -576,7 +576,7 @@ function LanesLevel({
         />
         <span className="min-w-0 flex-1">
           {compact && (
-            <span className="block font-mono text-[10px] font-bold uppercase tracking-widest text-white/55 max-sm:mr-1.5 max-sm:inline">
+            <span className="block font-mono text-[10px] font-bold tracking-widest text-white/55 uppercase max-sm:mr-1.5 max-sm:inline">
               Lane {car.lane}
             </span>
           )}
@@ -609,11 +609,11 @@ function LanesLevel({
             <span className="sr-only">Home</span>
           </span>
         ) : canTake ? (
-          <span className="shrink-0 rounded-[4px] bg-[#f6c416] px-2 py-1 font-mono text-[10.5px] font-bold uppercase leading-none tracking-widest text-[#17181b]">
+          <span className="shrink-0 rounded-[4px] bg-[#f6c416] px-2 py-1 font-mono text-[10.5px] leading-none font-bold tracking-widest text-[#17181b] uppercase">
             Drive
           </span>
         ) : (
-          <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-widest text-white/55">
+          <span className="shrink-0 font-mono text-[10px] font-bold tracking-widest text-white/55 uppercase">
             Waiting
           </span>
         )}
@@ -631,7 +631,7 @@ function LanesLevel({
       {!allHome && (
         <div className="grid gap-2 rounded-md border-2 border-[#f6c416] bg-white/5 p-3 max-sm:gap-1.5 max-sm:p-2.5">
           <p className={cn(eyebrow, "max-sm:hidden")}>Do this</p>
-          <p className="m-0 text-[14.5px] font-semibold leading-snug text-white max-sm:text-[14px]">
+          <p className="m-0 text-[14.5px] leading-snug font-semibold text-white max-sm:text-[14px]">
             {/* One line on a phone, so the panel fits a short screen. */}
             <span className="max-sm:hidden">
               Drive each car to its place. Tap a car marked Drive, here or on
@@ -687,7 +687,7 @@ function LanesLevel({
         {(only ?? Array.from({ length: lanes }, (_, i) => i + 1)).map(
           (lane) => (
             <section key={lane} aria-label={`Lane ${lane}`}>
-              <p className="m-0 text-[13px] font-semibold leading-snug text-white/80">
+              <p className="m-0 text-[13px] leading-snug font-semibold text-white/80">
                 {laneRule(lanes, lane)}
               </p>
               <ul className="m-0 mt-1.5 grid list-none gap-1.5 p-0">
@@ -858,7 +858,7 @@ function WatchLevel({
               style={{ background: wayColor(way) }}
             />
             <span className="min-w-0 flex-1">
-              <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-white/55">
+              <span className="font-mono text-[10px] font-bold tracking-widest text-white/55 uppercase">
                 Way {i + 1}
               </span>{" "}
               {wayLabel(way, ways[0])}
@@ -879,11 +879,11 @@ function WatchLevel({
       )}
       <div>
         <p className={eyebrow}>The examiner might say</p>
-        <p className="m-0 mt-1 text-[14.5px] font-semibold leading-snug">
+        <p className="m-0 mt-1 text-[14.5px] leading-snug font-semibold">
           {lesson.ask}
         </p>
         {rule && (
-          <p className="m-0 mt-1.5 text-[13px] font-semibold leading-snug text-kenya-gold">
+          <p className="m-0 mt-1.5 text-[13px] leading-snug font-semibold text-kenya-gold">
             {rule.name}. {rule.says}
           </p>
         )}
@@ -1016,14 +1016,14 @@ export function BoardLevel({
       <section
         ref={panel}
         aria-label={`Level ${level.n}: ${level.title}`}
-        className="dr-rise pointer-events-auto flex max-h-[54dvh] w-full flex-col border-t-2 border-white/15 bg-[#101114]/95 pb-[env(safe-area-inset-bottom)] text-white sm:h-full sm:max-h-none sm:w-[23.5rem] sm:border-r-2 sm:border-t-0"
+        className="dr-rise pointer-events-auto flex max-h-[54dvh] w-full flex-col border-t-2 border-white/15 bg-[#101114]/95 pb-[env(safe-area-inset-bottom)] text-white sm:h-full sm:max-h-none sm:w-[23.5rem] sm:border-t-0 sm:border-r-2"
       >
         <header className="flex items-start justify-between gap-2 px-3.5 pt-3">
           <div className="min-w-0">
             <p className={eyebrow}>
               Level {level.n} of {COURSE_LEVELS.length} · {unit.title}
             </p>
-            <h2 className="m-0 mt-1 font-display text-[19px] font-extrabold uppercase leading-[1.05] tracking-tight">
+            <h2 className="m-0 mt-1 font-display text-[19px] leading-[1.05] font-extrabold tracking-tight uppercase">
               {level.title}
             </h2>
           </div>
@@ -1076,7 +1076,7 @@ export function BoardLevel({
         {/* The one thing to do next, never scrolled away. Empty, it takes no room. */}
         <div
           ref={setFoot}
-          className="grid shrink-0 gap-1.5 border-t-2 border-white/10 px-3.5 pb-3 pt-3 empty:hidden"
+          className="grid shrink-0 gap-1.5 border-t-2 border-white/10 px-3.5 pt-3 pb-3 empty:hidden"
         />
       </section>
     </div>

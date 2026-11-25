@@ -40,7 +40,8 @@ export function setParkingLayout(id: string): void {
 /** Move the parked cars: another layout, never the one already showing. */
 export function shuffleParkingLayout(random: () => number = Math.random): void {
   const others = PARKING_LAYOUTS.filter((layout) => layout !== current);
-  const pick = others[Math.min(others.length - 1, Math.floor(random() * others.length))];
+  const pick =
+    others[Math.min(others.length - 1, Math.floor(random() * others.length))];
   setParkingLayout(pick.id);
 }
 

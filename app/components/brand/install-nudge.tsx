@@ -96,7 +96,7 @@ export function InstallNudge({
       )}
     >
       {way.kind === "prompt" ? (
-        <p className="m-0 min-w-0 flex-1 basis-48 text-[14px] font-semibold leading-snug text-ink">
+        <p className="m-0 min-w-0 flex-1 basis-48 text-[14px] leading-snug font-semibold text-ink">
           Keep DriveRush on your home screen, one tap from your next level.
         </p>
       ) : (

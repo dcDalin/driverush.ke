@@ -40,7 +40,7 @@ export function BoardQuestionBank() {
                       {UNSURE_NOTE}
                     </p>
                   ) : null}
-                  <p className="m-0 mt-2 font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+                  <p className="m-0 mt-2 font-mono text-[10.5px] tracking-widest text-ink-3 uppercase">
                     {question.source}
                   </p>
                 </AccordionItem>

@@ -16,7 +16,7 @@ function Rail({ className, ...props }: React.ComponentProps<"div">) {
         "dr-flag relative h-3 w-full border-b border-line",
         "bg-[repeating-linear-gradient(90deg,var(--ink)_0_14px,transparent_14px_26px)]",
         // The 5-color flag underbar that hangs under the rail
-        "after:absolute after:left-0 after:right-0 after:-bottom-[6px] after:h-1",
+        "after:absolute after:right-0 after:-bottom-[6px] after:left-0 after:h-1",
         "after:bg-[linear-gradient(90deg,var(--rush)_0_20%,var(--ink)_20%_40%,var(--paper-3)_40%_60%,var(--kenya-green)_60%_80%,var(--amber)_80%_100%)]",
         className,
       )}

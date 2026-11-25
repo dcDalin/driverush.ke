@@ -11,8 +11,8 @@ function Switch({
     <SwitchPrimitive.Root
       data-slot="switch"
       className={cn(
-        "peer relative inline-flex h-7 w-14 shrink-0 cursor-pointer items-center border border-transparent px-[2px] rounded-full",
-        "outline-none transition-[background] duration-150 ease-snap",
+        "peer relative inline-flex h-7 w-14 shrink-0 cursor-pointer items-center rounded-full border border-transparent px-[2px]",
+        "transition-[background] duration-150 ease-snap outline-none",
         "bg-neutral-line data-[state=checked]:bg-kenya-green",
         "focus-visible:ring-4 focus-visible:ring-rush/15",
         "disabled:cursor-not-allowed disabled:opacity-50",

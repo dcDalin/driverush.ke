@@ -1,8 +1,6 @@
 import { Link } from "react-router";
 import { Icon } from "~/components/brand/icon";
-import {
-  ArrowRightIcon,
-} from "~/components/brand/icons";
+import { ArrowRightIcon } from "~/components/brand/icons";
 
 import type { Route } from "./+types/index";
 
@@ -22,7 +20,7 @@ export default function ToolsIndex() {
     <div>
       <header className="border-b border-line pb-6">
         <span className="eyebrow text-ink">Internal · authoring</span>
-        <h1 className="m-0 mt-3 font-display text-[clamp(32px,5vw,52px)] font-semibold leading-[0.95] tracking-tighter">
+        <h1 className="m-0 mt-3 font-display text-[clamp(32px,5vw,52px)] leading-[0.95] font-semibold tracking-tighter">
           DriveRush <span className="text-rush">tools</span>
         </h1>
         <p className="mt-4 max-w-2xl font-serif text-[clamp(16px,2vw,20px)] leading-tight text-ink-2">
@@ -38,22 +36,19 @@ export default function ToolsIndex() {
             <article
               key={tool.slug}
               className={cn(
-                "flex h-full flex-col gap-4 border border-line bg-surface p-6 shadow-stamp rounded-lg",
+                "flex h-full flex-col gap-4 rounded-lg border border-line bg-surface p-6 shadow-stamp",
                 soon && "opacity-60",
               )}
             >
               <div className="flex items-start gap-4">
-                <div className="flex size-12 shrink-0 items-center justify-center border border-line bg-paper-3 text-ink rounded-lg">
-                  <Icon
-                    icon={tool.icon}
-                    size={24}
-                  />
+                <div className="flex size-12 shrink-0 items-center justify-center rounded-lg border border-line bg-paper-3 text-ink">
+                  <Icon icon={tool.icon} size={24} />
                 </div>
                 <div className="min-w-0">
-                  <span className="font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+                  <span className="font-mono text-[10.5px] tracking-widest text-ink-3 uppercase">
                     {soon ? "Planned" : "Tool"}
                   </span>
-                  <h2 className="m-0 mt-1.5 font-display text-[clamp(20px,2.4vw,26px)] font-semibold leading-[0.95] tracking-tight">
+                  <h2 className="m-0 mt-1.5 font-display text-[clamp(20px,2.4vw,26px)] leading-[0.95] font-semibold tracking-tight">
                     {tool.title}
                   </h2>
                 </div>
@@ -63,17 +58,14 @@ export default function ToolsIndex() {
               </p>
               <div className="mt-auto flex items-center gap-3 border-t border-line pt-4">
                 {soon ? (
-                  <span className="font-mono text-[11px] uppercase tracking-widest text-ink-3">
+                  <span className="font-mono text-[11px] tracking-widest text-ink-3 uppercase">
                     Coming soon
                   </span>
                 ) : (
                   <Button variant="ink" size="lg" asChild>
                     <Link to={tool.path}>
                       Open
-                      <Icon
-                        icon={ArrowRightIcon}
-                        size={16}
-                      />
+                      <Icon icon={ArrowRightIcon} size={16} />
                     </Link>
                   </Button>
                 )}

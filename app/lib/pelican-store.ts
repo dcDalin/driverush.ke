@@ -100,7 +100,10 @@ function buildQueue(
   }
   if (scope.kind === "drill") {
     const ids = new Set(scope.ids);
-    return ordered((board?.regions ?? []).filter((r) => ids.has(r.id)), s);
+    return ordered(
+      (board?.regions ?? []).filter((r) => ids.has(r.id)),
+      s,
+    );
   }
   const pool = practiceRegions(board, scope.categories ?? s.categories);
   return pickRound(ordered(pool, s), progress);
@@ -379,7 +382,7 @@ export const usePelicanStore = create<PelicanState>()(
         const scope = requested ?? defaultScope(settings.selfGrading);
         const queue = buildQueue(board, settings, scope, progress);
         if (queue.length === 0) return; // nothing to play — leave the ready card up
-        
+
         set({
           queue,
           pos: 0,

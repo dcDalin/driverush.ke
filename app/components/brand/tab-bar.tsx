@@ -53,7 +53,7 @@ export function TabBar() {
                     analytics.navTabClicked({ tab: tab.id, from: pathname })
                   }
                   className={cn(
-                    "relative flex h-[3.75rem] flex-col items-center justify-center gap-1 text-[11px] font-medium outline-none transition-colors focus-visible:bg-paper-2",
+                    "relative flex h-[3.75rem] flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors outline-none focus-visible:bg-paper-2",
                     on
                       ? "text-ink before:absolute before:inset-x-3 before:-top-0.5 before:h-[3px] before:bg-rush"
                       : "text-ink-3 hover:text-ink",

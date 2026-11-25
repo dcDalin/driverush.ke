@@ -116,7 +116,7 @@ export default function BoardLevelsSheet({
       >
         <header className="flex items-center justify-between gap-3 border-b border-ink/15 px-4 py-2.5">
           <div className="min-w-0">
-            <p className="m-0 font-mono text-[10px] font-bold uppercase tracking-widest text-ink-3">
+            <p className="m-0 font-mono text-[10px] font-bold tracking-widest text-ink-3 uppercase">
               {level.kind === "mock"
                 ? "Mock test"
                 : `Level ${level.n} of ${COURSE_LEVELS.length}`}
@@ -129,7 +129,7 @@ export default function BoardLevelsSheet({
             type="button"
             aria-label="Close"
             onClick={close}
-            className="inline-flex size-11 shrink-0 items-center justify-center rounded-soft border border-ink/25 text-ink outline-none transition-colors hover:bg-paper-2 focus-visible:bg-paper-2"
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-soft border border-ink/25 text-ink transition-colors outline-none hover:bg-paper-2 focus-visible:bg-paper-2"
           >
             <Icon icon={CloseIcon} size={20} />
           </button>

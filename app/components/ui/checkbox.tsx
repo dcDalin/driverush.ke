@@ -1,10 +1,7 @@
 import * as React from "react";
 import { Checkbox as CheckboxPrimitive } from "radix-ui";
 import { Icon } from "~/components/brand/icon";
-import {
-  CheckIcon,
-  MinusIcon,
-} from "~/components/brand/icons";
+import { CheckIcon, MinusIcon } from "~/components/brand/icons";
 
 import { cn } from "~/lib/utils";
 
@@ -17,7 +14,7 @@ function Checkbox({
       data-slot="checkbox"
       className={cn(
         "peer inline-flex size-[22px] shrink-0 items-center justify-center rounded-md border border-input bg-surface",
-        "shadow-xs outline-none transition-[border-color,box-shadow,background] duration-150 ease-snap",
+        "shadow-xs transition-[border-color,box-shadow,background] duration-150 ease-snap outline-none",
         "focus-visible:ring-4 focus-visible:ring-rush/15",
         "disabled:cursor-not-allowed disabled:opacity-50",
         "data-[state=checked]:border-rush data-[state=checked]:bg-rush data-[state=checked]:text-primary-foreground",

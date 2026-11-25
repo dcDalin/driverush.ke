@@ -12,12 +12,7 @@
  */
 
 export type BoardTopicId =
-  | "board"
-  | "lanes"
-  | "roundabout"
-  | "routes"
-  | "signs"
-  | "parking";
+  "board" | "lanes" | "roundabout" | "routes" | "signs" | "parking";
 
 export type BoardTopic = {
   id: BoardTopicId;

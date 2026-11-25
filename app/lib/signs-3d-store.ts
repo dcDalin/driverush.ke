@@ -97,7 +97,10 @@ function buildQueue(
   }
   if (scope.kind === "drill") {
     const ids = new Set(scope.ids);
-    return ordered((board?.signs ?? []).filter((r) => ids.has(r.id)), s);
+    return ordered(
+      (board?.signs ?? []).filter((r) => ids.has(r.id)),
+      s,
+    );
   }
   const pool = practiceSigns(board, scope.categories ?? s.categories);
   return pickRound(ordered(pool, s), progress);
@@ -110,7 +113,9 @@ const warmedModels = new Set<string>();
 function warmModel(url: string) {
   if (typeof window === "undefined" || warmedModels.has(url)) return;
   warmedModels.add(url);
-  void fetch(url, { cache: "force-cache" }).catch(() => warmedModels.delete(url));
+  void fetch(url, { cache: "force-cache" }).catch(() =>
+    warmedModels.delete(url),
+  );
 }
 
 /** Buffer the next few signs, so a sign rarely has to load while you wait. */

@@ -123,10 +123,10 @@ export function BoardLevels({ className }: { className?: string }) {
           </Button>
           <div>
             <div className="mb-1.5 flex items-baseline justify-between gap-3">
-              <span className="min-w-0 text-[14px] font-bold leading-snug text-ink">
+              <span className="min-w-0 text-[14px] leading-snug font-bold text-ink">
                 {mock ? "Every level is done." : next.title}
               </span>
-              <span className="shrink-0 font-mono text-[10.5px] font-bold uppercase tracking-widest tabular-nums text-ink-3">
+              <span className="shrink-0 font-mono text-[10.5px] font-bold tracking-widest text-ink-3 uppercase tabular-nums">
                 {done} of {TOTAL}
               </span>
             </div>
@@ -142,29 +142,29 @@ export function BoardLevels({ className }: { className?: string }) {
           {saved && done > 0 && (
             <dl className="m-0 grid grid-cols-3 gap-2 border-t border-ink/15 pt-3 text-center">
               <div>
-                <dt className="font-mono text-[9.5px] font-bold uppercase tracking-widest text-ink-3">
+                <dt className="font-mono text-[9.5px] font-bold tracking-widest text-ink-3 uppercase">
                   Board ready
                 </dt>
-                <dd className="m-0 mt-0.5 font-display text-[20px] font-extrabold leading-none tabular-nums text-ink">
+                <dd className="m-0 mt-0.5 font-display text-[20px] leading-none font-extrabold text-ink tabular-nums">
                   {ready}%
                 </dd>
               </div>
               <div>
-                <dt className="font-mono text-[9.5px] font-bold uppercase tracking-widest text-ink-3">
+                <dt className="font-mono text-[9.5px] font-bold tracking-widest text-ink-3 uppercase">
                   Days in a row
                 </dt>
-                <dd className="m-0 mt-0.5 font-display text-[20px] font-extrabold leading-none tabular-nums text-ink">
+                <dd className="m-0 mt-0.5 font-display text-[20px] leading-none font-extrabold text-ink tabular-nums">
                   {streak?.days ?? 0}
                 </dd>
               </div>
               <div>
-                <dt className="font-mono text-[9.5px] font-bold uppercase tracking-widest text-ink-3">
+                <dt className="font-mono text-[9.5px] font-bold tracking-widest text-ink-3 uppercase">
                   Today
                 </dt>
                 {/* With a test date, today's share of the plan; more than
                     a row of dots holds is said as a count. */}
                 {goal > MAX_DOTS ? (
-                  <dd className="m-0 mt-0.5 font-display text-[20px] font-extrabold leading-none tabular-nums text-ink">
+                  <dd className="m-0 mt-0.5 font-display text-[20px] leading-none font-extrabold text-ink tabular-nums">
                     {Math.min(today, goal)}
                     <span className="text-[13px] text-ink-3"> of {goal}</span>
                   </dd>
@@ -228,7 +228,7 @@ export function BoardLevels({ className }: { className?: string }) {
 
       <div className="grid gap-2">
         <div className="flex items-baseline justify-between gap-3">
-          <h2 className="m-0 font-display text-[18px] font-extrabold uppercase leading-tight tracking-tight text-ink">
+          <h2 className="m-0 font-display text-[18px] leading-tight font-extrabold tracking-tight text-ink uppercase">
             Units
           </h2>
           <Link to={BOARD_LEVELS_PATH} className={quiet}>
@@ -246,7 +246,7 @@ export function BoardLevels({ className }: { className?: string }) {
                 <Link
                   to={`${BOARD_LEVELS_PATH}#unit-${unit.id}`}
                   className={cn(
-                    "flex h-full min-h-16 items-center gap-3 rounded-soft border px-4 py-3 text-ink no-underline outline-none transition-colors hover:bg-paper-2 focus-visible:bg-paper-2",
+                    "flex h-full min-h-16 items-center gap-3 rounded-soft border px-4 py-3 text-ink no-underline transition-colors outline-none hover:bg-paper-2 focus-visible:bg-paper-2",
                     state === "done"
                       ? "border-success-line bg-state-done-soft"
                       : state === "current"
@@ -257,7 +257,7 @@ export function BoardLevels({ className }: { className?: string }) {
                   )}
                 >
                   <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-widest text-ink-3">
+                    <span className="flex items-center gap-2 font-mono text-[10px] font-bold tracking-widest text-ink-3 uppercase">
                       Unit {i + 1}
                       {state === "current" && (
                         <span className="rounded-soft bg-state-next px-1.5 py-0.5 leading-none text-state-next-foreground">
@@ -270,7 +270,7 @@ export function BoardLevels({ className }: { className?: string }) {
                     </span>
                     <span
                       className={cn(
-                        "block font-display text-[16px] font-extrabold uppercase leading-tight tracking-tight",
+                        "block font-display text-[16px] leading-tight font-extrabold tracking-tight uppercase",
                         state === "locked" && "text-neutral-strong",
                       )}
                     >
@@ -311,17 +311,17 @@ export function BoardLevels({ className }: { className?: string }) {
 
       <Link
         to={BOARD_PLAY_PATH}
-        className="flex min-h-16 items-center gap-3 border border-ink/25 bg-surface px-4 py-3 text-ink no-underline outline-none transition-colors hover:bg-paper-2 focus-visible:bg-paper-2"
+        className="flex min-h-16 items-center gap-3 border border-ink/25 bg-surface px-4 py-3 text-ink no-underline transition-colors outline-none hover:bg-paper-2 focus-visible:bg-paper-2"
       >
         <span className="min-w-0 flex-1">
-          <span className="block font-display text-[16px] font-extrabold uppercase leading-tight tracking-tight">
+          <span className="block font-display text-[16px] leading-tight font-extrabold tracking-tight uppercase">
             Mock test
           </span>
           <span className="mt-0.5 block text-[13.5px] leading-snug text-ink-2">
             Five tasks picked for you, mixed from every unit. Take it any time.
           </span>
           {saved?.mockBest && (
-            <span className="mt-1 block font-mono text-[10.5px] font-bold uppercase tracking-widest text-ink-3">
+            <span className="mt-1 block font-mono text-[10.5px] font-bold tracking-widest text-ink-3 uppercase">
               Best: {saved.mockBest.clean} of {saved.mockBest.total} clean
             </span>
           )}

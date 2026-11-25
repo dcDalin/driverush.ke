@@ -18,7 +18,7 @@ type AnchorProps = React.ComponentProps<"a">;
 function MdxLink({ href, className, children, ...rest }: AnchorProps) {
   const isInternal = href?.startsWith("/") || href?.startsWith("#");
   const classes = cn(
-    "font-semibold text-rush underline-offset-[3px] decoration-rush/40 hover:decoration-rush hover:underline focus-visible:underline",
+    "font-semibold text-rush decoration-rush/40 underline-offset-[3px] hover:underline hover:decoration-rush focus-visible:underline",
     className,
   );
 
@@ -52,8 +52,8 @@ export const MDX = {
     <h1
       {...props}
       className={cn(
-        "m-0 mb-6 font-display text-[clamp(36px,6vw,64px)] font-semibold leading-[0.92] tracking-tight text-ink",
-        "[&_em]:font-serif [&_em]:font-normal [&_em]:normal-case [&_em]:text-rush",
+        "m-0 mb-6 font-display text-[clamp(36px,6vw,64px)] leading-[0.92] font-semibold tracking-tight text-ink",
+        "[&_em]:font-serif [&_em]:font-normal [&_em]:text-rush [&_em]:normal-case",
         props.className,
       )}
     />
@@ -69,18 +69,21 @@ export const MDX = {
   th: (props: React.ComponentProps<"th">) => (
     <th
       {...props}
-      className="border border-line bg-paper-2 px-3 py-2 text-left font-display text-[11.5px] font-bold uppercase tracking-wide text-ink"
+      className="border border-line bg-paper-2 px-3 py-2 text-left font-display text-[11.5px] font-bold tracking-wide text-ink uppercase"
     />
   ),
   td: (props: React.ComponentProps<"td">) => (
-    <td {...props} className="border border-line px-3 py-2 align-top text-ink-2" />
+    <td
+      {...props}
+      className="border border-line px-3 py-2 align-top text-ink-2"
+    />
   ),
   h2: (props: React.ComponentProps<"h2">) => (
     <h2
       {...props}
       className={cn(
-        "mt-14 mb-4 border-b border-line pb-3 font-display text-[clamp(24px,3.4vw,36px)] font-semibold leading-[1.02] tracking-tight text-ink",
-        "[&_em]:font-serif [&_em]:font-normal [&_em]:normal-case [&_em]:text-rush",
+        "mt-14 mb-4 border-b border-line pb-3 font-display text-[clamp(24px,3.4vw,36px)] leading-[1.02] font-semibold tracking-tight text-ink",
+        "[&_em]:font-serif [&_em]:font-normal [&_em]:text-rush [&_em]:normal-case",
         props.className,
       )}
     />
@@ -90,7 +93,7 @@ export const MDX = {
       {...props}
       className={cn(
         "mt-10 mb-3 font-display text-xl font-bold tracking-tight text-ink",
-        "[&_em]:font-serif [&_em]:font-normal [&_em]:normal-case [&_em]:text-rush",
+        "[&_em]:font-serif [&_em]:font-normal [&_em]:text-rush [&_em]:normal-case",
         props.className,
       )}
     />
@@ -100,7 +103,7 @@ export const MDX = {
       {...props}
       className={cn(
         "my-4 font-serif text-[17px] leading-relaxed text-ink-2",
-        "[&_em]:not-italic [&_em]:text-rush",
+        "[&_em]:text-rush [&_em]:not-italic",
         props.className,
       )}
     />
@@ -111,7 +114,7 @@ export const MDX = {
       className={cn(
         "my-5 list-none space-y-2 border-l border-line pl-5 font-serif text-[17px] leading-relaxed text-ink-2",
         "[&_li]:relative [&_li]:pl-5",
-        "[&_li]:before:absolute [&_li]:before:left-0 [&_li]:before:top-[0.7em] [&_li]:before:size-2 [&_li]:before:bg-rush",
+        "[&_li]:before:absolute [&_li]:before:top-[0.7em] [&_li]:before:left-0 [&_li]:before:size-2 [&_li]:before:bg-rush",
         props.className,
       )}
     />
@@ -140,10 +143,7 @@ export const MDX = {
   hr: (props: React.ComponentProps<"hr">) => (
     <hr
       {...props}
-      className={cn(
-        "my-12 h-0 border-0 border-t border-line",
-        props.className,
-      )}
+      className={cn("my-12 h-0 border-0 border-t border-line", props.className)}
     />
   ),
   code: (props: React.ComponentProps<"code">) => (
@@ -159,7 +159,7 @@ export const MDX = {
     <pre
       {...props}
       className={cn(
-        "my-6 overflow-x-auto border border-line bg-paper-2 p-4 font-mono text-[13px] leading-relaxed text-ink rounded-lg",
+        "my-6 overflow-x-auto rounded-lg border border-line bg-paper-2 p-4 font-mono text-[13px] leading-relaxed text-ink",
         props.className,
       )}
     />

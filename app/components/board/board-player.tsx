@@ -397,9 +397,9 @@ function TaskHint({
         <div
           role="status"
           data-msg="tip"
-          className="dr-rise pointer-events-auto relative w-full rounded-md border-2 border-[#f6c416] bg-[#101114]/90 py-2.5 pl-3.5 pr-11 shadow-[0_4px_0_rgba(0,0,0,0.4)]"
+          className="dr-rise pointer-events-auto relative w-full rounded-md border-2 border-[#f6c416] bg-[#101114]/90 py-2.5 pr-11 pl-3.5 shadow-[0_4px_0_rgba(0,0,0,0.4)]"
         >
-          <p className="m-0 text-[14px] font-bold leading-snug">{tip.title}</p>
+          <p className="m-0 text-[14px] leading-snug font-bold">{tip.title}</p>
           <p
             data-fold="2"
             className="m-0 mt-1 text-[13px] leading-snug text-white/80"
@@ -409,7 +409,7 @@ function TaskHint({
           {tip.then && (
             <p
               data-fold="6"
-              className="m-0 mt-1.5 text-[12.5px] font-semibold leading-snug text-kenya-gold"
+              className="m-0 mt-1.5 text-[12.5px] leading-snug font-semibold text-kenya-gold"
             >
               Then: {tip.then}
             </p>
@@ -421,7 +421,7 @@ function TaskHint({
               setTip(null);
               useStage.getState().clear();
             }}
-            className="absolute right-0 top-0 inline-flex size-11 items-center justify-center rounded-md outline-none transition-colors hover:bg-white/15 focus-visible:bg-white/15"
+            className="absolute top-0 right-0 inline-flex size-11 items-center justify-center rounded-md transition-colors outline-none hover:bg-white/15 focus-visible:bg-white/15"
           >
             <Icon icon={CloseIcon} size={16} />
           </button>
@@ -473,13 +473,13 @@ function TaskCard({
         }}
         className="pointer-events-auto block min-h-11 w-full rounded-md border-2 border-white/15 bg-[#101114]/85 px-3.5 py-2.5 text-left shadow-[0_4px_0_rgba(0,0,0,0.4)] outline-none focus-visible:border-white"
       >
-        <span className="block font-mono text-[10px] font-bold uppercase tracking-widest text-kenya-gold">
+        <span className="block font-mono text-[10px] font-bold tracking-widest text-kenya-gold uppercase">
           {place} · {title}
         </span>
         {open && (
           <span
             data-fold="1"
-            className="mt-1.5 block text-[14.5px] font-semibold leading-snug"
+            className="mt-1.5 block text-[14.5px] leading-snug font-semibold"
           >
             {prompt}
           </span>
@@ -557,7 +557,7 @@ function HudColumn({ children }: { children: React.ReactNode }) {
     <div
       ref={column}
       data-board-hud-left
-      className="flex min-w-0 max-w-[19rem] flex-1 flex-col items-start gap-2"
+      className="flex max-w-[19rem] min-w-0 flex-1 flex-col items-start gap-2"
     >
       {children}
     </div>
@@ -594,7 +594,7 @@ function StarLost({
       // Long enough to read a one-line rule.
       style={{ animationDuration: "3.6s" }}
     >
-      <p className="m-0 font-mono text-[10px] font-bold uppercase tracking-widest">
+      <p className="m-0 font-mono text-[10px] font-bold tracking-widest uppercase">
         {notice.route
           ? `Off route · ${tip.title}`
           : notice.turned
@@ -606,7 +606,7 @@ function StarLost({
                 : tip.title}
         {!lesson && !notice.route && " · 1 star lost"}
       </p>
-      <p className="m-0 mt-1 text-[13.5px] font-semibold leading-snug">
+      <p className="m-0 mt-1 text-[13.5px] leading-snug font-semibold">
         {notice.route
           ? "No rule broken, so drive on if you like. This try will not pass. Restart to try again."
           : tip.rule}
@@ -1156,7 +1156,7 @@ export function BoardGame() {
           type="button"
           aria-label="Close"
           onClick={s.exit}
-          className="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))] z-30 inline-flex size-11 items-center justify-center rounded-md border-2 border-white/15 bg-[#101114]/85 outline-none transition-colors hover:bg-white/15 focus-visible:border-white sm:right-6 sm:top-5"
+          className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-3 z-30 inline-flex size-11 items-center justify-center rounded-md border-2 border-white/15 bg-[#101114]/85 transition-colors outline-none hover:bg-white/15 focus-visible:border-white sm:top-5 sm:right-6"
         >
           <Icon icon={CloseIcon} size={20} />
         </button>
@@ -1210,7 +1210,7 @@ export function BoardGame() {
           {s.phase === "driving" ? (
             <div
               className={cn(
-                "flex min-w-0 max-w-[19rem] flex-1",
+                "flex max-w-[19rem] min-w-0 flex-1",
                 awayForTurn(showing),
               )}
             >
@@ -1415,7 +1415,7 @@ export function BoardGame() {
                   <span
                     role="status"
                     data-msg="off-route"
-                    className="rounded-sm bg-[#f6c416] px-1.5 py-0.5 text-[10px] uppercase tracking-widest text-[#17181b]"
+                    className="rounded-sm bg-[#f6c416] px-1.5 py-0.5 text-[10px] tracking-widest text-[#17181b] uppercase"
                   >
                     Off route
                   </span>
@@ -1476,11 +1476,11 @@ export function BoardGame() {
             role="status"
             className="dr-rise absolute inset-x-0 bottom-[calc(13.5rem+env(safe-area-inset-bottom))] z-30 mx-auto w-[min(19rem,calc(100%-1.5rem))] rounded-md border-2 border-[#17181b] bg-[#f6c416] p-3 text-[#17181b] shadow-[0_6px_0_rgba(0,0,0,0.45)]"
           >
-            <p className="m-0 text-[14px] font-bold leading-snug">
+            <p className="m-0 text-[14px] leading-snug font-bold">
               {COACH_STEPS[coachStep]}
             </p>
             <div className="mt-2 flex items-center justify-between gap-3">
-              <span className="font-mono text-[10.5px] font-bold uppercase tracking-widest">
+              <span className="font-mono text-[10.5px] font-bold tracking-widest uppercase">
                 Tip {coachStep + 1} of {COACH_STEPS.length}
               </span>
               <span className="flex items-center gap-1">
@@ -1488,7 +1488,7 @@ export function BoardGame() {
                   <button
                     type="button"
                     onClick={endCoach}
-                    className="min-h-11 px-3 font-mono text-[11px] font-bold uppercase tracking-widest underline underline-offset-4 outline-none"
+                    className="min-h-11 px-3 font-mono text-[11px] font-bold tracking-widest uppercase underline underline-offset-4 outline-none"
                   >
                     Skip
                   </button>
@@ -1500,7 +1500,7 @@ export function BoardGame() {
                       ? setCoachStep((n) => n + 1)
                       : endCoach()
                   }
-                  className="min-h-11 rounded-md bg-[#17181b] px-4 font-mono text-[11px] font-bold uppercase tracking-widest text-white outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  className="min-h-11 rounded-md bg-[#17181b] px-4 font-mono text-[11px] font-bold tracking-widest text-white uppercase outline-none focus-visible:ring-2 focus-visible:ring-white"
                 >
                   {coachStep < COACH_STEPS.length - 1 ? "Next" : "Got it"}
                 </button>
@@ -1589,7 +1589,7 @@ export function BoardGame() {
         >
           <h2
             id="board-leave-title"
-            className="m-0 font-display text-[clamp(22px,5.5vw,28px)] font-extrabold uppercase leading-none tracking-tight"
+            className="m-0 font-display text-[clamp(22px,5.5vw,28px)] leading-none font-extrabold tracking-tight uppercase"
           >
             Close the board?
           </h2>
@@ -1629,7 +1629,7 @@ export function BoardGame() {
         >
           <h2
             id="board-fault-title"
-            className="m-0 font-display text-[clamp(22px,5.5vw,28px)] font-extrabold uppercase leading-none tracking-tight"
+            className="m-0 font-display text-[clamp(22px,5.5vw,28px)] leading-none font-extrabold tracking-tight uppercase"
           >
             {s.missed ? "You left the route" : faultTip(s.fault).title}
           </h2>
@@ -1640,13 +1640,13 @@ export function BoardGame() {
           )}
           <BoardFaultTip tip={faultTip(s.fault)} offRoute={s.missed} />
           {s.missed && s.lastScore != null && (
-            <p className="m-0 text-[13.5px] font-semibold leading-snug text-ink">
+            <p className="m-0 text-[13.5px] leading-snug font-semibold text-ink">
               Score {s.lastScore} of {SCORE_MAX.toLocaleString("en")}. Not
               saved. You reached the box, but not by the way you were asked to
               go.
             </p>
           )}
-          <p className="m-0 flex items-center gap-2 text-[12.5px] font-semibold leading-snug text-ink-2">
+          <p className="m-0 flex items-center gap-2 text-[12.5px] leading-snug font-semibold text-ink-2">
             <span
               aria-hidden
               className="inline-block h-1.5 w-7 shrink-0 rounded-full bg-[#ff6b5e]"
@@ -1711,7 +1711,7 @@ export function BoardGame() {
             )
           }
         >
-          <h2 className="m-0 font-display text-[clamp(22px,5.5vw,28px)] font-extrabold uppercase leading-none tracking-tight">
+          <h2 className="m-0 font-display text-[clamp(22px,5.5vw,28px)] leading-none font-extrabold tracking-tight uppercase">
             {warmup
               ? "You can drive it."
               : s.taskFaults === 0
@@ -1725,7 +1725,7 @@ export function BoardGame() {
           {daily && (
             <p
               role="status"
-              className="m-0 flex items-center gap-2 text-[14.5px] font-bold leading-snug text-ink"
+              className="m-0 flex items-center gap-2 text-[14.5px] leading-snug font-bold text-ink"
             >
               <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-kenya-green text-kenya-green-foreground">
                 <Icon icon={CheckIcon} size={14} />
@@ -1757,12 +1757,12 @@ export function BoardGame() {
               data-msg="other-way"
               className="space-y-1.5 border-2 border-ink bg-paper-2 p-3 text-left"
             >
-              <p className="m-0 text-[14px] font-bold leading-snug text-ink">
+              <p className="m-0 text-[14px] leading-snug font-bold text-ink">
                 {s.lastWay === "longer"
                   ? "Passed another correct way. Rule 1 picks a shorter one."
                   : "Passed another correct way, just as good."}
               </p>
-              <p className="m-0 flex items-center gap-2 text-[12.5px] font-semibold leading-snug text-ink-2">
+              <p className="m-0 flex items-center gap-2 text-[12.5px] leading-snug font-semibold text-ink-2">
                 <span
                   aria-hidden
                   className="inline-block h-1.5 w-7 shrink-0 rounded-full"
@@ -1772,7 +1772,7 @@ export function BoardGame() {
                   ? "The yellow line is the shortest correct route, the one an examiner wants. It cost a star."
                   : "The yellow line is the way the route rules pick."}
               </p>
-              <p className="m-0 flex items-center gap-2 text-[12.5px] font-semibold leading-snug text-ink-2">
+              <p className="m-0 flex items-center gap-2 text-[12.5px] leading-snug font-semibold text-ink-2">
                 <span
                   aria-hidden
                   className="inline-block h-1.5 w-7 shrink-0 rounded-full bg-[#ff6b5e]"
@@ -1787,10 +1787,10 @@ export function BoardGame() {
               className="space-y-1.5 border-2 border-ink bg-paper-2 p-3 text-left"
             >
               <p className="m-0 flex items-baseline justify-between gap-3">
-                <span className="font-mono text-[10px] uppercase tracking-widest text-ink-3">
+                <span className="font-mono text-[10px] tracking-widest text-ink-3 uppercase">
                   {s.lastBest ? "Score · New best" : "Score"}
                 </span>
-                <span className="font-display text-[26px] font-extrabold tabular-nums leading-none text-ink">
+                <span className="font-display text-[26px] leading-none font-extrabold text-ink tabular-nums">
                   {s.lastScore.toLocaleString("en")}
                 </span>
               </p>
@@ -1807,7 +1807,7 @@ export function BoardGame() {
               asChild
               variant="rush"
               size="lg"
-              className="h-auto min-h-12 w-full whitespace-normal py-2 text-center leading-snug"
+              className="h-auto min-h-12 w-full py-2 text-center leading-snug whitespace-normal"
             >
               <Link to={levelHref(nextUp.id)} replace>
                 Next: level {nextUp.n}, {nextUp.title}
@@ -1906,7 +1906,7 @@ export function BoardGame() {
                 {s.runFaultRules.map((id) => (
                   <li
                     key={id}
-                    className="border-2 border-ink bg-paper-2 px-3 py-2 text-[13px] font-semibold leading-snug text-ink"
+                    className="border-2 border-ink bg-paper-2 px-3 py-2 text-[13px] leading-snug font-semibold text-ink"
                   >
                     {faultRule(id)}
                   </li>

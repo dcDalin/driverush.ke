@@ -35,9 +35,7 @@ function Progress({
         data-slot="progress-indicator"
         className={cn(
           "h-full rounded-full transition-[width] duration-300 ease-snap",
-          tone === "rush"
-            ? "bg-rush"
-            : "bg-kenya-green",
+          tone === "rush" ? "bg-rush" : "bg-kenya-green",
           indicatorClassName,
         )}
         style={{ width: `${pct}%` }}

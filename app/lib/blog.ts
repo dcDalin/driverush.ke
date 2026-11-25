@@ -23,11 +23,7 @@ export type BlogTone =
   | "observational";
 
 export type BlogCategory =
-  | "NTSA"
-  | "Road signs"
-  | "Driving in Kenya"
-  | "Licensing"
-  | "Skills";
+  "NTSA" | "Road signs" | "Driving in Kenya" | "Licensing" | "Skills";
 
 /** A single FAQ pair, surfaced as visible content + FAQPage JSON-LD. */
 

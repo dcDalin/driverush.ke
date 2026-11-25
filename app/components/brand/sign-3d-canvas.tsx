@@ -69,7 +69,9 @@ function trueSignColor(c: THREE.Color): THREE.Color {
 /** The little Pelican sticker on the post. W_9 exports it under sign materials, so
  *  that one is caught by what it is: a tiny flat decal sitting on the post. */
 function isSticker(mesh: THREE.Mesh): boolean {
-  if (/Pelican|Dark_Blue|pasted__/.test((mesh.material as THREE.Material).name)) {
+  if (
+    /Pelican|Dark_Blue|pasted__/.test((mesh.material as THREE.Material).name)
+  ) {
     return true;
   }
   if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
@@ -142,7 +144,10 @@ const STICKER_GEOMETRY = (() => {
     indices.push(base, base + 2, base + 3, base, base + 3, base + 1);
   }
   const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(positions, 3),
+  );
   geometry.setAttribute("normal", new THREE.Float32BufferAttribute(normals, 3));
   geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
   geometry.setIndex(indices);
@@ -396,7 +401,11 @@ function SignModel({
         });
         plateBottom = sticker.max.y;
         const wrapped = new THREE.Mesh(STICKER_GEOMETRY, stickerMaterial);
-        wrapped.position.set(post.x, sticker.getCenter(new THREE.Vector3()).y, post.y);
+        wrapped.position.set(
+          post.x,
+          sticker.getCenter(new THREE.Vector3()).y,
+          post.y,
+        );
         root.add(wrapped);
       }
       addPostClamps(root, post, plateBottom, bounds.max.y);
@@ -570,9 +579,15 @@ function ReflectedSky({ night }: { night: boolean }) {
   const uniforms = React.useMemo(() => {
     const sky = night ? SKY.night : SKY.day;
     return {
-      uZenith: { value: new THREE.Vector3(...(sky.zenith as [number, number, number])) },
-      uHorizon: { value: new THREE.Vector3(...(sky.horizon as [number, number, number])) },
-      uGround: { value: new THREE.Vector3(...(sky.ground as [number, number, number])) },
+      uZenith: {
+        value: new THREE.Vector3(...(sky.zenith as [number, number, number])),
+      },
+      uHorizon: {
+        value: new THREE.Vector3(...(sky.horizon as [number, number, number])),
+      },
+      uGround: {
+        value: new THREE.Vector3(...(sky.ground as [number, number, number])),
+      },
       uGlare: { value: sky.glare },
     };
   }, [night]);
@@ -717,7 +732,7 @@ export default function Sign3DCanvas(props: Sign3DCanvasProps) {
       // ph-no-capture: session replay records only the board's canvas. This
       // one doesn't keep its drawing buffer, so the recorder would clear it
       // twice a second and it would flicker (see `posthog.ts`).
-      className="!touch-none ph-no-capture"
+      className="ph-no-capture !touch-none"
       shadows={false}
       dpr={[1, 2]}
       frameloop={props.autoRotate ? "always" : "demand"}

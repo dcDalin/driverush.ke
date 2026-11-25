@@ -27,17 +27,17 @@ so every learner is anonymous — person profiles carry the learner state instea
 
 ## How it's wired
 
-| Piece                     | File                                                    | Notes                                                                                                                                                             |
-| ------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Client init + config      | `app/lib/posthog.ts`                                    | One init, one accessor. Missing env = no-op in prod, loud throw in dev.                                                                                           |
-| Provider + hydration      | `app/entry.client.tsx`                                  | Init runs **before** `hydrateRoot`, so autocapture/replay/pageviews cover the first paint. `<PostHogProvider>` exposes `usePostHog()` and the feature-flag hooks. |
-| Typed event dispatcher    | `app/lib/analytics.ts`                                  | One method per event. Also mirrors to GA4 and console-logs in dev.                                                                                                |
-| Learner person properties | `app/lib/use-learner-analytics.ts`                      | Syncs localStorage progress → PostHog person properties. Mounted in `app/root.tsx`.                                                                               |
-| Error capture             | `app/root.tsx` (`ErrorBoundary`) + `capture_exceptions` | React render errors, uncaught errors, unhandled rejections.                                                                                                       |
-| SSR bundling              | `vite.config.ts` (`ssr.noExternal`)                     | Keeps the browser-only SDK out of Node's resolver.                                                                                                                |
+| Piece                     | File                                                    | Notes                                                                                                                                                                 |
+| ------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Client init + config      | `app/lib/posthog.ts`                                    | One init, one accessor. Missing env = no-op in prod, loud throw in dev.                                                                                               |
+| Provider + hydration      | `app/entry.client.tsx`                                  | Init runs **before** `hydrateRoot`, so autocapture/replay/pageviews cover the first paint. `<PostHogProvider>` exposes `usePostHog()` and the feature-flag hooks.     |
+| Typed event dispatcher    | `app/lib/analytics.ts`                                  | One method per event. Also mirrors to GA4 and console-logs in dev.                                                                                                    |
+| Learner person properties | `app/lib/use-learner-analytics.ts`                      | Syncs localStorage progress → PostHog person properties. Mounted in `app/root.tsx`.                                                                                   |
+| Error capture             | `app/root.tsx` (`ErrorBoundary`) + `capture_exceptions` | React render errors, uncaught errors, unhandled rejections.                                                                                                           |
+| SSR bundling              | `vite.config.ts` (`ssr.noExternal`)                     | Keeps the browser-only SDK out of Node's resolver.                                                                                                                    |
 | Ad-blocker proxy          | `vercel.json` (`rewrites`) + `api_host: "/ingest"`      | Production sends events to `driverush.ke/ingest/*`, rewritten to PostHog. Dev talks to PostHog directly. A host without these rewrites (the Dockerfile) loses events. |
-| Release tag               | `vite.config.ts` (`VITE_APP_VERSION`)                   | Short commit SHA from `VERCEL_GIT_COMMIT_SHA`, registered as `app_version` on every event.                                                                        |
-| Readable stack traces     | `scripts/upload-sourcemaps.mjs` (runs after `build`)    | Uploads client source maps to error tracking, then deletes them. Off until `POSTHOG_CLI_API_KEY` is set.                                                          |
+| Release tag               | `vite.config.ts` (`VITE_APP_VERSION`)                   | Short commit SHA from `VERCEL_GIT_COMMIT_SHA`, registered as `app_version` on every event.                                                                            |
+| Readable stack traces     | `scripts/upload-sourcemaps.mjs` (runs after `build`)    | Uploads client source maps to error tracking, then deletes them. Off until `POSTHOG_CLI_API_KEY` is set.                                                              |
 
 Environment (`.env`, and whatever hosts production):
 
@@ -98,36 +98,36 @@ else is a bug — the file _is_ the taxonomy.
 
 ### Sign trainers
 
-| Event                                     | Fires when                     | Key properties                                                                                  |
-| ----------------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------- |
-| `pelican_started` / `signs3d_started`     | A run starts                   | `signs_total`, `categories`, `scope` (`round`/`chart`/`drill`)                                   |
-| `pelican_completed` / `signs3d_completed` | A run finishes                 | `scope`, `self_graded`, `signs_total`; when self-graded also `knew_first_try`, `miss_count`     |
-| `sign_graded`                             | "Knew it" or "Missed it" tapped | `trainer`, `sign_code`, `category`, `result`, `box_before`, `box_after`, `first_try`, `scope`   |
+| Event                                     | Fires when                      | Key properties                                                                                |
+| ----------------------------------------- | ------------------------------- | --------------------------------------------------------------------------------------------- |
+| `pelican_started` / `signs3d_started`     | A run starts                    | `signs_total`, `categories`, `scope` (`round`/`chart`/`drill`)                                |
+| `pelican_completed` / `signs3d_completed` | A run finishes                  | `scope`, `self_graded`, `signs_total`; when self-graded also `knew_first_try`, `miss_count`   |
+| `sign_graded`                             | "Knew it" or "Missed it" tapped | `trainer`, `sign_code`, `category`, `result`, `box_before`, `box_after`, `first_try`, `scope` |
 
 `sign_graded` by `sign_code` where `result = missed` is the "which signs does Kenya
 get wrong" report.
 
 ### Model Town Board
 
-| Event                     | Fires when                                                 | Key properties                                                                     |
-| ------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `board_level_started`     | A course level opens, from the list or Continue            | `level`, `number`, `kind`, `unit`                                                  |
-| `board_level_completed`   | A level is read, watched or passed for the first time      | `level`, `number`, `kind`, `unit`                                                  |
-| `board_skip_ahead`        | A locked level is opened after the "Skip ahead?" ask       | `to_level`, `next_level` (where Continue would go), `surface` (`levels_page`, `levels_sheet`) |
-| `board_started`           | A round or drill starts. A round is the mock test          | `challenges`, `scope`, `mock`                                                      |
-| `board_faulted`           | The referee calls a mistake                                | `challenge_id`, `rule`, `severity`, `fault_number`                                 |
-| `board_challenge_passed`  | A task is passed                                           | `challenge_id`, `clean`, `faults`, `stars`, `seconds`, `tries`, `score`, `best`    |
-| `board_challenge_missed`  | Stopped in the box after leaving the route                 | `challenge_id`, `rule`, `tries`, `seconds`                                         |
-| `board_abandoned`         | Left a round before the end                                | `challenge_id`, `phase`, `task`, `of`, `tries`, `moved`, `off_route`               |
-| `board_completed`         | A round finishes                                           | `challenges`, `clean`, `fault_count`, `scope`, `mock`; for the mock also `best_before`, `new_best` |
-| `board_hint_used`         | A hint is used on a task                                   | `challenge_id`, `kind`                                                             |
-| `board_first_move`        | The stick is pushed for the first time on the first drive (PostHog only) | `challenge_id`, `ms` (from the stick coming alive), `input` (`touch`, `keys`), `nudged` (the stick had started showing how) |
-| `board_learn_opened`      | Learn mode opens                                           |                                                                                    |
-| `board_lesson_viewed`     | A lesson route or board feature is looked at               | `kind`, `lesson_id`                                                                |
-| `board_loaded`            | The 3D board is drawn (PostHog only)                       | `ms` (from the viewer opening), `tier`, `start_rung`, `weak_gpu`                   |
-| `board_load_failed`       | The board can't be shown as it should                      | `reason` (`no_webgl`, `download`, `models`), `tier`                                |
-| `board_quality_dropped`   | A slow phone gives up a rung of picture (PostHog only)     | `tier`, `from`, `to`                                                               |
-| `board_setting_changed`   | A setting is changed in the board's sheet (PostHog only)   | `setting` (`assist`, `seat`, `quality`, `sound`, `car`), `value`                   |
+| Event                    | Fires when                                                               | Key properties                                                                                                              |
+| ------------------------ | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `board_level_started`    | A course level opens, from the list or Continue                          | `level`, `number`, `kind`, `unit`                                                                                           |
+| `board_level_completed`  | A level is read, watched or passed for the first time                    | `level`, `number`, `kind`, `unit`                                                                                           |
+| `board_skip_ahead`       | A locked level is opened after the "Skip ahead?" ask                     | `to_level`, `next_level` (where Continue would go), `surface` (`levels_page`, `levels_sheet`)                               |
+| `board_started`          | A round or drill starts. A round is the mock test                        | `challenges`, `scope`, `mock`                                                                                               |
+| `board_faulted`          | The referee calls a mistake                                              | `challenge_id`, `rule`, `severity`, `fault_number`                                                                          |
+| `board_challenge_passed` | A task is passed                                                         | `challenge_id`, `clean`, `faults`, `stars`, `seconds`, `tries`, `score`, `best`                                             |
+| `board_challenge_missed` | Stopped in the box after leaving the route                               | `challenge_id`, `rule`, `tries`, `seconds`                                                                                  |
+| `board_abandoned`        | Left a round before the end                                              | `challenge_id`, `phase`, `task`, `of`, `tries`, `moved`, `off_route`                                                        |
+| `board_completed`        | A round finishes                                                         | `challenges`, `clean`, `fault_count`, `scope`, `mock`; for the mock also `best_before`, `new_best`                          |
+| `board_hint_used`        | A hint is used on a task                                                 | `challenge_id`, `kind`                                                                                                      |
+| `board_first_move`       | The stick is pushed for the first time on the first drive (PostHog only) | `challenge_id`, `ms` (from the stick coming alive), `input` (`touch`, `keys`), `nudged` (the stick had started showing how) |
+| `board_learn_opened`     | Learn mode opens                                                         |                                                                                                                             |
+| `board_lesson_viewed`    | A lesson route or board feature is looked at                             | `kind`, `lesson_id`                                                                                                         |
+| `board_loaded`           | The 3D board is drawn (PostHog only)                                     | `ms` (from the viewer opening), `tier`, `start_rung`, `weak_gpu`                                                            |
+| `board_load_failed`      | The board can't be shown as it should                                    | `reason` (`no_webgl`, `download`, `models`), `tier`                                                                         |
+| `board_quality_dropped`  | A slow phone gives up a rung of picture (PostHog only)                   | `tier`, `from`, `to`                                                                                                        |
+| `board_setting_changed`  | A setting is changed in the board's sheet (PostHog only)                 | `setting` (`assist`, `seat`, `quality`, `sound`, `car`), `value`                                                            |
 
 ### Driving schools
 
@@ -136,10 +136,10 @@ Since 22 Nov 2026 the school changes with every new task, and the game's
 address carries it (`/model-town-board/play?…&school=<id>`), so break pages
 down by `$pathname`, not `$current_url`.
 
-| Event                  | Fires when                                                   | Key properties    |
-| ---------------------- | ------------------------------------------------------------ | ----------------- |
+| Event                  | Fires when                                                                                               | Key properties    |
+| ---------------------- | -------------------------------------------------------------------------------------------------------- | ----------------- |
 | `sponsor_shown`        | A school is on screen in one place, once per place per task (per visit before 22 Nov 2026; PostHog only) | `school`, `place` |
-| `sponsor_link_clicked` | A learner taps through to a school's site                    | `school`, `place` |
+| `sponsor_link_clicked` | A learner taps through to a school's site                                                                | `school`, `place` |
 
 `place` is one of `car`, `room`, `plate`, `board`, `loader`, `ready_card`,
 `credit`, `showcase` (the opening turn round the car). While a school is
@@ -167,13 +167,13 @@ daily practice reminder in the learner's own calendar (`test-reminder.ts`):
 19:00 Nairobi, from tomorrow to the day before the test, as a Google Calendar
 link or an .ics file.
 
-| Event                  | Fires when                               | Key properties                                                            |
-| ---------------------- | ---------------------------------------- | ------------------------------------------------------------------------- |
-| `test_card_shown`      | The card asks its question (PostHog only) | `stage` (`date`, `result`), `surface` (`course_page`, `level_done`)      |
-| `test_date_set`        | A date is saved, or "Not booked yet"     | `booked`, `days_until`, `surface`                                         |
-| `test_reminder_added`  | A calendar link is tapped after saving   | `calendar` (`google`, `ics`), `days_until`                                |
-| `test_result_reported` | How the test went                        | `result` (`passed`, `failed`, `not_yet`), `days_after_test`, `levels_done`, `readiness`, `mock_best_clean` |
-| `test_card_dismissed`  | "Not now" (PostHog only)                 | `stage`                                                                   |
+| Event                  | Fires when                                | Key properties                                                                                             |
+| ---------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `test_card_shown`      | The card asks its question (PostHog only) | `stage` (`date`, `result`), `surface` (`course_page`, `level_done`)                                        |
+| `test_date_set`        | A date is saved, or "Not booked yet"      | `booked`, `days_until`, `surface`                                                                          |
+| `test_reminder_added`  | A calendar link is tapped after saving    | `calendar` (`google`, `ics`), `days_until`                                                                 |
+| `test_result_reported` | How the test went                         | `result` (`passed`, `failed`, `not_yet`), `days_after_test`, `levels_done`, `readiness`, `mock_best_clean` |
+| `test_card_dismissed`  | "Not now" (PostHog only)                  | `stage`                                                                                                    |
 
 ### Today's drive
 
@@ -187,11 +187,11 @@ N in a row. See you tomorrow." and leads on to the course. Any practice keeps
 the streak (`practice-streak.ts`), as before; today's drive is the quickest.
 A daily link opened on another day is an ordinary drive of that task.
 
-| Event                | Fires when                                  | Key properties                                                                 |
-| -------------------- | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| `daily_drive_opened` | A "Today's drive" row or link is tapped     | `challenge_id`, `surface` (`home`, `course_page`, `level_done`, `level_passed`), `done_today` |
-| `daily_drive_started`| The game opens on today's drive             | `challenge_id`                                                                 |
-| `daily_drive_passed` | Today's drive is passed                     | `challenge_id`, `clean`, `stars`, `tries`, `streak_days` (counting today)      |
+| Event                 | Fires when                              | Key properties                                                                                |
+| --------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `daily_drive_opened`  | A "Today's drive" row or link is tapped | `challenge_id`, `surface` (`home`, `course_page`, `level_done`, `level_passed`), `done_today` |
+| `daily_drive_started` | The game opens on today's drive         | `challenge_id`                                                                                |
+| `daily_drive_passed`  | Today's drive is passed                 | `challenge_id`, `clean`, `stars`, `tries`, `streak_days` (counting today)                     |
 
 `board_faulted` broken down by `rule` is the "which rules trip people up"
 report; `board_level_started` → `board_level_completed` by `number` shows the
@@ -199,16 +199,16 @@ level where the course loses people.
 
 ### Navigation, sharing, installing
 
-| Event                     | Fires when                                    | Key properties                     |
-| ------------------------- | --------------------------------------------- | ---------------------------------- |
-| `nav_tab_clicked`         | A bottom-bar tab is tapped                    | `tab`, `from`                      |
-| `share_opened`            | Share is tapped, before a channel is picked   | `kind`, `surface`                  |
-| `share_completed`         | A share is sent                               | `kind`, `channel`                  |
-| `share_landing_viewed`    | Someone opens a shared link                   | `kind`, `valid`                    |
+| Event                     | Fires when                                                      | Key properties                                       |
+| ------------------------- | --------------------------------------------------------------- | ---------------------------------------------------- |
+| `nav_tab_clicked`         | A bottom-bar tab is tapped                                      | `tab`, `from`                                        |
+| `share_opened`            | Share is tapped, before a channel is picked                     | `kind`, `surface`                                    |
+| `share_completed`         | A share is sent                                                 | `kind`, `channel`                                    |
+| `share_landing_viewed`    | Someone opens a shared link                                     | `kind`, `valid`                                      |
 | `proud_share_shown`       | A proud moment is offered for sharing, once ever (PostHog only) | `moment` (`unit`, `course`, `streak`, `passed`), `n` |
-| `install_prompt_shown`    | The add-to-home-screen card appears           | `platform`, `surface`              |
-| `install_prompt_answered` | It is answered                                | `platform`, `surface`, `outcome`   |
-| `app_installed`           | The browser reports an install                |                                    |
+| `install_prompt_shown`    | The add-to-home-screen card appears                             | `platform`, `surface`                                |
+| `install_prompt_answered` | It is answered                                                  | `platform`, `surface`, `outcome`                     |
+| `app_installed`           | The browser reports an install                                  |                                                      |
 
 **Proud moments** (since 24 Nov 2026, `proud-moments.ts`, `proud-share.tsx`):
 finishing a unit or the whole course, a practice streak of 3, 7, 14, 30, 60 or
@@ -221,10 +221,10 @@ number, levels or days>`), surface `proud_<moment>`, so `share_opened` and
 
 ### Monetisation and contact
 
-| Event                                                                         | Fires when                                                    |
-| ----------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `partner_clicked`                                                             | Outbound click to a credited source (name + url)              |
-| `contact_clicked`                                                             | Footer phone/email tapped (`channel`, `location`)             |
+| Event             | Fires when                                        |
+| ----------------- | ------------------------------------------------- |
+| `partner_clicked` | Outbound click to a credited source (name + url)  |
+| `contact_clicked` | Footer phone/email tapped (`channel`, `location`) |
 
 ## Learner profile
 
@@ -264,11 +264,11 @@ Dashboard links: `https://us.posthog.com/project/755646/dashboard/<id>`.
 
 **Actions**
 
-| Action               | Id     | What                                                                                       |
-| -------------------- | ------ | ------------------------------------------------------------------------------------------ |
-| Learned something    | 493634 | `board_level_completed`, `board_challenge_passed`, `pelican_completed`, `signs3d_completed`, `sign_check_completed` |
-| Reached activation   | 493635 | `board_level_completed` with `number >= 3`, or `pelican_completed` / `signs3d_completed`   |
-| Practised signs      | 493636 | `pelican_started`, `signs3d_started`, `sign_check_completed`                               |
+| Action             | Id     | What                                                                                                                |
+| ------------------ | ------ | ------------------------------------------------------------------------------------------------------------------- |
+| Learned something  | 493634 | `board_level_completed`, `board_challenge_passed`, `pelican_completed`, `signs3d_completed`, `sign_check_completed` |
+| Reached activation | 493635 | `board_level_completed` with `number >= 3`, or `pelican_completed` / `signs3d_completed`                            |
+| Practised signs    | 493636 | `pelican_started`, `signs3d_started`, `sign_check_completed`                                                        |
 
 "Learned something" is the active-learner definition: use it for weekly
 active learners, retention and stickiness.
@@ -279,16 +279,16 @@ built-in Internal / Test users (744655).
 
 **Dashboards**
 
-| Dashboard            | Id      | Answers                                                                                                   |
-| -------------------- | ------- | --------------------------------------------------------------------------------------------------------- |
+| Dashboard            | Id      | Answers                                                                                                                                                                             |
+| -------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Weekly health        | 2391457 | Open first. Weekly active learners, activation rate by week, D1/D7/D30 retention, lifecycle, stickiness, levels per learner, mock clean tasks, NTSA results, pass rate by readiness |
-| Growth and content   | 2391459 | Visitor to learner by landing page type, campaign source and referring site; sharing; shared link to learner; sign retention |
-| Board on real phones | 2391460 | Board load time (median, p90, by device and tier), load failures, quality drops, activation by connection, page speed on the game |
-| Board course         | 2391145 | First drive funnel, levels, abandons, mistakes, hints; level-by-level opened to finished, mock tests and new bests, settings changed |
-| Learners             | 2391147 | Stages, devices, retention on the board, sources, installs, sharing, bottom bar                           |
-| Road signs           | 2391150 | Sign trainer runs, chart vs 3D, most-missed signs                                                         |
-| Site health          | 2391155 | Errors, rage and dead clicks, web vitals                                                                  |
-| Driving schools      | 2394142 | Learners who saw each school (also on Weekly health), tap-through rate, by day, drives in each school's car, site taps, where each school was seen and tapped |
+| Growth and content   | 2391459 | Visitor to learner by landing page type, campaign source and referring site; sharing; shared link to learner; sign retention                                                        |
+| Board on real phones | 2391460 | Board load time (median, p90, by device and tier), load failures, quality drops, activation by connection, page speed on the game                                                   |
+| Board course         | 2391145 | First drive funnel, levels, abandons, mistakes, hints; level-by-level opened to finished, mock tests and new bests, settings changed                                                |
+| Learners             | 2391147 | Stages, devices, retention on the board, sources, installs, sharing, bottom bar                                                                                                     |
+| Road signs           | 2391150 | Sign trainer runs, chart vs 3D, most-missed signs                                                                                                                                   |
+| Site health          | 2391155 | Errors, rage and dead clicks, web vitals                                                                                                                                            |
+| Driving schools      | 2394142 | Learners who saw each school (also on Weekly health), tap-through rate, by day, drives in each school's car, site taps, where each school was seen and tapped                       |
 
 **Surveys** (popover, any `driverush.ke` page, 30 days between surveys)
 
@@ -330,13 +330,13 @@ reloads the page instead of showing Road closed (`shouldLoadWhole` in
 
 Bots are kept out of both tools, in layers:
 
-| Layer | Where | PostHog | GA |
-| ----- | ----- | ------- | -- |
-| Known bot user agents and `navigator.webdriver` | posthog-js itself; `gaHeadScript` in `ga.ts` (also HeadlessChrome in `userAgentData`) | dropped before sending | not measured |
-| Bot user agents and data-centre IPs, on the server | `bot-traffic.ts`, through the root `loader` in `root.tsx` | still captured | the GA script is never sent |
-| Custom bot rules (data-centre CIDR ranges) | PostHog: Settings, Environment, Custom bots | labelled `$virt_is_bot` | n/a |
-| Test-account filter | PostHog project settings: `$virt_is_bot = false` with `app_env = production` and the internal cohort | dropped from every insight | n/a |
-| Google's known-bot list | GA4, always on | n/a | dropped |
+| Layer                                              | Where                                                                                                | PostHog                    | GA                          |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------- | --------------------------- |
+| Known bot user agents and `navigator.webdriver`    | posthog-js itself; `gaHeadScript` in `ga.ts` (also HeadlessChrome in `userAgentData`)                | dropped before sending     | not measured                |
+| Bot user agents and data-centre IPs, on the server | `bot-traffic.ts`, through the root `loader` in `root.tsx`                                            | still captured             | the GA script is never sent |
+| Custom bot rules (data-centre CIDR ranges)         | PostHog: Settings, Environment, Custom bots                                                          | labelled `$virt_is_bot`    | n/a                         |
+| Test-account filter                                | PostHog project settings: `$virt_is_bot = false` with `app_env = production` and the internal cohort | dropped from every insight | n/a                         |
+| Google's known-bot list                            | GA4, always on                                                                                       | n/a                        | dropped                     |
 
 PostHog keeps capturing bots on purpose: they stay measurable
 (`$virt_traffic_type`, `$virt_bot_name`), and the default filter leaves them
@@ -396,10 +396,10 @@ No library: the gtag snippet is ours, in `app/lib/ga.ts`.
 
 Both live in the GA account **driverush** (417049674).
 
-| Property          | Property ID | Measurement ID  | Gets                                   |
-| ----------------- | ----------- | --------------- | -------------------------------------- |
-| `driverush.ke`    | 565305500   | `G-JH6E8C5H1J`  | Production only: the real numbers      |
-| `DriveRush (dev)` | 565373649   | `G-6D0HL2RW9R`  | Localhost, Vercel previews, dev builds |
+| Property          | Property ID | Measurement ID | Gets                                   |
+| ----------------- | ----------- | -------------- | -------------------------------------- |
+| `driverush.ke`    | 565305500   | `G-JH6E8C5H1J` | Production only: the real numbers      |
+| `DriveRush (dev)` | 565373649   | `G-6D0HL2RW9R` | Localhost, Vercel previews, dev builds |
 
 The code reads `VITE_PUBLIC_GA_MEASUREMENT_ID` at build time. Unset or empty,
 GA does not load at all.
@@ -417,13 +417,13 @@ one is for checking that events fire.
 
 ### How a visit is measured
 
-| Piece                    | File                                     | Notes                                                                                                                                  |
-| ------------------------ | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Head script              | `app/lib/ga.ts` (`gaHeadScript`), `root.tsx` | Runs before React. Decides whether to measure, sets consent, configures the stream, sends the **landing page view** itself.        |
-| In-app page views        | `app/lib/analytics.ts` (`usePageviews`)  | One `page_view` per new path, in a layout effect so it goes out before the new page's own events. A query change alone is not a page. |
-| Page labels              | `app/lib/page-meta.ts`                   | `content_group` and `page_template` from the route id. A test fails if a page route has no label.                                       |
-| Events                   | `app/lib/analytics.ts` (`emit`)          | Same taxonomy as PostHog, mapped to GA4 names where one exists (below). Every event carries the page's `content_group` and `page_template`. |
-| User properties          | `use-learner-analytics.ts`, head script  | `learner_stage`, `board_levels_bucket`, `display_mode`.                                                                                |
+| Piece             | File                                         | Notes                                                                                                                                       |
+| ----------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Head script       | `app/lib/ga.ts` (`gaHeadScript`), `root.tsx` | Runs before React. Decides whether to measure, sets consent, configures the stream, sends the **landing page view** itself.                 |
+| In-app page views | `app/lib/analytics.ts` (`usePageviews`)      | One `page_view` per new path, in a layout effect so it goes out before the new page's own events. A query change alone is not a page.       |
+| Page labels       | `app/lib/page-meta.ts`                       | `content_group` and `page_template` from the route id. A test fails if a page route has no label.                                           |
+| Events            | `app/lib/analytics.ts` (`emit`)              | Same taxonomy as PostHog, mapped to GA4 names where one exists (below). Every event carries the page's `content_group` and `page_template`. |
+| User properties   | `use-learner-analytics.ts`, head script      | `learner_stage`, `board_levels_bucket`, `display_mode`.                                                                                     |
 
 **Never measured:** `/tools/*`, a browser driven by a script
 (`navigator.webdriver`, which covers the promo video recorder), a headless or
@@ -461,15 +461,15 @@ links report.
 
 ### Event names in GA
 
-| PostHog event            | GA4 event        | GA parameters                                                  |
-| ------------------------ | ---------------- | -------------------------------------------------------------- |
-| `board_level_started`    | `level_start`    | `level_name`, `level_number`, `level_kind`, `unit`             |
-| `board_level_completed`  | `level_end`      | the same, plus `success: true`                                 |
-| `board_challenge_passed` | `post_score`     | `score`, `level_name` (the task id), `stars`, `seconds`, …     |
-| `share_completed`        | `share`          | `method` (channel), `content_type` (kind)                      |
-| `contact_clicked`        | `generate_lead`  | `method` (channel), `location`                                 |
-| `sign_graded`, `board_faulted`, `sign_challenge_started` | not sent | too many to be useful in GA; PostHog has them  |
-| everything else          | same name        | same parameters                                                |
+| PostHog event                                            | GA4 event       | GA parameters                                              |
+| -------------------------------------------------------- | --------------- | ---------------------------------------------------------- |
+| `board_level_started`                                    | `level_start`   | `level_name`, `level_number`, `level_kind`, `unit`         |
+| `board_level_completed`                                  | `level_end`     | the same, plus `success: true`                             |
+| `board_challenge_passed`                                 | `post_score`    | `score`, `level_name` (the task id), `stars`, `seconds`, … |
+| `share_completed`                                        | `share`         | `method` (channel), `content_type` (kind)                  |
+| `contact_clicked`                                        | `generate_lead` | `method` (channel), `location`                             |
+| `sign_graded`, `board_faulted`, `sign_challenge_started` | not sent        | too many to be useful in GA; PostHog has them              |
+| everything else                                          | same name       | same parameters                                            |
 
 GA4 limits are applied in `sanitizeGaParams`: names up to 40 characters,
 25 parameters, text up to 100 characters.

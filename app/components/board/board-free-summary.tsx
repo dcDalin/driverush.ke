@@ -58,7 +58,7 @@ export function BoardFreeSummary({
     >
       <h2
         id="board-free-title"
-        className="m-0 font-display text-[clamp(22px,5.5vw,28px)] font-extrabold uppercase leading-none tracking-tight"
+        className="m-0 font-display text-[clamp(22px,5.5vw,28px)] leading-none font-extrabold tracking-tight uppercase"
       >
         {total === 0
           ? "No rules broken"

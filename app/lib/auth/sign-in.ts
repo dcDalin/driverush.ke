@@ -60,7 +60,9 @@ export function signInErrorMessage(
 }
 
 export async function sendEmailCode(email: string) {
-  const { error } = await (await loadClient()).auth.signInWithOtp({
+  const { error } = await (
+    await loadClient()
+  ).auth.signInWithOtp({
     email,
     options: { shouldCreateUser: true },
   });
@@ -68,7 +70,9 @@ export async function sendEmailCode(email: string) {
 }
 
 export async function verifyEmailCode(email: string, token: string) {
-  const { error } = await (await loadClient()).auth.verifyOtp({
+  const { error } = await (
+    await loadClient()
+  ).auth.verifyOtp({
     email,
     token,
     type: "email",
@@ -77,7 +81,9 @@ export async function verifyEmailCode(email: string, token: string) {
 }
 
 export async function signInWithPassword(email: string, password: string) {
-  const { error } = await (await loadClient()).auth.signInWithPassword({
+  const { error } = await (
+    await loadClient()
+  ).auth.signInWithPassword({
     email,
     password,
   });
@@ -85,7 +91,9 @@ export async function signInWithPassword(email: string, password: string) {
 }
 
 export async function signInWithGoogle(next: string) {
-  const { error } = await (await loadClient()).auth.signInWithOAuth({
+  const { error } = await (
+    await loadClient()
+  ).auth.signInWithOAuth({
     provider: "google",
     options: { redirectTo: callbackUrl(window.location.origin, next) },
   });

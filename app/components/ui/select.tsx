@@ -31,14 +31,14 @@ function SelectTrigger({
       data-slot="select-trigger"
       data-size={size}
       className={cn(
-        "flex w-full min-w-0 items-center justify-between gap-2 border border-input bg-surface px-3.5 text-[14.5px] font-medium text-ink rounded-lg",
+        "flex w-full min-w-0 items-center justify-between gap-2 rounded-lg border border-input bg-surface px-3.5 text-[14.5px] font-medium text-ink",
         "data-[size=default]:h-11 data-[size=sm]:h-9 data-[size=sm]:text-[13px]",
-        "shadow-xs outline-none transition-[border-color,box-shadow] duration-150 ease-snap",
-        "data-[placeholder]:text-ink-4 data-[placeholder]:font-normal",
+        "shadow-xs transition-[border-color,box-shadow] duration-150 ease-snap outline-none",
+        "data-[placeholder]:font-normal data-[placeholder]:text-ink-4",
         "focus-visible:border-rush focus-visible:ring-4 focus-visible:ring-rush/15",
         "data-[state=open]:border-rush data-[state=open]:ring-4 data-[state=open]:ring-rush/15",
         "disabled:pointer-events-none disabled:opacity-50",
-        "aria-invalid:bg-[color-mix(in_oklab,var(--rush)_6%,var(--surface))] aria-invalid:border-rush aria-invalid:ring-4 aria-invalid:ring-rush/15",
+        "aria-invalid:border-rush aria-invalid:bg-[color-mix(in_oklab,var(--rush)_6%,var(--surface))] aria-invalid:ring-4 aria-invalid:ring-rush/15",
         "*:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:text-left",
         "[&_svg]:pointer-events-none [&_svg]:shrink-0",
         className,
@@ -47,11 +47,7 @@ function SelectTrigger({
     >
       {children}
       <SelectPrimitive.Icon asChild>
-        <Icon
-          icon={ChevronDownIcon}
-          size={15}
-          className="text-ink-3"
-        />
+        <Icon icon={ChevronDownIcon} size={15} className="text-ink-3" />
       </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   );
@@ -105,8 +101,8 @@ function SelectContent({
         data-slot="select-content"
         position={position}
         className={cn(
-          "relative z-50 max-h-[var(--radix-select-content-available-height)] min-w-[8rem] overflow-hidden border border-line bg-surface text-foreground shadow-lg rounded-lg p-1",
-          "data-[state=open]:animate-in data-[state=closed]:animate-out",
+          "relative z-50 max-h-[var(--radix-select-content-available-height)] min-w-[8rem] overflow-hidden rounded-lg border border-line bg-surface p-1 text-foreground shadow-lg",
+          "data-[state=closed]:animate-out data-[state=open]:animate-in",
           "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
           "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
           position === "popper" &&
@@ -139,7 +135,7 @@ function SelectLabel({
     <SelectPrimitive.Label
       data-slot="select-label"
       className={cn(
-        "px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-ink-3",
+        "px-3 pt-2 pb-1 text-[11px] font-semibold tracking-wider text-ink-3 uppercase",
         className,
       )}
       {...props}
@@ -156,7 +152,7 @@ function SelectItem({
     <SelectPrimitive.Item
       data-slot="select-item"
       className={cn(
-        "relative flex w-full cursor-pointer select-none items-center gap-2 py-2 pl-8 pr-3",
+        "relative flex w-full cursor-pointer items-center gap-2 py-2 pr-3 pl-8 select-none",
         "text-[14px] font-medium text-ink outline-none",
         "rounded-md data-[highlighted]:bg-paper-2 data-[state=checked]:font-semibold",
         "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",

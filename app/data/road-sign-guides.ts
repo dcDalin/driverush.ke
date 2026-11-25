@@ -885,8 +885,7 @@ export const SIGN_GUIDES: Record<string, SignGuide> = {
       "Pulling over to answer a call or check directions. Drive on until you're past the END plate or find a legal place to stop.",
       "Not reading the time plate. Outside the hours shown, the ban may not apply, but inside them it applies in full.",
     ],
-    remember:
-      "One red line, don't park. A red X, don't even stop.",
+    remember: "One red line, don't park. A red X, don't even stop.",
   },
   "P.1": {
     looks:

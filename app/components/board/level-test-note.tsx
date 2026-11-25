@@ -111,7 +111,7 @@ export function LevelTestNote({
   const lineEl = line && (
     <p
       className={cn(
-        "m-0 text-[13.5px] font-semibold leading-snug",
+        "m-0 text-[13.5px] leading-snug font-semibold",
         onDark ? "text-white/85" : "text-ink-2",
         className,
       )}

@@ -11,7 +11,7 @@ const buttonVariants = cva(
     // under the pointer and dips a pixel when pressed.
     "group/button inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap select-none",
     "rounded-soft border border-transparent font-sans font-semibold tracking-normal",
-    "outline-none transition-[background-color,border-color,color,transform] duration-150 ease-snap",
+    "transition-[background-color,border-color,color,transform] duration-150 ease-snap outline-none",
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rush",
     "active:translate-y-px",
     "disabled:pointer-events-none disabled:cursor-default disabled:opacity-50",
@@ -27,8 +27,7 @@ const buttonVariants = cva(
         // Cautionary, save-for-later
         amber: "bg-amber text-amber-foreground hover:brightness-95",
         // Pass / sawa / success
-        green:
-          "bg-kenya-green text-kenya-green-foreground hover:brightness-95",
+        green: "bg-kenya-green text-kenya-green-foreground hover:brightness-95",
         // Quiet default: a thin outline on the page's own surface
         paper:
           "border-line bg-surface text-ink shadow-xs hover:border-ink/25 hover:bg-paper-2",

@@ -63,7 +63,7 @@ export default function NtsaQuestions() {
       lead={
         <nav
           aria-label="Breadcrumb"
-          className="mb-4 flex flex-wrap items-center gap-2 font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium"
+          className="mb-4 flex flex-wrap items-center gap-2 font-sans text-[10.5px] font-medium tracking-wider text-ink-3 uppercase"
         >
           <Link to="/ntsa-test" className="hover:text-ink hover:underline">
             NTSA test

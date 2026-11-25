@@ -29,7 +29,7 @@ export function SignTrainerList({
   const streak = usePracticeStreak();
   return (
     <div className={className}>
-      <ul className="m-0 grid list-none border border-ink/25 bg-surface p-0 rounded-lg">
+      <ul className="m-0 grid list-none rounded-lg border border-ink/25 bg-surface p-0">
         {SIGN_GAMES.map((game, index) => {
           const saved = progress?.[game.slug] ?? {};
           const counts = signCounts(saved, Object.keys(saved));
@@ -55,7 +55,7 @@ export function SignTrainerList({
                 </span>
               )}
               <span className="min-w-0 flex-1">
-                <span className="block font-display text-[15px] font-bold leading-tight tracking-tight">
+                <span className="block font-display text-[15px] leading-tight font-bold tracking-tight">
                   {game.title}
                 </span>
                 <span className="mt-0.5 block text-[13.5px] leading-snug text-ink-2">
@@ -89,7 +89,7 @@ export function SignTrainerList({
                   to={href}
                   aria-label={`${game.title}: ${start}`}
                   className={cn(
-                    "flex min-h-16 items-center gap-3 px-4 py-3 text-ink no-underline outline-none transition-colors hover:bg-paper-2 focus-visible:bg-paper-2",
+                    "flex min-h-16 items-center gap-3 px-4 py-3 text-ink no-underline transition-colors outline-none hover:bg-paper-2 focus-visible:bg-paper-2",
                   )}
                 >
                   {body}
@@ -106,7 +106,7 @@ export function SignTrainerList({
       </ul>
       {/* Only for returning learners, so a first visit stays all action. */}
       {streak && streak.days > 0 && (
-        <p className="m-0 mt-2.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-ink-2">
+        <p className="m-0 mt-2.5 font-sans text-[11px] font-semibold tracking-wider text-ink-2 uppercase">
           {streak.days} day{streak.days === 1 ? "" : "s"} in a row
           {!streak.practisedToday && (
             <span className="font-normal text-ink-3">

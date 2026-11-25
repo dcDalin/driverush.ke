@@ -73,10 +73,10 @@ export function BoardSignCue({
         />
       )}
       <div className="min-w-0">
-        <p className="m-0 font-mono text-[10px] font-bold uppercase tracking-widest text-kenya-gold">
+        <p className="m-0 font-mono text-[10px] font-bold tracking-widest text-kenya-gold uppercase">
           Sign ahead
         </p>
-        <p className="m-0 mt-0.5 text-[15px] font-bold leading-snug">
+        <p className="m-0 mt-0.5 text-[15px] leading-snug font-bold">
           {cue.name}
         </p>
         {/* The first thing to go when the column runs out of room. */}

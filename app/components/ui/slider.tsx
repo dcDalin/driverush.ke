@@ -29,7 +29,7 @@ function Slider({
       min={min}
       max={max}
       className={cn(
-        "relative flex w-full touch-none select-none items-center",
+        "relative flex w-full touch-none items-center select-none",
         className,
       )}
       {...props}
@@ -53,7 +53,7 @@ function Slider({
           data-slot="slider-thumb"
           className={cn(
             "block size-5 rounded-full border-2 border-rush bg-surface shadow-sm",
-            "outline-none transition-shadow duration-100 ease-snap",
+            "transition-shadow duration-100 ease-snap outline-none",
             "focus-visible:ring-4 focus-visible:ring-rush/15",
             "disabled:pointer-events-none disabled:opacity-50",
           )}

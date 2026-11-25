@@ -99,7 +99,7 @@ function Card({
       data-og-card={id}
       style={{ width: OG_WIDTH, height: OG_HEIGHT }}
       className={cn(
-        "relative flex shrink-0 flex-col overflow-hidden bg-paper px-14 pb-14 pt-11 text-ink",
+        "relative flex shrink-0 flex-col overflow-hidden bg-paper px-14 pt-11 pb-14 text-ink",
         className,
       )}
     >
@@ -127,7 +127,7 @@ function Wordmark({ tone = "ink" }: { tone?: "ink" | "paper" }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-3 font-display text-[26px] font-extrabold uppercase tracking-tight",
+        "inline-flex items-center gap-3 font-display text-[26px] font-extrabold tracking-tight uppercase",
         tone === "paper" ? "text-paper" : "text-ink",
       )}
     >
@@ -147,7 +147,7 @@ function Wordmark({ tone = "ink" }: { tone?: "ink" | "paper" }) {
 
 function Stamp({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center border-2 border-ink bg-amber px-3 py-1.5 font-mono text-[15px] font-bold uppercase tracking-widest text-amber-foreground">
+    <span className="inline-flex items-center border-2 border-ink bg-amber px-3 py-1.5 font-mono text-[15px] font-bold tracking-widest text-amber-foreground uppercase">
       {children}
     </span>
   );
@@ -171,9 +171,9 @@ function DefaultCard() {
     >
       <div className="flex w-full items-center justify-between gap-10">
         <div className="max-w-[620px]">
-          <h1 className="m-0 font-display text-[60px] font-extrabold uppercase leading-[0.9] tracking-tight">
+          <h1 className="m-0 font-display text-[60px] leading-[0.9] font-extrabold tracking-tight uppercase">
             Drive the board.{" "}
-            <em className="font-serif font-normal normal-case italic text-rush">
+            <em className="font-serif font-normal text-rush normal-case italic">
               Memorise the signs.
             </em>
           </h1>
@@ -216,9 +216,9 @@ function BoardCard() {
     >
       <div className="flex w-full items-center gap-10">
         <div className="max-w-[440px] shrink-0">
-          <h1 className="m-0 font-display text-[62px] font-extrabold uppercase leading-[0.9] tracking-tight text-paper">
+          <h1 className="m-0 font-display text-[62px] leading-[0.9] font-extrabold tracking-tight text-paper uppercase">
             Model Town Board.{" "}
-            <em className="font-serif font-normal normal-case italic text-rush">
+            <em className="font-serif font-normal text-rush normal-case italic">
               Drive it.
             </em>
           </h1>
@@ -260,9 +260,9 @@ function PelicanCard() {
           ))}
         </div>
         <div>
-          <h1 className="m-0 font-display text-[58px] font-extrabold uppercase leading-[0.9] tracking-tight text-paper">
+          <h1 className="m-0 font-display text-[58px] leading-[0.9] font-extrabold tracking-tight text-paper uppercase">
             Name it before the{" "}
-            <em className="font-serif font-normal normal-case italic text-rush">
+            <em className="font-serif font-normal text-rush normal-case italic">
               answer shows
             </em>
           </h1>
@@ -295,9 +295,9 @@ function Signs3DCard() {
     >
       <div className="flex w-full items-center gap-10">
         <div className="max-w-[372px] shrink-0">
-          <h1 className="m-0 font-display text-[42px] font-extrabold uppercase leading-[0.92] tracking-tight">
+          <h1 className="m-0 font-display text-[42px] leading-[0.92] font-extrabold tracking-tight uppercase">
             Spin Kenyan{" "}
-            <em className="font-serif font-normal normal-case italic text-rush">
+            <em className="font-serif font-normal text-rush normal-case italic">
               road signs
             </em>
           </h1>
@@ -369,9 +369,9 @@ function RoadSignsCard() {
     >
       <div className="flex w-full items-center gap-10">
         <div className="max-w-[430px]">
-          <h1 className="m-0 font-display text-[52px] font-extrabold uppercase leading-[0.9] tracking-tight">
+          <h1 className="m-0 font-display text-[52px] leading-[0.9] font-extrabold tracking-tight uppercase">
             {REGIONS.length} Kenyan road signs, and what they{" "}
-            <em className="font-serif font-normal normal-case italic text-rush">
+            <em className="font-serif font-normal text-rush normal-case italic">
               actually mean
             </em>
           </h1>
@@ -547,14 +547,14 @@ function PrintableChart() {
       <style>{`@page { size: A4 landscape; margin: 8mm; } html, body { background: #fff; }`}</style>
       <div className="flex items-end justify-between gap-6 border-b-2 border-[#0e1014] pb-2">
         <div>
-          <h1 className="m-0 font-display text-[22px] font-extrabold uppercase leading-none tracking-tight">
+          <h1 className="m-0 font-display text-[22px] leading-none font-extrabold tracking-tight uppercase">
             Kenya road signs chart
           </h1>
           <p className="m-0 mt-1 text-[11px]">
             {SIGN_COUNT} signs with their meanings at driverush.ke/road-signs
           </p>
         </div>
-        <div className="flex items-center gap-2 text-[9px] uppercase tracking-widest">
+        <div className="flex items-center gap-2 text-[9px] tracking-widest uppercase">
           Featuring
           <img
             src={SIGN_BRAND.logo}
@@ -608,7 +608,7 @@ export default function OgStudio() {
   if (signPage) {
     return (
       <div
-        className="fixed left-0 top-0 m-0 bg-white p-0"
+        className="fixed top-0 left-0 m-0 bg-white p-0"
         style={{ width: SIGN_IMAGE_SIZE, height: SIGN_IMAGE_SIZE }}
       >
         <SignImage sign={signPage} className="size-full" />
@@ -622,7 +622,7 @@ export default function OgStudio() {
   if (requested && RENDERERS[requested]) {
     const Only = RENDERERS[requested];
     return (
-      <div className="fixed left-0 top-0 m-0 overflow-hidden bg-paper p-0">
+      <div className="fixed top-0 left-0 m-0 overflow-hidden bg-paper p-0">
         <Only />
       </div>
     );
@@ -631,7 +631,7 @@ export default function OgStudio() {
   return (
     <div className="mx-auto w-full max-w-[1300px] px-6 py-10">
       <header className="mb-8">
-        <h1 className="m-0 font-display text-4xl font-extrabold uppercase tracking-tight">
+        <h1 className="m-0 font-display text-4xl font-extrabold tracking-tight uppercase">
           OG cards
         </h1>
         <p className="mt-3 max-w-2xl font-serif text-[17px] leading-snug text-ink-2">
@@ -648,10 +648,10 @@ export default function OgStudio() {
           return (
             <section key={card.id}>
               <div className="mb-3 flex flex-wrap items-baseline gap-3">
-                <h2 className="m-0 font-display text-lg font-extrabold uppercase tracking-wide">
+                <h2 className="m-0 font-display text-lg font-extrabold tracking-wide uppercase">
                   {card.id}
                 </h2>
-                <span className="font-mono text-[11px] uppercase tracking-widest text-ink-3">
+                <span className="font-mono text-[11px] tracking-widest text-ink-3 uppercase">
                   /og/{card.id}.png
                 </span>
                 <span className="text-[13px] text-ink-2">{card.blurb}</span>

@@ -16,12 +16,7 @@
  */
 
 export type LevelKind =
-  | "warmup"
-  | "slides"
-  | "lanes"
-  | "watch"
-  | "drive"
-  | "mock";
+  "warmup" | "slides" | "lanes" | "watch" | "drive" | "mock";
 export type LevelDifficulty = "Easy" | "Medium" | "Hard";
 
 /** One card of a "slides" level, and where on the board to look. */

@@ -54,9 +54,9 @@ export default function BoardLevelsPage() {
     <>
       <SiteNav />
       <main className="min-h-screen text-ink">
-        <div className="mx-auto w-full max-w-5xl px-4 pb-20 pt-6 sm:px-9 sm:pt-10">
+        <div className="mx-auto w-full max-w-5xl px-4 pt-6 pb-20 sm:px-9 sm:pt-10">
           <header className="mb-2">
-            <p className="m-0 font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+            <p className="m-0 font-mono text-[10.5px] tracking-widest text-ink-3 uppercase">
               <Link
                 to={BOARD_PATH}
                 className="text-ink-3 no-underline hover:text-ink hover:underline"
@@ -64,7 +64,7 @@ export default function BoardLevelsPage() {
                 Model Town Board
               </Link>
             </p>
-            <h1 className="m-0 mt-2 font-display text-[clamp(30px,6vw,52px)] font-extrabold uppercase leading-[0.96] tracking-tighter">
+            <h1 className="m-0 mt-2 font-display text-[clamp(30px,6vw,52px)] leading-[0.96] font-extrabold tracking-tighter uppercase">
               All levels
             </h1>
             <p className="m-0 mt-2 text-[15px] leading-snug text-ink-2">

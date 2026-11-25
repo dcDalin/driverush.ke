@@ -131,7 +131,7 @@ export default function SponsorTool() {
     <div>
       <header className="border-b border-line pb-6">
         <span className="eyebrow text-ink">Internal · sponsors</span>
-        <h1 className="m-0 mt-3 font-display text-[clamp(32px,5vw,52px)] font-semibold leading-[0.95] tracking-tighter">
+        <h1 className="m-0 mt-3 font-display text-[clamp(32px,5vw,52px)] leading-[0.95] font-semibold tracking-tighter">
           {sponsor.school}
         </h1>
         <p className="mt-3 max-w-2xl text-[15px] leading-snug text-ink-2">
@@ -161,7 +161,7 @@ export default function SponsorTool() {
       {sponsor.livery && (
         <>
           <div className="mt-6 flex flex-wrap items-center gap-2">
-            <span className="font-mono text-[11px] uppercase tracking-widest text-ink-3">
+            <span className="font-mono text-[11px] tracking-widest text-ink-3 uppercase">
               Car
             </span>
             {BOARD_CARS.map((c) => (
@@ -188,7 +188,7 @@ export default function SponsorTool() {
               />
               Show the template over it
             </label>
-            <div className="relative w-full max-w-4xl border border-line rounded-lg">
+            <div className="relative w-full max-w-4xl rounded-lg border border-line">
               <img
                 src={wrapFull}
                 alt="The car's paint, flat"
@@ -245,7 +245,7 @@ export default function SponsorTool() {
                 Steer left and right
               </label>
             </div>
-            <div className="aspect-[4/3] w-full max-w-3xl border border-line sm:aspect-[16/9] rounded-lg">
+            <div className="aspect-[4/3] w-full max-w-3xl rounded-lg border border-line sm:aspect-[16/9]">
               {mounted && (
                 <React.Suspense fallback={null}>
                   <SponsorCarCanvas
@@ -277,13 +277,13 @@ export default function SponsorTool() {
       >
         <div className="grid gap-4 md:grid-cols-[2fr_3fr]">
           <div
-            className="border border-line [&>svg]:block [&>svg]:h-auto [&>svg]:w-full rounded-lg"
+            className="rounded-lg border border-line [&>svg]:block [&>svg]:h-auto [&>svg]:w-full"
             dangerouslySetInnerHTML={{
               __html: fullBoardSvg({ sponsorLogo: sponsor.logo.mono }),
             }}
           />
           <div
-            className="border border-line [&>svg]:block [&>svg]:h-auto [&>svg]:w-full rounded-lg"
+            className="rounded-lg border border-line [&>svg]:block [&>svg]:h-auto [&>svg]:w-full"
             dangerouslySetInnerHTML={{
               __html: fullBoardSvg({
                 sponsorLogo: sponsor.logo.mono,
@@ -297,7 +297,7 @@ export default function SponsorTool() {
       <Section title="On screen">
         <div className="grid max-w-3xl gap-4 sm:grid-cols-2">
           <div className="flex min-h-40 flex-col items-center justify-end gap-3 rounded-md bg-[#101114] p-4">
-            <span className="font-mono text-[11px] uppercase tracking-widest text-white/60">
+            <span className="font-mono text-[11px] tracking-widest text-white/60 uppercase">
               Under the loader
             </span>
             <SponsorCredit
@@ -308,7 +308,7 @@ export default function SponsorTool() {
             />
           </div>
           <div className="flex flex-col gap-3 rounded-md border border-line p-4">
-            <span className="font-mono text-[11px] uppercase tracking-widest text-ink-3">
+            <span className="font-mono text-[11px] tracking-widest text-ink-3 uppercase">
               Settings, Your car
             </span>
             <SponsorCredit sponsor={sponsor} lead="Car by" place="credit" />

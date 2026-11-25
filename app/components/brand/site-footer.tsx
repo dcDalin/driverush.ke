@@ -37,7 +37,7 @@ export function SiteFooter() {
               the NTSA test.
             </p>
 
-            <h3 className="m-0 mb-3 mt-6 font-display text-xs font-bold uppercase tracking-widest">
+            <h3 className="m-0 mt-6 mb-3 font-display text-xs font-bold tracking-widest uppercase">
               Contact
             </h3>
             <ul className="m-0 list-none p-0">
@@ -65,7 +65,7 @@ export function SiteFooter() {
                       location: "footer",
                     })
                   }
-                  className="inline-flex items-center gap-2 break-all font-mono text-xs tracking-wide opacity-85 hover:underline"
+                  className="inline-flex items-center gap-2 font-mono text-xs tracking-wide break-all opacity-85 hover:underline"
                 >
                   <Icon icon={MailIcon} size={14} />
                   {SITE.contact.email}
@@ -117,7 +117,7 @@ export function SiteFooter() {
         </div>
 
         <div className="border-b border-paper/20 py-6">
-          <h3 className="m-0 font-display text-xs font-bold uppercase tracking-widest">
+          <h3 className="m-0 font-display text-xs font-bold tracking-widest uppercase">
             Driving schools on the board
           </h3>
           <p className="m-0 mt-2 max-w-xl font-serif text-sm leading-snug opacity-80">
@@ -135,7 +135,7 @@ export function SiteFooter() {
 
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-paper/20 py-5">
           <SignCredit size="sm" onInk />
-          <span className="font-sans text-[10.5px] uppercase tracking-wider opacity-70 font-medium">
+          <span className="font-sans text-[10.5px] font-medium tracking-wider uppercase opacity-70">
             Based on the{" "}
             <a
               href={SIGN_SOURCE.href}
@@ -152,7 +152,7 @@ export function SiteFooter() {
               {SIGN_SOURCE.name}
             </a>
           </span>
-          <span className="font-sans text-[10.5px] uppercase tracking-wider opacity-70 font-medium">
+          <span className="font-sans text-[10.5px] font-medium tracking-wider uppercase opacity-70">
             Not affiliated with the NTSA
           </span>
         </div>
@@ -163,7 +163,7 @@ export function SiteFooter() {
             tone="on-dark"
             utmMedium="home_footer"
           />
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 font-sans text-[11px] uppercase tracking-wider opacity-60 font-medium">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 font-sans text-[11px] font-medium tracking-wider uppercase opacity-60">
             <span>© 2026 DriveRush.ke</span>
             <span aria-hidden>·</span>
             <span>Learn · Drive · Succeed</span>
@@ -185,7 +185,7 @@ function FooterCol({
 }) {
   return (
     <div>
-      <h3 className="m-0 mb-3 font-display text-xs font-bold uppercase tracking-widest">
+      <h3 className="m-0 mb-3 font-display text-xs font-bold tracking-widest uppercase">
         {heading}
       </h3>
       <ul className="m-0 list-none p-0">

@@ -702,7 +702,8 @@ function misfit(path: Path, car: CarState, knob: number): number {
 function bandFor(car: CarState): [number, number] {
   const at = locate(car.x, car.z);
   if (at.kind === "ring") return [RING_FULL, RING_NONE];
-  if (at.kind === "arm" && at.along < SOLID_ZONE) return [LINES_FULL, LINES_NONE];
+  if (at.kind === "arm" && at.along < SOLID_ZONE)
+    return [LINES_FULL, LINES_NONE];
   return [HELP_FULL, HELP_NONE];
 }
 
@@ -880,13 +881,6 @@ function fitsTask(
   return true;
 }
 
-
-
-
-
-
-
-
 /** Where a way round the ring (or the stretch onto it) comes out: road and lane. */
 function exitOf(edge: NetEdge): { arm: ArmId; lane: number } | null {
   let here: NetEdge | undefined = edge;
@@ -899,10 +893,6 @@ function exitOf(edge: NetEdge): { arm: ArmId; lane: number } | null {
   }
   return null;
 }
-
-
-
-
 
 /** Steer for a point on the path a little ahead, slowing for its bends. */
 function steerAlong(
@@ -944,8 +934,7 @@ function steerAlong(
   // the path's own way from where the car is level with it, then toward its
   // line from the car, no more than `centring`
   const from = pts[near.i];
-  const own =
-    k > near.i ? bearingOf(aim.x - from.x, aim.z - from.z) : from.h;
+  const own = k > near.i ? bearingOf(aim.x - from.x, aim.z - from.z) : from.h;
   const toward = wrapPi(bearingOf(aim.x - car.x, aim.z - car.z) - own);
   return {
     heading: wrapPi(own + Math.max(-centring, Math.min(centring, toward))),

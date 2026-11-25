@@ -31,7 +31,7 @@ export function FreeDriveRow({
       to={freeDriveHref(surface)}
       data-free-drive-row
       className={cn(
-        "flex min-h-16 items-center gap-3 rounded-lg border border-ink/25 bg-surface px-4 py-3 text-ink no-underline outline-none transition-colors hover:bg-paper-2 focus-visible:bg-paper-2",
+        "flex min-h-16 items-center gap-3 rounded-lg border border-ink/25 bg-surface px-4 py-3 text-ink no-underline transition-colors outline-none hover:bg-paper-2 focus-visible:bg-paper-2",
         className,
       )}
     >
@@ -39,7 +39,7 @@ export function FreeDriveRow({
         <Icon icon={GoIcon} size={20} />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block font-display text-[15px] font-bold leading-tight tracking-tight">
+        <span className="block font-display text-[15px] leading-tight font-bold tracking-tight">
           Free drive
         </span>
         <span className="mt-0.5 block text-[13.5px] leading-snug text-ink-2">

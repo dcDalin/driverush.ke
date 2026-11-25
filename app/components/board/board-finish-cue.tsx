@@ -133,10 +133,10 @@ export function BoardFinishCue({
       <div
         ref={flag}
         aria-hidden
-        className="absolute left-0 top-0 flex flex-col items-center will-change-transform"
+        className="absolute top-0 left-0 flex flex-col items-center will-change-transform"
         style={{ visibility: "hidden" }}
       >
-        <span className="inline-flex items-center gap-1.5 rounded-md border-2 border-[#0c3d1f] bg-[#5fe08a] px-2.5 py-1 font-mono text-[11px] font-bold uppercase tracking-widest text-[#0c3d1f] shadow-[0_3px_0_rgba(0,0,0,0.45)]">
+        <span className="inline-flex items-center gap-1.5 rounded-md border-2 border-[#0c3d1f] bg-[#5fe08a] px-2.5 py-1 font-mono text-[11px] font-bold tracking-widest text-[#0c3d1f] uppercase shadow-[0_3px_0_rgba(0,0,0,0.45)]">
           <Icon icon={FinishIcon} size={14} />
           {parks ? "Park here" : "Stop here"}
         </span>
@@ -148,7 +148,7 @@ export function BoardFinishCue({
         type="button"
         aria-label="Show where this task ends"
         onClick={onPeek}
-        className="pointer-events-auto absolute left-0 top-0 inline-flex min-h-11 items-center gap-2 rounded-full border-2 border-[#0c3d1f] bg-[#5fe08a] py-1.5 pl-2 pr-3.5 text-[#0c3d1f] shadow-[0_4px_0_rgba(0,0,0,0.45)] outline-none will-change-transform focus-visible:border-white"
+        className="pointer-events-auto absolute top-0 left-0 inline-flex min-h-11 items-center gap-2 rounded-full border-2 border-[#0c3d1f] bg-[#5fe08a] py-1.5 pr-3.5 pl-2 text-[#0c3d1f] shadow-[0_4px_0_rgba(0,0,0,0.45)] will-change-transform outline-none focus-visible:border-white"
         style={{ visibility: "hidden" }}
       >
         <span
@@ -158,7 +158,7 @@ export function BoardFinishCue({
           <Icon icon={ArrowRightIcon} size={16} />
         </span>
         <span className="grid text-left leading-none">
-          <span className="font-mono text-[10px] font-bold uppercase tracking-widest">
+          <span className="font-mono text-[10px] font-bold tracking-widest uppercase">
             Finish
           </span>
           <span

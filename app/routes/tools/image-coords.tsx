@@ -368,7 +368,7 @@ export default function ImageCoordsTool({ loaderData }: Route.ComponentProps) {
     <div className="space-y-8">
       <header className="border-b border-line pb-6">
         <span className="eyebrow text-ink">Tool · image focus authoring</span>
-        <h1 className="m-0 mt-3 font-display text-[clamp(28px,4.5vw,44px)] font-semibold leading-[0.95] tracking-tighter">
+        <h1 className="m-0 mt-3 font-display text-[clamp(28px,4.5vw,44px)] leading-[0.95] font-semibold tracking-tighter">
           Image <span className="text-rush">coordinates</span>
         </h1>
         <p className="mt-3 max-w-2xl font-serif text-[clamp(15px,1.9vw,19px)] leading-tight text-ink-2">
@@ -380,8 +380,8 @@ export default function ImageCoordsTool({ loaderData }: Route.ComponentProps) {
       </header>
 
       {/* ---- Status bar ---- */}
-      <section className="flex flex-wrap items-center justify-between gap-3 border border-line bg-paper-3 px-4 py-3 rounded-lg">
-        <span className="flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+      <section className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-paper-3 px-4 py-3">
+        <span className="flex items-center gap-2 font-mono text-[10.5px] tracking-widest text-ink-3 uppercase">
           <Icon icon={ImageIcon} size={13} />
           {ROAD_SIGNS_IMAGE_SRC}
           {" · "}
@@ -392,7 +392,7 @@ export default function ImageCoordsTool({ loaderData }: Route.ComponentProps) {
         <div className="flex flex-wrap items-center gap-2">
           <span
             className={cn(
-              "font-mono text-[10.5px] uppercase tracking-widest",
+              "font-mono text-[10.5px] tracking-widest uppercase",
               dirty ? "text-rush" : "text-ink-3",
             )}
           >
@@ -405,10 +405,7 @@ export default function ImageCoordsTool({ loaderData }: Route.ComponentProps) {
             onClick={saveToProject}
             disabled={!canSave || !dirty || saving}
           >
-            <Icon
-              icon={SaveIcon}
-              size={14}
-            />
+            <Icon icon={SaveIcon} size={14} />
             {saving ? "Saving…" : "Save to project"}
           </Button>
           <Button
@@ -422,7 +419,7 @@ export default function ImageCoordsTool({ loaderData }: Route.ComponentProps) {
         </div>
       </section>
       {!canSave && (
-        <p className="-mt-6 font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+        <p className="-mt-6 font-mono text-[10.5px] tracking-widest text-ink-3 uppercase">
           Saving to the project is disabled outside <code>npm run dev</code> —
           use Copy / Download below instead.
         </p>
@@ -466,11 +463,11 @@ export default function ImageCoordsTool({ loaderData }: Route.ComponentProps) {
             2 · Region list
           </h2>
           {regions.length === 0 ? (
-            <p className="border border-line bg-paper-3 px-4 py-6 text-center font-mono text-[11px] uppercase tracking-widest text-ink-3 rounded-lg">
+            <p className="rounded-lg border border-line bg-paper-3 px-4 py-6 text-center font-mono text-[11px] tracking-widest text-ink-3 uppercase">
               No regions yet — hit “New region” above
             </p>
           ) : (
-            <ul className="divide-y-2 divide-line border border-line bg-surface rounded-lg">
+            <ul className="divide-y-2 divide-line rounded-lg border border-line bg-surface">
               {regions.map((r, i) => {
                 const active = r.id === selectedRegionId;
                 const named = r.name.trim().length > 0;
@@ -484,7 +481,7 @@ export default function ImageCoordsTool({ loaderData }: Route.ComponentProps) {
                   >
                     <span
                       className={cn(
-                        "flex size-6 shrink-0 items-center justify-center border border-line font-mono text-[11px] font-bold rounded-md",
+                        "flex size-6 shrink-0 items-center justify-center rounded-md border border-line font-mono text-[11px] font-bold",
                         named
                           ? "bg-kenya-green text-kenya-green-foreground"
                           : "bg-hazard text-hazard-foreground",
@@ -500,7 +497,7 @@ export default function ImageCoordsTool({ loaderData }: Route.ComponentProps) {
                       <span className="block truncate font-display text-[13px] font-bold tracking-tight text-ink">
                         {r.name || "(unnamed)"}
                       </span>
-                      <span className="block truncate font-mono text-[9.5px] uppercase tracking-widest text-ink-3">
+                      <span className="block truncate font-mono text-[9.5px] tracking-widest text-ink-3 uppercase">
                         {r.code ? `${r.code} · ` : ""}
                         {getSignCategory(r.category).label} · {Math.round(r.x)},
                         {Math.round(r.y)} · {Math.round(r.width)}×
@@ -559,7 +556,7 @@ export default function ImageCoordsTool({ loaderData }: Route.ComponentProps) {
               }
             />
           ) : (
-            <p className="border border-line bg-paper-3 px-4 py-6 text-center font-mono text-[11px] uppercase tracking-widest text-ink-3 rounded-lg">
+            <p className="rounded-lg border border-line bg-paper-3 px-4 py-6 text-center font-mono text-[11px] tracking-widest text-ink-3 uppercase">
               Select a region to edit its name &amp; metadata
             </p>
           )}
@@ -582,7 +579,7 @@ export default function ImageCoordsTool({ loaderData }: Route.ComponentProps) {
       <section className="space-y-3">
         <h2 className="font-display text-base font-bold tracking-tight text-ink">
           5 · Playback settings
-          <span className="ml-2 font-mono text-[10px] font-normal normal-case tracking-normal text-ink-3">
+          <span className="ml-2 font-mono text-[10px] font-normal tracking-normal text-ink-3 normal-case">
             these drive the real /road-signs/pelican gameplay
           </span>
         </h2>
@@ -601,24 +598,18 @@ export default function ImageCoordsTool({ loaderData }: Route.ComponentProps) {
           </h2>
           <div className="flex flex-wrap gap-2">
             <Button variant="ink" size="sm" onClick={copyJson}>
-              <Icon
-                icon={CopyIcon}
-                size={14}
-              />
+              <Icon icon={CopyIcon} size={14} />
               {copied ? "Copied!" : "Copy"}
             </Button>
             <Button variant="paper" size="sm" onClick={downloadJson}>
-              <Icon
-                icon={DownloadIcon}
-                size={14}
-              />
+              <Icon icon={DownloadIcon} size={14} />
               Download
             </Button>
           </div>
         </div>
 
-        <div className="border border-line bg-ink rounded-lg">
-          <div className="flex items-center justify-between border-b border-line bg-paper-3 px-3.5 py-2 font-mono text-[10.5px] font-bold uppercase tracking-widest text-ink">
+        <div className="rounded-lg border border-line bg-ink">
+          <div className="flex items-center justify-between border-b border-line bg-paper-3 px-3.5 py-2 font-mono text-[10.5px] font-bold tracking-widest text-ink uppercase">
             <span>{DATA_FILE_LABEL}</span>
             <span>
               {regions.length} region{regions.length === 1 ? "" : "s"}
@@ -630,8 +621,8 @@ export default function ImageCoordsTool({ loaderData }: Route.ComponentProps) {
           </pre>
         </div>
 
-        <details className="border border-line bg-surface rounded-lg">
-          <summary className="cursor-pointer select-none px-3.5 py-2.5 font-mono text-[10.5px] font-bold uppercase tracking-widest text-ink-2 hover:text-ink">
+        <details className="rounded-lg border border-line bg-surface">
+          <summary className="cursor-pointer px-3.5 py-2.5 font-mono text-[10.5px] font-bold tracking-widest text-ink-2 uppercase select-none hover:text-ink">
             Import — paste JSON to replace the working set
           </summary>
           <div className="space-y-2.5 border-t border-line p-3.5">
@@ -682,7 +673,7 @@ function IconBtn({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "flex size-7 items-center justify-center border border-line bg-surface text-ink outline-none transition-colors rounded-md",
+        "flex size-7 items-center justify-center rounded-md border border-line bg-surface text-ink transition-colors outline-none",
         "hover:bg-ink hover:text-paper focus-visible:bg-ink focus-visible:text-paper",
         "disabled:pointer-events-none disabled:opacity-40",
         danger && "hover:bg-rush focus-visible:bg-rush",
@@ -707,7 +698,7 @@ function Field({
       <Label>
         {label}
         {hint && (
-          <span className="ml-1.5 font-mono text-[9.5px] font-normal lowercase tracking-normal text-ink-3">
+          <span className="ml-1.5 font-mono text-[9.5px] font-normal tracking-normal text-ink-3 lowercase">
             {hint}
           </span>
         )}
@@ -735,7 +726,7 @@ function RegionForm({
   const cat = getSignCategory(region.category);
 
   return (
-    <div className="space-y-4 border border-line bg-surface p-4 rounded-lg">
+    <div className="space-y-4 rounded-lg border border-line bg-surface p-4">
       <Field label="Name" hint="shown when revealed">
         <Input
           value={region.name}
@@ -765,7 +756,7 @@ function RegionForm({
           />
         </Field>
       </div>
-      <p className="-mt-1 font-mono text-[9.5px] uppercase tracking-widest text-ink-3">
+      <p className="-mt-1 font-mono text-[9.5px] tracking-widest text-ink-3 uppercase">
         {cat.emoji} {cat.shape || "no shape hint"}
         {cat.count > 0 ? ` · ${cat.count} signs in the Code` : ""}
       </p>
@@ -878,7 +869,7 @@ function RegionForm({
           </Field>
         ))}
       </div>
-      <p className="font-mono text-[9.5px] uppercase tracking-widest text-ink-3">
+      <p className="font-mono text-[9.5px] tracking-widest text-ink-3 uppercase">
         all geometry values are % of the image · saved zoom{" "}
         {region.zoom?.toFixed(2) ?? "—"}×
       </p>
@@ -908,7 +899,7 @@ function SettingsPanel({
         : "";
 
   return (
-    <div className="space-y-5 border border-line bg-paper-3 p-4 rounded-lg">
+    <div className="space-y-5 rounded-lg border border-line bg-paper-3 p-4">
       <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
         <SliderRow
           label="Blur intensity"

@@ -224,7 +224,7 @@ export function BoardLearn({
           </span>
           <span className="min-w-0 flex-1">
             <span className="block">{lesson.title}</span>
-            <span className="mt-0.5 block font-mono text-[10px] font-bold uppercase tracking-widest text-white/55">
+            <span className="mt-0.5 block font-mono text-[10px] font-bold tracking-widest text-white/55 uppercase">
               {lesson.level} · {rule ? `${rule.name} · ` : ""}
               {line.steps.length} steps
               {line.steps.some((s) => s.gear === "reverse") && " · reversing"}
@@ -239,10 +239,10 @@ export function BoardLearn({
     <div className="pointer-events-none absolute inset-0 z-20 flex flex-col justify-end sm:flex-row sm:justify-start">
       <section
         aria-label="Learn the board"
-        className="dr-rise pointer-events-auto flex max-h-[54dvh] w-full flex-col border-t-2 border-white/15 bg-[#101114]/95 pb-[env(safe-area-inset-bottom)] text-white sm:h-full sm:max-h-none sm:w-[23.5rem] sm:border-r-2 sm:border-t-0"
+        className="dr-rise pointer-events-auto flex max-h-[54dvh] w-full flex-col border-t-2 border-white/15 bg-[#101114]/95 pb-[env(safe-area-inset-bottom)] text-white sm:h-full sm:max-h-none sm:w-[23.5rem] sm:border-t-0 sm:border-r-2"
       >
         <header className="flex items-center justify-between gap-2 px-3.5 pt-3">
-          <h2 className="m-0 font-display text-[19px] font-extrabold uppercase leading-none tracking-tight">
+          <h2 className="m-0 font-display text-[19px] leading-none font-extrabold tracking-tight uppercase">
             Learn the board
           </h2>
           <div className="flex items-center gap-1.5">
@@ -250,7 +250,7 @@ export function BoardLearn({
               type="button"
               aria-label="Settings"
               onClick={onSettings}
-              className="inline-flex size-11 items-center justify-center rounded-md border-2 border-white/15 outline-none transition-colors hover:bg-white/15 focus-visible:border-white"
+              className="inline-flex size-11 items-center justify-center rounded-md border-2 border-white/15 transition-colors outline-none hover:bg-white/15 focus-visible:border-white"
             >
               <Icon icon={SettingsIcon} size={20} />
             </button>
@@ -258,7 +258,7 @@ export function BoardLearn({
               type="button"
               aria-label="Close"
               onClick={exit}
-              className="inline-flex size-11 items-center justify-center rounded-md border-2 border-white/15 outline-none transition-colors hover:bg-white/15 focus-visible:border-white"
+              className="inline-flex size-11 items-center justify-center rounded-md border-2 border-white/15 transition-colors outline-none hover:bg-white/15 focus-visible:border-white"
             >
               <Icon icon={CloseIcon} size={20} />
             </button>
@@ -278,7 +278,7 @@ export function BoardLearn({
               aria-selected={tab === t.id}
               onClick={() => pickTab(t.id)}
               className={cn(
-                "min-h-11 rounded-md border-2 py-2 font-mono text-[11px] font-bold uppercase tracking-widest outline-none transition-colors focus-visible:border-white",
+                "min-h-11 rounded-md border-2 py-2 font-mono text-[11px] font-bold tracking-widest uppercase transition-colors outline-none focus-visible:border-white",
                 tab === t.id ? chipOn : chipOff,
               )}
             >
@@ -293,20 +293,20 @@ export function BoardLearn({
               <button
                 type="button"
                 onClick={back}
-                className="inline-flex min-h-11 items-center gap-1 self-start pr-4 font-mono text-[12px] font-bold uppercase tracking-widest text-white/80 outline-none hover:text-white focus-visible:underline"
+                className="inline-flex min-h-11 items-center gap-1 self-start pr-4 font-mono text-[12px] font-bold tracking-widest text-white/80 uppercase outline-none hover:text-white focus-visible:underline"
               >
                 <Icon icon={ChevronLeftIcon} size={14} />
                 Back
               </button>
               <div>
-                <h3 className="m-0 text-[17px] font-bold leading-snug">
+                <h3 className="m-0 text-[17px] leading-snug font-bold">
                   {showing.title}
                 </h3>
                 <p className="m-0 mt-1 text-[13.5px] leading-snug text-white/75">
                   {showing.ask}
                 </p>
                 {showing.rule && (
-                  <p className="m-0 mt-1.5 text-[13px] font-semibold leading-snug text-kenya-gold">
+                  <p className="m-0 mt-1.5 text-[13px] leading-snug font-semibold text-kenya-gold">
                     {showing.rule}
                   </p>
                 )}
@@ -320,7 +320,7 @@ export function BoardLearn({
                       onClick={() => toStep(i)}
                       aria-current={i === step ? "step" : undefined}
                       className={cn(
-                        "flex min-h-11 w-full items-start gap-2.5 rounded-md border-2 px-2.5 py-2.5 text-left outline-none transition-colors focus-visible:border-white",
+                        "flex min-h-11 w-full items-start gap-2.5 rounded-md border-2 px-2.5 py-2.5 text-left transition-colors outline-none focus-visible:border-white",
                         i === step
                           ? "border-white/40 bg-white/10"
                           : "border-transparent hover:bg-white/5",
@@ -329,9 +329,9 @@ export function BoardLearn({
                       <span className="mt-px font-mono text-[11px] font-bold text-white/55">
                         {i + 1}
                       </span>
-                      <span className="min-w-0 flex-1 text-[13.5px] font-semibold leading-snug">
+                      <span className="min-w-0 flex-1 text-[13.5px] leading-snug font-semibold">
                         {s.title}
-                        <span className="ml-1.5 inline-flex gap-1 align-middle font-mono text-[9.5px] font-bold uppercase tracking-widest">
+                        <span className="ml-1.5 inline-flex gap-1 align-middle font-mono text-[9.5px] font-bold tracking-widest uppercase">
                           <StepTags step={s} />
                         </span>
                         {!s.confirmed && (
@@ -399,7 +399,7 @@ export function BoardLearn({
                     ),
                   )}
                 </div>
-                <p className="m-0 mt-2 text-[14px] font-semibold leading-snug">
+                <p className="m-0 mt-2 text-[14px] leading-snug font-semibold">
                   {laneRule(ARMS[arm].lanes, lane)}
                 </p>
                 <p className="m-0 mt-1 text-[12.5px] leading-snug text-white/65">
@@ -460,7 +460,7 @@ export function BoardLearn({
             <div className="grid gap-3">
               {picked ? (
                 <div className="rounded-md border-2 border-[#f6c416] bg-white/5 p-3">
-                  <h3 className="m-0 text-[17px] font-bold leading-snug">
+                  <h3 className="m-0 text-[17px] leading-snug font-bold">
                     {picked.name}
                   </h3>
                   <p className="m-0 mt-1.5 text-[14px] leading-snug text-white/85">
@@ -475,7 +475,7 @@ export function BoardLearn({
                       <Icon icon={ArrowRightIcon} size={13} />
                     </Link>
                   )}
-                  <p className="m-0 mt-2 font-mono text-[10px] uppercase tracking-widest text-white/50">
+                  <p className="m-0 mt-2 font-mono text-[10px] tracking-widest text-white/50 uppercase">
                     {RULES_SOURCE}, Unit 3
                   </p>
                 </div>
@@ -521,7 +521,7 @@ export function BoardLearn({
           <Link
             to={BOARD_PATH}
             replace
-            className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md border-2 border-white/25 py-2.5 font-mono text-[11px] font-bold uppercase tracking-widest text-white outline-none transition-colors hover:bg-white/10 focus-visible:border-white"
+            className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md border-2 border-white/25 py-2.5 font-mono text-[11px] font-bold tracking-widest text-white uppercase transition-colors outline-none hover:bg-white/10 focus-visible:border-white"
           >
             Go to the levels
             <Icon icon={ArrowRightIcon} size={14} />

@@ -214,7 +214,7 @@ export function TestCard({
   if (thanks) {
     return (
       <div className={shell} role="status">
-        <p className="m-0 min-w-0 flex-1 basis-48 text-[14px] font-semibold leading-snug text-ink">
+        <p className="m-0 min-w-0 flex-1 basis-48 text-[14px] leading-snug font-semibold text-ink">
           {thanks.text}
         </p>
         {thanks.remind && <Reminder record={thanks.remind} now={now} />}
@@ -244,7 +244,7 @@ export function TestCard({
     };
     return (
       <div className={shell}>
-        <p className="m-0 min-w-0 flex-1 basis-48 text-[14px] font-semibold leading-snug text-ink">
+        <p className="m-0 min-w-0 flex-1 basis-48 text-[14px] leading-snug font-semibold text-ink">
           Your NTSA test was on {shortDay(record.date)}. How did it go?
         </p>
         <span className="flex flex-wrap items-center gap-1">

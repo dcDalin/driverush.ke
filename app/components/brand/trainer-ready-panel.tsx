@@ -3,10 +3,7 @@
  * whole-chart option, where you stand, and settings. Shared by both trainers.
  */
 import { Icon } from "~/components/brand/icon";
-import {
-  SettingsIcon,
-  PlayIcon,
-} from "~/components/brand/icons";
+import { SettingsIcon, PlayIcon } from "~/components/brand/icons";
 
 import type { SignCounts } from "~/lib/pelican-progress";
 import { ROUND_SIZE, type RunScope } from "~/lib/trainer-rounds";
@@ -50,7 +47,7 @@ export function TrainerReadyPanel({
   const started = counts.known + counts.learning > 0;
 
   return (
-    <div className="grid gap-3 border border-t-0 border-line bg-surface p-4 rounded-lg">
+    <div className="grid gap-3 rounded-lg border border-t-0 border-line bg-surface p-4">
       <Button
         variant="rush"
         size="lg"
@@ -90,7 +87,7 @@ export function TrainerReadyPanel({
         <div className="min-w-0 flex-1">
           {selfGrading && (
             <>
-              <p className="m-0 mb-1.5 font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
+              <p className="m-0 mb-1.5 font-sans text-[10.5px] font-medium tracking-wider text-ink-3 uppercase">
                 {started
                   ? `${counts.known} known · ${counts.learning} learning · ${counts.due} due`
                   : "Weakest signs come first"}
@@ -111,10 +108,7 @@ export function TrainerReadyPanel({
           onClick={onSettings}
           aria-label="Settings"
         >
-          <Icon
-            icon={SettingsIcon}
-            size={14}
-          />
+          <Icon icon={SettingsIcon} size={14} />
           Settings
         </Button>
       </div>

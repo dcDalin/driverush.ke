@@ -62,7 +62,7 @@ export function BoardCarPicks({
           data-pick={car.id}
           onClick={() => onPick(car.id)}
           style={{ visibility: "hidden" }}
-          className="pointer-events-auto absolute left-0 top-0 h-11 w-8"
+          className="pointer-events-auto absolute top-0 left-0 h-11 w-8"
         />
       ))}
       {cars.map((car) => (
@@ -73,9 +73,9 @@ export function BoardCarPicks({
           onClick={() => onPick(car.id)}
           aria-label={`Drive the lane ${car.lane} car: ${car.option.label}`}
           style={{ visibility: "hidden" }}
-          className="pointer-events-auto absolute left-0 top-0 flex flex-col items-center pb-0.5 outline-none"
+          className="pointer-events-auto absolute top-0 left-0 flex flex-col items-center pb-0.5 outline-none"
         >
-          <span className="rounded-md border-2 border-[#17181b] bg-[#f6c416] px-1.5 py-0.5 font-mono text-[11px] font-bold leading-none text-[#17181b]">
+          <span className="rounded-md border-2 border-[#17181b] bg-[#f6c416] px-1.5 py-0.5 font-mono text-[11px] leading-none font-bold text-[#17181b]">
             {car.lane}
           </span>
           <span

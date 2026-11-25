@@ -59,7 +59,7 @@ export function BoardThumb({
         className="absolute inset-0 size-full object-cover object-[50%_78%] transition-transform duration-300 group-hover:scale-[1.03] group-focus-visible:scale-[1.03] motion-reduce:transition-none"
       />
       {line && (
-        <span className="absolute left-3 top-3 rounded-soft bg-kenya-gold px-2.5 py-1.5 font-display text-[clamp(12px,3.2vw,16px)] font-extrabold uppercase leading-none tracking-tight text-kenya-gold-foreground">
+        <span className="absolute top-3 left-3 rounded-soft bg-kenya-gold px-2.5 py-1.5 font-display text-[clamp(12px,3.2vw,16px)] leading-none font-extrabold tracking-tight text-kenya-gold-foreground uppercase">
           {line}
         </span>
       )}

@@ -121,9 +121,9 @@ export default function BoardNetworkTool() {
     const node = net.nodes.get(id);
     return Boolean(
       node &&
-        parkedCars().some(
-          (spot) => Math.hypot(spot.x - node.x, spot.z - node.z) < 1.5,
-        ),
+      parkedCars().some(
+        (spot) => Math.hypot(spot.x - node.x, spot.z - node.z) < 1.5,
+      ),
     );
   };
   const starts = net.places.filter((p) => p.starts);
@@ -268,7 +268,7 @@ export default function BoardNetworkTool() {
     <div>
       <header className="border-b border-line pb-5">
         <span className="eyebrow text-ink">Model Town Board · checking</span>
-        <h1 className="m-0 mt-3 font-display text-[clamp(28px,4vw,44px)] font-semibold leading-[0.95] tracking-tighter">
+        <h1 className="m-0 mt-3 font-display text-[clamp(28px,4vw,44px)] leading-[0.95] font-semibold tracking-tighter">
           Lane network
         </h1>
         <p className="mt-3 max-w-3xl text-[14.5px] leading-relaxed text-ink-2">
@@ -281,14 +281,14 @@ export default function BoardNetworkTool() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div
-          className="border border-line bg-[#101114] [&>svg]:block [&>svg]:h-auto [&>svg]:max-h-[88vh] [&>svg]:w-full rounded-lg"
+          className="rounded-lg border border-line bg-[#101114] [&>svg]:block [&>svg]:h-auto [&>svg]:max-h-[88vh] [&>svg]:w-full"
           data-testid="board-network"
           dangerouslySetInnerHTML={{ __html: svg }}
         />
 
         <div className="flex flex-col gap-6">
           <section
-            className="border border-line bg-surface p-4 rounded-lg"
+            className="rounded-lg border border-line bg-surface p-4"
             data-testid="blocked-roads"
           >
             <h2 className="m-0 font-display text-[18px] font-bold tracking-tight">
@@ -321,11 +321,11 @@ export default function BoardNetworkTool() {
             )}
           </section>
 
-          <section className="border border-line bg-surface p-4 rounded-lg">
+          <section className="rounded-lg border border-line bg-surface p-4">
             <h2 className="m-0 font-display text-[18px] font-bold tracking-tight">
               Try a route
             </h2>
-            <label className="mt-3 block font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+            <label className="mt-3 block font-mono text-[10.5px] tracking-widest text-ink-3 uppercase">
               From
               <select
                 className={cn(selectClass, "mt-1")}
@@ -341,7 +341,7 @@ export default function BoardNetworkTool() {
                 ))}
               </select>
             </label>
-            <label className="mt-3 block font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+            <label className="mt-3 block font-mono text-[10.5px] tracking-widest text-ink-3 uppercase">
               To
               <select
                 className={cn(selectClass, "mt-1")}
@@ -364,7 +364,7 @@ export default function BoardNetworkTool() {
                   type="button"
                   onClick={() => setSeen(side)}
                   className={cn(
-                    "border border-line px-3 py-1.5 font-mono text-[11px] uppercase tracking-widest rounded-lg",
+                    "rounded-lg border border-line px-3 py-1.5 font-mono text-[11px] tracking-widest uppercase",
                     seen === side ? "bg-ink text-paper" : "bg-surface text-ink",
                   )}
                 >
@@ -410,15 +410,15 @@ export default function BoardNetworkTool() {
                           active === i && "bg-paper-3",
                         )}
                       >
-                        <span className="block text-[14px] font-bold leading-snug text-ink">
+                        <span className="block text-[14px] leading-snug font-bold text-ink">
                           {i + 1}. {step.title}
                           {step.gear === "reverse" && (
-                            <span className="ml-2 font-mono text-[10px] uppercase tracking-widest text-rush">
+                            <span className="ml-2 font-mono text-[10px] tracking-widest text-rush uppercase">
                               Reverse
                             </span>
                           )}
                           {!step.confirmed && (
-                            <span className="ml-2 font-mono text-[10px] uppercase tracking-widest text-ink-3">
+                            <span className="ml-2 font-mono text-[10px] tracking-widest text-ink-3 uppercase">
                               To confirm
                             </span>
                           )}
@@ -435,7 +435,7 @@ export default function BoardNetworkTool() {
           </section>
 
           {!plan && (
-            <section className="border border-line bg-surface p-4 rounded-lg">
+            <section className="rounded-lg border border-line bg-surface p-4">
               <h2 className="m-0 font-display text-[18px] font-bold tracking-tight">
                 Show
               </h2>
@@ -449,7 +449,10 @@ export default function BoardNetworkTool() {
                       type="checkbox"
                       checked={shown[layer.id]}
                       onChange={(e) =>
-                        setShown((s) => ({ ...s, [layer.id]: e.target.checked }))
+                        setShown((s) => ({
+                          ...s,
+                          [layer.id]: e.target.checked,
+                        }))
                       }
                     />
                     <span
@@ -463,7 +466,7 @@ export default function BoardNetworkTool() {
             </section>
           )}
 
-          <section className="border border-line bg-surface p-4 rounded-lg">
+          <section className="rounded-lg border border-line bg-surface p-4">
             <h2 className="m-0 font-display text-[18px] font-bold tracking-tight">
               Still to confirm with a driving school
             </h2>

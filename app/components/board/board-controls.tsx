@@ -361,7 +361,7 @@ export function BoardControls({
       {((hint && !quietHint) || note) && (
         <p
           key={hint ? (nudging ? "nudge" : "hint") : "note"}
-          className="dr-rise m-0 max-w-[17rem] rounded-md bg-[#101114]/85 px-3 py-1.5 text-center text-[12.5px] font-semibold leading-snug text-white"
+          className="dr-rise m-0 max-w-[17rem] rounded-md bg-[#101114]/85 px-3 py-1.5 text-center text-[12.5px] leading-snug font-semibold text-white"
         >
           {hint && !quietHint ? (
             nudging ? (
@@ -384,7 +384,7 @@ export function BoardControls({
       <p
         ref={gear}
         role="status"
-        className="m-0 rounded-md border-2 border-[#17181b] bg-[#f6c416] px-3 py-1 text-center font-mono text-[11px] font-bold uppercase tracking-widest text-[#17181b] opacity-0 transition-opacity duration-150"
+        className="m-0 rounded-md border-2 border-[#17181b] bg-[#f6c416] px-3 py-1 text-center font-mono text-[11px] font-bold tracking-widest text-[#17181b] uppercase opacity-0 transition-opacity duration-150"
       />
 
       {/* Anywhere in this band, a thumb gets a stick right under it. On a

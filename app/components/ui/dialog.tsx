@@ -1,9 +1,7 @@
 import * as React from "react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import { Icon } from "~/components/brand/icon";
-import {
-  CloseIcon,
-} from "~/components/brand/icons";
+import { CloseIcon } from "~/components/brand/icons";
 
 import { cn } from "~/lib/utils";
 
@@ -50,13 +48,13 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "fixed left-1/2 top-1/2 z-50 flex w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col",
+          "fixed top-1/2 left-1/2 z-50 flex w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col",
           "max-h-[calc(100dvh-2rem)] overflow-hidden",
-          "border border-line bg-surface text-foreground shadow-xl rounded-2xl",
-          "data-[state=open]:animate-in data-[state=closed]:animate-out",
+          "rounded-2xl border border-line bg-surface text-foreground shadow-xl",
+          "data-[state=closed]:animate-out data-[state=open]:animate-in",
           "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
           "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-          "data-[state=open]:slide-in-from-top-1 data-[state=closed]:slide-out-to-top-1",
+          "data-[state=closed]:slide-out-to-top-1 data-[state=open]:slide-in-from-top-1",
           className,
         )}
         {...props}
@@ -98,10 +96,7 @@ function DialogTitleBar({
             "focus-visible:ring-4 focus-visible:ring-rush/15",
           )}
         >
-          <Icon
-            icon={CloseIcon}
-            size={13}
-          />
+          <Icon icon={CloseIcon} size={13} />
         </DialogPrimitive.Close>
       )}
     </div>

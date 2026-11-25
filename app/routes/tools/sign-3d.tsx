@@ -198,7 +198,7 @@ export default function Sign3DTool({ loaderData }: Route.ComponentProps) {
     <div>
       <header className="border-b border-line pb-6">
         <span className="eyebrow text-ink">Internal · authoring</span>
-        <h1 className="m-0 mt-3 font-display text-[clamp(32px,5vw,52px)] font-semibold leading-[0.95] tracking-tighter">
+        <h1 className="m-0 mt-3 font-display text-[clamp(32px,5vw,52px)] leading-[0.95] font-semibold tracking-tighter">
           3D sign <span className="text-rush">mapper</span>
         </h1>
         <p className="mt-4 max-w-2xl font-serif text-[clamp(16px,2vw,20px)] leading-tight text-ink-2">
@@ -210,17 +210,14 @@ export default function Sign3DTool({ loaderData }: Route.ComponentProps) {
       </header>
 
       {/* save / export bar */}
-      <div className="mt-6 flex flex-wrap items-center gap-3 border border-line bg-surface p-3 shadow-stamp rounded-lg">
+      <div className="mt-6 flex flex-wrap items-center gap-3 rounded-lg border border-line bg-surface p-3 shadow-stamp">
         <Button
           variant="ink"
           size="sm"
           disabled={!canSave || !dirty || saving}
           onClick={saveToProject}
         >
-          <Icon
-            icon={SaveIcon}
-            size={14}
-          />
+          <Icon icon={SaveIcon} size={14} />
           {saving ? "Saving…" : "Save to project"}
         </Button>
         <Button variant="paper" size="sm" onClick={copyJson}>
@@ -228,20 +225,17 @@ export default function Sign3DTool({ loaderData }: Route.ComponentProps) {
           {copied ? "Copied!" : "Copy JSON"}
         </Button>
         <Button variant="paper" size="sm" onClick={downloadJson}>
-          <Icon
-            icon={DownloadIcon}
-            size={14}
-          />
+          <Icon icon={DownloadIcon} size={14} />
           Download
         </Button>
-        <span className="ml-auto font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+        <span className="ml-auto font-mono text-[10.5px] tracking-widest text-ink-3 uppercase">
           {signs.length} mapped
           {unmapped.length > 0 ? ` · ${unmapped.length} unmapped` : ""}
           {dirty ? " · unsaved" : ""}
         </span>
       </div>
       {!canSave && (
-        <p className="mt-2 font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+        <p className="mt-2 font-mono text-[10.5px] tracking-widest text-ink-3 uppercase">
           Save-to-project is dev-only — use Copy / Download in production.
         </p>
       )}
@@ -249,8 +243,8 @@ export default function Sign3DTool({ loaderData }: Route.ComponentProps) {
       <div className="mt-6 grid gap-6 lg:grid-cols-[300px_1fr]">
         {/* ---- sign list ---- */}
         <aside className="space-y-4">
-          <div className="border border-line bg-surface rounded-lg">
-            <div className="border-b border-line bg-paper-3 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-ink-2">
+          <div className="rounded-lg border border-line bg-surface">
+            <div className="border-b border-line bg-paper-3 px-3 py-2 font-mono text-[10px] tracking-widest text-ink-2 uppercase">
               Signs · {signs.length}
             </div>
             <ul className="m-0 max-h-[60vh] list-none overflow-auto p-0">
@@ -267,10 +261,10 @@ export default function Sign3DTool({ loaderData }: Route.ComponentProps) {
                     onClick={() => setSelectedId(s.id)}
                     className="min-w-0 flex-1 text-left outline-none"
                   >
-                    <span className="block truncate font-display text-[12px] font-bold uppercase tracking-wide text-ink">
+                    <span className="block truncate font-display text-[12px] font-bold tracking-wide text-ink uppercase">
                       {s.name || "(unnamed)"}
                     </span>
-                    <span className="block truncate font-mono text-[9.5px] uppercase tracking-widest text-ink-3">
+                    <span className="block truncate font-mono text-[9.5px] tracking-widest text-ink-3 uppercase">
                       {s.code ?? "—"} · {fileLabel(s.modelSrc)}
                     </span>
                   </button>
@@ -281,10 +275,7 @@ export default function Sign3DTool({ loaderData }: Route.ComponentProps) {
                     onClick={() => moveSign(s.id, -1)}
                     className="text-ink-3 outline-none hover:text-ink disabled:opacity-30"
                   >
-                    <Icon
-                      icon={ChevronUpIcon}
-                      size={14}
-                    />
+                    <Icon icon={ChevronUpIcon} size={14} />
                   </button>
                   <button
                     type="button"
@@ -293,10 +284,7 @@ export default function Sign3DTool({ loaderData }: Route.ComponentProps) {
                     onClick={() => moveSign(s.id, 1)}
                     className="text-ink-3 outline-none hover:text-ink disabled:opacity-30"
                   >
-                    <Icon
-                      icon={ChevronDownIcon}
-                      size={14}
-                    />
+                    <Icon icon={ChevronDownIcon} size={14} />
                   </button>
                 </li>
               ))}
@@ -304,8 +292,8 @@ export default function Sign3DTool({ loaderData }: Route.ComponentProps) {
           </div>
 
           {unmapped.length > 0 && (
-            <div className="border border-line bg-surface rounded-lg">
-              <div className="border-b border-line bg-paper-3 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-ink-2">
+            <div className="rounded-lg border border-line bg-surface">
+              <div className="border-b border-line bg-paper-3 px-3 py-2 font-mono text-[10px] tracking-widest text-ink-2 uppercase">
                 Unmapped GLBs · {unmapped.length}
               </div>
               <ul className="m-0 list-none p-0">
@@ -314,7 +302,7 @@ export default function Sign3DTool({ loaderData }: Route.ComponentProps) {
                     key={m}
                     className="flex items-center gap-2 border-b border-ink/40 px-2 py-1.5"
                   >
-                    <span className="min-w-0 flex-1 truncate font-mono text-[10px] uppercase tracking-widest text-ink-3">
+                    <span className="min-w-0 flex-1 truncate font-mono text-[10px] tracking-widest text-ink-3 uppercase">
                       {fileLabel(m)}
                     </span>
                     <Button
@@ -322,10 +310,7 @@ export default function Sign3DTool({ loaderData }: Route.ComponentProps) {
                       size="sm"
                       onClick={() => addUnmapped(m)}
                     >
-                      <Icon
-                        icon={PlusIcon}
-                        size={13}
-                      />
+                      <Icon icon={PlusIcon} size={13} />
                       Add
                     </Button>
                   </li>
@@ -338,14 +323,14 @@ export default function Sign3DTool({ loaderData }: Route.ComponentProps) {
         {/* ---- editor ---- */}
         <section>
           {!selected ? (
-            <div className="flex min-h-72 items-center justify-center border border-line bg-paper-3 font-mono text-[11px] uppercase tracking-widest text-ink-3 rounded-lg">
+            <div className="flex min-h-72 items-center justify-center rounded-lg border border-line bg-paper-3 font-mono text-[11px] tracking-widest text-ink-3 uppercase">
               Select a sign to edit
             </div>
           ) : (
             <div className="grid gap-5 md:grid-cols-2">
               {/* preview + framing */}
               <div className="space-y-3">
-                <div className="relative aspect-square w-full overflow-hidden border border-line bg-ink rounded-lg">
+                <div className="relative aspect-square w-full overflow-hidden rounded-lg border border-line bg-ink">
                   <Sign3DViewer
                     modelSrc={selected.modelSrc}
                     yaw={selected.yaw}
@@ -390,10 +375,7 @@ export default function Sign3DTool({ loaderData }: Route.ComponentProps) {
                   size="sm"
                   onClick={() => removeSign(selected.id)}
                 >
-                  <Icon
-                    icon={DeleteIcon}
-                    size={14}
-                  />
+                  <Icon icon={DeleteIcon} size={14} />
                   Remove from board
                 </Button>
               </div>
@@ -449,7 +431,7 @@ export default function Sign3DTool({ loaderData }: Route.ComponentProps) {
                     placeholder="What the driver should do…"
                   />
                 </div>
-                <p className="font-mono text-[10px] uppercase tracking-widest text-ink-3">
+                <p className="font-mono text-[10px] tracking-widest text-ink-3 uppercase">
                   {fileLabel(selected.modelSrc)}
                 </p>
               </div>

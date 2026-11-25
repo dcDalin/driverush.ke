@@ -1,8 +1,5 @@
 import { Icon } from "~/components/brand/icon";
-import {
-  MoonIcon,
-  SunIcon,
-} from "~/components/brand/icons";
+import { MoonIcon, SunIcon } from "~/components/brand/icons";
 
 import { cn } from "~/lib/utils";
 import { toggleTheme } from "~/lib/theme";
@@ -28,16 +25,8 @@ function ThemeToggle({ className }: { className?: string }) {
       onClick={() => toggleTheme()}
       className={cn("w-9 px-0", className)}
     >
-      <Icon
-        icon={SunIcon}
-        size={16}
-        className="dark:hidden"
-      />
-      <Icon
-        icon={MoonIcon}
-        size={16}
-        className="hidden dark:block"
-      />
+      <Icon icon={SunIcon} size={16} className="dark:hidden" />
+      <Icon icon={MoonIcon} size={16} className="hidden dark:block" />
     </Button>
   );
 }

@@ -142,20 +142,17 @@ export function SignCheck({
             onNext={next}
           />
         ) : (
-          <div className="flex flex-wrap items-center justify-between gap-4 border border-line bg-surface p-5 shadow-stamp sm:p-7 rounded-lg">
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-line bg-surface p-5 shadow-stamp sm:p-7">
             <div>
-              <p className="m-0 font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
+              <p className="m-0 font-sans text-[11px] font-medium tracking-wider text-ink-3 uppercase">
                 Quick check
               </p>
-              <h2 className="m-0 mt-1.5 font-display text-[clamp(20px,3.2vw,30px)] font-semibold leading-none tracking-tight text-ink">
+              <h2 className="m-0 mt-1.5 font-display text-[clamp(20px,3.2vw,30px)] leading-none font-semibold tracking-tight text-ink">
                 {ROUND_SIZE} signs. How many can you name?
               </h2>
             </div>
             <Button variant="ink" onClick={start}>
-              <Icon
-                icon={PlayRoundIcon}
-                size={16}
-              />
+              <Icon icon={PlayRoundIcon} size={16} />
               Test yourself
             </Button>
           </div>
@@ -183,16 +180,16 @@ function Playing({
   const answered = chosen !== null;
   const correct = chosen === question.sign.id;
   return (
-    <div className="grid items-start gap-5 border border-line bg-surface p-5 shadow-stamp sm:grid-cols-[220px_1fr] sm:gap-6 sm:p-7 rounded-lg">
+    <div className="grid items-start gap-5 rounded-lg border border-line bg-surface p-5 shadow-stamp sm:grid-cols-[220px_1fr] sm:gap-6 sm:p-7">
       <div
         key={question.sign.id}
-        className="dr-pop mx-auto aspect-square w-40 border border-line bg-white sm:w-full rounded-lg"
+        className="dr-pop mx-auto aspect-square w-40 rounded-lg border border-line bg-white sm:w-full"
         style={regionSpriteStyle(signCrop(question.sign), CHART_SRC, CROP_PAD)}
         role="img"
         aria-label="Kenyan road sign"
       />
       <div className="grid gap-3">
-        <p className="m-0 font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
+        <p className="m-0 font-sans text-[11px] font-medium tracking-wider text-ink-3 uppercase">
           Sign {position + 1} of {total} · What is this sign?
         </p>
         <ul className="m-0 grid list-none gap-2 p-0">
@@ -206,7 +203,7 @@ function Playing({
                   onClick={() => onPick(option)}
                   disabled={answered}
                   className={cn(
-                    "w-full border border-line px-3 py-2.5 text-left font-display text-[14px] font-bold tracking-tight outline-none transition-colors rounded-lg",
+                    "w-full rounded-lg border border-line px-3 py-2.5 text-left font-display text-[14px] font-bold tracking-tight transition-colors outline-none",
                     !answered &&
                       "bg-surface text-ink hover:bg-ink hover:text-paper focus-visible:bg-ink focus-visible:text-paper",
                     answered &&
@@ -231,7 +228,7 @@ function Playing({
         </ul>
         {answered && (
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line-soft pt-3">
-            <p className="m-0 inline-flex items-center gap-2 font-sans text-[11px] uppercase tracking-wider font-medium">
+            <p className="m-0 inline-flex items-center gap-2 font-sans text-[11px] font-medium tracking-wider uppercase">
               {correct ? (
                 <>
                   <Icon
@@ -247,10 +244,7 @@ function Playing({
             </p>
             <Button variant="ink" size="sm" onClick={onNext}>
               {position + 1 >= total ? "See your score" : "Next sign"}
-              <Icon
-                icon={ArrowRightIcon}
-                size={14}
-              />
+              <Icon icon={ArrowRightIcon} size={14} />
             </Button>
           </div>
         )}
@@ -270,12 +264,12 @@ function Result({
 }) {
   const score = total - missed.length;
   return (
-    <div className="dr-pop grid gap-4 border border-line bg-surface p-5 shadow-stamp sm:p-7 rounded-lg">
+    <div className="dr-pop grid gap-4 rounded-lg border border-line bg-surface p-5 shadow-stamp sm:p-7">
       <div>
-        <p className="m-0 font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
+        <p className="m-0 font-sans text-[11px] font-medium tracking-wider text-ink-3 uppercase">
           Your score
         </p>
-        <h2 className="m-0 mt-1.5 font-display text-[clamp(26px,4.4vw,42px)] font-semibold leading-none tracking-tight text-ink">
+        <h2 className="m-0 mt-1.5 font-display text-[clamp(26px,4.4vw,42px)] leading-none font-semibold tracking-tight text-ink">
           {score} of {total} right
         </h2>
       </div>
@@ -292,7 +286,7 @@ function Result({
                 key={sign.id}
                 title={sign.name}
                 aria-label={sign.name}
-                className="dr-pop size-14 border border-line bg-white sm:size-16 rounded-lg"
+                className="dr-pop size-14 rounded-lg border border-line bg-white sm:size-16"
                 style={{
                   ...regionSpriteStyle(signCrop(sign), CHART_SRC, CROP_PAD),
                   ...stagger(index + 2),
@@ -311,10 +305,7 @@ function Result({
         <Button variant="rush" asChild>
           <Link to={drillLink("/road-signs/pelican", missed)}>
             Train on the chart
-            <Icon
-              icon={ArrowRightIcon}
-              size={14}
-            />
+            <Icon icon={ArrowRightIcon} size={14} />
           </Link>
         </Button>
         <Button variant="ink" asChild>

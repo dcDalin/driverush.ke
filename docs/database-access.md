@@ -49,7 +49,7 @@ part if the link ends early.
 | `my_entitlement()`                                                                                                                                    | the learner                       |
 | `learner_accept_school_link`, `learner_decline_school_link`                                                                                           | the learner the link is for       |
 | `school_add_student`, `school_release_student`, `school_cancel_student_invite`, `school_move_student_branch`, `school_student_progress`               | owner, admin of the branch, staff |
-| `school_members_list` | owner, admins, staff |
+| `school_members_list`                                                                                                                                 | owner, admins, staff              |
 | `school_create_branch`, `school_update_branch`, `school_add_admin`, `school_set_admin_branches`, `school_remove_admin`, `school_cancel_member_invite` | owner, staff                      |
 | `admin_create_school`, `admin_set_school_status`, `admin_transfer_school_owner`                                                                       | DriveRush su or admin             |
 | `grant_platform_role`, `revoke_platform_role`                                                                                                         | DriveRush su                      |
@@ -77,11 +77,11 @@ Errors: `42501` refused (wrong caller), `P0001` a business rule (`admin_limit`,
 
 ## Where people use it
 
-| Page | Who | What |
-| --- | --- | --- |
-| Account menu (top bar) | any signed-in learner | their school until when; schools waiting for them (Join, No thanks); sign out |
-| `/school`, `/school/:schoolId` | school owner, school admins, staff | students by branch with progress; team and branches (owner, staff) |
-| `/console` | DriveRush su and admin (password session) | schools, owners, status; staff roles (su) |
+| Page                           | Who                                       | What                                                                          |
+| ------------------------------ | ----------------------------------------- | ----------------------------------------------------------------------------- |
+| Account menu (top bar)         | any signed-in learner                     | their school until when; schools waiting for them (Join, No thanks); sign out |
+| `/school`, `/school/:schoolId` | school owner, school admins, staff        | students by branch with progress; team and branches (owner, staff)            |
+| `/console`                     | DriveRush su and admin (password session) | schools, owners, status; staff roles (su)                                     |
 
 Progress rows (`learner_progress.data`) hold `{ "json": <the store's saved
 value> }`, the localStorage value of that store. The app syncs them

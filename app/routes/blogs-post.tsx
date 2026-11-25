@@ -141,7 +141,7 @@ function PostMissing() {
     <main className="min-h-screen bg-paper text-ink">
       <Rail />
       <div className="mx-auto w-full max-w-2xl px-5 py-24 text-center sm:px-9">
-        <p className="m-0 mb-3 font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
+        <p className="m-0 mb-3 font-sans text-[11px] font-medium tracking-wider text-ink-3 uppercase">
           404 · post not found
         </p>
         <h1 className="m-0 mb-5 font-display text-4xl font-semibold tracking-tight text-ink sm:text-5xl">
