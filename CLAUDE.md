@@ -31,3 +31,16 @@
 - Pages render as a guest on the server; the session is read in the browser.
   A build without the `VITE_SUPABASE_*` settings has accounts off.
 - Local codes land in Mailpit at http://127.0.0.1:54724.
+
+## Progress, entitlements, schools
+
+- Signed in: progress stores sync to `learner_progress` (`app/lib/progress/`).
+  Guests' progress lasts one visit (owner decision): the head script in
+  `guest-visit.ts` clears it on a new visit; `GUEST_PROGRESS_KEPT` reverses it.
+- `useEntitlement()` / `liveryRule()` (`app/lib/auth/entitlement.ts`): school
+  livery, plain cars (paid) or the usual turns. `hasFullAccess()` is the one
+  gate for locked content; nothing is locked yet.
+- `/school/:schoolId` (owners, branch admins) and `/console` (staff) call the
+  database functions as the signed-in person (`app/lib/school/server.ts`).
+  The service worker and robots.txt leave `/school`, `/console`, `/auth` alone.
+- Payments: not built. Provider undecided; tables are provider-neutral.
