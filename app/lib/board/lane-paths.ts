@@ -6,16 +6,16 @@
  */
 import { RESERVE, U_TURN_GAPS } from "./full-board";
 import {
-  ARMS,
-  TAU,
   armForTurn,
+  type ArmId,
+  ARMS,
   bearingOf,
   dirOf,
   laneOffset,
   lanePoint,
   ringRadius,
   rulesFor,
-  type ArmId,
+  TAU,
   type Turn,
   type Vec,
 } from "./geometry";

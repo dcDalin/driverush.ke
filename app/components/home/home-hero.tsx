@@ -5,19 +5,18 @@
  */
 import { Link } from "react-router";
 
-import { COURSE_LEVELS } from "~/lib/board/curriculum";
-import { stagger } from "~/lib/motion";
-import { today, useTestRecord } from "~/lib/test-date";
-import { planLine, testPlan } from "~/lib/test-plan";
-
+import { BoardThumb } from "~/components/board/board-thumb";
 import { CourseLabel } from "~/components/board/course-label";
 import { DailyDriveRow } from "~/components/board/daily-drive-row";
 import { FreeDriveRow } from "~/components/board/free-drive-row";
 import { useCourseStart } from "~/components/board/use-course-start";
-import { BoardThumb } from "~/components/board/board-thumb";
 import { Icon } from "~/components/brand/icon";
 import { PlayIcon } from "~/components/brand/icons";
 import { Button } from "~/components/ui/button";
+import { COURSE_LEVELS } from "~/lib/board/curriculum";
+import { stagger } from "~/lib/motion";
+import { today, useTestRecord } from "~/lib/test-date";
+import { planLine, testPlan } from "~/lib/test-plan";
 
 export function HomeHero() {
   const { href, label, detail, done, ready, saved } = useCourseStart();

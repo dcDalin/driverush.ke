@@ -9,13 +9,13 @@ import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { CAR } from "./car";
 import type { TurnChallenge } from "./challenges";
 import {
-  ARMS,
   armForTurn,
+  type ArmId,
+  ARMS,
   bearingOf,
+  type LaneRule,
   laneRules,
   locate,
-  type ArmId,
-  type LaneRule,
   type Turn,
   type Vec,
 } from "./geometry";

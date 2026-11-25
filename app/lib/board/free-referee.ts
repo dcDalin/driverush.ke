@@ -13,7 +13,7 @@
  */
 import type { CarState } from "./car";
 import { BOUNDS, ROADS, startOnBoard } from "./full-board";
-import { ARMS, lanePoint, laneBearing, locate, wrapPi } from "./geometry";
+import { ARMS, laneBearing, lanePoint, locate, wrapPi } from "./geometry";
 import type { Contact } from "./physics";
 import type { Fault, RefState } from "./referee";
 import { roadStep } from "./road-rules";

@@ -5,7 +5,8 @@
  * A wheel that fails any of these wobbles, floats or sticks out on screen.
  */
 import path from "node:path";
-import { NodeIO, type Node } from "@gltf-transform/core";
+
+import { type Node, NodeIO } from "@gltf-transform/core";
 import { ALL_EXTENSIONS } from "@gltf-transform/extensions";
 import { MeshoptDecoder } from "meshoptimizer";
 import { describe, expect, it } from "vitest";

@@ -6,16 +6,15 @@
  */
 import { Link } from "react-router";
 
+import { Accordion, AccordionItem } from "~/components/brand/accordion";
+import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
 import { regionSpriteStyle, SIGN_CATEGORIES } from "~/lib/image-focus";
 import { isDue, MASTERED_BOX, type SignProgress } from "~/lib/pelican-progress";
 import { CHART_SRC, SIGN_PAGES, signPagePath } from "~/lib/road-sign-pages";
 import { signClassPage } from "~/lib/sign-class-pages";
 import { trainerHref } from "~/lib/trainer-rounds";
 import { useSignProgress } from "~/lib/use-sign-progress";
-
-import { Badge } from "~/components/ui/badge";
-import { Button } from "~/components/ui/button";
-import { Accordion, AccordionItem } from "~/components/brand/accordion";
 
 const THUMB_PAD = 0;
 

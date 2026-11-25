@@ -16,13 +16,12 @@
 import * as React from "react";
 import { useSearchParams } from "react-router";
 
-import type { Route } from "./+types/car-thumb";
-
+import type { CarView } from "~/components/board/sponsor-car-canvas";
 import { BOARD_CARS, type BoardCarId } from "~/lib/board/cars";
 import { CAR_COLORS } from "~/lib/board/full-board";
 import { sponsorById } from "~/lib/board/sponsors";
 
-import type { CarView } from "~/components/board/sponsor-car-canvas";
+import type { Route } from "./+types/car-thumb";
 
 const SponsorCarCanvas = React.lazy(
   () => import("~/components/board/sponsor-car-canvas"),

@@ -6,7 +6,7 @@
  */
 import { blockById } from "./blocks";
 import type { Level, SlideRef } from "./curriculum";
-import { BOARD_FEATURES, featurePin, type BoardFeature } from "./features";
+import { BOARD_FEATURES, type BoardFeature, featurePin } from "./features";
 import type { Box } from "./full-board";
 import { ROUTE_RULES } from "./lessons";
 

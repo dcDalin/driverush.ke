@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useLocation, useMatches } from "react-router";
-import { gaEvent, gaPageView, type GaLanding } from "./ga";
+
+import { gaEvent, type GaLanding, gaPageView } from "./ga";
 import {
   cleanPath,
   INTERNAL_PATH_RE,
@@ -100,7 +101,6 @@ function emit(name: string, params?: Record<string, unknown>, ga?: GaMapping) {
   // In DEV, mirror the event to the console so we can verify dispatch
   // without digging through the network tab.
   if (import.meta.env.DEV) {
-    // eslint-disable-next-line no-console
     console.log(`[analytics] ${name}`, params ?? {});
   }
   // PostHog is initialised before hydration, so this is normally a straight

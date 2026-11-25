@@ -1094,8 +1094,6 @@ export function goalBox(goal: NonNullable<FullBoardOptions["goal"]>): Box {
 
 export function fullBoardSvg(options: FullBoardOptions = {}): string {
   const { x0, x1, z0, z1 } = BOUNDS;
-  const w = x1 - x0;
-  const h = z1 - z0;
   const side = options.seen ?? "south";
   const sideways = side === "east" || side === "west";
   const v = options.view ?? BOUNDS;

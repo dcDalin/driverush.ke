@@ -17,8 +17,8 @@ import {
   LEGACY_KEY,
   PROGRESS_KEYS,
   PROGRESS_STORES,
-  SYNCED_USER_KEY,
   type ProgressStore,
+  SYNCED_USER_KEY,
 } from "./keys";
 import { fromRow, planSync, toRow } from "./sync-plan";
 

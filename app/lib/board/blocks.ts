@@ -19,19 +19,19 @@ import { CAR } from "./car";
 import { ROADS, U_TURN_GAPS } from "./full-board";
 import {
   ARMS,
-  LANE_W,
-  RING_LANES,
-  SOLID_ZONE,
   bearingOf,
   dirOf,
+  LANE_W,
   laneBearing,
   lanePoint,
   leftOf,
+  RING_LANES,
   ringRadius,
-  wrapPi,
+  SOLID_ZONE,
   type Vec,
+  wrapPi,
 } from "./geometry";
-import { EXIT_FROM, network, type NetEdge } from "./network";
+import { EXIT_FROM, type NetEdge, network } from "./network";
 
 export type BlockCar = { x: number; z: number; heading: number };
 

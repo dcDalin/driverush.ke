@@ -1,13 +1,13 @@
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { useBoardStore } from "../board-store";
-import { COURSE_LEVELS } from "./curriculum";
 import type { CarState } from "./car";
-import { bearingOf, locate, wrapPi, type ArmId } from "./geometry";
+import type { TurnChallenge } from "./challenges";
+import { COURSE_LEVELS } from "./curriculum";
+import { type ArmId, bearingOf, locate, wrapPi } from "./geometry";
+import { queueCars, queueGoal } from "./lane-queue";
 import { network } from "./network";
 import { createRails, rails } from "./rails";
-import { queueCars, queueGoal } from "./lane-queue";
-import type { TurnChallenge } from "./challenges";
 import {
   beginChallenge,
   car,

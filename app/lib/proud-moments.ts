@@ -9,10 +9,10 @@
  */
 import {
   COURSE_LEVELS,
-  UNITS,
-  levelDone,
   type CourseProgress,
   type Level,
+  levelDone,
+  UNITS,
 } from "./board/curriculum";
 import type { Milestone } from "./share";
 

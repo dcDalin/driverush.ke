@@ -19,8 +19,9 @@
 import * as React from "react";
 import { useSearchParams } from "react-router";
 
-import type { Route } from "./+types/og";
-
+import { BoardQuestionsPrint } from "~/components/board/board-questions-print";
+import { Sign3DViewer } from "~/components/brand/sign-3d-viewer";
+import { SignImage } from "~/components/brand/sign-image";
 import pelican from "~/data/road-signs-pelican.json";
 import {
   dirOf,
@@ -29,20 +30,18 @@ import {
   ringRadius,
 } from "~/lib/board/geometry";
 import type { Seat } from "~/lib/board/joystick";
-import { car as boardCar } from "~/lib/board/runtime";
 import { posterPath, posterSchool } from "~/lib/board/poster";
+import { car as boardCar } from "~/lib/board/runtime";
 import { cam, panBy } from "~/lib/board/stage";
 import { regionSpriteStyle } from "~/lib/image-focus";
-import { signCrop } from "~/lib/sign-crops";
 import { OG_CARDS, OG_HEIGHT, OG_WIDTH, type OgCardId } from "~/lib/og-cards";
+import { SIGN_IMAGE_SIZE, signPageBySlug } from "~/lib/road-sign-pages";
 import { SIGN_COUNT } from "~/lib/road-signs";
 import { SIGN_BRAND } from "~/lib/sign-credits";
+import { signCrop } from "~/lib/sign-crops";
 import { cn } from "~/lib/utils";
 
-import { BoardQuestionsPrint } from "~/components/board/board-questions-print";
-import { Sign3DViewer } from "~/components/brand/sign-3d-viewer";
-import { SignImage } from "~/components/brand/sign-image";
-import { SIGN_IMAGE_SIZE, signPageBySlug } from "~/lib/road-sign-pages";
+import type { Route } from "./+types/og";
 
 export function meta(_: Route.MetaArgs) {
   return [

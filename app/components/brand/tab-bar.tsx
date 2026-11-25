@@ -6,18 +6,17 @@
  */
 import { Link, useLocation } from "react-router";
 
-import { analytics } from "~/lib/analytics";
-import { SITE_TABS, activeTab, tabBarHidden } from "~/lib/nav";
-import { cn } from "~/lib/utils";
-
 import { Icon } from "~/components/brand/icon";
 import {
   BookIcon,
   HomeIcon,
+  type IconDef,
   RoadIcon,
   WarningIcon,
-  type IconDef,
 } from "~/components/brand/icons";
+import { analytics } from "~/lib/analytics";
+import { activeTab, SITE_TABS, tabBarHidden } from "~/lib/nav";
+import { cn } from "~/lib/utils";
 
 const ICONS: Record<(typeof SITE_TABS)[number]["id"], IconDef> = {
   home: HomeIcon,

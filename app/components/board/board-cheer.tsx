@@ -6,22 +6,21 @@
  */
 import * as React from "react";
 
+import { SponsorReadyCard } from "~/components/board/sponsor-credit";
+import { Icon } from "~/components/brand/icon";
+import { CheckIcon } from "~/components/brand/icons";
 import {
   COURSE_LEVELS,
-  UNITS,
   doneCount,
+  type Level,
   levelDone,
   readiness,
   unitOf,
-  type Level,
+  UNITS,
 } from "~/lib/board/curriculum";
-import { useBoardStore } from "~/lib/board-store";
 import { useVisitSponsor } from "~/lib/board/sponsor-visit";
+import { useBoardStore } from "~/lib/board-store";
 import { cn } from "~/lib/utils";
-
-import { Icon } from "~/components/brand/icon";
-import { CheckIcon } from "~/components/brand/icons";
-import { SponsorReadyCard } from "~/components/board/sponsor-credit";
 
 // Only a learner who finishes the course ever downloads it.
 const Confetti = React.lazy(() =>

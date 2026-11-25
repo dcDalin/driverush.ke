@@ -7,28 +7,28 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { rulesBroken, useBoardStore } from "../board-store";
+import { sizeOf } from "./cars";
 import {
   BOARD_CHALLENGES,
   FREE_DRIVE,
-  hasParkedCars,
   type FreeChallenge,
+  hasParkedCars,
 } from "./challenges";
-import { sizeOf } from "./cars";
-import { createRef } from "./referee";
 import { createFree, freeRefStep, turnedRound } from "./free-referee";
 import {
   ARMS,
   bearingOf,
-  lanePoint,
   laneBearing,
+  lanePoint,
   locate,
   ringRadius,
-  wrapPi,
   type Vec,
+  wrapPi,
 } from "./geometry";
 import { lanePath } from "./lane-paths";
 import { challengeRoute, taskGoalBox } from "./lessons";
 import type { Fault } from "./referee";
+import { createRef } from "./referee";
 import {
   beginChallenge,
   car,

@@ -4,15 +4,14 @@
  * `/tools/og?print=board-questions` to `public/downloads/`, and the questions
  * page links the file. Same data as the page, so the two never disagree.
  */
+import { BoardPicture } from "~/components/board/board-picture";
+import { UNSURE_NOTE } from "~/components/board/board-playback";
 import {
   BOARD_QUESTIONS,
   BOARD_TOPICS,
   boardQuestionsIn,
 } from "~/data/board-questions";
 import { COURSE_LEVELS } from "~/lib/board/curriculum";
-
-import { BoardPicture } from "~/components/board/board-picture";
-import { UNSURE_NOTE } from "~/components/board/board-playback";
 
 const PAGE_URL = "driverush.ke/model-town-board/questions";
 

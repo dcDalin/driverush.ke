@@ -10,21 +10,19 @@
  * pages get a meaningful content update. Blog posts use their own frontmatter `date` so
  * the sitemap's `lastmod` for each post tracks the source.
  */
-import { absUrl } from "~/lib/site";
 import { getAllPosts } from "~/lib/blog";
 import {
   BOARD_CHECKED,
-  BOARD_LEVELS_PATH,
   BOARD_GUIDES,
+  BOARD_LEVELS_PATH,
   BOARD_PATH,
   BOARD_QUESTIONS_PDF,
 } from "~/lib/board-guides";
+import { DRIVING_SCHOOL_PAGES } from "~/lib/driving-school-pages";
 import {
   NTSA_QUESTIONS_CHECKED,
   NTSA_QUESTIONS_PATH,
 } from "~/lib/ntsa-questions-page";
-import { DRIVING_SCHOOL_PAGES } from "~/lib/driving-school-pages";
-import { SIGN_CLASS_PAGES } from "~/lib/sign-class-pages";
 import {
   isSignConfirmed,
   SIGN_PAGES,
@@ -32,6 +30,8 @@ import {
   signImagePath,
   signPagePath,
 } from "~/lib/road-sign-pages";
+import { SIGN_CLASS_PAGES } from "~/lib/sign-class-pages";
+import { absUrl } from "~/lib/site";
 
 const STATIC_LAST_MODIFIED = "2026-11-11";
 
@@ -126,14 +126,14 @@ export function loader() {
         `    <loc>${absUrl(p.path)}</loc>\n` +
         `    <lastmod>${p.lastmod}</lastmod>\n` +
         `    <changefreq>${p.changefreq}</changefreq>\n` +
-        `    <priority>${p.priority}</priority>\n` +
-        (p.image
-          ? `    <image:image>\n` +
-            `      <image:loc>${absUrl(p.image.loc)}</image:loc>\n` +
-            `      <image:title>${escapeXml(p.image.title)}</image:title>\n` +
-            `    </image:image>\n`
-          : "") +
-        `  </url>`,
+        `    <priority>${p.priority}</priority>\n${
+          p.image
+            ? `    <image:image>\n` +
+              `      <image:loc>${absUrl(p.image.loc)}</image:loc>\n` +
+              `      <image:title>${escapeXml(p.image.title)}</image:title>\n` +
+              `    </image:image>\n`
+            : ""
+        }  </url>`,
     )
     .join("\n");
 

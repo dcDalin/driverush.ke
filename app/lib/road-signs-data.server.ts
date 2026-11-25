@@ -10,8 +10,8 @@ import path from "node:path";
 
 import {
   DEFAULT_IMAGE_FOCUS_SETTINGS,
-  ROAD_SIGNS_IMAGE_SRC,
   type ImageFocusData,
+  ROAD_SIGNS_IMAGE_SRC,
 } from "./image-focus";
 
 const DATA_FILE = path.join(

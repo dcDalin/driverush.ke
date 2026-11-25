@@ -4,7 +4,6 @@ import { BOARD_CHALLENGES, challengeById, isRouteTask } from "./challenges";
 import {
   ALL_LEVELS,
   COURSE_LEVELS,
-  UNITS,
   doneCount,
   learnedKey,
   levelAfter,
@@ -13,6 +12,7 @@ import {
   levelDone,
   levelState,
   nextLevel,
+  UNITS,
   unitState,
 } from "./curriculum";
 import { levelSlides } from "./curriculum-content";

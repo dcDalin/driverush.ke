@@ -2,15 +2,15 @@ import { describe, expect, it } from "vitest";
 
 import { fullBoardSvg, laneNumbers } from "./full-board";
 import {
-  LADDER,
-  PIXEL_BUDGET,
-  SLOW_FRAME,
   isWeakGpu,
+  LADDER,
   newPace,
   paceFrame,
   parseRung,
+  PIXEL_BUDGET,
   pixelRatio,
   rungAt,
+  SLOW_FRAME,
   stepDown,
   tierFor,
 } from "./quality";

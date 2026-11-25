@@ -3,13 +3,14 @@
  * chart's data, so a sign added to `road-signs-pelican.json` gets a page and a
  * sitemap entry by itself, as long as it has a line in `SIGN_DETAILS`.
  */
-import { TITLE_SUFFIX } from "./site";
 import { SIGN_DETAILS } from "~/data/road-sign-details";
 import { SIGN_GUIDES, type SignGuide } from "~/data/road-sign-guides";
-import pelican from "~/data/road-signs-pelican.json";
 import signs3d from "~/data/road-signs-3d.json";
+import pelican from "~/data/road-signs-pelican.json";
 import type { FocusRegion, RegionBox, SignCategoryId } from "~/lib/image-focus";
 import { signCrop } from "~/lib/sign-crops";
+
+import { TITLE_SUFFIX } from "./site";
 
 export type SignPage = FocusRegion & {
   slug: string;

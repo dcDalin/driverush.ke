@@ -11,10 +11,9 @@
  */
 import * as React from "react";
 
-import { blockSpots, finish } from "~/lib/board/stage";
-
 import { Icon } from "~/components/brand/icon";
 import { ArrowRightIcon, FinishIcon } from "~/components/brand/icons";
+import { blockSpots, finish } from "~/lib/board/stage";
 
 const EDGE = 10;
 

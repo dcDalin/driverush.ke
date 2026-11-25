@@ -1,4 +1,5 @@
 import * as React from "react";
+
 import { Icon } from "~/components/brand/icon";
 import {
   ChevronLeftIcon,
@@ -7,17 +8,15 @@ import {
   PauseIcon,
   PlayIcon,
 } from "~/components/brand/icons";
-
+import { ImageFocusStage } from "~/components/brand/image-focus-stage";
+import { Button } from "~/components/ui/button";
 import {
   computeRegionTransform,
-  getSignCategory,
-  orderRegions,
   type FocusRegion,
+  getSignCategory,
   type ImageFocusData,
+  orderRegions,
 } from "~/lib/image-focus";
-
-import { Button } from "~/components/ui/button";
-import { ImageFocusStage } from "~/components/brand/image-focus-stage";
 
 type Phase = "full" | "focused" | "revealed";
 

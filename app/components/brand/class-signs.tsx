@@ -4,14 +4,13 @@
  */
 import { Link } from "react-router";
 
+import { SignCredit } from "~/components/brand/sign-credit";
+import { SignImage } from "~/components/brand/sign-image";
+import { Button } from "~/components/ui/button";
 import type { SignCategoryId } from "~/lib/image-focus";
 import { SIGN_PAGES, signPagePath } from "~/lib/road-sign-pages";
 import { signClassPage } from "~/lib/sign-class-pages";
 import { trainerHref } from "~/lib/trainer-rounds";
-
-import { Button } from "~/components/ui/button";
-import { SignCredit } from "~/components/brand/sign-credit";
-import { SignImage } from "~/components/brand/sign-image";
 
 export function ClassSigns({ category }: { category: SignCategoryId }) {
   const page = signClassPage(category)!;

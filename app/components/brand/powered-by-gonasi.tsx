@@ -1,8 +1,6 @@
-import * as React from "react";
-
 import { GONASI } from "~/lib/site";
-import { addUtm } from "~/lib/utm";
 import { cn } from "~/lib/utils";
+import { addUtm } from "~/lib/utm";
 
 /**
  * Tone of the surrounding band. Drives which Gonasi logo variant renders:

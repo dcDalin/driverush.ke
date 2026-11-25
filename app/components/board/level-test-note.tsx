@@ -9,12 +9,15 @@
 import * as React from "react";
 import { useShallow } from "zustand/react/shallow";
 
+import { ProudShare } from "~/components/board/proud-share";
+import { TestCard } from "~/components/board/test-card";
+import { InstallNudge } from "~/components/brand/install-nudge";
 import {
   COURSE_LEVELS,
+  type CourseProgress,
   doneCount,
   levelById,
   readiness,
-  type CourseProgress,
 } from "~/lib/board/curriculum";
 import { useBoardStore } from "~/lib/board-store";
 import { dayKey } from "~/lib/practice-streak";
@@ -22,17 +25,13 @@ import { liveStreak, readPracticeStreak } from "~/lib/practice-streak";
 import {
   levelMoment,
   nextMoment,
+  type ProudMoment,
   readOffered,
   streakMoment,
-  type ProudMoment,
 } from "~/lib/proud-moments";
 import { cardStage, today, useTestRecord } from "~/lib/test-date";
 import { planLine, testPlan } from "~/lib/test-plan";
 import { cn } from "~/lib/utils";
-
-import { ProudShare } from "~/components/board/proud-share";
-import { TestCard } from "~/components/board/test-card";
-import { InstallNudge } from "~/components/brand/install-nudge";
 
 /** The date is asked at the end of one level a visit, not every level. */
 let askedThisVisit: string | null = null;

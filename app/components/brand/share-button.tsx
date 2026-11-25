@@ -17,28 +17,18 @@
  */
 import * as React from "react";
 import { toast } from "sonner";
+
 import { Icon } from "~/components/brand/icon";
 import type { IconDef } from "~/components/brand/icons";
 import {
   CopyIcon,
   DownloadIcon,
   FacebookIcon,
-  XIcon,
   ShareIcon,
   TelegramIcon,
   WhatsappIcon,
+  XIcon,
 } from "~/components/brand/icons";
-
-import { analytics } from "~/lib/analytics";
-import {
-  buildShareLink,
-  SHARE_TARGETS,
-  taggedShareUrl,
-  type SharePayload,
-} from "~/lib/share";
-import { renderSharePicture } from "~/lib/share-picture";
-import { cn } from "~/lib/utils";
-
 import { Button } from "~/components/ui/button";
 import {
   Dialog,
@@ -48,6 +38,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
+import { analytics } from "~/lib/analytics";
+import {
+  buildShareLink,
+  SHARE_TARGETS,
+  type SharePayload,
+  taggedShareUrl,
+} from "~/lib/share";
+import { renderSharePicture } from "~/lib/share-picture";
+import { cn } from "~/lib/utils";
 
 const TARGET_ICONS: Record<string, IconDef> = {
   whatsapp: WhatsappIcon,

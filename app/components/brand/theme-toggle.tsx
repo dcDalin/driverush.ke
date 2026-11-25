@@ -1,10 +1,8 @@
 import { Icon } from "~/components/brand/icon";
 import { MoonIcon, SunIcon } from "~/components/brand/icons";
-
-import { cn } from "~/lib/utils";
-import { toggleTheme } from "~/lib/theme";
-
 import { Button } from "~/components/ui/button";
+import { toggleTheme } from "~/lib/theme";
+import { cn } from "~/lib/utils";
 
 /**
  * Light/dark switcher — a single stamped icon button sized to sit beside the

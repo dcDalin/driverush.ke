@@ -9,13 +9,13 @@ import { BOARD_CARS, sizeOf } from "./cars";
 import { BOARD_CHALLENGES } from "./challenges";
 import {
   BOUNDS,
-  FRAME_ROOM,
   carCorners,
+  FRAME_ROOM,
   frameShift,
   onTarmac,
 } from "./full-board";
 import { taskStart } from "./lessons";
-import { createPhysics, physicsStep, type Contact } from "./physics";
+import { type Contact, createPhysics, physicsStep } from "./physics";
 import { FIRST_DRIVE } from "./warmup";
 
 const DEG = Math.PI / 180;

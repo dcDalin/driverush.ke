@@ -5,16 +5,24 @@
  * levels: still on this page and in the server's HTML, for the learners who
  * arrive searching for how the board works.
  */
-import type { Route } from "./+types/model-town-board";
-
+import { BoardLevels } from "~/components/board/board-levels";
+import { BoardPicture } from "~/components/board/board-picture";
+import {
+  boardSchoolNames,
+  BoardSchools,
+} from "~/components/board/sponsor-credit";
+import { useBoardPage } from "~/components/board/use-board-page";
+import { GuideFold } from "~/components/brand/guide-fold";
+import { GuideLayout } from "~/components/brand/guide-layout";
+import { MDX } from "~/components/brand/mdx-components";
+import { BOARD_QUESTIONS } from "~/data/board-questions";
 import Body from "~/guides/model-town-board.mdx";
+import { COURSE_LEVELS, UNITS } from "~/lib/board/curriculum";
 import {
   BOARD_CHECKED,
   BOARD_PATH,
   BOARD_QUESTIONS_PDF,
 } from "~/lib/board-guides";
-import { BOARD_QUESTIONS } from "~/data/board-questions";
-import { COURSE_LEVELS, UNITS } from "~/lib/board/curriculum";
 import { ogCardAlt, ogCardPath } from "~/lib/og-cards";
 import {
   BOARD_KEYWORDS,
@@ -26,16 +34,7 @@ import {
   webAppLd,
 } from "~/lib/site";
 
-import { BoardLevels } from "~/components/board/board-levels";
-import { useBoardPage } from "~/components/board/use-board-page";
-import { BoardPicture } from "~/components/board/board-picture";
-import {
-  BoardSchools,
-  boardSchoolNames,
-} from "~/components/board/sponsor-credit";
-import { GuideFold } from "~/components/brand/guide-fold";
-import { GuideLayout } from "~/components/brand/guide-layout";
-import { MDX } from "~/components/brand/mdx-components";
+import type { Route } from "./+types/model-town-board";
 
 const PATH = BOARD_PATH;
 const CHECKED = BOARD_CHECKED;

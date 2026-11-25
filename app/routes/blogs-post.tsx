@@ -1,7 +1,14 @@
-import { Link, isRouteErrorResponse, useRouteError } from "react-router";
+import { isRouteErrorResponse, Link, useRouteError } from "react-router";
 
-import type { Route } from "./+types/blogs-post";
-
+import { BlogPostLayout } from "~/components/brand/blog-post-layout";
+import { Rail } from "~/components/brand/rail";
+import { Button } from "~/components/ui/button";
+import {
+  BLOG_KEYWORDS,
+  type BlogPost,
+  getPostBySlug,
+  getRelatedPosts,
+} from "~/lib/blog";
 import {
   absUrl,
   breadcrumbLd,
@@ -10,16 +17,8 @@ import {
   SITE,
   siteWideMeta,
 } from "~/lib/site";
-import {
-  BLOG_KEYWORDS,
-  getPostBySlug,
-  getRelatedPosts,
-  type BlogPost,
-} from "~/lib/blog";
 
-import { BlogPostLayout } from "~/components/brand/blog-post-layout";
-import { Button } from "~/components/ui/button";
-import { Rail } from "~/components/brand/rail";
+import type { Route } from "./+types/blogs-post";
 
 /**
  * Loader runs on the server (and on client navigations). It resolves the post
@@ -45,7 +44,7 @@ function serialisePost(p: BlogPost) {
   return rest;
 }
 
-export function meta({ data, params }: Route.MetaArgs) {
+export function meta({ data }: Route.MetaArgs) {
   if (!data) {
     // 404 path — give the page a clean, non-indexable head.
     return [

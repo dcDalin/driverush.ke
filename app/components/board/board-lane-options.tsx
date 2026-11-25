@@ -5,15 +5,14 @@
  * Both come from the data the trainer's lane options levels use
  * (`laneOptions`, `queueCars`), so the page and the game cannot disagree.
  */
-import { levelHref } from "~/lib/board-guides";
+import { UNSURE_NOTE } from "~/components/board/board-playback";
+import { MDX } from "~/components/brand/mdx-components";
 import { COURSE_LEVELS } from "~/lib/board/curriculum";
 import { fullBoardSvg, RING_R } from "~/lib/board/full-board";
 import { ARMS } from "~/lib/board/geometry";
 import { queueCars } from "~/lib/board/lane-queue";
 import { laneOptions } from "~/lib/board/lessons";
-
-import { UNSURE_NOTE } from "~/components/board/board-playback";
-import { MDX } from "~/components/brand/mdx-components";
+import { levelHref } from "~/lib/board-guides";
 
 type Road = "S" | "W";
 

@@ -4,7 +4,7 @@
  * A drive that left its route broke no rule, so there it says where the car
  * left and what the task asked for.
  */
-import { RULES_SOURCE, type FaultTip } from "~/lib/board/board-rules";
+import { type FaultTip, RULES_SOURCE } from "~/lib/board/board-rules";
 
 const LABEL = "m-0 font-mono text-[10px] uppercase tracking-widest text-ink-3";
 

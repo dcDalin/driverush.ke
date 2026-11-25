@@ -6,13 +6,13 @@ import { describe, expect, it } from "vitest";
 import { CAR } from "./car";
 import {
   BOARD_CARS,
-  SMALL_CARS,
   carsBeside,
   isBig,
   modelBeside,
   parkedModel,
   resolveCar,
   sizeOf,
+  SMALL_CARS,
 } from "./cars";
 import { BOARD_CHALLENGES } from "./challenges";
 import { taskUsesAngleBay } from "./lessons";

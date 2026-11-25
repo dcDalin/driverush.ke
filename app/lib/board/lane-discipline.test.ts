@@ -13,15 +13,15 @@ import { challengeById, type TurnChallenge } from "./challenges";
 import { U_TURN_GAPS } from "./full-board";
 import {
   ARMS,
-  SOLID_ZONE,
   dirOf,
   laneOffset,
   lanePoint,
   ringRadius,
+  SOLID_ZONE,
 } from "./geometry";
 import { challengeRoute } from "./lessons";
 import { poseAt } from "./network";
-import { createRef, refStep, type Fault, type RefState } from "./referee";
+import { createRef, type Fault, type RefState, refStep } from "./referee";
 import { createRouteRef, createWayTrack, routeRefStep } from "./route-referee";
 import { car, loadPhysics, stick, tick } from "./runtime";
 import { WARMUP_LEVEL_ID } from "./warmup";

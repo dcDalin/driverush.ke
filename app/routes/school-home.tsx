@@ -3,13 +3,14 @@
  * goes straight to its dashboard; several (an admin can work for more than
  * one) are listed.
  */
-import { Link, data, redirect } from "react-router";
+import { data, Link, redirect } from "react-router";
 
-import type { Route } from "./+types/school-home";
-import { NeedsSignIn, NothingHere } from "~/components/school/signed-out";
 import { SiteNav } from "~/components/brand/site-nav";
+import { NeedsSignIn, NothingHere } from "~/components/school/signed-out";
 import { Badge } from "~/components/ui/badge";
 import { signedInRequest } from "~/lib/school/server";
+
+import type { Route } from "./+types/school-home";
 
 export function meta() {
   return [

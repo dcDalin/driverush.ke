@@ -1,23 +1,23 @@
-import * as React from "react";
+import type * as React from "react";
 import { Link } from "react-router";
+
+import { BlogCard, formatDate } from "~/components/brand/blog-card";
 import { Icon } from "~/components/brand/icon";
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
-  Sign3DIcon,
   PelicanIcon,
+  Sign3DIcon,
 } from "~/components/brand/icons";
-
-import { cn } from "~/lib/utils";
-import { SITE } from "~/lib/site";
-import type { BlogPost } from "~/lib/blog";
 import { Rail } from "~/components/brand/rail";
 import { ShareButton } from "~/components/brand/share-button";
 import { SiteFooter } from "~/components/brand/site-footer";
 import { SiteNav } from "~/components/brand/site-nav";
-import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
-import { BlogCard, formatDate } from "~/components/brand/blog-card";
+import { Button } from "~/components/ui/button";
+import type { BlogPost } from "~/lib/blog";
+import { SITE } from "~/lib/site";
+import { cn } from "~/lib/utils";
 
 type BlogPostLayoutProps = {
   post: BlogPost;

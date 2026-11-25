@@ -11,7 +11,7 @@
  * Run once:  node scripts/gen-signs-3d.mjs
  * After that the JSON is the source of truth (the tool edits + re-exports it).
  */
-import { readFileSync, writeFileSync, readdirSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 const ROOT = process.cwd();

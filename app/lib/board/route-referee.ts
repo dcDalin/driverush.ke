@@ -21,7 +21,7 @@ import { ROAD_BOX } from "./lessons";
 import { poseAt, type Route } from "./network";
 import type { Contact } from "./physics";
 import type { Fault, RefResult } from "./referee";
-import { createRoad, roadStep, type RoadState } from "./road-rules";
+import { createRoad, type RoadState, roadStep } from "./road-rules";
 
 /** How the car is getting on along one of the ways a task may be driven. */
 export type WayTrack = {

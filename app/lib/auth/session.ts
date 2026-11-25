@@ -13,8 +13,8 @@
  * The Supabase client is loaded on demand, after the page is up, so it never
  * weighs on the first load (cheap phones, slow data).
  */
-import * as React from "react";
 import type { Session, User } from "@supabase/supabase-js";
+import * as React from "react";
 
 export type SessionState =
   | { status: "off" }

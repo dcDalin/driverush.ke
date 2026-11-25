@@ -1,13 +1,11 @@
 import * as React from "react";
 
-import type { Route as PageRoute } from "./+types/board-network";
-
 import { blockById } from "~/lib/board/blocks";
 import { BOARD_CHALLENGES, isRouteTask } from "~/lib/board/challenges";
 import {
   CAR_COLORS,
-  fullBoardSvg,
   type FullBoardOptions,
+  fullBoardSvg,
 } from "~/lib/board/full-board";
 import {
   challengeRoute,
@@ -15,16 +13,18 @@ import {
   lessonPlan,
   taskGoalBox,
 } from "~/lib/board/lessons";
-import { parkedCars } from "~/lib/board/parking-layouts";
 import {
-  network,
-  planRoute,
-  stepPoints,
   type Maneuver,
   type NetEdge,
+  network,
+  planRoute,
   type Route,
+  stepPoints,
 } from "~/lib/board/network";
+import { parkedCars } from "~/lib/board/parking-layouts";
 import { cn } from "~/lib/utils";
+
+import type { Route as PageRoute } from "./+types/board-network";
 
 export function meta(_: PageRoute.MetaArgs) {
   return [

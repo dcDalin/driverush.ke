@@ -1,12 +1,12 @@
-import * as React from "react";
 import { Select as SelectPrimitive } from "radix-ui";
+import type * as React from "react";
+
 import { Icon } from "~/components/brand/icon";
 import {
+  CheckIcon,
   ChevronDownIcon,
   ChevronUpIcon,
-  CheckIcon,
 } from "~/components/brand/icons";
-
 import { cn } from "~/lib/utils";
 
 const Select = SelectPrimitive.Root;
@@ -186,13 +186,13 @@ function SelectSeparator({
 
 export {
   Select,
-  SelectGroup,
-  SelectValue,
-  SelectTrigger,
   SelectContent,
-  SelectLabel,
+  SelectGroup,
   SelectItem,
-  SelectSeparator,
-  SelectScrollUpButton,
+  SelectLabel,
   SelectScrollDownButton,
+  SelectScrollUpButton,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
 };

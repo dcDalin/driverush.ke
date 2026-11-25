@@ -19,12 +19,12 @@ import {
   FLOOR_Y,
   FURNITURE,
   METRE,
+  onWall,
   ROOM,
   SEAT,
-  WALLS,
   WALL_ITEMS,
-  onWall,
   type WallItemKind,
+  WALLS,
 } from "~/lib/board/room";
 import type { Sponsor } from "~/lib/board/sponsors";
 

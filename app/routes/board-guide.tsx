@@ -8,15 +8,14 @@
 import type * as React from "react";
 import { Link } from "react-router";
 
-import type { Route } from "./+types/board-guide";
-
+import { BoardStartCard } from "~/components/board/board-start-card";
+import { GuideLayout } from "~/components/brand/guide-layout";
 import DiagramBody from "~/guides/board-diagram.mdx";
 import LaneOptionsBody from "~/guides/board-lane-options.mdx";
 import ParkingBody from "~/guides/board-parking.mdx";
 import QuestionsBody from "~/guides/board-questions.mdx";
 import RoundaboutBody from "~/guides/board-roundabout.mdx";
 import RulesBody from "~/guides/board-rules.mdx";
-
 import {
   BOARD_CHECKED,
   BOARD_PATH,
@@ -32,8 +31,7 @@ import {
   pageMeta,
 } from "~/lib/site";
 
-import { BoardStartCard } from "~/components/board/board-start-card";
-import { GuideLayout } from "~/components/brand/guide-layout";
+import type { Route } from "./+types/board-guide";
 
 const BODIES: Record<BoardGuideId, React.ComponentType> = {
   diagram: DiagramBody,

@@ -22,9 +22,10 @@
  * resting knob slides the way the car faces and back, with a ring round it.
  * Most learners who left the first drive had never moved the car.
  */
-import * as React from "react";
-
 import "./board-controls.css";
+
+import type * as Nipple from "nipplejs";
+import * as React from "react";
 
 import { keyStick, STICK_DEADZONE } from "~/lib/board/joystick";
 import { car, drive, resetInput, stick, view } from "~/lib/board/runtime";
@@ -64,7 +65,7 @@ const GENTLE = 0.4;
  */
 const STICK_SIZE = 144;
 
-type StickPad = ReturnType<typeof import("nipplejs").create>;
+type StickPad = ReturnType<typeof Nipple.create>;
 
 export function BoardControls({
   active,

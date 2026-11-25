@@ -9,17 +9,17 @@
  * in radians: 0 is north, a quarter turn clockwise is east.
  */
 import {
+  type ArmId,
   ARMS as BOARD_ARMS,
   ISLAND_R as BOARD_ISLAND_R,
   LANE,
+  type OtherRoad,
+  otherRoad,
+  reserveAt,
   RING_LANE,
   RING_LANES as BOARD_RING_LANES,
   RING_R,
   SOLID_TO,
-  otherRoad,
-  reserveAt,
-  type ArmId,
-  type OtherRoad,
 } from "./full-board";
 
 export type { ArmId } from "./full-board";

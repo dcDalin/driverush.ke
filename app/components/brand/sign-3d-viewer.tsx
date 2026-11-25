@@ -9,8 +9,8 @@
  */
 import * as React from "react";
 
-import { cn } from "~/lib/utils";
 import { LoadingPanel } from "~/components/brand/traffic-loader";
+import { cn } from "~/lib/utils";
 
 const Sign3DCanvas = React.lazy(
   () => import("~/components/brand/sign-3d-canvas"),

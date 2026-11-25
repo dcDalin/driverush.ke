@@ -4,25 +4,11 @@
  */
 import * as React from "react";
 
-import {
-  carThumb,
-  BOARD_CARS,
-  CAR_THUMB_SIZE,
-  CC_BY,
-  type BoardCarId,
-  type BoardCarSetting,
-} from "~/lib/board/cars";
-import { fullBoardSvg } from "~/lib/board/full-board";
-import type { Seat } from "~/lib/board/joystick";
-import { useBoardStore, type BoardQuality } from "~/lib/board-store";
-import { useVisitSponsor } from "~/lib/board/sponsor-visit";
-import { cn } from "~/lib/utils";
-
+import { SponsorCredit } from "~/components/board/sponsor-credit";
 import { Icon } from "~/components/brand/icon";
 import { RoadIcon, ShuffleIcon, SoundIcon } from "~/components/brand/icons";
 import { SettingSection, ToggleRow } from "~/components/brand/setting-controls";
 import { Button } from "~/components/ui/button";
-import { SponsorCredit } from "~/components/board/sponsor-credit";
 import {
   Sheet,
   SheetBody,
@@ -31,6 +17,19 @@ import {
   SheetHeader,
   SheetTitle,
 } from "~/components/ui/sheet";
+import {
+  BOARD_CARS,
+  type BoardCarId,
+  type BoardCarSetting,
+  CAR_THUMB_SIZE,
+  carThumb,
+  CC_BY,
+} from "~/lib/board/cars";
+import { fullBoardSvg } from "~/lib/board/full-board";
+import type { Seat } from "~/lib/board/joystick";
+import { useVisitSponsor } from "~/lib/board/sponsor-visit";
+import { type BoardQuality, useBoardStore } from "~/lib/board-store";
+import { cn } from "~/lib/utils";
 
 const SEAT_LABEL: Record<Seat, string> = {
   north: "Top",

@@ -7,7 +7,7 @@
  * Campaign tags carry through so attribution survives the hop. Everything else
  * (like `?mode=test`) means nothing at the new address and is dropped.
  */
-import { redirect, type LoaderFunctionArgs } from "react-router";
+import { type LoaderFunctionArgs, redirect } from "react-router";
 
 /** Whole paths, checked first. */
 const EXACT_TARGETS: Record<string, string> = {

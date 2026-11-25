@@ -1,20 +1,19 @@
 import * as React from "react";
+
 import {
+  CheckIcon,
   FocusIcon,
   ShuffleIcon,
-  CheckIcon,
-  TrafficLightIcon,
   SoundIcon,
+  TrafficLightIcon,
 } from "~/components/brand/icons";
-
 import {
-  SIGN_CATEGORIES,
-  type SignCategory,
-  type SignCategoryId,
-} from "~/lib/image-focus";
-import { masteredCount } from "~/lib/pelican-progress";
-import { usePelicanStore } from "~/lib/pelican-store";
-
+  ChipToggle,
+  SelectRow,
+  SettingSection,
+  SliderRow,
+  ToggleRow,
+} from "~/components/brand/setting-controls";
 import { Button } from "~/components/ui/button";
 import {
   Sheet,
@@ -25,12 +24,12 @@ import {
   SheetTitle,
 } from "~/components/ui/sheet";
 import {
-  ChipToggle,
-  SelectRow,
-  SettingSection,
-  SliderRow,
-  ToggleRow,
-} from "~/components/brand/setting-controls";
+  SIGN_CATEGORIES,
+  type SignCategory,
+  type SignCategoryId,
+} from "~/lib/image-focus";
+import { masteredCount } from "~/lib/pelican-progress";
+import { usePelicanStore } from "~/lib/pelican-store";
 
 /** The trainer's right-side settings sheet — entirely driven by the Zustand store. */
 export function PelicanSettingsSheet() {
@@ -43,7 +42,7 @@ export function PelicanSettingsSheet() {
   const resetSettings = usePelicanStore((s) => s.resetSettings);
   const resetProgress = usePelicanStore((s) => s.resetProgress);
 
-  const regions = board?.regions ?? [];
+  const regions = React.useMemo(() => board?.regions ?? [], [board]);
   const shuffled = settings.order === "shuffle";
 
   const countByCat = React.useMemo(() => {

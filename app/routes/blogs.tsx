@@ -1,21 +1,19 @@
-import * as React from "react";
+import type * as React from "react";
 import { Link } from "react-router";
-import { Icon } from "~/components/brand/icon";
-import { ArrowRightIcon, PelicanIcon } from "~/components/brand/icons";
-
-import type { Route } from "./+types/blogs";
-
-import { absUrl, breadcrumbLd, keywords, SITE, siteWideMeta } from "~/lib/site";
-import { BLOG_KEYWORDS, getAllPosts } from "~/lib/blog";
-
-import { Badge } from "~/components/ui/badge";
-import { Button } from "~/components/ui/button";
 
 import { BlogCard } from "~/components/brand/blog-card";
+import { Icon } from "~/components/brand/icon";
+import { ArrowRightIcon, PelicanIcon } from "~/components/brand/icons";
 import { Masthead } from "~/components/brand/masthead";
 import { Rail } from "~/components/brand/rail";
 import { SiteFooter } from "~/components/brand/site-footer";
 import { SiteNav } from "~/components/brand/site-nav";
+import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
+import { BLOG_KEYWORDS, getAllPosts } from "~/lib/blog";
+import { absUrl, breadcrumbLd, keywords, SITE, siteWideMeta } from "~/lib/site";
+
+import type { Route } from "./+types/blogs";
 
 const PATH = "/blogs";
 

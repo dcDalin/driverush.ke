@@ -5,6 +5,9 @@
  */
 import { Link } from "react-router";
 
+import { Icon } from "~/components/brand/icon";
+import { ChevronRightIcon } from "~/components/brand/icons";
+import { Button } from "~/components/ui/button";
 import { signCounts } from "~/lib/pelican-progress";
 import { usePracticeStreak } from "~/lib/practice-streak";
 import { SIGN_GAMES } from "~/lib/road-signs";
@@ -12,10 +15,6 @@ import { SIGN_BRAND } from "~/lib/sign-credits";
 import { ROUND_SIZE, trainerHref } from "~/lib/trainer-rounds";
 import { useSignProgress } from "~/lib/use-sign-progress";
 import { cn } from "~/lib/utils";
-
-import { Icon } from "~/components/brand/icon";
-import { ChevronRightIcon } from "~/components/brand/icons";
-import { Button } from "~/components/ui/button";
 
 export function SignTrainerList({
   buttons = false,

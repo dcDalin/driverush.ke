@@ -7,8 +7,6 @@
  */
 import { Link, useLocation } from "react-router";
 
-import { SITE_TABS, activeTab } from "~/lib/nav";
-
 import { AccountButton } from "~/components/account/account-button";
 import { CourseLabel } from "~/components/board/course-label";
 import { useCourseStart } from "~/components/board/use-course-start";
@@ -17,6 +15,7 @@ import { Icon } from "~/components/brand/icon";
 import { ArrowRightIcon } from "~/components/brand/icons";
 import { Logo } from "~/components/brand/logo";
 import { Button } from "~/components/ui/button";
+import { activeTab, SITE_TABS } from "~/lib/nav";
 
 export function SiteNav() {
   const { pathname } = useLocation();

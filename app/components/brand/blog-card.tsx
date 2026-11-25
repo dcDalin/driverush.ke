@@ -1,10 +1,10 @@
-import * as React from "react";
+import type * as React from "react";
 import { Link } from "react-router";
+
 import { Icon } from "~/components/brand/icon";
 import { ArrowRightIcon } from "~/components/brand/icons";
-
-import { cn } from "~/lib/utils";
 import type { BlogPost } from "~/lib/blog";
+import { cn } from "~/lib/utils";
 
 type BlogCardProps = React.ComponentProps<"article"> & {
   post: BlogPost;

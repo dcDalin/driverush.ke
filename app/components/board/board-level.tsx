@@ -8,48 +8,18 @@ import * as React from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router";
 
-import { analytics } from "~/lib/analytics";
-import { BOARD_LEVELS_PATH, levelHref } from "~/lib/board-guides";
-import { BLOCK_SOURCE, RULES_SOURCE, laneRule } from "~/lib/board/board-rules";
-import {
-  COURSE_LEVELS,
-  learnedKey,
-  levelAfter,
-  unitOf,
-  type Level,
-} from "~/lib/board/curriculum";
-import { findSpots, levelSlides } from "~/lib/board/curriculum-content";
-import { RING_R } from "~/lib/board/full-board";
-import { ARMS, OPTION_CODES, type ArmId } from "~/lib/board/geometry";
-import type { Seat } from "~/lib/board/joystick";
-import { pickable, queueCars } from "~/lib/board/lane-queue";
-import {
-  APPROACHES,
-  LESSONS,
-  ROUTE_COLOR,
-  ROUTE_RULES,
-  lessonPlan,
-  lessonWays,
-} from "~/lib/board/lessons";
-import { shownWays, type Way } from "~/lib/board/ways";
-import type { Route } from "~/lib/board/network";
-import { shuffleParkingLayout } from "~/lib/board/parking-layouts";
-import {
-  cam,
-  fitTable,
-  flyTo,
-  redraw,
-  setMarks,
-  useStage,
-} from "~/lib/board/stage";
-import { useBoardStore } from "~/lib/board-store";
-import { cn } from "~/lib/utils";
-
 import { LevelCheer } from "~/components/board/board-cheer";
-import { useOpenLevels } from "~/components/board/levels-sheet-context";
-import { LevelTestNote } from "~/components/board/level-test-note";
-import { DailyDriveLink } from "~/components/board/daily-drive-row";
+import {
+  BoardPlayback,
+  routeLines,
+  StepTags,
+  UNSURE_NOTE,
+} from "~/components/board/board-playback";
 import { BoardSpotPicks } from "~/components/board/board-spot-picks";
+import { DailyDriveLink } from "~/components/board/daily-drive-row";
+import { LevelTestNote } from "~/components/board/level-test-note";
+import { useOpenLevels } from "~/components/board/levels-sheet-context";
+import { useParkingLayout } from "~/components/board/use-parking-layout";
 import { Icon } from "~/components/brand/icon";
 import {
   ArrowRightIcon,
@@ -61,13 +31,42 @@ import {
   PlayIcon,
   SettingsIcon,
 } from "~/components/brand/icons";
+import { analytics } from "~/lib/analytics";
+import { BLOCK_SOURCE, laneRule, RULES_SOURCE } from "~/lib/board/board-rules";
 import {
-  BoardPlayback,
-  StepTags,
-  UNSURE_NOTE,
-  routeLines,
-} from "~/components/board/board-playback";
-import { useParkingLayout } from "~/components/board/use-parking-layout";
+  COURSE_LEVELS,
+  learnedKey,
+  type Level,
+  levelAfter,
+  unitOf,
+} from "~/lib/board/curriculum";
+import { findSpots, levelSlides } from "~/lib/board/curriculum-content";
+import { RING_R } from "~/lib/board/full-board";
+import { type ArmId, ARMS, OPTION_CODES } from "~/lib/board/geometry";
+import type { Seat } from "~/lib/board/joystick";
+import { pickable, queueCars } from "~/lib/board/lane-queue";
+import {
+  APPROACHES,
+  lessonPlan,
+  LESSONS,
+  lessonWays,
+  ROUTE_COLOR,
+  ROUTE_RULES,
+} from "~/lib/board/lessons";
+import type { Route } from "~/lib/board/network";
+import { shuffleParkingLayout } from "~/lib/board/parking-layouts";
+import {
+  cam,
+  fitTable,
+  flyTo,
+  redraw,
+  setMarks,
+  useStage,
+} from "~/lib/board/stage";
+import { shownWays, type Way } from "~/lib/board/ways";
+import { BOARD_LEVELS_PATH, levelHref } from "~/lib/board-guides";
+import { useBoardStore } from "~/lib/board-store";
+import { cn } from "~/lib/utils";
 
 const chip =
   "min-h-11 rounded-md border-2 px-3 py-2 text-left text-[13.5px] font-semibold leading-snug outline-none transition-colors focus-visible:border-white";

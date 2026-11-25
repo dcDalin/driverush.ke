@@ -12,7 +12,7 @@
  *
  * Pure data, no three.js and no React.
  */
-import { parkedSpots, type ParkedBays } from "./full-board";
+import { type ParkedBays, parkedSpots } from "./full-board";
 
 export type ParkingLayout = ParkedBays & { id: string };
 

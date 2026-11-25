@@ -5,11 +5,10 @@
  */
 import { Link } from "react-router";
 
-import { BOARD_PLAY_PATH } from "~/lib/board-guides";
-import { cn } from "~/lib/utils";
-
 import { Icon } from "~/components/brand/icon";
 import { ChevronRightIcon, GoIcon } from "~/components/brand/icons";
+import { BOARD_PLAY_PATH } from "~/lib/board-guides";
+import { cn } from "~/lib/utils";
 
 /** Where free drive was opened from. */
 export type FreeDriveSurface = "home" | "course_page" | "more_menu";

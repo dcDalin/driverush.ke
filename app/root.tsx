@@ -1,8 +1,10 @@
-import { TabBar } from "~/components/brand/tab-bar";
-import { AccountShell } from "~/components/account/account-shell";
-import { ProgressSync } from "~/components/account/progress-sync";
-import { EntitlementLivery } from "~/components/account/entitlement-livery";
-import { guestVisitScript } from "~/lib/progress/guest-visit";
+import "./app.css";
+import "./motion.css";
+import "./pwa.css";
+// Catches the browser's install prompt from the first load.
+import "~/lib/install";
+
+import * as React from "react";
 import {
   isRouteErrorResponse,
   Link,
@@ -14,23 +16,16 @@ import {
   useLocation,
   useRouteLoaderData,
 } from "react-router";
-import * as React from "react";
 
-import type { Route } from "./+types/root";
-import "./app.css";
-import "./motion.css";
-import "./pwa.css";
-import { Toaster } from "~/components/ui/sonner";
-import { Button } from "~/components/ui/button";
-import { NavigationProgressBar } from "~/components/brand/navigation-progress-bar";
+import { AccountShell } from "~/components/account/account-shell";
+import { EntitlementLivery } from "~/components/account/entitlement-livery";
+import { ProgressSync } from "~/components/account/progress-sync";
 import { RoadClosedScene, ScenePlate } from "~/components/brand/art/scenes";
-import {
-  THEME_COLOR_SCRIPT,
-  THEME_INIT_SCRIPT,
-  useThemeColorSync,
-  useThemeSync,
-} from "~/lib/theme";
-import { SITE, absUrl, appMeta } from "~/lib/site";
+import { NavigationProgressBar } from "~/components/brand/navigation-progress-bar";
+import { TabBar } from "~/components/brand/tab-bar";
+import { TrafficLoader } from "~/components/brand/traffic-loader";
+import { Button } from "~/components/ui/button";
+import { Toaster } from "~/components/ui/sonner";
 import {
   getPostHog,
   initAnalytics,
@@ -39,11 +34,18 @@ import {
 } from "~/lib/analytics";
 import { shouldMeasure } from "~/lib/bot-traffic";
 import { loadWhole, shouldLoadWhole, useFreshBuild } from "~/lib/fresh-build";
-import { TrafficLoader } from "~/components/brand/traffic-loader";
 import { GA_MEASUREMENT_ID, gaHeadScript } from "~/lib/ga";
+import { guestVisitScript } from "~/lib/progress/guest-visit";
+import { absUrl, appMeta, SITE } from "~/lib/site";
+import {
+  THEME_COLOR_SCRIPT,
+  THEME_INIT_SCRIPT,
+  useThemeColorSync,
+  useThemeSync,
+} from "~/lib/theme";
 import { useLearnerAnalytics } from "~/lib/use-learner-analytics";
-// Catches the browser's install prompt from the first load.
-import "~/lib/install";
+
+import type { Route } from "./+types/root";
 
 const GUEST_VISIT_SCRIPT = guestVisitScript(
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY

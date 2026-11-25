@@ -18,8 +18,8 @@ import { SVGLoader } from "three/examples/jsm/loaders/SVGLoader.js";
 
 import {
   COLORS,
-  LANE_NUMBER,
   fullBoardSvg,
+  LANE_NUMBER,
   laneNumbers,
 } from "~/lib/board/full-board";
 

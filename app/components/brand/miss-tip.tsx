@@ -5,10 +5,9 @@
  */
 import { Link } from "react-router";
 
+import { SignImage } from "~/components/brand/sign-image";
 import type { MissTip as Tip } from "~/lib/miss-tips";
 import { signPagePath } from "~/lib/road-sign-pages";
-
-import { SignImage } from "~/components/brand/sign-image";
 
 const LABEL =
   "m-0 font-sans text-[10px] uppercase tracking-wider text-ink-3 font-medium";

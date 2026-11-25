@@ -4,9 +4,9 @@
  * their saved progress has been read, so the button never says one thing and
  * then another. See `course-label.css`.
  */
-import * as React from "react";
-
 import "./course-label.css";
+
+import * as React from "react";
 
 export function CourseLabel({
   label,

@@ -5,15 +5,15 @@
  * guides.
  */
 import { Link } from "react-router";
-import type { Route } from "./+types/guides";
 
+import { GuideLayout } from "~/components/brand/guide-layout";
+import { Icon } from "~/components/brand/icon";
+import { ChevronRightIcon } from "~/components/brand/icons";
 import { BOARD_CHECKED, BOARD_GUIDES } from "~/lib/board-guides";
 import { SIGN_CLASS_PAGES } from "~/lib/sign-class-pages";
 import { breadcrumbLd, graphLd, pageMeta } from "~/lib/site";
 
-import { Icon } from "~/components/brand/icon";
-import { ChevronRightIcon } from "~/components/brand/icons";
-import { GuideLayout } from "~/components/brand/guide-layout";
+import type { Route } from "./+types/guides";
 
 const PATH = "/guides";
 const TITLE = "Driving test guides for Kenya";

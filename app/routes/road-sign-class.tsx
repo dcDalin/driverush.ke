@@ -6,22 +6,20 @@
  */
 import type * as React from "react";
 
-import type { Route } from "./+types/road-sign-class";
-
-import WarningBody from "~/guides/warning-signs.mdx";
-import MandatoryBody from "~/guides/mandatory-signs.mdx";
-import ProhibitoryBody from "~/guides/prohibitory-signs.mdx";
-
-import type { SignCategoryId } from "~/lib/image-focus";
-import { signClassPageByPath } from "~/lib/sign-class-pages";
-import { breadcrumbLd, graphLd, guideLd, pageMeta } from "~/lib/site";
-
-import { GuideLayout } from "~/components/brand/guide-layout";
 import {
   LearnerScene,
   OpenRoadScene,
   RoadClosedScene,
 } from "~/components/brand/art/scenes";
+import { GuideLayout } from "~/components/brand/guide-layout";
+import MandatoryBody from "~/guides/mandatory-signs.mdx";
+import ProhibitoryBody from "~/guides/prohibitory-signs.mdx";
+import WarningBody from "~/guides/warning-signs.mdx";
+import type { SignCategoryId } from "~/lib/image-focus";
+import { signClassPageByPath } from "~/lib/sign-class-pages";
+import { breadcrumbLd, graphLd, guideLd, pageMeta } from "~/lib/site";
+
+import type { Route } from "./+types/road-sign-class";
 
 const BODIES: Partial<Record<SignCategoryId, React.ComponentType>> = {
   warning: WarningBody,

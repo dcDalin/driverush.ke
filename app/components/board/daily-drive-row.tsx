@@ -8,17 +8,16 @@
  */
 import { Link } from "react-router";
 
-import { analytics } from "~/lib/analytics";
-import { useDailyDrive } from "~/lib/daily-drive";
-import { usePracticeStreak } from "~/lib/practice-streak";
-import { cn } from "~/lib/utils";
-
 import { Icon } from "~/components/brand/icon";
 import {
   CheckIcon,
   ChevronRightIcon,
   RoadIcon,
 } from "~/components/brand/icons";
+import { analytics } from "~/lib/analytics";
+import { useDailyDrive } from "~/lib/daily-drive";
+import { usePracticeStreak } from "~/lib/practice-streak";
+import { cn } from "~/lib/utils";
 
 function days(n: number): string {
   return `${n} ${n === 1 ? "day" : "days"}`;

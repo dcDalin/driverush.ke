@@ -17,23 +17,22 @@
  * only dilute the real content in search, but the links out of them should
  * still pass equity.
  */
-import { Link } from "react-router";
 import * as React from "react";
+import { Link } from "react-router";
+
+import { SignIcon } from "~/components/brand/art/sign-glyphs";
 import { Icon } from "~/components/brand/icon";
 import { ArrowRightIcon } from "~/components/brand/icons";
-import { SignIcon } from "~/components/brand/art/sign-glyphs";
-
-import type { Route } from "./+types/share-landing";
-
+import { SiteFooter } from "~/components/brand/site-footer";
+import { SiteNav } from "~/components/brand/site-nav";
+import { Button } from "~/components/ui/button";
 import { analytics } from "~/lib/analytics";
 import { OG_CARDS, OG_HEIGHT, OG_WIDTH, ogCardPath } from "~/lib/og-cards";
 import { SIGN_GAMES } from "~/lib/road-signs";
 import { resolveShare, SHARE_OG_CARD, shareLandingMeta } from "~/lib/share";
 import { absUrl, SITE } from "~/lib/site";
 
-import { Button } from "~/components/ui/button";
-import { SiteFooter } from "~/components/brand/site-footer";
-import { SiteNav } from "~/components/brand/site-nav";
+import type { Route } from "./+types/share-landing";
 
 export function loader({ request }: Route.LoaderArgs) {
   const params = new URL(request.url).searchParams;

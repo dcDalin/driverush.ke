@@ -4,15 +4,15 @@
  * is MDX, so plain markdown picks up the same styling as the blog. The way to
  * the trainers is the tab bar and the top bar, on every page.
  */
-import * as React from "react";
+import type * as React from "react";
 import { Link } from "react-router";
 
-import { SITE } from "~/lib/site";
+import { ScenePlate } from "~/components/brand/art/scenes";
+import { useHashOpens } from "~/components/brand/guide-fold";
 import { Rail } from "~/components/brand/rail";
 import { SiteFooter } from "~/components/brand/site-footer";
 import { SiteNav } from "~/components/brand/site-nav";
-import { useHashOpens } from "~/components/brand/guide-fold";
-import { ScenePlate } from "~/components/brand/art/scenes";
+import { SITE } from "~/lib/site";
 
 /** "2026-11-05" reads as "5 November 2026", without a timezone shifting the day. */
 function formatChecked(date: string) {

@@ -32,6 +32,7 @@ import {
 } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+
 import sharp from "sharp";
 
 import { kit, loadFont, lockup } from "./sponsor-art/lib.mjs";

@@ -9,6 +9,7 @@
  */
 import * as React from "react";
 import { Link } from "react-router";
+
 import { Icon } from "~/components/brand/icon";
 import {
   ArrowRightIcon,
@@ -16,17 +17,15 @@ import {
   PlayRoundIcon,
   RefreshIcon,
 } from "~/components/brand/icons";
-
+import { Button } from "~/components/ui/button";
 import pelican from "~/data/road-signs-pelican.json";
 import { analytics } from "~/lib/analytics";
-import { regionSpriteStyle, type FocusRegion } from "~/lib/image-focus";
-import { signCrop } from "~/lib/sign-crops";
+import { type FocusRegion, regionSpriteStyle } from "~/lib/image-focus";
 import { stagger } from "~/lib/motion";
+import { signCrop } from "~/lib/sign-crops";
 import { BUZZ, buzz, playSfx } from "~/lib/sounds";
 import { trainerHref } from "~/lib/trainer-rounds";
 import { cn } from "~/lib/utils";
-
-import { Button } from "~/components/ui/button";
 
 const ALL_SIGNS = pelican.regions as FocusRegion[];
 const CHART_SRC = pelican.imageSrc as string;

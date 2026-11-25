@@ -18,33 +18,27 @@ import {
   type StateStorage,
 } from "zustand/middleware";
 
+import { analytics } from "./analytics";
+import { missTip } from "./miss-tips";
+import {
+  applyGrade,
+  boxOf,
+  type GradeResult,
+  isMastered,
+  type SignProgress,
+} from "./pelican-progress";
+import { bumpPracticeStreak } from "./practice-streak";
 import {
   orderSigns,
   type Sign3D,
-  type Signs3DData,
   type SignCategoryId,
+  type Signs3DData,
 } from "./signs-3d";
 import {
   DEFAULT_SIGNS_3D_SETTINGS,
   normalizeSettings,
   type Signs3DUserSettings,
 } from "./signs-3d-settings";
-import {
-  applyGrade,
-  boxOf,
-  isMastered,
-  type GradeResult,
-  type SignProgress,
-} from "./pelican-progress";
-import { analytics } from "./analytics";
-import { missTip } from "./miss-tips";
-import { bumpPracticeStreak } from "./practice-streak";
-import {
-  defaultScope,
-  pickRound,
-  runTally,
-  type RunScope,
-} from "./trainer-rounds";
 import {
   BUZZ,
   buzz,
@@ -55,6 +49,12 @@ import {
   warmSfx,
   warmVoice,
 } from "./sounds";
+import {
+  defaultScope,
+  pickRound,
+  type RunScope,
+  runTally,
+} from "./trainer-rounds";
 
 // ---------------------------------------------------------------------------
 // module-scope engine bits (one trainer instance — fine to keep these here)

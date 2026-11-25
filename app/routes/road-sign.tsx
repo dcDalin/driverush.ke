@@ -6,22 +6,26 @@
  */
 import { Link } from "react-router";
 
-import type { Route } from "./+types/road-sign";
-
+import { Rail } from "~/components/brand/rail";
+import { SignCredit } from "~/components/brand/sign-credit";
+import { SignImage } from "~/components/brand/sign-image";
+import { SiteFooter } from "~/components/brand/site-footer";
+import { SiteNav } from "~/components/brand/site-nav";
+import { Button } from "~/components/ui/button";
 import { ogCardAlt, ogCardPath } from "~/lib/og-cards";
 import {
   hasSign3D,
   isSignConfirmed,
   relatedSigns,
   SIGN_CLASS_GUIDE,
-  signGuide,
-  signPageByCode,
   SIGN_IMAGE_SIZE,
+  signGuide,
   signHeading,
   signImagePath,
+  signPageByCode,
   signPageBySlug,
-  signTitle,
   signPagePath,
+  signTitle,
 } from "~/lib/road-sign-pages";
 import { signClassPage } from "~/lib/sign-class-pages";
 import {
@@ -33,12 +37,7 @@ import {
 } from "~/lib/site";
 import { trainerHref } from "~/lib/trainer-rounds";
 
-import { Button } from "~/components/ui/button";
-import { Rail } from "~/components/brand/rail";
-import { SignCredit } from "~/components/brand/sign-credit";
-import { SignImage } from "~/components/brand/sign-image";
-import { SiteFooter } from "~/components/brand/site-footer";
-import { SiteNav } from "~/components/brand/site-nav";
+import type { Route } from "./+types/road-sign";
 
 const DESCRIPTION_LIMIT = 155;
 /** Cut at a word boundary so a search result never ends mid-word. */

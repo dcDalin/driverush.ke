@@ -5,9 +5,9 @@
  */
 import * as React from "react";
 import {
+  type DayButton,
   DayPicker,
   getDefaultClassNames,
-  type DayButton,
 } from "react-day-picker";
 
 import { Icon } from "~/components/brand/icon";

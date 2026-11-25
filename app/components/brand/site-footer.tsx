@@ -3,23 +3,22 @@
  * credited to. One source of truth so every primary route shares the same chrome.
  */
 import { Link } from "react-router";
-import { Icon } from "~/components/brand/icon";
-import { PhoneIcon, MailIcon } from "~/components/brand/icons";
 
+import { BoardSchools } from "~/components/board/sponsor-credit";
+import { Icon } from "~/components/brand/icon";
+import { MailIcon, PhoneIcon } from "~/components/brand/icons";
+import { Logo } from "~/components/brand/logo";
+import { PoweredByGonasi } from "~/components/brand/powered-by-gonasi";
+import { SignCredit } from "~/components/brand/sign-credit";
 import { analytics } from "~/lib/analytics";
-import { SIGN_SOURCE } from "~/lib/sign-credits";
 import {
   BOARD_GUIDES,
   BOARD_PATH,
   BOARD_QUESTIONS_PDF,
 } from "~/lib/board-guides";
-import { SITE } from "~/lib/site";
 import { SIGN_CLASS_PAGES } from "~/lib/sign-class-pages";
-
-import { Logo } from "~/components/brand/logo";
-import { SignCredit } from "~/components/brand/sign-credit";
-import { PoweredByGonasi } from "~/components/brand/powered-by-gonasi";
-import { BoardSchools } from "~/components/board/sponsor-credit";
+import { SIGN_SOURCE } from "~/lib/sign-credits";
+import { SITE } from "~/lib/site";
 
 const Container = ({ children }: { children: React.ReactNode }) => (
   <div className="mx-auto w-full max-w-6xl px-5 sm:px-9">{children}</div>

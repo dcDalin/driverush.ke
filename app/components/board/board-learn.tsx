@@ -8,29 +8,13 @@
 import * as React from "react";
 import { Link } from "react-router";
 
-import { analytics } from "~/lib/analytics";
-import { BOARD_PATH } from "~/lib/board-guides";
-import { RULES_SOURCE, laneRule } from "~/lib/board/board-rules";
-import { OPTION_CODES } from "~/lib/board/geometry";
-import { BOARD_FEATURES } from "~/lib/board/features";
-import { RING_R } from "~/lib/board/full-board";
-import { ARMS, type ArmId } from "~/lib/board/geometry";
-import type { Seat } from "~/lib/board/joystick";
 import {
-  APPROACHES,
-  LESSONS,
-  ROUTE_COLOR,
-  ROUTE_RULES,
-  laneOptions,
-  lessonPlan,
-  lessonRoute,
-  type Lesson,
-} from "~/lib/board/lessons";
-import { shuffleParkingLayout } from "~/lib/board/parking-layouts";
-import { cam, fitTable, flyTo, useStage } from "~/lib/board/stage";
-import { useBoardStore } from "~/lib/board-store";
-import { cn } from "~/lib/utils";
-
+  BoardPlayback,
+  routeLines,
+  StepTags,
+  UNSURE_NOTE,
+} from "~/components/board/board-playback";
+import { useParkingLayout } from "~/components/board/use-parking-layout";
 import { Icon } from "~/components/brand/icon";
 import {
   ArrowRightIcon,
@@ -40,13 +24,28 @@ import {
   PlayIcon,
   SettingsIcon,
 } from "~/components/brand/icons";
-import { useParkingLayout } from "~/components/board/use-parking-layout";
+import { analytics } from "~/lib/analytics";
+import { laneRule, RULES_SOURCE } from "~/lib/board/board-rules";
+import { BOARD_FEATURES } from "~/lib/board/features";
+import { RING_R } from "~/lib/board/full-board";
+import { OPTION_CODES } from "~/lib/board/geometry";
+import { type ArmId, ARMS } from "~/lib/board/geometry";
+import type { Seat } from "~/lib/board/joystick";
 import {
-  BoardPlayback,
-  StepTags,
-  UNSURE_NOTE,
-  routeLines,
-} from "~/components/board/board-playback";
+  APPROACHES,
+  laneOptions,
+  type Lesson,
+  lessonPlan,
+  lessonRoute,
+  LESSONS,
+  ROUTE_COLOR,
+  ROUTE_RULES,
+} from "~/lib/board/lessons";
+import { shuffleParkingLayout } from "~/lib/board/parking-layouts";
+import { cam, fitTable, flyTo, useStage } from "~/lib/board/stage";
+import { BOARD_PATH } from "~/lib/board-guides";
+import { useBoardStore } from "~/lib/board-store";
+import { cn } from "~/lib/utils";
 
 type Tab = "lanes" | "board" | "routes" | "parking";
 

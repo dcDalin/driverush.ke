@@ -143,7 +143,7 @@ const BY_PATH = Object.values(ROUTES)
   .map((entry) => ({
     entry,
     re: new RegExp(
-      "^" + entry.path.replace(/:[^/]+/g, "[^/]+").replace(/\//g, "\\/") + "$",
+      `^${entry.path.replace(/:[^/]+/g, "[^/]+").replace(/\//g, "\\/")}$`,
     ),
   }))
   .sort(

@@ -20,6 +20,7 @@
  */
 import { mkdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
+
 import { Document, NodeIO } from "@gltf-transform/core";
 import {
   EXTMeshoptCompression,

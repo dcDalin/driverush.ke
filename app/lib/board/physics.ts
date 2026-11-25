@@ -12,7 +12,7 @@
 import Matter from "matter-js";
 
 import { CAR, type CarInput, type CarState } from "./car";
-import { modelBeside, sizeOf, type BoardCarId, type CarSize } from "./cars";
+import { type BoardCarId, type CarSize, modelBeside, sizeOf } from "./cars";
 import type { BoardChallenge } from "./challenges";
 import {
   BOUNDS,

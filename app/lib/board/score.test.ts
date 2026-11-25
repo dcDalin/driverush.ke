@@ -3,13 +3,13 @@ import { describe, expect, it } from "vitest";
 import { BOARD_CHALLENGES } from "./challenges";
 import { challengeRoute, taskParks } from "./lessons";
 import {
+  beats,
+  type BestScore,
   OFF_ROUTE_SCORE,
+  parSeconds,
   SCORE_MAX,
   SCORE_VERSION,
-  beats,
-  parSeconds,
   scoreFor,
-  type BestScore,
 } from "./score";
 
 const clean = { faults: 0, hinted: false, seconds: 20, par: 30 };

@@ -17,23 +17,23 @@
  * Pure data, no three.js. Top view, metres, the same axes as `geometry.ts`.
  */
 import { laneRule } from "./board-rules";
-import { BOUNDS, ROADS, SOLID_TO, U_TURN_GAPS, type Box } from "./full-board";
+import { BOUNDS, type Box, ROADS, SOLID_TO, U_TURN_GAPS } from "./full-board";
 import {
-  ARMS,
   ARM_ORDER,
   armForTurn,
+  type ArmId,
+  ARMS,
   bearingOf,
   dirOf,
   lanePoint,
+  type LaneRule,
   laneRules,
   locate,
   rulesFor,
-  wrapPi,
-  type ArmId,
-  type LaneRule,
   type Side,
   type Turn,
   type Vec,
+  wrapPi,
 } from "./geometry";
 import { lanePath } from "./lane-paths";
 

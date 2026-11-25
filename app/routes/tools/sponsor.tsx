@@ -8,19 +8,18 @@
 import * as React from "react";
 import { Link, useSearchParams } from "react-router";
 
-import type { Route } from "./+types/sponsor";
-
-import { fullBoardSvg } from "~/lib/board/full-board";
-import { BOARD_CARS, sizeOf, type BoardCarId } from "~/lib/board/cars";
-import { SPONSORS, sponsorById } from "~/lib/board/sponsors";
-import { cn } from "~/lib/utils";
-
-import { Button } from "~/components/ui/button";
+import type { CarView } from "~/components/board/sponsor-car-canvas";
 import {
   SponsorCredit,
   SponsorReadyCard,
 } from "~/components/board/sponsor-credit";
-import type { CarView } from "~/components/board/sponsor-car-canvas";
+import { Button } from "~/components/ui/button";
+import { BOARD_CARS, type BoardCarId, sizeOf } from "~/lib/board/cars";
+import { fullBoardSvg } from "~/lib/board/full-board";
+import { sponsorById, SPONSORS } from "~/lib/board/sponsors";
+import { cn } from "~/lib/utils";
+
+import type { Route } from "./+types/sponsor";
 
 const SponsorCarCanvas = React.lazy(
   () => import("~/components/board/sponsor-car-canvas"),
@@ -137,7 +136,7 @@ export default function SponsorTool() {
         <p className="mt-3 max-w-2xl text-[15px] leading-snug text-ink-2">
           {sponsor.live
             ? "Live: learners can be given this school."
-            : "Not live: only shown with ?sponsor=" + sponsor.id + "."}{" "}
+            : `Not live: only shown with ?sponsor=${sponsor.id}.`}{" "}
           Check every part below before setting it live.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">

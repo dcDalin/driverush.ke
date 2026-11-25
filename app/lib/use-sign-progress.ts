@@ -2,8 +2,8 @@ import * as React from "react";
 
 import {
   parsePersistedProgress,
-  TRAINER_STORAGE_KEYS,
   type SignProgress,
+  TRAINER_STORAGE_KEYS,
 } from "./pelican-progress";
 
 function subscribe(onChange: () => void) {

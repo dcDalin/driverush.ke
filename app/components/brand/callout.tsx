@@ -1,8 +1,8 @@
-import * as React from "react";
-import { Icon } from "~/components/brand/icon";
-import { InfoIcon, type IconDef } from "~/components/brand/icons";
-import { SignIcon } from "~/components/brand/art/sign-glyphs";
+import type * as React from "react";
 
+import { SignIcon } from "~/components/brand/art/sign-glyphs";
+import { Icon } from "~/components/brand/icon";
+import { type IconDef, InfoIcon } from "~/components/brand/icons";
 import { cn } from "~/lib/utils";
 
 type CalloutProps = React.ComponentProps<"div"> & {

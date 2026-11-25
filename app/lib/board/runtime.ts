@@ -5,13 +5,13 @@
  * goes through React.
  */
 import type { CarInput, CarState } from "./car";
-import { sizeOf, type BoardCarId } from "./cars";
+import { type BoardCarId, sizeOf } from "./cars";
 import {
+  type BoardChallenge,
   hasReverse,
   isFreeDrive,
   isRouteTask,
   isTurnTask,
-  type BoardChallenge,
 } from "./challenges";
 import {
   createFree,
@@ -19,33 +19,34 @@ import {
   type FreeState,
   type Pose,
 } from "./free-referee";
-import { challengeWays, taskParks, taskStart } from "./lessons";
 import { bearingOf, wrapPi } from "./geometry";
-import { poseAt, type Route } from "./network";
-import type { Way } from "./ways";
 import {
   AISLE_SPEED,
-  STICK_DEADZONE,
-  createAssist,
-  stickToInput,
   type AssistState,
+  createAssist,
   type DriveOptions,
   type Stick,
+  STICK_DEADZONE,
+  stickToInput,
 } from "./joystick";
+import { challengeWays, taskParks, taskStart } from "./lessons";
+import { poseAt, type Route } from "./network";
+import type * as PhysicsModule from "./physics";
 import type { OtherPose, Physics } from "./physics";
 import {
   COLLISION,
-  LANE_FAULTS,
   createRef,
-  refStep,
   type Fault,
+  LANE_FAULTS,
   type RefState,
+  refStep,
 } from "./referee";
 import {
   createRouteRef,
-  routeRefStep,
   type RouteRefState,
+  routeRefStep,
 } from "./route-referee";
+import type { Way } from "./ways";
 
 const STEP = 1 / 60;
 /** A stalled tab mustn't fast-forward the car when it wakes. */
@@ -152,7 +153,7 @@ type Callbacks = {
 
 // Matter.js lives behind `physics.ts`. It is fetched the first time someone
 // starts a drive, so a visitor who only reads the guide never downloads it.
-let engine: typeof import("./physics") | null = null;
+let engine: typeof PhysicsModule | null = null;
 let loading: Promise<void> | null = null;
 
 let challenge: BoardChallenge | null = null;

@@ -1,45 +1,43 @@
+import { AnimatePresence, motion, type Variants } from "framer-motion";
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion, type Variants } from "framer-motion";
+import { useShallow } from "zustand/react/shallow";
+
 import { Icon } from "~/components/brand/icon";
 import {
+  CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   CloseIcon,
-  SettingsIcon,
   PauseIcon,
   PlayIcon,
   RefreshIcon,
-  CheckIcon,
+  SettingsIcon,
   SoundIcon,
 } from "~/components/brand/icons";
-import { useShallow } from "zustand/react/shallow";
-
-import { getSignCategory } from "~/lib/image-focus";
-import { ease, transition } from "~/lib/motion";
-import { isMastered, signCounts } from "~/lib/pelican-progress";
-import { runTally, type RunScope } from "~/lib/trainer-rounds";
-import {
-  getPracticeRegions,
-  selectCanResume,
-  usePelicanStore,
-} from "~/lib/pelican-store";
-import { missTip } from "~/lib/miss-tips";
-import { cn } from "~/lib/utils";
-
+import { ImageFocusStage } from "~/components/brand/image-focus-stage";
+import { MissTip } from "~/components/brand/miss-tip";
+import { RevealCountdown } from "~/components/brand/reveal-countdown";
+import { TrainerReadyPanel } from "~/components/brand/trainer-ready-panel";
+import { TrainerResultCard } from "~/components/brand/trainer-result-card";
 import { Button } from "~/components/ui/button";
-import { Progress } from "~/components/ui/progress";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetTitle,
 } from "~/components/ui/sheet";
-import { ImageFocusStage } from "~/components/brand/image-focus-stage";
-import { RevealCountdown } from "~/components/brand/reveal-countdown";
-import { TrainerReadyPanel } from "~/components/brand/trainer-ready-panel";
-import { TrainerResultCard } from "~/components/brand/trainer-result-card";
-import { MissTip } from "~/components/brand/miss-tip";
+import { getSignCategory } from "~/lib/image-focus";
+import { missTip } from "~/lib/miss-tips";
+import { ease, transition } from "~/lib/motion";
+import { isMastered, signCounts } from "~/lib/pelican-progress";
+import {
+  getPracticeRegions,
+  selectCanResume,
+  usePelicanStore,
+} from "~/lib/pelican-store";
+import { type RunScope, runTally } from "~/lib/trainer-rounds";
+import { cn } from "~/lib/utils";
 
 const STREAK_CALLOUTS = new Set([3, 5, 10]);
 

@@ -1,5 +1,5 @@
-import { BOARD_PLAY_PATH, levelHref } from "~/lib/board-guides";
 import { doneCount, nextLevel } from "~/lib/board/curriculum";
+import { BOARD_PLAY_PATH, levelHref } from "~/lib/board-guides";
 import { useCourseProgress } from "~/lib/use-course-progress";
 
 const EMPTY = { learned: [], bestStars: {} };

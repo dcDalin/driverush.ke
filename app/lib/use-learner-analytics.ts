@@ -23,23 +23,23 @@
 import * as React from "react";
 import { useLocation } from "react-router";
 
+import {
+  COURSE_LEVELS,
+  type CourseProgress,
+  doneCount,
+  readiness,
+} from "./board/curriculum";
 import { gaSetUserProperties } from "./ga";
-import { getPostHog } from "./posthog";
 import {
   masteredCount,
   parsePersistedProgress,
-  TRAINER_STORAGE_KEYS,
   type SignProgress,
+  TRAINER_STORAGE_KEYS,
 } from "./pelican-progress";
+import { getPostHog } from "./posthog";
 import { liveStreak, readPracticeStreak } from "./practice-streak";
 import { readTestRecord, testBucket, today } from "./test-date";
 import { testPlan } from "./test-plan";
-import {
-  COURSE_LEVELS,
-  doneCount,
-  readiness,
-  type CourseProgress,
-} from "./board/curriculum";
 
 const FIRST_SEEN_KEY = "driverush:first-seen";
 /** Where `board-store.ts` keeps the board course's saved state. */

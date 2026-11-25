@@ -15,23 +15,24 @@
  */
 import { data, redirect } from "react-router";
 
-import type { Route } from "./+types/school-dashboard";
 import { SiteNav } from "~/components/brand/site-nav";
 import { BranchesPanel } from "~/components/school/branches-panel";
 import { NeedsSignIn, NothingHere } from "~/components/school/signed-out";
 import {
-  StudentsPanel,
   type StudentRow,
+  StudentsPanel,
 } from "~/components/school/students-panel";
 import { TeamPanel } from "~/components/school/team-panel";
 import { Badge } from "~/components/ui/badge";
 import { summarizeProgress } from "~/lib/school/progress-summary";
 import {
+  type ActionResult,
   reasonFor,
   signedInRequest,
-  type ActionResult,
 } from "~/lib/school/server";
 import { isStaff } from "~/lib/supabase/caller.server";
+
+import type { Route } from "./+types/school-dashboard";
 
 export function meta() {
   return [

@@ -11,36 +11,78 @@
  * three.js only loads with this file, which the viewer fetches after Start.
  * The table is built once, by hand; only the cars and the camera move.
  */
-import * as React from "react";
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
+import * as React from "react";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 
 import {
+  type BoardPaint,
+  buildBoardPaint,
+} from "~/components/board/board-paint";
+import {
+  buildRoom,
+  hangSchool,
+  type Room,
+} from "~/components/board/board-room";
+import {
+  boardLogo,
+  loadImage,
+  loadPicture,
+  loadWrap,
+  PLATE,
+  sponsoredPlate,
+  warmSchool,
+  wearWrap,
+} from "~/components/board/board-sponsor";
+import { carFromGltf, SHARED } from "~/components/board/car-glb";
+import {
+  buildCar,
+  type CarModel,
+  WHEEL_RADIUS,
+} from "~/components/board/car-model";
+import {
+  buildRibbon,
+  chevronTexture,
+  disposeRibbons,
+} from "~/components/board/route-ribbon";
+import { wearTopBoard } from "~/components/board/top-board";
+import { useParkingLayout } from "~/components/board/use-parking-layout";
+import { analytics } from "~/lib/analytics";
+import {
   BOARD_CARS,
+  type BoardCarId,
   modelBeside,
   parkedModel,
   sizeOf,
-  type BoardCarId,
 } from "~/lib/board/cars";
-import { hasParkedCars, type BoardChallenge } from "~/lib/board/challenges";
+import { type BoardChallenge, hasParkedCars } from "~/lib/board/challenges";
 import {
   BOUNDS,
+  type Box,
   CAR_COLORS,
   COLORS,
-  ISLAND_R,
   fullBoardSvg,
+  ISLAND_R,
   kerbHighlights,
   reserves,
-  type Box,
 } from "~/lib/board/full-board";
 import { dirOf } from "~/lib/board/geometry";
-import { STICK_DEADZONE, type Seat } from "~/lib/board/joystick";
+import { type Seat, STICK_DEADZONE } from "~/lib/board/joystick";
 import { taskGoalBox } from "~/lib/board/lessons";
 import { parkedCars } from "~/lib/board/parking-layouts";
+import {
+  type BoardTier,
+  newPace,
+  paceFrame,
+  pixelRatio as pixelRatioAt,
+  rungAt,
+  saveRung,
+  stepDown,
+} from "~/lib/board/quality";
 import {
   car,
   hasMoved,
@@ -51,11 +93,23 @@ import {
   view,
 } from "~/lib/board/runtime";
 import {
+  SHOW_TOTAL,
+  showcaseCamera,
+  showcasePose,
+  skipTo,
+} from "~/lib/board/showcase";
+import {
+  nextSchool,
+  sponsorShown,
+  useVisitSponsor,
+} from "~/lib/board/sponsor-visit";
+import type { Sponsor, TopBoard } from "~/lib/board/sponsors";
+import {
   advance,
   asDriveSpan,
+  blockSpots,
   cam,
   endLook,
-  blockSpots,
   finish,
   marks,
   picks,
@@ -65,62 +119,6 @@ import {
   setWake,
   useStage,
 } from "~/lib/board/stage";
-
-import {
-  newPace,
-  paceFrame,
-  pixelRatio as pixelRatioAt,
-  rungAt,
-  saveRung,
-  stepDown,
-  type BoardTier,
-} from "~/lib/board/quality";
-import { analytics } from "~/lib/analytics";
-
-import {
-  buildBoardPaint,
-  type BoardPaint,
-} from "~/components/board/board-paint";
-import {
-  buildRibbon,
-  chevronTexture,
-  disposeRibbons,
-} from "~/components/board/route-ribbon";
-import { SHARED, carFromGltf } from "~/components/board/car-glb";
-import { wearTopBoard } from "~/components/board/top-board";
-import {
-  buildRoom,
-  hangSchool,
-  type Room,
-} from "~/components/board/board-room";
-import {
-  PLATE,
-  boardLogo,
-  loadImage,
-  loadPicture,
-  warmSchool,
-  loadWrap,
-  sponsoredPlate,
-  wearWrap,
-} from "~/components/board/board-sponsor";
-import {
-  nextSchool,
-  sponsorShown,
-  useVisitSponsor,
-} from "~/lib/board/sponsor-visit";
-import type { Sponsor, TopBoard } from "~/lib/board/sponsors";
-import {
-  SHOW_TOTAL,
-  showcaseCamera,
-  showcasePose,
-  skipTo,
-} from "~/lib/board/showcase";
-import { useParkingLayout } from "~/components/board/use-parking-layout";
-import {
-  WHEEL_RADIUS,
-  buildCar,
-  type CarModel,
-} from "~/components/board/car-model";
 
 export type { BoardTier };
 

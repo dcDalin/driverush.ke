@@ -17,14 +17,14 @@
 import { CAR, type CarInput, type CarState } from "./car";
 import type { BoardSide } from "./full-board";
 import {
-  ARMS,
   ARM_ORDER,
+  type ArmId,
+  ARMS,
   bearingOf,
   laneBearing,
   locate,
-  wrapPi,
-  type ArmId,
   type Vec,
+  wrapPi,
 } from "./geometry";
 import { createRails, rails, type RailsState } from "./rails";
 

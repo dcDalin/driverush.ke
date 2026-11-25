@@ -8,16 +8,16 @@ import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import type { TurnChallenge } from "./challenges";
 import {
-  ARMS,
-  SOLID_ZONE,
   armForTurn,
+  type ArmId,
+  ARMS,
   bearingOf,
   laneBearing,
   laneOffset,
   locate,
-  wrapPi,
-  type ArmId,
+  SOLID_ZONE,
   type Turn,
+  wrapPi,
 } from "./geometry";
 import type { Fault } from "./referee";
 import {

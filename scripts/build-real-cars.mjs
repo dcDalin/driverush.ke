@@ -28,22 +28,12 @@
  *           (never committed).
  * Then:     node scripts/build-car-wrap.mjs   (the wrap templates and UVs)
  */
-import {
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+
 import { Document, NodeIO } from "@gltf-transform/core";
-import {
-  ALL_EXTENSIONS,
-  EXTMeshoptCompression,
-  EXTTextureWebP,
-  KHRMeshQuantization,
-} from "@gltf-transform/extensions";
+import { ALL_EXTENSIONS, EXTTextureWebP } from "@gltf-transform/extensions";
 import {
   meshopt,
   prune,

@@ -3,23 +3,23 @@
  * round by hand, or jump to the board camera's own tilt from each side to see
  * what a learner at the table sees. Loaded lazily: all of three is in here.
  */
-import * as React from "react";
-import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
+import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
+import * as React from "react";
 import * as THREE from "three";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
-import { carFromGltf } from "~/components/board/car-glb";
-import type { CarModel } from "~/components/board/car-model";
 import {
   loadPicture,
   loadWrap,
   wearWrap,
 } from "~/components/board/board-sponsor";
+import { carFromGltf } from "~/components/board/car-glb";
+import type { CarModel } from "~/components/board/car-model";
 import { wearTopBoard } from "~/components/board/top-board";
-import type { TopBoard } from "~/lib/board/sponsors";
 import { BOARD_CARS, type BoardCarId } from "~/lib/board/cars";
+import type { TopBoard } from "~/lib/board/sponsors";
 
 export type CarView = { heading: number; tilt: number; dist: number };
 

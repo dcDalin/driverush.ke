@@ -10,17 +10,17 @@ import { useBoardStore } from "../board-store";
 import type { CarInput, CarState } from "./car";
 import { ALL_LEVELS } from "./curriculum";
 import {
-  SOLID_ZONE,
   bearingOf,
-  lanePoint,
   laneBearing,
+  lanePoint,
   locate,
+  SOLID_ZONE,
 } from "./geometry";
 import {
   AISLE_SPEED,
+  type AssistState,
   createAssist,
   stickToInput,
-  type AssistState,
 } from "./joystick";
 import { challengeRoute } from "./lessons";
 import { car, drive, loadPhysics, stick, tick } from "./runtime";

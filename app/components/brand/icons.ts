@@ -43,7 +43,7 @@ export const ArrowRightIcon: IconDef = {
 export const ArrowLeftIcon: IconDef = { s: "M20 12H5M10.5 6.5L5 12l5.5 5.5" };
 export const ArrowOutIcon: IconDef = { s: "M7 17L17 7M9 7h8v8" };
 export const GoIcon: IconDef = {
-  s: circle(12, 12, 9) + "M8 12h7.5M12.5 9l3 3-3 3",
+  s: `${circle(12, 12, 9)}M8 12h7.5M12.5 9l3 3-3 3`,
   b: circle(12, 12, 9),
   sign: "mandatory",
 };
@@ -125,11 +125,11 @@ export const GridIcon: IconDef = {
   b: "M4.5 4.5h6v6h-6z",
 };
 export const SettingsIcon: IconDef = {
-  s:
-    "M4 7h3M11 7h9M4 12h9M17 12h3M4 17h5M13 17h7" +
-    circle(9, 7, 2) +
-    circle(15, 12, 2) +
-    circle(11, 17, 2),
+  s: `M4 7h3M11 7h9M4 12h9M17 12h3M4 17h5M13 17h7${circle(9, 7, 2)}${circle(
+    15,
+    12,
+    2,
+  )}${circle(11, 17, 2)}`,
   b: circle(9, 7, 2) + circle(15, 12, 2) + circle(11, 17, 2),
 };
 export const MailIcon: IconDef = {
@@ -151,7 +151,7 @@ export const PauseIcon: IconDef = {
   b: "M7 5h3.5v14H7zM13.5 5H17v14h-3.5z",
 };
 export const PlayRoundIcon: IconDef = {
-  s: circle(12, 12, 9.5) + "M10 8.3l5.5 3.7-5.5 3.7z",
+  s: `${circle(12, 12, 9.5)}M10 8.3l5.5 3.7-5.5 3.7z`,
   b: circle(12, 12, 9.5),
 };
 export const SoundIcon: IconDef = {
@@ -159,9 +159,11 @@ export const SoundIcon: IconDef = {
   b: "M4 9.5h3.5L13 5v14l-5.5-4.5H4z",
 };
 export const SunIcon: IconDef = {
-  s:
-    circle(12, 12, 4) +
-    "M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4",
+  s: `${circle(
+    12,
+    12,
+    4,
+  )}M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4`,
   b: circle(12, 12, 4),
 };
 export const MoonIcon: IconDef = {
@@ -186,12 +188,12 @@ export const InfoIcon: IconDef = {
   sign: "info",
 };
 export const NoIcon: IconDef = {
-  s: circle(12, 12, 9) + "M5.6 5.6l12.8 12.8",
+  s: `${circle(12, 12, 9)}M5.6 5.6l12.8 12.8`,
   b: circle(12, 12, 9),
   sign: "no",
 };
 export const DoneIcon: IconDef = {
-  s: circle(12, 12, 9) + "M8 12.3l2.8 2.8L16.2 9.6",
+  s: `${circle(12, 12, 9)}M8 12.3l2.8 2.8L16.2 9.6`,
   b: circle(12, 12, 9),
   sign: "done",
 };
@@ -203,18 +205,20 @@ export const FinishIcon: IconDef = {
 
 // Road (ours alone)
 export const TrafficLightIcon: IconDef = {
-  s:
-    "M7 2.5h10v19H7z" +
-    circle(12, 7, 1.8) +
-    circle(12, 12, 1.8) +
-    circle(12, 17, 1.8),
+  s: `M7 2.5h10v19H7z${circle(12, 7, 1.8)}${circle(
+    12,
+    12,
+    1.8,
+  )}${circle(12, 17, 1.8)}`,
   b: "M7 2.5h10v19H7z",
   sign: "traffic-light",
 };
 export const PelicanIcon: IconDef = {
-  s:
-    circle(8, 6.5, 2.5) +
-    "M10.4 5.8L21 8.2M10.2 8Q15.5 13.5 21 8.2M6.2 8.3C4.8 10.8 5.4 13.2 8 14.5H17C17 18.2 14 21 10 21C6.2 21 3.5 18.6 3.5 15.6",
+  s: `${circle(
+    8,
+    6.5,
+    2.5,
+  )}M10.4 5.8L21 8.2M10.2 8Q15.5 13.5 21 8.2M6.2 8.3C4.8 10.8 5.4 13.2 8 14.5H17C17 18.2 14 21 10 21C6.2 21 3.5 18.6 3.5 15.6`,
   b: "M10.4 5.8L21 8.2Q15.5 13.5 10.2 8z",
   f: circle(8, 6.2, 0.8),
   sign: "pelican",
@@ -234,7 +238,7 @@ export const CalendarIcon: IconDef = {
   b: "M5 6h14v14H5z",
 };
 export const PinIcon: IconDef = {
-  s: "M12 21.5s-7-6-7-12a7 7 0 0 1 14 0c0 6-7 12-7 12z" + circle(12, 9.5, 2.5),
+  s: `M12 21.5s-7-6-7-12a7 7 0 0 1 14 0c0 6-7 12-7 12z${circle(12, 9.5, 2.5)}`,
   b: "M12 21.5s-7-6-7-12a7 7 0 0 1 14 0c0 6-7 12-7 12z",
   sign: "info",
 };

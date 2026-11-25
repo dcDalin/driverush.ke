@@ -4,8 +4,8 @@ import { BOARD_CHALLENGES, isTurnTask } from "./challenges";
 import { BOARD_FEATURES } from "./features";
 import { BOUNDS, goalBox, onTarmac } from "./full-board";
 import {
-  ARMS,
   allowedTurns,
+  ARMS,
   lanePoint,
   lanesForTurn,
   locate,
@@ -13,19 +13,19 @@ import {
 } from "./geometry";
 import {
   APPROACHES,
-  LESSONS,
   challengeRoute,
   laneOptions,
   lessonPlan,
   lessonRoute,
+  LESSONS,
 } from "./lessons";
 import {
   controlAhead,
   laneStart,
   network,
+  type Place,
   planRoute,
   poseAt,
-  type Place,
   type Route,
 } from "./network";
 

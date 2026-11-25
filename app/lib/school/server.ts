@@ -4,8 +4,8 @@
  * they are, and the cookies to send back. Pages that need it 404 in a build
  * with accounts off.
  */
-import { data } from "react-router";
 import type { PostgrestError } from "@supabase/supabase-js";
+import { data } from "react-router";
 
 import { getCaller } from "~/lib/supabase/caller.server";
 import { createSupabaseServerClient } from "~/lib/supabase/server";

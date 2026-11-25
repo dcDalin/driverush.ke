@@ -1,21 +1,20 @@
 import * as React from "react";
+
 import {
+  CheckIcon,
   FocusIcon,
   RotateIcon,
   ShuffleIcon,
-  CheckIcon,
-  TrafficLightIcon,
   SoundIcon,
+  TrafficLightIcon,
 } from "~/components/brand/icons";
-
 import {
-  SIGN_CATEGORIES,
-  type SignCategory,
-  type SignCategoryId,
-} from "~/lib/signs-3d";
-import { masteredCount } from "~/lib/pelican-progress";
-import { useSigns3DStore } from "~/lib/signs-3d-store";
-
+  ChipToggle,
+  SelectRow,
+  SettingSection,
+  SliderRow,
+  ToggleRow,
+} from "~/components/brand/setting-controls";
 import { Button } from "~/components/ui/button";
 import {
   Sheet,
@@ -25,13 +24,13 @@ import {
   SheetHeader,
   SheetTitle,
 } from "~/components/ui/sheet";
+import { masteredCount } from "~/lib/pelican-progress";
 import {
-  ChipToggle,
-  SelectRow,
-  SettingSection,
-  SliderRow,
-  ToggleRow,
-} from "~/components/brand/setting-controls";
+  SIGN_CATEGORIES,
+  type SignCategory,
+  type SignCategoryId,
+} from "~/lib/signs-3d";
+import { useSigns3DStore } from "~/lib/signs-3d-store";
 
 /** The 3D trainer's right-side settings sheet — driven by the Zustand store. */
 export function Sign3DSettingsSheet() {
@@ -44,7 +43,7 @@ export function Sign3DSettingsSheet() {
   const resetSettings = useSigns3DStore((s) => s.resetSettings);
   const resetProgress = useSigns3DStore((s) => s.resetProgress);
 
-  const signs = board?.signs ?? [];
+  const signs = React.useMemo(() => board?.signs ?? [], [board]);
   const shuffled = settings.order === "shuffle";
 
   const countByCat = React.useMemo(() => {

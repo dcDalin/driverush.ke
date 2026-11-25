@@ -11,8 +11,6 @@
  * external HDRI fetch) whose soft glare drifts across the gloss as the sign turns,
  * plus a soft contact shadow to ground it.
  */
-import * as React from "react";
-import { Canvas, useThree, type ThreeElements } from "@react-three/fiber";
 import {
   ContactShadows,
   Environment,
@@ -21,7 +19,10 @@ import {
   useGLTF,
   useTexture,
 } from "@react-three/drei";
+import { Canvas, type ThreeElements, useThree } from "@react-three/fiber";
+import * as React from "react";
 import * as THREE from "three";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 
 import { SIGN_BRAND } from "~/lib/sign-credits";
 import { useActiveTheme } from "~/lib/theme";
@@ -291,28 +292,24 @@ function sheetingMaterial(
     // Bare panels have no post to leave out, so every surface counts.
     shader.uniforms.uFaceMinZ = { value: hasPost ? POST_FRONT_Z : -Infinity };
     shader.uniforms.uPlateMinZ = { value: hasPost ? PLATE_MIN_Z : -Infinity };
-    shader.vertexShader =
-      "uniform float uFaceMinZ;\nvarying float vSheeting;\nvarying vec3 vSignPos;\nvarying vec3 vSignNormal;\n" +
-      shader.vertexShader.replace(
-        "#include <begin_vertex>",
-        `#include <begin_vertex>
+    shader.vertexShader = `uniform float uFaceMinZ;\nvarying float vSheeting;\nvarying vec3 vSignPos;\nvarying vec3 vSignNormal;\n${shader.vertexShader.replace(
+      "#include <begin_vertex>",
+      `#include <begin_vertex>
         // Sign faces all look down +Z, so this leaves out the back, edges and post.
         vSheeting = step(0.3, normal.z) * step(uFaceMinZ, position.z);
         vSignPos = position;
         vSignNormal = normal;`,
-      );
-    shader.fragmentShader =
-      "uniform float uRetroGain;\nuniform float uPlateMinZ;\nvarying float vSheeting;\nvarying vec3 vSignPos;\nvarying vec3 vSignNormal;\n" +
-      shader.fragmentShader
-        .replace(
-          "#include <emissivemap_fragment>",
-          `#include <emissivemap_fragment>\n${SHEETING_GLSL}`,
-        )
-        .replace(
-          "#include <lights_physical_fragment>",
-          `#include <lights_physical_fragment>
+    )}`;
+    shader.fragmentShader = `uniform float uRetroGain;\nuniform float uPlateMinZ;\nvarying float vSheeting;\nvarying vec3 vSignPos;\nvarying vec3 vSignNormal;\n${shader.fragmentShader
+      .replace(
+        "#include <emissivemap_fragment>",
+        `#include <emissivemap_fragment>\n${SHEETING_GLSL}`,
+      )
+      .replace(
+        "#include <lights_physical_fragment>",
+        `#include <lights_physical_fragment>
           material.clearcoat *= 1.0 - signBare;`,
-        );
+      )}`;
   };
   mat.customProgramCacheKey = () => "road-sign-sheeting";
   return mat;
@@ -429,6 +426,9 @@ function SignModel({
   );
 }
 
+/** What FitCamera needs of the orbit controls. */
+type ControlsHandle = { target: THREE.Vector3; update: () => void };
+
 /** After the model mounts (and on resize / framing changes), frame the sign's
  *  panel: target the upper region for sign-on-post models so the panel reads
  *  large with a bit of post below; fit the whole thing for panel-only models. */
@@ -440,10 +440,7 @@ function FitCamera({
   onFloor,
 }: {
   groupRef: React.RefObject<THREE.Group | null>;
-  controlsRef: React.RefObject<{
-    target: THREE.Vector3;
-    update: () => void;
-  } | null>;
+  controlsRef: React.RefObject<ControlsHandle | null>;
   zoom?: number;
   recomputeKey: string;
   onFloor: (y: number) => void;
@@ -621,7 +618,7 @@ function SceneContents({
   onModelReady,
 }: Sign3DCanvasProps) {
   const groupRef = React.useRef<THREE.Group | null>(null);
-  const controlsRef = React.useRef<any>(null);
+  const controlsRef = React.useRef<OrbitControlsImpl | null>(null);
   const [floorY, setFloorY] = React.useState(0);
   // Bumped when the model's geometry lands, to force FitCamera to re-frame.
   const [fitTick, setFitTick] = React.useState(0);

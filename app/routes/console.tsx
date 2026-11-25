@@ -10,9 +10,8 @@
  * (private.is_staff, private.is_su), so the page only hides what a caller
  * could not do anyway.
  */
-import { Link, data, redirect } from "react-router";
+import { data, Link, redirect } from "react-router";
 
-import type { Route } from "./+types/console";
 import { SiteNav } from "~/components/brand/site-nav";
 import {
   CreateSchool,
@@ -22,12 +21,14 @@ import {
 import { NeedsSignIn, NothingHere } from "~/components/school/signed-out";
 import { SPONSORS } from "~/lib/board/sponsors";
 import {
+  type ActionResult,
   reasonFor,
   signedInRequest,
-  type ActionResult,
 } from "~/lib/school/server";
 import { isStaff } from "~/lib/supabase/caller.server";
 import type { AppRole, SchoolRole } from "~/lib/supabase/types";
+
+import type { Route } from "./+types/console";
 
 export function meta() {
   return [

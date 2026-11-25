@@ -10,26 +10,67 @@ import { Link, useNavigate, useSearchParams } from "react-router";
 import { useShallow } from "zustand/react/shallow";
 
 import {
-  BOARD_CARS,
-  SMALL_CARS,
-  isBig,
-  resolveCar,
-  type BoardCarId,
-} from "~/lib/board/cars";
-import { startRound, useVisitSponsor } from "~/lib/board/sponsor-visit";
+  BoardCameraPad,
+  BoardZoomButtons,
+} from "~/components/board/board-camera";
+import { BoardCarPicks } from "~/components/board/board-car-picks";
+import { LevelCheer } from "~/components/board/board-cheer";
+import { BoardControls } from "~/components/board/board-controls";
+import { BoardFaultTip } from "~/components/board/board-fault-tip";
+import { BoardFinishCue } from "~/components/board/board-finish-cue";
+import { BoardFps } from "~/components/board/board-fps";
+import { BoardFreeSummary } from "~/components/board/board-free-summary";
+import { BoardLearn } from "~/components/board/board-learn";
+import { BoardLevel } from "~/components/board/board-level";
+import { BoardPlayback, routeLines } from "~/components/board/board-playback";
+import { BoardSettingsSheet } from "~/components/board/board-settings-sheet";
+import { BoardSheet } from "~/components/board/board-sheet";
+import { BoardSignCue } from "~/components/board/board-sign-cue";
+import { BoardViewer } from "~/components/board/board-viewer";
+import { DailyDriveLink } from "~/components/board/daily-drive-row";
+import { freeDriveHref } from "~/components/board/free-drive-row";
+import { LevelTestNote } from "~/components/board/level-test-note";
+import { OpenLevelsContext } from "~/components/board/levels-sheet-context";
 import {
   SponsorCredit,
   SponsorReadyCard,
 } from "~/components/board/sponsor-credit";
+import { useCourseStart } from "~/components/board/use-course-start";
+import { useParkingLayout } from "~/components/board/use-parking-layout";
+import { Icon } from "~/components/brand/icon";
+import {
+  CheckIcon,
+  ChevronLeftIcon,
+  CloseIcon,
+  GoIcon,
+  GridIcon,
+  InfoIcon,
+  MenuIcon,
+  PlayIcon,
+  RefreshIcon,
+  SettingsIcon,
+  StarIcon,
+} from "~/components/brand/icons";
+import { ShareButton } from "~/components/brand/share-button";
+import { Button } from "~/components/ui/button";
+import { analytics } from "~/lib/analytics";
 import { faultRule, faultTip } from "~/lib/board/board-rules";
 import {
-  BOARD_CHALLENGES,
+  BOARD_CARS,
+  type BoardCarId,
+  isBig,
+  resolveCar,
+  SMALL_CARS,
+} from "~/lib/board/cars";
+import {
   blockCars,
+  BOARD_CHALLENGES,
+  type BoardChallenge,
   hasReverse,
   isFreeDrive,
   isRouteTask,
-  type BoardChallenge,
 } from "~/lib/board/challenges";
+import { COURSE_LEVELS, levelAfter, levelById } from "~/lib/board/curriculum";
 import {
   BOUNDS,
   CAR_COLORS,
@@ -39,8 +80,8 @@ import {
 import type { Seat } from "~/lib/board/joystick";
 import { pickable, queueCars } from "~/lib/board/lane-queue";
 import {
-  ROUTE_COLOR,
   challengeRoute,
+  ROUTE_COLOR,
   taskGoalBox,
   taskParks,
   taskUsesAngleBay,
@@ -57,65 +98,21 @@ import {
   setVehicle,
   subscribeShowing,
 } from "~/lib/board/runtime";
-import type { Fault } from "~/lib/board/referee";
 import { SCORE_MAX } from "~/lib/board/score";
+import { startRound, useVisitSponsor } from "~/lib/board/sponsor-visit";
 import { peekAt, useStage } from "~/lib/board/stage";
-import { LevelCheer } from "~/components/board/board-cheer";
+import { levelHref } from "~/lib/board-guides";
 import {
   BOARD_CHALLENGE_IDS,
+  type BoardNotice,
   isFreeRun,
   rulesBroken,
   useBoardStore,
-  type BoardNotice,
 } from "~/lib/board-store";
-import { analytics } from "~/lib/analytics";
-import { levelHref } from "~/lib/board-guides";
 import { isDailyDrive, kenyaDay, recordDailyPass } from "~/lib/daily-drive";
-import { liveStreak, readPracticeStreak } from "~/lib/practice-streak";
-import { COURSE_LEVELS, levelAfter, levelById } from "~/lib/board/curriculum";
 import { signCounts } from "~/lib/pelican-progress";
+import { liveStreak, readPracticeStreak } from "~/lib/practice-streak";
 import { cn } from "~/lib/utils";
-
-import { useParkingLayout } from "~/components/board/use-parking-layout";
-
-import { Icon } from "~/components/brand/icon";
-import { ShareButton } from "~/components/brand/share-button";
-import {
-  CheckIcon,
-  ChevronLeftIcon,
-  CloseIcon,
-  GoIcon,
-  GridIcon,
-  InfoIcon,
-  PlayIcon,
-  MenuIcon,
-  RefreshIcon,
-  SettingsIcon,
-  StarIcon,
-} from "~/components/brand/icons";
-import { Button } from "~/components/ui/button";
-import {
-  BoardCameraPad,
-  BoardZoomButtons,
-} from "~/components/board/board-camera";
-import { BoardCarPicks } from "~/components/board/board-car-picks";
-import { BoardControls } from "~/components/board/board-controls";
-import { LevelTestNote } from "~/components/board/level-test-note";
-import { DailyDriveLink } from "~/components/board/daily-drive-row";
-import { useCourseStart } from "~/components/board/use-course-start";
-import { BoardFaultTip } from "~/components/board/board-fault-tip";
-import { BoardFinishCue } from "~/components/board/board-finish-cue";
-import { BoardFreeSummary } from "~/components/board/board-free-summary";
-import { freeDriveHref } from "~/components/board/free-drive-row";
-import { BoardFps } from "~/components/board/board-fps";
-import { BoardLearn } from "~/components/board/board-learn";
-import { BoardLevel } from "~/components/board/board-level";
-import { OpenLevelsContext } from "~/components/board/levels-sheet-context";
-import { BoardPlayback, routeLines } from "~/components/board/board-playback";
-import { BoardSettingsSheet } from "~/components/board/board-settings-sheet";
-import { BoardSheet } from "~/components/board/board-sheet";
-import { BoardSignCue } from "~/components/board/board-sign-cue";
-import { BoardViewer } from "~/components/board/board-viewer";
 
 // Only needed at the end of a round, and it brings framer-motion with it, so
 // people who land here to read the guide never download it.

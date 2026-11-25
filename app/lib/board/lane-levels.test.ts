@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { COURSE_LEVELS, levelById, levelDone, type Level } from "./curriculum";
+import { COURSE_LEVELS, type Level, levelById, levelDone } from "./curriculum";
 import { ARMS } from "./geometry";
 import { queueCars } from "./lane-queue";
 

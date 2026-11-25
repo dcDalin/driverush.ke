@@ -14,12 +14,11 @@
  */
 import * as React from "react";
 
+import { Icon } from "~/components/brand/icon";
+import { FocusIcon, MinusIcon, PlusIcon } from "~/components/brand/icons";
 import type { Seat } from "~/lib/board/joystick";
 import { cam, fitTable, followCar, panBy, zoomBy } from "~/lib/board/stage";
 import { cn } from "~/lib/utils";
-
-import { Icon } from "~/components/brand/icon";
-import { FocusIcon, MinusIcon, PlusIcon } from "~/components/brand/icons";
 
 /** The direction "away from me" on the table, for each seat. */
 const AWAY: Record<Seat, { x: number; z: number }> = {

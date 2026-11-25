@@ -10,20 +10,6 @@
  */
 import * as React from "react";
 
-import { analytics } from "~/lib/analytics";
-import { COURSE_LEVELS } from "~/lib/board/curriculum";
-import {
-  daysBetween,
-  isDay,
-  today,
-  type TestCardStage,
-  type TestRecord,
-  type TestResult,
-} from "~/lib/test-date";
-import { planPromise, testPlan } from "~/lib/test-plan";
-import { googleCalendarUrl, ICS_NAME, icsHref } from "~/lib/test-reminder";
-import { cn } from "~/lib/utils";
-
 import { ProudShare } from "~/components/board/proud-share";
 import { Icon } from "~/components/brand/icon";
 import { CalendarIcon } from "~/components/brand/icons";
@@ -34,6 +20,19 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "~/components/ui/popover";
+import { analytics } from "~/lib/analytics";
+import { COURSE_LEVELS } from "~/lib/board/curriculum";
+import {
+  daysBetween,
+  isDay,
+  type TestCardStage,
+  type TestRecord,
+  type TestResult,
+  today,
+} from "~/lib/test-date";
+import { planPromise, testPlan } from "~/lib/test-plan";
+import { googleCalendarUrl, ICS_NAME, icsHref } from "~/lib/test-reminder";
+import { cn } from "~/lib/utils";
 
 const linkButton =
   "min-h-11 px-3 text-[13.5px] font-semibold text-ink-2 underline underline-offset-4 outline-none hover:text-ink focus-visible:text-ink";

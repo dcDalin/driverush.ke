@@ -5,11 +5,11 @@
  */
 import {
   BOARD_LANDMARKS,
+  type Box,
   RING_R,
   ROADS,
   SOLID_TO,
   U_TURN_GAPS,
-  type Box,
 } from "./full-board";
 
 export type BoardFeature = {

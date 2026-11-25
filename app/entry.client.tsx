@@ -9,10 +9,10 @@
  * is unconfigured, so a missing token degrades to "no analytics", never to a
  * blank page.
  */
+import { PostHogProvider } from "@posthog/react";
 import { startTransition, StrictMode } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { HydratedRouter } from "react-router/dom";
-import { PostHogProvider } from "@posthog/react";
 
 import { initPostHog } from "~/lib/posthog";
 

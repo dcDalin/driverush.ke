@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import routes from "~/routes";
+
 import {
   cleanPath,
   LABELLED_ROUTE_IDS,
@@ -90,7 +91,7 @@ describe("pageMetaForPath", () => {
     .filter((r) => !r.file.startsWith("routes/tools/"))
     .map((r) => ({
       id: r.id ?? r.file.replace(/\.[^.]+$/, ""),
-      url: "/" + r.path!.replace(/:[^/]+/g, "sample"),
+      url: `/${r.path!.replace(/:[^/]+/g, "sample")}`,
     }));
 
   it("labels every page by its path as its route id does", () => {

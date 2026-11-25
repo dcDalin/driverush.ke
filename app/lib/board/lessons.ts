@@ -5,34 +5,34 @@
  */
 import { blockById, closedEdges } from "./blocks";
 import { CAR } from "./car";
-import { isFreeDrive, isRouteTask, type BoardChallenge } from "./challenges";
-import { goalBox, startOnBoard, type Box } from "./full-board";
+import { type BoardChallenge, isFreeDrive, isRouteTask } from "./challenges";
+import { type Box, goalBox, startOnBoard } from "./full-board";
 import {
-  ARMS,
   armForTurn,
+  type ArmId,
+  ARMS,
   laneBearing,
   lanePoint,
+  type LaneRule,
   laneRules,
   lanesForTurn,
   rulesFor,
-  type ArmId,
-  type LaneRule,
   type Turn,
 } from "./geometry";
 import {
   distanceNear,
   followFrom,
   laneNode,
+  type Maneuver,
+  type NetEdge,
   network,
+  type Plan,
   planRoute,
   poseAt,
   roundaboutWay,
+  type Route,
   routeOf,
   trimRoute,
-  type Maneuver,
-  type NetEdge,
-  type Plan,
-  type Route,
 } from "./network";
 import { parkingLayout, targetBays } from "./parking-layouts";
 import { accepted, findWays, type Way } from "./ways";

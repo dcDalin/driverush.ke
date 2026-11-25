@@ -8,17 +8,17 @@
  * table, so the referee that judges the driving tasks judges these too.
  */
 import { CAR } from "./car";
+import { BOARD_CARS, type BoardCarId, isBig, sizeOf, SMALL_CARS } from "./cars";
 import type { OtherCar, TurnChallenge } from "./challenges";
-import { BOARD_CARS, SMALL_CARS, isBig, sizeOf, type BoardCarId } from "./cars";
+import { SOLID_TO } from "./full-board";
 import {
-  ARMS,
   armForTurn,
+  type ArmId,
+  ARMS,
   laneBearing,
   lanePoint,
-  type ArmId,
 } from "./geometry";
-import { SOLID_TO } from "./full-board";
-import { laneOptions, type LaneOption } from "./lessons";
+import { type LaneOption, laneOptions } from "./lessons";
 
 export type QueuePose = { x: number; z: number; heading: number };
 

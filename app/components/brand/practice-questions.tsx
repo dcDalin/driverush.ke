@@ -2,14 +2,13 @@
  * Questions with the answer tucked into a native `<details>`: readable with no
  * JavaScript and fully present in the server's HTML, so search engines see them too.
  */
+import { MDX } from "~/components/brand/mdx-components";
 import {
   ALL_PRACTICE_QUESTIONS,
   PRACTICE_QUESTIONS,
   PRACTICE_TOPICS,
   type PracticeQuestion,
 } from "~/data/ntsa-practice-questions";
-
-import { MDX } from "~/components/brand/mdx-components";
 
 export function PracticeQuestions({
   questions = PRACTICE_QUESTIONS,

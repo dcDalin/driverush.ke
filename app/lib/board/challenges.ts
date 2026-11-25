@@ -10,17 +10,17 @@
  * `lessons.ts`, driven by the learner instead of watched, and the referee
  * checks the drive against that lesson's route.
  */
+import { blockById } from "./blocks";
+import { type BoardCarId, isBig, parkedModel } from "./cars";
 import {
-  ARMS,
   armForTurn,
+  type ArmId,
+  ARMS,
   laneBearing,
   lanePoint,
-  type ArmId,
   type Side,
   type Turn,
 } from "./geometry";
-import { blockById } from "./blocks";
-import { isBig, parkedModel, type BoardCarId } from "./cars";
 import { parkedCars } from "./parking-layouts";
 
 export type OtherCar = {

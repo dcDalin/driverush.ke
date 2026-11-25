@@ -6,10 +6,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   COURSE_LEVELS,
-  learnedKey,
-  UNITS,
   type CourseProgress,
+  learnedKey,
   type Level,
+  UNITS,
 } from "./board/curriculum";
 import {
   levelMoment,

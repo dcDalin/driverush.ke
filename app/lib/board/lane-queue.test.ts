@@ -5,21 +5,21 @@ import { sizeOf } from "./cars";
 import type { TurnChallenge } from "./challenges";
 import { goalBox } from "./full-board";
 import {
-  ARMS,
-  EXIT_CLEAR,
   allowedTurns,
   armForTurn,
-  bearingOf,
-  locate,
   type ArmId,
+  ARMS,
+  bearingOf,
+  EXIT_CLEAR,
+  locate,
   type Vec,
 } from "./geometry";
 import {
   pickable,
+  type QueueCar,
   queueCars,
   queueChallenge,
   queueGoal,
-  type QueueCar,
   type QueuePose,
 } from "./lane-queue";
 import type { Fault } from "./referee";

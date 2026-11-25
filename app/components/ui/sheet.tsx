@@ -1,9 +1,9 @@
-import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
 import { Dialog as DialogPrimitive } from "radix-ui";
+import type * as React from "react";
+
 import { Icon } from "~/components/brand/icon";
 import { CloseIcon } from "~/components/brand/icons";
-import { cva, type VariantProps } from "class-variance-authority";
-
 import { cn } from "~/lib/utils";
 
 const Sheet = DialogPrimitive.Root;
@@ -159,12 +159,12 @@ function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
 
 export {
   Sheet,
-  SheetTrigger,
+  SheetBody,
   SheetClose,
   SheetContent,
+  SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
-  SheetDescription,
-  SheetBody,
-  SheetFooter,
+  SheetTrigger,
 };

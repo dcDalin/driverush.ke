@@ -23,10 +23,10 @@ import { onTarmac } from "./full-board";
 import { bearingOf } from "./geometry";
 import {
   BLOCKED_ROUTES,
-  LESSONS,
   challengeRoute,
   lessonById,
   lessonPlan,
+  LESSONS,
 } from "./lessons";
 import { createLineState, lineStep } from "./lines";
 import { network, planRoute, poseAt, type Route } from "./network";

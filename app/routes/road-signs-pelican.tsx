@@ -1,32 +1,31 @@
 import { useEffect } from "react";
 import { Link } from "react-router";
+
 import { Icon } from "~/components/brand/icon";
 import {
   ArrowLeftIcon,
   SettingsIcon,
   Sign3DIcon,
 } from "~/components/brand/icons";
-
-import type { Route } from "./+types/road-signs-pelican";
-
-import { stagger } from "~/lib/motion";
-import { breadcrumbLd, pageMeta, ROAD_SIGN_KEYWORDS } from "~/lib/site";
-import { ogCardAlt, ogCardPath } from "~/lib/og-cards";
-import type { ImageFocusData } from "~/lib/image-focus";
-import pelicanJson from "~/data/road-signs-pelican.json";
-import { getPracticeRegions, usePelicanStore } from "~/lib/pelican-store";
-import { useTrainerLink } from "~/lib/use-trainer-link";
-
-import { Button } from "~/components/ui/button";
-import { SignCredit } from "~/components/brand/sign-credit";
+import { ImageFocusPlayer } from "~/components/brand/image-focus-player";
+import { PelicanSettingsSheet } from "~/components/brand/pelican-settings-sheet";
 import { Rail } from "~/components/brand/rail";
+import { SignCredit } from "~/components/brand/sign-credit";
 import { SiteFooter } from "~/components/brand/site-footer";
 import { SiteNav } from "~/components/brand/site-nav";
 import { LoadingPanel } from "~/components/brand/traffic-loader";
-import { ImageFocusPlayer } from "~/components/brand/image-focus-player";
-import { PelicanSettingsSheet } from "~/components/brand/pelican-settings-sheet";
 import { TrainerGuide } from "~/components/brand/trainer-guide";
+import { Button } from "~/components/ui/button";
+import pelicanJson from "~/data/road-signs-pelican.json";
+import type { ImageFocusData } from "~/lib/image-focus";
+import { stagger } from "~/lib/motion";
+import { ogCardAlt, ogCardPath } from "~/lib/og-cards";
+import { getPracticeRegions, usePelicanStore } from "~/lib/pelican-store";
 import { SIGN_COUNT } from "~/lib/road-signs";
+import { breadcrumbLd, pageMeta, ROAD_SIGN_KEYWORDS } from "~/lib/site";
+import { useTrainerLink } from "~/lib/use-trainer-link";
+
+import type { Route } from "./+types/road-signs-pelican";
 
 const board = pelicanJson as ImageFocusData;
 

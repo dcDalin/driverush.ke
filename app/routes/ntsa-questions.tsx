@@ -5,8 +5,8 @@
  */
 import { Link } from "react-router";
 
-import type { Route } from "./+types/ntsa-questions";
-
+import { GuideLayout } from "~/components/brand/guide-layout";
+import { PRACTICE_QUESTION_COUNT } from "~/components/brand/practice-questions";
 import Body from "~/guides/ntsa-questions.mdx";
 import {
   NTSA_QUESTIONS_CHECKED as CHECKED,
@@ -16,8 +16,7 @@ import {
 } from "~/lib/ntsa-questions-page";
 import { breadcrumbLd, graphLd, guideLd, pageMeta } from "~/lib/site";
 
-import { GuideLayout } from "~/components/brand/guide-layout";
-import { PRACTICE_QUESTION_COUNT } from "~/components/brand/practice-questions";
+import type { Route } from "./+types/ntsa-questions";
 
 export function meta(_: Route.MetaArgs) {
   return [

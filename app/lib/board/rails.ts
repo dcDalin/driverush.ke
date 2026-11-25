@@ -27,17 +27,17 @@
  */
 import { CAR, type CarState } from "./car";
 import {
+  type ArmId,
   ARMS,
-  SOLID_ZONE,
   bearingOf,
   locate,
   ringRadius,
+  SOLID_ZONE,
   turnBetween,
-  wrapPi,
-  type ArmId,
   type Vec,
+  wrapPi,
 } from "./geometry";
-import { network, type NetEdge } from "./network";
+import { type NetEdge, network } from "./network";
 
 const DEG = Math.PI / 180;
 
@@ -745,7 +745,7 @@ export function rails(
     others?: readonly { x: number; z: number }[];
     exitTo?: { arm: ArmId; lane: number } | null;
   } = {},
-  step = 1 / 60,
+  _step = 1 / 60,
 ): Steer | null {
   const edge = trackCar(state, car);
   const others = options.others ?? [];
@@ -768,7 +768,7 @@ export function rails(
   }
 
   // the plan, as it is laid out now; a change keeps going once begun
-  let plan = paths.find((p) => isPlan(p, state.plan)) ?? null;
+  const plan = paths.find((p) => isPlan(p, state.plan)) ?? null;
 
   if (knob == null) {
     // let go: keep to the plan while the car rolls to a stop

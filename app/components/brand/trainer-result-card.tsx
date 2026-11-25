@@ -3,34 +3,33 @@
  * you missed, one tap to drill them, and a link to try the same signs in the
  * other trainer. That last one is the moat at work: chart and 3D feed each other.
  */
-import type * as React from "react";
 import { motion, type Variants } from "framer-motion";
+import type * as React from "react";
 import { Link } from "react-router";
+
+import { RoundDoneScene } from "~/components/brand/art/scenes";
+import { CelebrationConfetti } from "~/components/brand/celebration-confetti";
 import { Icon } from "~/components/brand/icon";
 import {
   ArrowRightIcon,
   CloseIcon,
   RefreshIcon,
 } from "~/components/brand/icons";
-
+import { ShareButton } from "~/components/brand/share-button";
+import { Button } from "~/components/ui/button";
+import { Progress } from "~/components/ui/progress";
 import pelican from "~/data/road-signs-pelican.json";
-import { regionSpriteStyle, type FocusRegion } from "~/lib/image-focus";
-import { signCrop } from "~/lib/sign-crops";
+import { type FocusRegion, regionSpriteStyle } from "~/lib/image-focus";
 import { ease } from "~/lib/motion";
 import type { SignCounts } from "~/lib/pelican-progress";
 import { liveStreak, readPracticeStreak } from "~/lib/practice-streak";
 import type { SharePayload } from "~/lib/share";
+import { signCrop } from "~/lib/sign-crops";
 import {
   ROUND_SIZE,
-  trainerHref,
   type RunScopeKind,
+  trainerHref,
 } from "~/lib/trainer-rounds";
-
-import { Button } from "~/components/ui/button";
-import { Progress } from "~/components/ui/progress";
-import { CelebrationConfetti } from "~/components/brand/celebration-confetti";
-import { ShareButton } from "~/components/brand/share-button";
-import { RoundDoneScene } from "~/components/brand/art/scenes";
 
 const CARD = {
   hidden: {},

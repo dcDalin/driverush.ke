@@ -8,7 +8,7 @@ import { PlayIcon, RefreshIcon } from "~/components/brand/icons";
 import { Button } from "~/components/ui/button";
 import { faultRule, faultTip } from "~/lib/board/board-rules";
 import type { FaultId } from "~/lib/board/referee";
-import { rulesBroken, type FreeEntry } from "~/lib/board-store";
+import { type FreeEntry, rulesBroken } from "~/lib/board-store";
 
 import { BoardSheet } from "./board-sheet";
 

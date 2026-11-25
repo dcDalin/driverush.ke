@@ -11,25 +11,8 @@
 import * as React from "react";
 import { Link } from "react-router";
 
-import { BOARD_PLAY_PATH, levelHref } from "~/lib/board-guides";
-import {
-  KIND_LABEL,
-  UNITS,
-  levelDone,
-  levelState,
-  nextLevel,
-  unitState,
-  type CourseProgress,
-  type Level,
-  type LevelKind,
-  type LevelState,
-  type UnitState,
-} from "~/lib/board/curriculum";
-import { useCourseProgress } from "~/lib/use-course-progress";
-import { cn } from "~/lib/utils";
-
-import { Icon } from "~/components/brand/icon";
 import { useSkipAhead } from "~/components/board/skip-ahead";
+import { Icon } from "~/components/brand/icon";
 import {
   CheckIcon,
   ChevronRightIcon,
@@ -39,6 +22,22 @@ import {
 } from "~/components/brand/icons";
 import { Badge, type BadgeProps } from "~/components/ui/badge";
 import { Progress } from "~/components/ui/progress";
+import {
+  type CourseProgress,
+  KIND_LABEL,
+  type Level,
+  levelDone,
+  type LevelKind,
+  type LevelState,
+  levelState,
+  nextLevel,
+  UNITS,
+  type UnitState,
+  unitState,
+} from "~/lib/board/curriculum";
+import { BOARD_PLAY_PATH, levelHref } from "~/lib/board-guides";
+import { useCourseProgress } from "~/lib/use-course-progress";
+import { cn } from "~/lib/utils";
 
 const KIND_BADGE: Record<LevelKind, BadgeProps["variant"]> = {
   warmup: "rush",

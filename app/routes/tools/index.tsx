@@ -1,12 +1,12 @@
 import { Link } from "react-router";
+
 import { Icon } from "~/components/brand/icon";
 import { ArrowRightIcon } from "~/components/brand/icons";
-
-import type { Route } from "./+types/index";
-
+import { Button } from "~/components/ui/button";
 import { TOOLS } from "~/lib/tools";
 import { cn } from "~/lib/utils";
-import { Button } from "~/components/ui/button";
+
+import type { Route } from "./+types/index";
 
 export function meta(_: Route.MetaArgs) {
   return [

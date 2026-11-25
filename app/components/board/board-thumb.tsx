@@ -9,11 +9,10 @@
  *
  * It is only a picture. Whoever uses it makes it a link.
  */
-import { posterPath, posterSchool } from "~/lib/board/poster";
-import { cn } from "~/lib/utils";
-
 import { Icon } from "~/components/brand/icon";
 import { PlayIcon } from "~/components/brand/icons";
+import { posterPath, posterSchool } from "~/lib/board/poster";
+import { cn } from "~/lib/utils";
 
 /** The small file's own size, so the page keeps its shape while it loads. */
 const WIDTH = 1200;

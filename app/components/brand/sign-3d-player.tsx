@@ -1,46 +1,44 @@
+import { AnimatePresence, motion, type Variants } from "framer-motion";
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion, type Variants } from "framer-motion";
+import { useShallow } from "zustand/react/shallow";
+
 import { Icon } from "~/components/brand/icon";
 import {
+  CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   CloseIcon,
-  SettingsIcon,
   DragIcon,
   PauseIcon,
   PlayIcon,
   RefreshIcon,
-  CheckIcon,
+  SettingsIcon,
   SoundIcon,
 } from "~/components/brand/icons";
-import { useShallow } from "zustand/react/shallow";
-
-import { getSignCategory } from "~/lib/signs-3d";
-import { ease, transition } from "~/lib/motion";
-import { isMastered, signCounts } from "~/lib/pelican-progress";
-import { runTally, type RunScope } from "~/lib/trainer-rounds";
-import {
-  getPracticeSigns,
-  selectCanResume,
-  useSigns3DStore,
-} from "~/lib/signs-3d-store";
-import { missTip } from "~/lib/miss-tips";
-import { cn } from "~/lib/utils";
-
+import { MissTip } from "~/components/brand/miss-tip";
+import { RevealCountdown } from "~/components/brand/reveal-countdown";
+import { Sign3DViewer } from "~/components/brand/sign-3d-viewer";
+import { TrainerReadyPanel } from "~/components/brand/trainer-ready-panel";
+import { TrainerResultCard } from "~/components/brand/trainer-result-card";
 import { Button } from "~/components/ui/button";
-import { Progress } from "~/components/ui/progress";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetTitle,
 } from "~/components/ui/sheet";
-import { RevealCountdown } from "~/components/brand/reveal-countdown";
-import { TrainerReadyPanel } from "~/components/brand/trainer-ready-panel";
-import { TrainerResultCard } from "~/components/brand/trainer-result-card";
-import { MissTip } from "~/components/brand/miss-tip";
-import { Sign3DViewer } from "~/components/brand/sign-3d-viewer";
+import { missTip } from "~/lib/miss-tips";
+import { ease, transition } from "~/lib/motion";
+import { isMastered, signCounts } from "~/lib/pelican-progress";
+import { getSignCategory } from "~/lib/signs-3d";
+import {
+  getPracticeSigns,
+  selectCanResume,
+  useSigns3DStore,
+} from "~/lib/signs-3d-store";
+import { type RunScope, runTally } from "~/lib/trainer-rounds";
+import { cn } from "~/lib/utils";
 
 const STREAK_CALLOUTS = new Set([3, 5, 10]);
 

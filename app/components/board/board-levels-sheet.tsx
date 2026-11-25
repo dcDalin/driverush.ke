@@ -9,17 +9,6 @@
 import type * as React from "react";
 import { Link, useNavigate } from "react-router";
 
-import {
-  COURSE_LEVELS,
-  levelAfter,
-  levelBefore,
-  levelState,
-  nextLevel,
-  type CourseProgress,
-  type Level,
-} from "~/lib/board/curriculum";
-import { useCourseProgress } from "~/lib/use-course-progress";
-
 import { LevelPicker } from "~/components/board/level-picker";
 import { hrefOfLevel, useSkipAhead } from "~/components/board/skip-ahead";
 import { Icon } from "~/components/brand/icon";
@@ -30,6 +19,16 @@ import {
   CloseIcon,
 } from "~/components/brand/icons";
 import { Sheet, SheetContent, SheetTitle } from "~/components/ui/sheet";
+import {
+  COURSE_LEVELS,
+  type CourseProgress,
+  type Level,
+  levelAfter,
+  levelBefore,
+  levelState,
+  nextLevel,
+} from "~/lib/board/curriculum";
+import { useCourseProgress } from "~/lib/use-course-progress";
 
 const arrow =
   "inline-flex size-11 shrink-0 items-center justify-center rounded-soft border border-ink/25 bg-surface text-ink no-underline outline-none transition-colors hover:bg-paper-2 focus-visible:bg-paper-2 disabled:opacity-30";

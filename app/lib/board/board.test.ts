@@ -6,49 +6,48 @@ import { faultTip } from "./board-rules";
 import { CAR } from "./car";
 import {
   BOARD_CHALLENGES,
-  isRouteTask,
   type BoardChallenge,
+  isRouteTask,
   type TurnChallenge,
 } from "./challenges";
-import { BOUNDS, ROADS, U_TURN_GAPS, onTarmac } from "./full-board";
+import { BOUNDS, onTarmac, ROADS, U_TURN_GAPS } from "./full-board";
 import {
-  ARMS,
-  ISLAND_R,
-  OPTION_CODES,
-  SOLID_ZONE,
   allowedTurns,
   armForTurn,
   armHalfWidth,
+  ARMS,
   bearingOf,
   exitLanes,
+  ISLAND_R,
   laneBearing,
   lanePoint,
-  lanesForTurn,
   laneRules,
-  ringLanes,
-  rulesFor,
+  lanesForTurn,
   locate,
+  OPTION_CODES,
+  ringLanes,
   ringRadius,
-  turnBetween,
-  wrapPi,
+  rulesFor,
+  SOLID_ZONE,
   type Turn,
+  turnBetween,
   type Vec,
+  wrapPi,
 } from "./geometry";
-import { SEATS, stickBearing, type Seat } from "./joystick";
+import { type Seat, SEATS, stickBearing } from "./joystick";
 import { lanePath, turnBackPath } from "./lane-paths";
 import { challengeRoute, taskParks, taskUsesAngleBay } from "./lessons";
 import { distanceNear, network, poseAt, type Route } from "./network";
 import {
-  PARKING_LAYOUTS,
   parkedCars,
+  PARKING_LAYOUTS,
   parkingLayout,
   setParkingLayout,
   shuffleParkingLayout,
   targetBays,
 } from "./parking-layouts";
 import { createPhysics, physicsStep } from "./physics";
-import { STOPS_ALWAYS, type Fault } from "./referee";
-import { OFF_ROUTE_SCORE, SCORE_MAX } from "./score";
+import { type Fault, STOPS_ALWAYS } from "./referee";
 import {
   beginChallenge,
   car,
@@ -60,6 +59,7 @@ import {
   tick,
   view,
 } from "./runtime";
+import { OFF_ROUTE_SCORE, SCORE_MAX } from "./score";
 
 const STEP = 1 / 60;
 /** How hard the car slows once the knob is let go, m/s². */

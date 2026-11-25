@@ -1,19 +1,30 @@
 import * as React from "react";
 import { useFetcher } from "react-router";
-import { Icon } from "~/components/brand/icon";
 import { toast } from "sonner";
+
+import { Icon } from "~/components/brand/icon";
 import {
   ChevronDownIcon,
   ChevronUpIcon,
   CopyIcon,
   DeleteIcon,
   DownloadIcon,
-  SaveIcon,
   PlusIcon,
+  SaveIcon,
 } from "~/components/brand/icons";
-
-import type { Route } from "./+types/sign-3d";
-
+import { SelectRow, SliderRow } from "~/components/brand/setting-controls";
+import { Sign3DViewer } from "~/components/brand/sign-3d-viewer";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import { Textarea } from "~/components/ui/textarea";
+import {
+  isDevWriteEnabled,
+  listModelFiles,
+  listSoundFiles,
+  readBoard3D,
+  writeBoard3D,
+} from "~/lib/road-signs-3d-data.server";
 import {
   emptyBoard3D,
   moveSignToIndex,
@@ -22,21 +33,9 @@ import {
   type SignCategoryId,
   type Signs3DData,
 } from "~/lib/signs-3d";
-import {
-  isDevWriteEnabled,
-  listModelFiles,
-  listSoundFiles,
-  readBoard3D,
-  writeBoard3D,
-} from "~/lib/road-signs-3d-data.server";
 import { cn } from "~/lib/utils";
 
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
-import { Textarea } from "~/components/ui/textarea";
-import { SelectRow, SliderRow } from "~/components/brand/setting-controls";
-import { Sign3DViewer } from "~/components/brand/sign-3d-viewer";
+import type { Route } from "./+types/sign-3d";
 
 export function meta(_: Route.MetaArgs) {
   return [

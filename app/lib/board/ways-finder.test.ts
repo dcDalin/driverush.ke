@@ -9,7 +9,7 @@
 import { describe, it } from "vitest";
 
 import { blocks, closedEdges } from "./blocks";
-import { network, type NetEdge } from "./network";
+import { type NetEdge, network } from "./network";
 import { accepted, findWays, shownWays } from "./ways";
 
 const run = process.env.FIND ? describe : describe.skip;

@@ -10,11 +10,10 @@
  */
 import * as React from "react";
 
-import { controlAhead, type Control } from "~/lib/board/network";
+import { SignImage } from "~/components/brand/sign-image";
+import { type Control, controlAhead } from "~/lib/board/network";
 import { car } from "~/lib/board/runtime";
 import { signPageBySlug } from "~/lib/road-sign-pages";
-
-import { SignImage } from "~/components/brand/sign-image";
 
 const CUES: Record<Control, { slug: string; name: string; means: string }> = {
   give_way: {

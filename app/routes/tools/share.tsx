@@ -1,5 +1,6 @@
 import * as React from "react";
 import { toast } from "sonner";
+
 import { Icon } from "~/components/brand/icon";
 import {
   ArrowOutIcon,
@@ -7,18 +8,6 @@ import {
   LinkIcon,
   RefreshIcon,
 } from "~/components/brand/icons";
-
-import type { Route } from "./+types/share";
-
-import { SITE } from "~/lib/site";
-import {
-  UTM_CAMPAIGNS,
-  UTM_CHANNELS,
-  type UtmChannel,
-  addUtm,
-  utmSlug,
-} from "~/lib/utm";
-
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -29,6 +18,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
+import { SITE } from "~/lib/site";
+import {
+  addUtm,
+  UTM_CAMPAIGNS,
+  UTM_CHANNELS,
+  type UtmChannel,
+  utmSlug,
+} from "~/lib/utm";
+
+import type { Route } from "./+types/share";
 
 export function meta(_: Route.MetaArgs) {
   return [
@@ -55,7 +54,7 @@ const CHANNEL_OPTIONS: { value: UtmChannel | "custom"; label: string }[] = [
   { value: "custom", label: "Custom…" },
 ];
 
-const DEFAULT_URL = SITE.url.replace(/\/$/, "") + "/";
+const DEFAULT_URL = `${SITE.url.replace(/\/$/, "")}/`;
 
 export default function ShareBuilder() {
   const [url, setUrl] = React.useState(DEFAULT_URL);

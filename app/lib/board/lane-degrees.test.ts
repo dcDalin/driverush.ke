@@ -10,16 +10,16 @@ import { faultTip } from "./board-rules";
 import { CAR } from "./car";
 import type { TurnChallenge } from "./challenges";
 import {
-  ARMS,
   armForTurn,
+  type ArmId,
+  ARMS,
   bearingOf,
   laneRules,
   locate,
   loopsAt,
   optionSweep,
-  turnSweep,
-  type ArmId,
   type Turn,
+  turnSweep,
   type Vec,
 } from "./geometry";
 import { lanePath } from "./lane-paths";

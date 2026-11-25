@@ -15,32 +15,31 @@
  * Where the car goes is not judged here. That is the task's business.
  */
 import type { CarState } from "./car";
-import { ROADS, kerbHighlights } from "./full-board";
+import { kerbHighlights, ROADS } from "./full-board";
 import {
+  type ArmId,
   ARMS,
-  EXIT_CLEAR,
-  LANE_W,
-  RING_LANES,
-  RING_LANE_W,
-  RING_OUTER_R,
-  TAU,
   bearingOf,
   dirOf,
+  EXIT_CLEAR,
   exitLanes,
+  LANE_W,
   laneBearing,
   lastExitSweep,
   locate,
+  type Location,
   loopsAt,
+  RING_LANE_W,
+  RING_LANES,
+  RING_OUTER_R,
   ringLanes,
   rulesFor,
-  turnBetween,
-  wrapPi,
-  type ArmId,
-  type Location,
-  type Vec,
   type Turn,
+  turnBetween,
+  type Vec,
+  wrapPi,
 } from "./geometry";
-import { createLineState, lineStep, type LineState } from "./lines";
+import { createLineState, type LineState, lineStep } from "./lines";
 import { network } from "./network";
 import type { Contact } from "./physics";
 import type { Fault, SmallFaultId } from "./referee";

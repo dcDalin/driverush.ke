@@ -41,30 +41,22 @@ export function guestVisitScript(supabaseUrl: string | undefined): string {
   );
   return [
     "try{",
-    "var L=localStorage,S=sessionStorage,K=" +
-      j(Object.values(PROGRESS_KEYS)) +
-      ";",
+    `var L=localStorage,S=sessionStorage,K=${j(Object.values(PROGRESS_KEYS))};`,
     // Signed in: keep everything (it is the account's offline copy).
-    "if(new RegExp(" +
-      j("(^|; )" + cookie + "(\\.\\d+)?=") +
-      ").test(document.cookie)){L.setItem(" +
-      j(ACCOUNTS_SEEN_KEY) +
-      ",'1')}",
+    `if(new RegExp(${j(
+      `(^|; )${cookie}(\\.\\d+)?=`,
+    )}).test(document.cookie)){L.setItem(${j(ACCOUNTS_SEEN_KEY)},'1')}`,
     // Same visit (reload, another page): keep it.
-    "else if(!S.getItem(" + j(VISIT_KEY) + ")){",
-    "S.setItem(" + j(VISIT_KEY) + ",'1');",
+    `else if(!S.getItem(${j(VISIT_KEY)})){`,
+    `S.setItem(${j(VISIT_KEY)},'1');`,
     "var f={},a=0,i,v;for(i=0;i<K.length;i++){v=L.getItem(K[i]);if(v!=null){f[K[i]]=v;a=1}}",
-    "var first=!L.getItem(" +
-      j(ACCOUNTS_SEEN_KEY) +
-      ");L.setItem(" +
-      j(ACCOUNTS_SEEN_KEY) +
-      ",'1');",
+    `var first=!L.getItem(${j(ACCOUNTS_SEEN_KEY)});L.setItem(${j(
+      ACCOUNTS_SEEN_KEY,
+    )},'1');`,
     // First time accounts are on: set old progress aside for the first sign-in.
-    "if(a&&first&&!L.getItem(" +
-      j(LEGACY_KEY) +
-      "))L.setItem(" +
-      j(LEGACY_KEY) +
-      ",JSON.stringify(f));",
+    `if(a&&first&&!L.getItem(${j(LEGACY_KEY)}))L.setItem(${j(
+      LEGACY_KEY,
+    )},JSON.stringify(f));`,
     "for(i=0;i<K.length;i++)L.removeItem(K[i])",
     "}",
     "}catch(e){}",

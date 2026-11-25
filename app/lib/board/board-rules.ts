@@ -4,7 +4,7 @@
  * the NTSA Kenya Learner Driver Handbook, Unit 3, and the lane options the way
  * Perez's Model Town Board tutorial teaches them (`LANE_OPTIONS`).
  */
-import { lanesForTurn, rulesFor, type LaneRule, type Turn } from "./geometry";
+import { type LaneRule, lanesForTurn, rulesFor, type Turn } from "./geometry";
 import type { Fault, FaultId } from "./referee";
 
 export const RULES_SOURCE = "Kenya Learner Driver Handbook, NTSA";

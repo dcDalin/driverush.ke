@@ -2,8 +2,8 @@ import * as React from "react";
 
 import {
   computeRegionTransform,
-  IDENTITY_REGION_TRANSFORM,
   type FocusRegion,
+  IDENTITY_REGION_TRANSFORM,
 } from "~/lib/image-focus";
 import { cn } from "~/lib/utils";
 

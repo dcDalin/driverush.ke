@@ -1,37 +1,37 @@
 import { Link } from "react-router";
-import type { Route } from "./+types/road-signs";
 
-import { absUrl, breadcrumbLd, pageMeta, ROAD_SIGN_KEYWORDS } from "~/lib/site";
-import { stagger } from "~/lib/motion";
-import { ogCardAlt, ogCardPath } from "~/lib/og-cards";
-import { SIGN_COUNT } from "~/lib/road-signs";
+import { Accordion, AccordionItem } from "~/components/brand/accordion";
+import { Callout } from "~/components/brand/callout";
+import { GuideFold, useHashOpens } from "~/components/brand/guide-fold";
+import { SectionHead } from "~/components/brand/section-head";
+import { ShareButton } from "~/components/brand/share-button";
+import { SignCard } from "~/components/brand/sign-card";
+import { SignClassList } from "~/components/brand/sign-class-list";
+import { SignCredit } from "~/components/brand/sign-credit";
+import { SignTrainerList } from "~/components/brand/sign-trainer-list";
+import { SiteFooter } from "~/components/brand/site-footer";
+import { SiteNav } from "~/components/brand/site-nav";
+import { SignCheck } from "~/components/home/sign-check";
+import { Badge } from "~/components/ui/badge";
 import {
   SIGN_CATEGORIES,
   type SignShape,
   type SignTone,
 } from "~/data/road-signs-reference";
+import { stagger } from "~/lib/motion";
+import { ogCardAlt, ogCardPath } from "~/lib/og-cards";
 import {
-  SIGN_PAGES,
   isSignConfirmed,
+  SIGN_PAGES,
   signHeading,
   signPagePath,
 } from "~/lib/road-sign-pages";
+import { SIGN_COUNT } from "~/lib/road-signs";
 import { SIGN_CLASS_PAGES } from "~/lib/sign-class-pages";
+import { absUrl, breadcrumbLd, pageMeta, ROAD_SIGN_KEYWORDS } from "~/lib/site";
 import { cn } from "~/lib/utils";
 
-import { Badge } from "~/components/ui/badge";
-import { Accordion, AccordionItem } from "~/components/brand/accordion";
-import { Callout } from "~/components/brand/callout";
-import { SignCredit } from "~/components/brand/sign-credit";
-import { SectionHead } from "~/components/brand/section-head";
-import { ShareButton } from "~/components/brand/share-button";
-import { SignCard } from "~/components/brand/sign-card";
-import { SignClassList } from "~/components/brand/sign-class-list";
-import { SiteFooter } from "~/components/brand/site-footer";
-import { SiteNav } from "~/components/brand/site-nav";
-import { SignCheck } from "~/components/home/sign-check";
-import { GuideFold, useHashOpens } from "~/components/brand/guide-fold";
-import { SignTrainerList } from "~/components/brand/sign-trainer-list";
+import type { Route } from "./+types/road-signs";
 
 const PATH = "/road-signs";
 /** Classes the trainers don't drill, so the text reference is all there is. */

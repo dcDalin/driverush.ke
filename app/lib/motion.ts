@@ -1,5 +1,5 @@
-import type { CSSProperties } from "react";
 import type { Transition } from "framer-motion";
+import type { CSSProperties } from "react";
 
 export const ease = {
   snap: [0.32, 0.72, 0, 1] as const,

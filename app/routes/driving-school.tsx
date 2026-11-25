@@ -4,8 +4,9 @@
  * fact carries the school's own source. The page states only what the school
  * publishes, says plainly when it publishes no prices, and never ranks.
  */
-import type { Route } from "./+types/driving-school";
-
+import { BoardStartCard } from "~/components/board/board-start-card";
+import { GuideLayout } from "~/components/brand/guide-layout";
+import { MDX } from "~/components/brand/mdx-components";
 import { sponsorById } from "~/lib/board/sponsors";
 import {
   DRIVING_SCHOOL_PAGES,
@@ -15,9 +16,7 @@ import {
 } from "~/lib/driving-school-pages";
 import { breadcrumbLd, graphLd, guideLd, pageMeta } from "~/lib/site";
 
-import { BoardStartCard } from "~/components/board/board-start-card";
-import { GuideLayout } from "~/components/brand/guide-layout";
-import { MDX } from "~/components/brand/mdx-components";
+import type { Route } from "./+types/driving-school";
 
 export function loader({ params }: Route.LoaderArgs) {
   const school = drivingSchoolBySlug(params.slug);

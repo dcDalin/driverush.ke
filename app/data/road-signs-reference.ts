@@ -15,12 +15,12 @@
  */
 import type { IconDef } from "~/components/brand/icons";
 import {
-  WarningIcon,
   GoIcon,
   NoIcon,
   PinIcon,
-  TrafficLightIcon,
   RoadIcon,
+  TrafficLightIcon,
+  WarningIcon,
 } from "~/components/brand/icons";
 
 /** Sign-frame shape, drives the clip-path on the category badge. */

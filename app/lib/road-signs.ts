@@ -4,7 +4,6 @@
  */
 import type { IconDef } from "~/components/brand/icons";
 import { PelicanIcon, Sign3DIcon } from "~/components/brand/icons";
-
 import pelican from "~/data/road-signs-pelican.json";
 
 /** How many signs the trainers cover. Copy states this number, never "every". */

@@ -3,13 +3,11 @@
  * whole-chart option, where you stand, and settings. Shared by both trainers.
  */
 import { Icon } from "~/components/brand/icon";
-import { SettingsIcon, PlayIcon } from "~/components/brand/icons";
-
-import type { SignCounts } from "~/lib/pelican-progress";
-import { ROUND_SIZE, type RunScope } from "~/lib/trainer-rounds";
-
+import { PlayIcon, SettingsIcon } from "~/components/brand/icons";
 import { Button } from "~/components/ui/button";
 import { Progress } from "~/components/ui/progress";
+import type { SignCounts } from "~/lib/pelican-progress";
+import { ROUND_SIZE, type RunScope } from "~/lib/trainer-rounds";
 
 export function TrainerReadyPanel({
   link,

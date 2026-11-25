@@ -10,23 +10,23 @@ import { useBoardStore } from "../board-store";
 import { CAR } from "./car";
 import {
   BOARD_CHALLENGES,
+  type BoardChallenge,
   challengeById,
   isRouteTask,
-  type BoardChallenge,
 } from "./challenges";
+import { bearingOf } from "./geometry";
 import {
   BLOCKED_ROUTES,
-  LESSONS,
   challengeWays,
   lessonById,
   lessonPlan,
+  LESSONS,
   lessonWays,
   taskParks,
 } from "./lessons";
-import { bearingOf } from "./geometry";
 import { poseAt, type Route } from "./network";
 import { car, loadPhysics, stick, tick } from "./runtime";
-import { shownWays, wayLimit, type Way } from "./ways";
+import { shownWays, type Way, wayLimit } from "./ways";
 
 const STEP = 1 / 60;
 const RELEASE_DECEL = 0.7 * CAR.brake + CAR.coast;

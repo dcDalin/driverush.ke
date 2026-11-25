@@ -18,10 +18,10 @@ import {
 } from "./geometry";
 import {
   createAssist,
+  type Keys,
   keyStick,
   stickBearing,
   stickToInput,
-  type Keys,
 } from "./joystick";
 import {
   beginChallenge,

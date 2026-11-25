@@ -2,12 +2,11 @@
  * `/privacy`: what DriveRush stores and measures. Keep it in step with
  * `docs/analytics.md` and `app/lib/posthog.ts`.
  */
-import type { Route } from "./+types/privacy";
-
+import { GuideLayout } from "~/components/brand/guide-layout";
 import Body from "~/guides/privacy.mdx";
 import { breadcrumbLd, graphLd, guideLd, pageMeta } from "~/lib/site";
 
-import { GuideLayout } from "~/components/brand/guide-layout";
+import type { Route } from "./+types/privacy";
 
 const PATH = "/privacy";
 const CHECKED = "2026-11-24";

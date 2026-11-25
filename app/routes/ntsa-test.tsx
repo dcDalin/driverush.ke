@@ -1,13 +1,12 @@
 /**
  * `/ntsa-test`: the NTSA driving test, step by step, with fees and practice questions.
  */
-import type { Route } from "./+types/ntsa-test";
-
+import { RoundDoneScene } from "~/components/brand/art/scenes";
+import { GuideLayout } from "~/components/brand/guide-layout";
 import Body from "~/guides/ntsa-test.mdx";
 import { breadcrumbLd, graphLd, guideLd, pageMeta } from "~/lib/site";
 
-import { GuideLayout } from "~/components/brand/guide-layout";
-import { RoundDoneScene } from "~/components/brand/art/scenes";
+import type { Route } from "./+types/ntsa-test";
 
 const PATH = "/ntsa-test";
 const CHECKED = "2026-11-05";

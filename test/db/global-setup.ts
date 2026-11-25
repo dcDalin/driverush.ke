@@ -14,6 +14,8 @@ export type LocalSupabase = {
 };
 
 declare module "vitest" {
+  // An interface on purpose: it merges into vitest's own ProvidedContext.
+  // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
   export interface ProvidedContext {
     supabase: LocalSupabase;
   }

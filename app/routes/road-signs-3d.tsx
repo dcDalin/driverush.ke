@@ -1,31 +1,30 @@
 import { useEffect } from "react";
 import { Link } from "react-router";
+
 import { Icon } from "~/components/brand/icon";
 import {
   ArrowLeftIcon,
   PelicanIcon,
   SettingsIcon,
 } from "~/components/brand/icons";
-
-import type { Route } from "./+types/road-signs-3d";
-
-import { stagger } from "~/lib/motion";
-import { breadcrumbLd, pageMeta, ROAD_SIGN_KEYWORDS } from "~/lib/site";
-import { ogCardAlt, ogCardPath } from "~/lib/og-cards";
-import type { Signs3DData } from "~/lib/signs-3d";
-import signs3dJson from "~/data/road-signs-3d.json";
-import { getPracticeSigns, useSigns3DStore } from "~/lib/signs-3d-store";
-import { useTrainerLink } from "~/lib/use-trainer-link";
-
-import { Button } from "~/components/ui/button";
-import { SignCredit } from "~/components/brand/sign-credit";
 import { Rail } from "~/components/brand/rail";
+import { Sign3DPlayer } from "~/components/brand/sign-3d-player";
+import { Sign3DSettingsSheet } from "~/components/brand/sign-3d-settings-sheet";
+import { SignCredit } from "~/components/brand/sign-credit";
 import { SiteFooter } from "~/components/brand/site-footer";
 import { SiteNav } from "~/components/brand/site-nav";
 import { LoadingPanel } from "~/components/brand/traffic-loader";
-import { Sign3DPlayer } from "~/components/brand/sign-3d-player";
-import { Sign3DSettingsSheet } from "~/components/brand/sign-3d-settings-sheet";
 import { TrainerGuide } from "~/components/brand/trainer-guide";
+import { Button } from "~/components/ui/button";
+import signs3dJson from "~/data/road-signs-3d.json";
+import { stagger } from "~/lib/motion";
+import { ogCardAlt, ogCardPath } from "~/lib/og-cards";
+import type { Signs3DData } from "~/lib/signs-3d";
+import { getPracticeSigns, useSigns3DStore } from "~/lib/signs-3d-store";
+import { breadcrumbLd, pageMeta, ROAD_SIGN_KEYWORDS } from "~/lib/site";
+import { useTrainerLink } from "~/lib/use-trainer-link";
+
+import type { Route } from "./+types/road-signs-3d";
 
 const board = signs3dJson as Signs3DData;
 

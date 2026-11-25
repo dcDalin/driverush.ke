@@ -2,9 +2,8 @@
  * Second on the home page, and the only other choice on it: the road signs,
  * as two short rows, each one tap from a first sign.
  */
-import { SIGN_COUNT } from "~/lib/road-signs";
-
 import { SignTrainerList } from "~/components/brand/sign-trainer-list";
+import { SIGN_COUNT } from "~/lib/road-signs";
 
 export function HomeSigns() {
   return (

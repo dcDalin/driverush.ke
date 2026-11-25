@@ -7,7 +7,7 @@
  * Blog posts can still import and place brand components inline — this only
  * styles the markdown shapes.
  */
-import * as React from "react";
+import type * as React from "react";
 import { Link } from "react-router";
 
 import { cn } from "~/lib/utils";
@@ -48,7 +48,7 @@ function MdxLink({ href, className, children, ...rest }: AnchorProps) {
  * `MDX.p`, `MDX.h2`, `MDX.table` and so on to match the page around them.
  */
 export const MDX = {
-  h1: (props: React.ComponentProps<"h1">) => (
+  h1: ({ children, ...props }: React.ComponentProps<"h1">) => (
     <h1
       {...props}
       className={cn(
@@ -56,7 +56,9 @@ export const MDX = {
         "[&_em]:font-serif [&_em]:font-normal [&_em]:text-rush [&_em]:normal-case",
         props.className,
       )}
-    />
+    >
+      {children}
+    </h1>
   ),
   table: (props: React.ComponentProps<"table">) => (
     <div className="my-6 overflow-x-auto">
@@ -78,7 +80,7 @@ export const MDX = {
       className="border border-line px-3 py-2 align-top text-ink-2"
     />
   ),
-  h2: (props: React.ComponentProps<"h2">) => (
+  h2: ({ children, ...props }: React.ComponentProps<"h2">) => (
     <h2
       {...props}
       className={cn(
@@ -86,9 +88,11 @@ export const MDX = {
         "[&_em]:font-serif [&_em]:font-normal [&_em]:text-rush [&_em]:normal-case",
         props.className,
       )}
-    />
+    >
+      {children}
+    </h2>
   ),
-  h3: (props: React.ComponentProps<"h3">) => (
+  h3: ({ children, ...props }: React.ComponentProps<"h3">) => (
     <h3
       {...props}
       className={cn(
@@ -96,7 +100,9 @@ export const MDX = {
         "[&_em]:font-serif [&_em]:font-normal [&_em]:text-rush [&_em]:normal-case",
         props.className,
       )}
-    />
+    >
+      {children}
+    </h3>
   ),
   p: (props: React.ComponentProps<"p">) => (
     <p

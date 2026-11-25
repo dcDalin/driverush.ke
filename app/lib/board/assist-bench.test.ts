@@ -38,11 +38,14 @@
  * The path assist made those changes for them, which is what learners said
  * felt like the car steering itself.
  */
+import { appendFileSync } from "node:fs";
+
 import { beforeAll, beforeEach, describe, it } from "vitest";
 
 import { useBoardStore } from "../board-store";
 import { ALL_LEVELS } from "./curriculum";
 import { bearingOf, wrapPi } from "./geometry";
+import { locate } from "./geometry";
 import { challengeRoute } from "./lessons";
 import {
   assistState,
@@ -53,7 +56,6 @@ import {
   tick,
   view,
 } from "./runtime";
-import { locate } from "./geometry";
 
 const STEP = 1 / 60;
 const DEG = Math.PI / 180;
@@ -391,7 +393,7 @@ describe.runIf(RUN)("assist bench", () => {
       };
       const text = JSON.stringify(report);
       if (OUT) {
-        require("node:fs").appendFileSync(OUT, text + "\n");
+        appendFileSync(OUT, `${text}\n`);
       } else {
         console.log(text);
       }

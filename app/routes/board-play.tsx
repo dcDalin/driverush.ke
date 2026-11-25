@@ -12,24 +12,24 @@
  */
 import * as React from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
-import type { Route } from "./+types/board-play";
 
+import { BoardGame } from "~/components/board/board-player";
+import { LoadingPanel } from "~/components/brand/traffic-loader";
 import { analytics } from "~/lib/analytics";
-import { BOARD_PATH } from "~/lib/board-guides";
 import { challengeById } from "~/lib/board/challenges";
-import { useBoardStore } from "~/lib/board-store";
-import { isDailyDrive, kenyaDay } from "~/lib/daily-drive";
 import {
   enterPlay,
   schoolHeld,
   useVisitSponsor,
 } from "~/lib/board/sponsor-visit";
+import { BOARD_PATH } from "~/lib/board-guides";
+import { useBoardStore } from "~/lib/board-store";
+import { isDailyDrive, kenyaDay } from "~/lib/daily-drive";
 import { ogCardAlt, ogCardPath } from "~/lib/og-cards";
 import { BOARD_KEYWORDS, pageMeta, SITE } from "~/lib/site";
 import { useThemeColor } from "~/lib/theme";
 
-import { BoardGame } from "~/components/board/board-player";
-import { LoadingPanel } from "~/components/brand/traffic-loader";
+import type { Route } from "./+types/board-play";
 
 export function meta(_: Route.MetaArgs) {
   return [

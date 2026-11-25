@@ -1,30 +1,43 @@
 import * as React from "react";
 import { useFetcher } from "react-router";
+import { toast } from "sonner";
+
 import { Icon } from "~/components/brand/icon";
 import type { IconDef } from "~/components/brand/icons";
-import { toast } from "sonner";
 import {
   ChevronDownIcon,
   ChevronUpIcon,
   CopyIcon,
   DeleteIcon,
   DownloadIcon,
-  SaveIcon,
-  ImageIcon,
   EditIcon,
+  ImageIcon,
+  SaveIcon,
 } from "~/components/brand/icons";
-
-import type { Route } from "./+types/image-coords";
-
+import {
+  NumberRow,
+  SelectRow,
+  SliderRow,
+  ToggleRow,
+} from "~/components/brand/setting-controls";
+import { FocusPreview } from "~/components/tools/focus-preview";
+import {
+  ImageRegionEditor,
+  type RegionGeometry,
+} from "~/components/tools/image-region-editor";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import { Textarea } from "~/components/ui/textarea";
 import {
   DEFAULT_IMAGE_FOCUS_SETTINGS,
+  type FocusRegion,
   getSignCategory,
+  type ImageFocusData,
+  type ImageFocusSettings,
   moveRegionToIndex,
   ROAD_SIGNS_IMAGE_SRC,
   SIGN_CATEGORIES,
-  type FocusRegion,
-  type ImageFocusData,
-  type ImageFocusSettings,
   type SignCategoryId,
 } from "~/lib/image-focus";
 import {
@@ -34,21 +47,7 @@ import {
 } from "~/lib/road-signs-data.server";
 import { cn } from "~/lib/utils";
 
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
-import { Textarea } from "~/components/ui/textarea";
-import {
-  NumberRow,
-  SelectRow,
-  SliderRow,
-  ToggleRow,
-} from "~/components/brand/setting-controls";
-import {
-  ImageRegionEditor,
-  type RegionGeometry,
-} from "~/components/tools/image-region-editor";
-import { FocusPreview } from "~/components/tools/focus-preview";
+import type { Route } from "./+types/image-coords";
 
 export function meta(_: Route.MetaArgs) {
   return [

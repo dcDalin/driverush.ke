@@ -7,11 +7,10 @@
  */
 import * as React from "react";
 
+import { ShareButton } from "~/components/brand/share-button";
 import { analytics } from "~/lib/analytics";
 import { markOffered, type ProudMoment } from "~/lib/proud-moments";
 import { cn } from "~/lib/utils";
-
-import { ShareButton } from "~/components/brand/share-button";
 
 /**
  * What they did, said to them. A finished unit or course is already cheered

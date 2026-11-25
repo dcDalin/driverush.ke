@@ -5,8 +5,11 @@
  * rows. Then a quiet row naming the driving schools whose colours the board's
  * cars wear. Nothing else. The guides are a tab away, and in the footer.
  */
-import type { Route } from "./+types/home";
-
+import { SiteFooter } from "~/components/brand/site-footer";
+import { SiteNav } from "~/components/brand/site-nav";
+import { HomeHero } from "~/components/home/home-hero";
+import { HomeSchools } from "~/components/home/home-schools";
+import { HomeSigns } from "~/components/home/home-signs";
 import { ogCardAlt, ogCardPath } from "~/lib/og-cards";
 import { SIGN_COUNT } from "~/lib/road-signs";
 import {
@@ -17,11 +20,7 @@ import {
   websiteLd,
 } from "~/lib/site";
 
-import { SiteFooter } from "~/components/brand/site-footer";
-import { SiteNav } from "~/components/brand/site-nav";
-import { HomeHero } from "~/components/home/home-hero";
-import { HomeSigns } from "~/components/home/home-signs";
-import { HomeSchools } from "~/components/home/home-schools";
+import type { Route } from "./+types/home";
 
 export function meta(_: Route.MetaArgs) {
   return [

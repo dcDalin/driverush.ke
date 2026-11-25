@@ -1,21 +1,18 @@
 import * as React from "react";
-import { Icon } from "~/components/brand/icon";
-import {
-  PlusIcon,
-  CloseIcon,
-  GridIcon,
-  EditIcon,
-  CheckIcon,
-} from "~/components/brand/icons";
 import Cropper, {
   type Area,
   type MediaSize,
   type Point,
 } from "react-easy-crop";
 
-import type { FocusRegion } from "~/lib/image-focus";
-import { cn } from "~/lib/utils";
-
+import { Icon } from "~/components/brand/icon";
+import {
+  CheckIcon,
+  CloseIcon,
+  EditIcon,
+  GridIcon,
+  PlusIcon,
+} from "~/components/brand/icons";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Label } from "~/components/ui/label";
@@ -27,6 +24,8 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { Slider } from "~/components/ui/slider";
+import type { FocusRegion } from "~/lib/image-focus";
+import { cn } from "~/lib/utils";
 
 /** What the cropper hands back when a region's box is confirmed. */
 export type RegionGeometry = Pick<
@@ -186,16 +185,24 @@ function RegionCropper({
       </div>
 
       <div className="flex flex-wrap items-center gap-5">
-        <label className="flex cursor-pointer items-center gap-2 font-sans text-[11px] font-medium tracking-wider text-ink-2 uppercase">
+        <label
+          htmlFor="region-show-grid"
+          className="flex cursor-pointer items-center gap-2 font-sans text-[11px] font-medium tracking-wider text-ink-2 uppercase"
+        >
           <Checkbox
+            id="region-show-grid"
             checked={showGrid}
             onCheckedChange={(c) => setShowGrid(c === true)}
           />
           <Icon icon={GridIcon} size={13} />
           Grid
         </label>
-        <label className="flex cursor-pointer items-center gap-2 font-sans text-[11px] font-medium tracking-wider text-ink-2 uppercase">
+        <label
+          htmlFor="region-restrict"
+          className="flex cursor-pointer items-center gap-2 font-sans text-[11px] font-medium tracking-wider text-ink-2 uppercase"
+        >
           <Checkbox
+            id="region-restrict"
             checked={restrictPosition}
             onCheckedChange={(c) => setRestrictPosition(c === true)}
           />

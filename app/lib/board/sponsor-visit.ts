@@ -24,8 +24,8 @@ import { analytics, getPostHog } from "~/lib/analytics";
 import {
   askedSchool,
   pickSponsor,
-  sponsorById,
   type Sponsor,
+  sponsorById,
   type SponsorPlace,
 } from "~/lib/board/sponsors";
 

@@ -1,9 +1,7 @@
-import * as React from "react";
+import type * as React from "react";
+
 import { Icon } from "~/components/brand/icon";
 import type { IconDef } from "~/components/brand/icons";
-
-import { cn } from "~/lib/utils";
-
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import {
@@ -15,6 +13,7 @@ import {
 } from "~/components/ui/select";
 import { Slider } from "~/components/ui/slider";
 import { Switch } from "~/components/ui/switch";
+import { cn } from "~/lib/utils";
 
 /**
  * Shared brutalist settings widgets — used by `/tools/image-coords`'s playback

@@ -1,9 +1,9 @@
-import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
+import type * as React from "react";
+
+import { SignIcon } from "~/components/brand/art/sign-glyphs";
 import { Icon } from "~/components/brand/icon";
 import type { IconDef } from "~/components/brand/icons";
-import { SignIcon } from "~/components/brand/art/sign-glyphs";
-
 import { cn } from "~/lib/utils";
 
 const signFrameVariants = cva(

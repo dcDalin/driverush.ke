@@ -1,8 +1,8 @@
-import * as React from "react";
 import { Dialog as DialogPrimitive } from "radix-ui";
+import type * as React from "react";
+
 import { Icon } from "~/components/brand/icon";
 import { CloseIcon } from "~/components/brand/icons";
-
 import { cn } from "~/lib/utils";
 
 const Dialog = DialogPrimitive.Root;
@@ -172,13 +172,13 @@ function DialogDescription({
 
 export {
   Dialog,
-  DialogTrigger,
-  DialogPortal,
+  DialogBody,
   DialogClose,
   DialogContent,
-  DialogHeader,
-  DialogBody,
-  DialogFooter,
-  DialogTitle,
   DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogPortal,
+  DialogTitle,
+  DialogTrigger,
 };

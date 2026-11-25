@@ -11,15 +11,14 @@
  */
 import * as React from "react";
 
+import { Button } from "~/components/ui/button";
+import { sponsorLinkClicked, sponsorShown } from "~/lib/board/sponsor-visit";
 import {
-  SPONSORS,
   type Sponsor,
   type SponsorPlace,
+  SPONSORS,
 } from "~/lib/board/sponsors";
-import { sponsorLinkClicked, sponsorShown } from "~/lib/board/sponsor-visit";
 import { cn } from "~/lib/utils";
-
-import { Button } from "~/components/ui/button";
 
 function useSeen(sponsor: Sponsor | null, place: SponsorPlace) {
   React.useEffect(() => sponsorShown(sponsor, place), [sponsor, place]);

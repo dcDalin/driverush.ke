@@ -2,14 +2,13 @@
  * `/driving-schools-kenya`: what driving schools charge and how to check one is licensed. Only lists a
  * school when its own published page confirms the price.
  */
-import type { Route } from "./+types/driving-schools-kenya";
-
+import { LearnerScene } from "~/components/brand/art/scenes";
+import { GuideLayout } from "~/components/brand/guide-layout";
 import Body from "~/guides/driving-schools.mdx";
 import { DRIVING_SCHOOL_PAGES } from "~/lib/driving-school-pages";
 import { absUrl, breadcrumbLd, graphLd, guideLd, pageMeta } from "~/lib/site";
 
-import { GuideLayout } from "~/components/brand/guide-layout";
-import { LearnerScene } from "~/components/brand/art/scenes";
+import type { Route } from "./+types/driving-schools-kenya";
 
 const PATH = "/driving-schools-kenya";
 const CHECKED = "2026-11-24";

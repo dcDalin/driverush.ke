@@ -5,8 +5,10 @@
  */
 import { Link } from "react-router";
 
-import type { Route } from "./+types/board-levels";
-
+import { LevelPicker } from "~/components/board/level-picker";
+import { SiteFooter } from "~/components/brand/site-footer";
+import { SiteNav } from "~/components/brand/site-nav";
+import { COURSE_LEVELS, doneCount, UNITS } from "~/lib/board/curriculum";
 import {
   BOARD_LEVELS_DESCRIPTION,
   BOARD_LEVELS_PATH,
@@ -14,14 +16,11 @@ import {
   BOARD_PATH,
   BOARD_PLAY_PATH,
 } from "~/lib/board-guides";
-import { COURSE_LEVELS, UNITS, doneCount } from "~/lib/board/curriculum";
 import { ogCardAlt, ogCardPath } from "~/lib/og-cards";
 import { BOARD_KEYWORDS, breadcrumbLd, graphLd, pageMeta } from "~/lib/site";
 import { useCourseProgress } from "~/lib/use-course-progress";
 
-import { LevelPicker } from "~/components/board/level-picker";
-import { SiteFooter } from "~/components/brand/site-footer";
-import { SiteNav } from "~/components/brand/site-nav";
+import type { Route } from "./+types/board-levels";
 
 const TOTAL = COURSE_LEVELS.length;
 const UNIT_COUNT = UNITS.filter((unit) => unit.id !== "mock").length;

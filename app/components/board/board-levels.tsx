@@ -9,50 +9,49 @@
 import * as React from "react";
 import { Link } from "react-router";
 
-import {
-  BOARD_LEVELS_PATH,
-  BOARD_PLAY_PATH,
-  levelHref,
-} from "~/lib/board-guides";
-import {
-  COURSE_LEVELS,
-  DAILY_GOAL,
-  UNITS,
-  doneCount,
-  levelDone,
-  nextLevel,
-  readiness,
-  unitState,
-  weakestDrive,
-  type UnitState,
-} from "~/lib/board/curriculum";
-import { dayKey, usePracticeStreak } from "~/lib/practice-streak";
-import {
-  cardStage,
-  today as todayKey,
-  useTestRecord,
-  type TestCardStage,
-} from "~/lib/test-date";
-import { planLine, testPlan } from "~/lib/test-plan";
-import { useCourseProgress } from "~/lib/use-course-progress";
-import { cn } from "~/lib/utils";
-
 import { BoardThumb } from "~/components/board/board-thumb";
 import { CourseLabel } from "~/components/board/course-label";
-import { Icon } from "~/components/brand/icon";
-import { InstallNudge } from "~/components/brand/install-nudge";
-import { TestCard } from "~/components/board/test-card";
 import { DailyDriveRow } from "~/components/board/daily-drive-row";
 import { FreeDriveRow } from "~/components/board/free-drive-row";
+import { TestCard } from "~/components/board/test-card";
+import { Icon } from "~/components/brand/icon";
 import {
   CheckIcon,
   ChevronRightIcon,
   LockIcon,
   PlayIcon,
 } from "~/components/brand/icons";
+import { InstallNudge } from "~/components/brand/install-nudge";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Progress } from "~/components/ui/progress";
+import {
+  COURSE_LEVELS,
+  DAILY_GOAL,
+  doneCount,
+  levelDone,
+  nextLevel,
+  readiness,
+  UNITS,
+  type UnitState,
+  unitState,
+  weakestDrive,
+} from "~/lib/board/curriculum";
+import {
+  BOARD_LEVELS_PATH,
+  BOARD_PLAY_PATH,
+  levelHref,
+} from "~/lib/board-guides";
+import { dayKey, usePracticeStreak } from "~/lib/practice-streak";
+import {
+  cardStage,
+  type TestCardStage,
+  today as todayKey,
+  useTestRecord,
+} from "~/lib/test-date";
+import { planLine, testPlan } from "~/lib/test-plan";
+import { useCourseProgress } from "~/lib/use-course-progress";
+import { cn } from "~/lib/utils";
 
 const TOTAL = COURSE_LEVELS.length;
 /** More levels today than this are said as "2 of 9", not drawn as dots. */

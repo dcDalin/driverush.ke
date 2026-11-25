@@ -12,8 +12,8 @@
  * confirmed; that happens in the database, not here.
  */
 import * as React from "react";
-import { toast } from "sonner";
 import { useLocation } from "react-router";
+import { toast } from "sonner";
 
 import { Icon } from "~/components/brand/icon";
 import { ArrowLeftIcon, LockIcon, MailIcon } from "~/components/brand/icons";
@@ -30,8 +30,8 @@ import {
   SheetTitle,
 } from "~/components/ui/sheet";
 import {
-  CODE_LENGTH,
   cleanCode,
+  CODE_LENGTH,
   googleEnabled,
   normalizeEmail,
   sendEmailCode,

@@ -280,12 +280,12 @@ function block(text, x, y, h) {
     }
     for (const ring of GLYPHS[ch]) {
       out.push(
-        ring
+        `${ring
           .map(
             ([px, py], i) =>
               `${i ? "L" : "M"}${(x + (at + px) * k).toFixed(1)} ${(y + py * k).toFixed(1)}`,
           )
-          .join("") + "Z",
+          .join("")}Z`,
       );
     }
     at += 5 + GAP;

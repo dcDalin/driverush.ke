@@ -4,13 +4,13 @@
  * for search) fall back to how their whole class reads, so every miss teaches
  * something rather than just repeating the name.
  */
+import type { SignCategoryId } from "~/lib/image-focus";
 import {
   SIGN_CLASS_GUIDE,
   signGuide,
-  signPageByCode,
   type SignPage,
+  signPageByCode,
 } from "~/lib/road-sign-pages";
-import type { SignCategoryId } from "~/lib/image-focus";
 
 export type MissTip = {
   remember?: string;

@@ -5,17 +5,6 @@
  */
 import * as React from "react";
 
-import { REVERSE_COLOR, ROUTE_COLOR } from "~/lib/board/lessons";
-import { stepPoints, type Route, type RouteStep } from "~/lib/board/network";
-import {
-  PLAY_RATES,
-  cam,
-  play,
-  useStage,
-  type StageLine,
-} from "~/lib/board/stage";
-import { cn } from "~/lib/utils";
-
 import { Icon } from "~/components/brand/icon";
 import {
   ChevronLeftIcon,
@@ -24,6 +13,16 @@ import {
   PlayIcon,
   RefreshIcon,
 } from "~/components/brand/icons";
+import { REVERSE_COLOR, ROUTE_COLOR } from "~/lib/board/lessons";
+import { type Route, type RouteStep, stepPoints } from "~/lib/board/network";
+import {
+  cam,
+  play,
+  PLAY_RATES,
+  type StageLine,
+  useStage,
+} from "~/lib/board/stage";
+import { cn } from "~/lib/utils";
 
 /** A route as lines for the table: the step in hand bright, the rest dimmed. */
 export function routeLines(
