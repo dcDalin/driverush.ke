@@ -178,6 +178,18 @@ max_frequency = "1s"
 otp_length = 6
 otp_expiry = 3600
 
+# The emails carry the 6-digit code ({{ .Token }}), which the app's sign-in
+# sheet asks for. A new account gets `confirmation`, a returning one
+# `magic_link`. The hosted project needs the same templates (Dashboard >
+# Authentication > Emails).
+[auth.email.template.magic_link]
+subject = "Your DriveRush code"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.confirmation]
+subject = "Your DriveRush code"
+content_path = "./supabase/templates/confirmation.html"
+
 [auth.sms]
 enable_signup = false
 enable_confirmations = false

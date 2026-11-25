@@ -18,3 +18,16 @@
   `service.server.ts` for trusted server code only, `caller.server.ts` for who
   is signed in). `database.types.ts` is generated; never edit it.
 - `npm test` runs unit tests only; `npm run test:db` needs the local stack.
+
+## Accounts (sign-in)
+
+- Optional: guests use everything free. Sign-in is an emailed 6-digit code
+  (also how accounts are made), email and password, or Google
+  (`VITE_AUTH_GOOGLE=on`). The code emails are `supabase/templates/`; the
+  hosted project needs the same templates.
+- `app/lib/auth/session.ts` (`useSession`, loads the Supabase client lazily),
+  `app/lib/auth/sign-in.ts`, the one sheet `app/components/account/` opened
+  with `useSignInSheet().show()`. Google returns to `/auth/callback`.
+- Pages render as a guest on the server; the session is read in the browser.
+  A build without the `VITE_SUPABASE_*` settings has accounts off.
+- Local codes land in Mailpit at http://127.0.0.1:54724.

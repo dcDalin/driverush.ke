@@ -69,6 +69,9 @@ export default [
     id: "legacy-blog-schools",
   }),
 
+  // Where Google sends a learner back after signing in.
+  route("auth/callback", "routes/auth-callback.tsx"),
+
   // Where shared achievement links land (`/s?k=quiz&…`). Deliberately short:
   // the URL travels through WhatsApp forwards. Renders a useful page for any
   // payload, including one that's broken or missing, and never 404s.

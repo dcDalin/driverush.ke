@@ -1,4 +1,5 @@
 import { TabBar } from "~/components/brand/tab-bar";
+import { AccountShell } from "~/components/account/account-shell";
 import {
   isRouteErrorResponse,
   Link,
@@ -231,6 +232,8 @@ export default function App() {
         <Outlet />
       </div>
       <TabBar />
+      {/* The sign-in sheet, loaded the first time something opens it. */}
+      <AccountShell />
     </>
   );
 }

@@ -110,6 +110,7 @@ const ROUTES: Record<string, Entry> = {
     path: "/blogs/:slug",
   },
   "routes/share-landing": { group: "Share landing", path: "/s" },
+  "routes/auth-callback": { group: "Account", path: "/auth/callback" },
 };
 
 /** Labels for the page whose deepest matched route is `routeId`. */
