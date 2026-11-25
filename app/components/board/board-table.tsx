@@ -17,7 +17,7 @@ import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import type { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 import {
   type BoardPaint,
@@ -119,6 +119,7 @@ import {
   setWake,
   useStage,
 } from "~/lib/board/stage";
+import { SturdyGLTFLoader } from "~/lib/sturdy-loaders";
 
 export type { BoardTier };
 
@@ -881,27 +882,6 @@ type CarSources = Record<BoardCarId, THREE.Object3D> | null;
 const withMeshopt = (loader: GLTFLoader) => {
   loader.setMeshoptDecoder(MeshoptDecoder);
 };
-
-/**
- * Asks once more, after a short wait, when a car's model fails to arrive. A
- * phone on a weak line drops the odd download ("Load failed" on iPhones), and
- * without the driven car's model the whole board shows its failure screen.
- */
-class SturdyGLTFLoader extends GLTFLoader {
-  override load(
-    url: string,
-    onLoad: Parameters<GLTFLoader["load"]>[1],
-    onProgress?: Parameters<GLTFLoader["load"]>[2],
-    onError?: Parameters<GLTFLoader["load"]>[3],
-  ): void {
-    super.load(url, onLoad, onProgress, () => {
-      window.setTimeout(
-        () => super.load(url, onLoad, onProgress, onError),
-        1500,
-      );
-    });
-  }
-}
 
 /**
  * A car with a soft shadow under it, ready to be placed on the table. With a

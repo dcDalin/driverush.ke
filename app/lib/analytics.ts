@@ -212,6 +212,17 @@ export const analytics = {
     emit("signs3d_completed", completedProps(args)),
 
   /**
+   * The 3D sign trainer could not show something, even after asking twice.
+   * `model`: one sign's model (the learner is offered "Try again").
+   * `logo`: the Pelican sticker's picture (the sign shows without it).
+   * `download`: the trainer's own code (the learner is offered "Try again").
+   */
+  signs3dLoadFailed: (args: {
+    reason: "model" | "logo" | "download";
+    model?: string;
+  }) => emit("signs3d_load_failed", args),
+
+  /**
    * One "Knew it" or "Missed it" tap. Higher volume than the rest of this file,
    * and deliberately so: it's the only way to see which signs people actually
    * get wrong. PostHog only: in GA it would bury every other event.

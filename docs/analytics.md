@@ -98,11 +98,16 @@ else is a bug — the file _is_ the taxonomy.
 
 ### Sign trainers
 
-| Event                                     | Fires when                      | Key properties                                                                                |
-| ----------------------------------------- | ------------------------------- | --------------------------------------------------------------------------------------------- |
-| `pelican_started` / `signs3d_started`     | A run starts                    | `signs_total`, `categories`, `scope` (`round`/`chart`/`drill`)                                |
-| `pelican_completed` / `signs3d_completed` | A run finishes                  | `scope`, `self_graded`, `signs_total`; when self-graded also `knew_first_try`, `miss_count`   |
-| `sign_graded`                             | "Knew it" or "Missed it" tapped | `trainer`, `sign_code`, `category`, `result`, `box_before`, `box_after`, `first_try`, `scope` |
+| Event                                     | Fires when                      | Key properties                                                                                                         |
+| ----------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `pelican_started` / `signs3d_started`     | A run starts                    | `signs_total`, `categories`, `scope` (`round`/`chart`/`drill`)                                                         |
+| `pelican_completed` / `signs3d_completed` | A run finishes                  | `scope`, `self_graded`, `signs_total`; when self-graded also `knew_first_try`, `miss_count`                            |
+| `sign_graded`                             | "Knew it" or "Missed it" tapped | `trainer`, `sign_code`, `category`, `result`, `box_before`, `box_after`, `first_try`, `scope`                          |
+| `signs3d_load_failed`                     | A 3D sign file fails both asks  | `reason` (`model`: "Try again" shown; `logo`: sign shown without the sticker; `download`: the trainer's code), `model` |
+
+Before 25 Nov 2026 these failures reached the root error page as `$exception`
+("Could not load …glb" / "pelican-signs-logo.jpg: undefined") and took the
+trainer down. Most `logo` failures are bots that block images.
 
 `sign_graded` by `sign_code` where `result = missed` is the "which signs does Kenya
 get wrong" report.

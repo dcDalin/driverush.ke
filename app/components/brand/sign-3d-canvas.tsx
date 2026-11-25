@@ -16,15 +16,20 @@ import {
   Environment,
   GradientTexture,
   OrbitControls,
-  useGLTF,
-  useTexture,
 } from "@react-three/drei";
-import { Canvas, type ThreeElements, useThree } from "@react-three/fiber";
+import {
+  Canvas,
+  type ThreeElements,
+  useLoader,
+  useThree,
+} from "@react-three/fiber";
 import * as React from "react";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 
+import { analytics } from "~/lib/analytics";
 import { SIGN_BRAND } from "~/lib/sign-credits";
+import { loadSturdyTexture, SturdyGLTFLoader } from "~/lib/sturdy-loaders";
 import { useActiveTheme } from "~/lib/theme";
 
 const DEG = Math.PI / 180;
@@ -43,6 +48,10 @@ export type Sign3DCanvasProps = {
   interactive?: boolean;
   /** Told each time a model has actually reached the scene. */
   onModelReady?: (modelSrc: string) => void;
+  /** Told when a model could not be downloaded, even on the second ask. */
+  onModelFailed?: (modelSrc: string) => void;
+  /** Bumped to ask again for a model that failed. */
+  attempt?: number;
 };
 
 /**
@@ -315,6 +324,28 @@ function sheetingMaterial(
   return mat;
 }
 
+/**
+ * The Pelican sticker's picture, loaded once for every sign. It is decoration,
+ * so a picture that can't be had (a dropped download, a browser that blocks
+ * images) leaves the sticker plain white vinyl and never stops the sign.
+ */
+let stickerLogo: Promise<THREE.Texture | null> | undefined;
+function loadStickerLogo(): Promise<THREE.Texture | null> {
+  stickerLogo ??= loadSturdyTexture(SIGN_BRAND.logo).then(
+    (texture) => {
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.anisotropy = 4;
+      texture.needsUpdate = true;
+      return texture;
+    },
+    () => {
+      analytics.signs3dLoadFailed({ reason: "logo" });
+      return null;
+    },
+  );
+  return stickerLogo;
+}
+
 /** Load a GLB, clone it (so per-instance material changes don't poison the cache)
  *  and dress its faces in retroreflective sheeting. */
 function SignModel({
@@ -332,14 +363,12 @@ function SignModel({
   pitch?: number;
   onReady?: () => void;
 }) {
-  const { scene } = useGLTF(modelSrc);
-  const logo = useTexture(SIGN_BRAND.logo);
+  // Asks twice for the model; a second failure goes to `ModelGuard`.
+  const { scene } = useLoader(SturdyGLTFLoader, modelSrc);
+  const logo = React.use(loadStickerLogo());
   const invalidate = useThree((s) => s.invalidate);
 
   const stickerMaterial = React.useMemo(() => {
-    logo.colorSpace = THREE.SRGBColorSpace;
-    logo.anisotropy = 4;
-    logo.needsUpdate = true;
     // Printed vinyl: satin, and no sheeting.
     return new THREE.MeshStandardMaterial({
       map: logo,
@@ -424,6 +453,33 @@ function SignModel({
       <primitive object={model} />
     </group>
   );
+}
+
+/**
+ * Catches a model that failed both asks, inside the canvas, so the canvas (and
+ * its WebGL context) lives on and the viewer can offer another go. Without it
+ * the failure climbs to the root error page and the learner loses the trainer.
+ */
+class ModelGuard extends React.Component<
+  {
+    modelSrc: string;
+    onFail?: (modelSrc: string) => void;
+    children: React.ReactNode;
+  },
+  { failed: boolean }
+> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  componentDidCatch() {
+    // Forget the failure, or the next try would be handed it straight back.
+    useLoader.clear(SturdyGLTFLoader, this.props.modelSrc);
+    this.props.onFail?.(this.props.modelSrc);
+  }
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
 }
 
 /** What FitCamera needs of the orbit controls. */
@@ -616,6 +672,8 @@ function SceneContents({
   autoRotate = false,
   interactive = true,
   onModelReady,
+  onModelFailed,
+  attempt = 0,
 }: Sign3DCanvasProps) {
   const groupRef = React.useRef<THREE.Group | null>(null);
   const controlsRef = React.useRef<OrbitControlsImpl | null>(null);
@@ -677,16 +735,22 @@ function SceneContents({
 
       <Environment resolution={128}>{sky}</Environment>
 
-      <React.Suspense fallback={null}>
-        <SignModel
-          modelSrc={modelSrc}
-          groupRef={groupRef}
-          night={night}
-          yaw={yaw}
-          pitch={pitch}
-          onReady={handleReady}
-        />
-      </React.Suspense>
+      <ModelGuard
+        key={`${modelSrc}#${attempt}`}
+        modelSrc={modelSrc}
+        onFail={onModelFailed}
+      >
+        <React.Suspense fallback={null}>
+          <SignModel
+            modelSrc={modelSrc}
+            groupRef={groupRef}
+            night={night}
+            yaw={yaw}
+            pitch={pitch}
+            onReady={handleReady}
+          />
+        </React.Suspense>
+      </ModelGuard>
 
       <ContactShadows
         position={[0, floorY - 0.01, 0]}
