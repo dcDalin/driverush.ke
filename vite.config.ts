@@ -89,12 +89,37 @@ export default defineConfig({
   build: {
     sourcemap: UPLOAD_SOURCEMAPS,
   },
-  // Dev server only: pre-bundle what the lazily loaded sign-in sheet and
-  // account code import, so opening the sheet never makes Vite re-bundle
-  // mid-session (which loads a second React and breaks its hooks).
+  // Dev server only: pre-bundle what lazily loaded code imports (the sign-in
+  // sheet, the board game, the 3D trainers), so opening one never makes Vite
+  // re-bundle mid-session, which loads a second React and breaks its hooks.
   optimizeDeps: {
     include: [
       "@hookform/resolvers/zod",
+      "@posthog/react",
+      "class-variance-authority",
+      "clsx",
+      "posthog-js",
+      "radix-ui",
+      "remix-toast",
+      "sonner",
+      "tailwind-merge",
+      "three/examples/jsm/environments/RoomEnvironment.js",
+      "three/examples/jsm/geometries/RoundedBoxGeometry.js",
+      "three/examples/jsm/libs/meshopt_decoder.module.js",
+      "three/examples/jsm/loaders/GLTFLoader.js",
+      "three/examples/jsm/loaders/SVGLoader.js",
+      "three/examples/jsm/utils/BufferGeometryUtils.js",
+      "@react-three/drei",
+      "@react-three/fiber",
+      "framer-motion",
+      "matter-js",
+      "nipplejs",
+      "react-day-picker",
+      "three",
+      "three-stdlib",
+      "zustand",
+      "zustand/middleware",
+      "zustand/react/shallow",
       "@supabase/ssr",
       "@supabase/supabase-js",
       "input-otp",

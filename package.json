@@ -34,7 +34,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm test",
-    "test:routes": "vitest run --project routes"
+    "test:routes": "vitest run --project routes",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -80,6 +81,7 @@
     "@gltf-transform/extensions": "^4.5.1",
     "@gltf-transform/functions": "^4.5.1",
     "@mdx-js/rollup": "^3.1.1",
+    "@playwright/test": "^1.63.0",
     "@posthog/cli": "^0.20.1",
     "@react-router/dev": "7.14.0",
     "@tailwindcss/vite": "^4.2.2",

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { fromRow, planSync, toRow } from "./sync-plan";
+import { fromRow, planSync, sameValue, toRow } from "./sync-plan";
 
 const base = {
   stores: ["board", "streak"] as const,
@@ -68,5 +68,26 @@ describe("rows", () => {
   });
   it("keep a value that is not JSON", () => {
     expect(fromRow(toRow("plain").data)).toBe("plain");
+  });
+});
+
+describe("sameValue", () => {
+  it("treats the database's reordered keys as the same progress", () => {
+    expect(sameValue('{"days":4,"best":6}', '{"best":6,"days":4}')).toBe(true);
+    expect(sameValue('{"a":{"y":1,"x":2}}', '{"a":{"x":2,"y":1}}')).toBe(true);
+  });
+  it("still tells different progress apart", () => {
+    expect(sameValue('{"days":4}', '{"days":5}')).toBe(false);
+    expect(sameValue("[1,2]", "[2,1]")).toBe(false);
+  });
+  it("keeps a reordered copy from looking like a change on sync", () => {
+    const plan = planSync({
+      stores: ["streak"],
+      local: { streak: '{"days":4,"best":6}' },
+      cloud: { streak: '{"best":6,"days":4}' },
+      legacy: {},
+      alreadySyncing: true,
+    });
+    expect(plan.actions.streak).toBe("none");
   });
 });

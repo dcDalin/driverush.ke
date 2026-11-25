@@ -139,7 +139,8 @@ function EmailStep({
   const methods = useForm<EmailCodeRequestSchemaTypes>({
     resolver: zodResolver(EmailCodeRequestSchema),
     defaultValues: { email: defaultEmail },
-    mode: "onTouched",
+    mode: "onSubmit",
+    reValidateMode: "onChange",
   });
   const busy = methods.formState.isSubmitting;
 
@@ -285,7 +286,8 @@ function PasswordStep({
   const methods = useForm<PasswordSignInSchemaTypes>({
     resolver: zodResolver(PasswordSignInSchema),
     defaultValues: { email: defaultEmail, password: "" },
-    mode: "onTouched",
+    mode: "onSubmit",
+    reValidateMode: "onChange",
   });
   const busy = methods.formState.isSubmitting;
 

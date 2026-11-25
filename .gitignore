@@ -17,3 +17,7 @@
 /supabase/.temp/
 /supabase/.branches/
 /supabase/.env
+
+# Playwright
+/playwright-report/
+/test-results/

@@ -24,6 +24,35 @@ export type SyncPlan = {
   writes: Partial<Record<ProgressStore, string>>;
 };
 
+/**
+ * The same saved value? Compared as data, not text: the database (jsonb)
+ * hands objects back with their keys reordered, which is the same progress.
+ */
+export function sameValue(a: string, b: string): boolean {
+  if (a === b) return true;
+  return canonical(a) === canonical(b);
+}
+
+function canonical(raw: string): string {
+  try {
+    return JSON.stringify(sortKeys(JSON.parse(raw)));
+  } catch {
+    return raw;
+  }
+}
+
+function sortKeys(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sortKeys);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, sortKeys((value as Record<string, unknown>)[key])]),
+    );
+  }
+  return value;
+}
+
 export function planSync(input: {
   stores: readonly ProgressStore[];
   local: Partial<Record<ProgressStore, string>>;
@@ -49,7 +78,7 @@ export function planSync(input: {
       }
     } else if (cloud == null) {
       actions[store] = "upload";
-    } else if (local === cloud) {
+    } else if (sameValue(local, cloud)) {
       actions[store] = "none";
     } else if (input.alreadySyncing) {
       actions[store] = "upload";
