@@ -6,7 +6,7 @@
  * is a shadcn primitive inside a react-hook-form `Controller`, with its
  * label, error and description wired for screen readers.
  */
-import type * as React from "react";
+import * as React from "react";
 import {
   type Control,
   Controller,
@@ -81,7 +81,14 @@ export type OtpFieldProps = BaseFieldProps & {
 };
 
 export function createFormFields(useFormCtx: FormContextHook, prefix: string) {
+  /**
+   * The field's own ids. Several forms share a page (a school's dashboard has
+   * an "email" in the students, team and profile forms, a "name" per branch),
+   * so an id is the name plus `useId()`: labels always point at their own
+   * input, and server render and hydration agree.
+   */
   function useFieldState(name: string) {
+    const uid = React.useId();
     const {
       control,
       formState: { errors },
@@ -94,7 +101,8 @@ export function createFormFields(useFormCtx: FormContextHook, prefix: string) {
         : error
           ? "Check this field."
           : null,
-      footerId: `${name}-footer`,
+      id: `${name}-${uid}`,
+      footerId: `${name}-${uid}-footer`,
     };
   }
 
@@ -114,16 +122,16 @@ export function createFormFields(useFormCtx: FormContextHook, prefix: string) {
     disabled,
     inputProps,
   }: InputFieldProps) {
-    const { control, error, footerId } = useFieldState(name);
+    const { control, error, id, footerId } = useFieldState(name);
     return (
       <Controller
         name={name}
         control={control}
         render={({ field }) => (
           <div className={cn("flex flex-col gap-1.5", className)}>
-            <Label htmlFor={name}>{label}</Label>
+            <Label htmlFor={id}>{label}</Label>
             <Input
-              id={name}
+              id={id}
               aria-invalid={error ? true : undefined}
               aria-describedby={described(error, description, footerId)}
               disabled={disabled}
@@ -151,16 +159,16 @@ export function createFormFields(useFormCtx: FormContextHook, prefix: string) {
     disabled,
     textareaProps,
   }: TextareaFieldProps) {
-    const { control, error, footerId } = useFieldState(name);
+    const { control, error, id, footerId } = useFieldState(name);
     return (
       <Controller
         name={name}
         control={control}
         render={({ field }) => (
           <div className={cn("flex flex-col gap-1.5", className)}>
-            <Label htmlFor={name}>{label}</Label>
+            <Label htmlFor={id}>{label}</Label>
             <Textarea
-              id={name}
+              id={id}
               aria-invalid={error ? true : undefined}
               aria-describedby={described(error, description, footerId)}
               disabled={disabled}
@@ -190,14 +198,14 @@ export function createFormFields(useFormCtx: FormContextHook, prefix: string) {
     placeholder,
     triggerClassName,
   }: SelectFieldProps) {
-    const { control, error, footerId } = useFieldState(name);
+    const { control, error, id, footerId } = useFieldState(name);
     return (
       <Controller
         name={name}
         control={control}
         render={({ field }) => (
           <div className={cn("flex flex-col gap-1.5", className)}>
-            <Label htmlFor={name}>{label}</Label>
+            <Label htmlFor={id}>{label}</Label>
             <Select
               name={name}
               value={field.value ?? ""}
@@ -205,7 +213,7 @@ export function createFormFields(useFormCtx: FormContextHook, prefix: string) {
               disabled={disabled}
             >
               <SelectTrigger
-                id={name}
+                id={id}
                 ref={field.ref}
                 onBlur={field.onBlur}
                 aria-invalid={error ? true : undefined}
@@ -242,7 +250,7 @@ export function createFormFields(useFormCtx: FormContextHook, prefix: string) {
     className,
     disabled,
   }: BaseFieldProps) {
-    const { control, error, footerId } = useFieldState(name);
+    const { control, error, id, footerId } = useFieldState(name);
     return (
       <Controller
         name={name}
@@ -251,7 +259,7 @@ export function createFormFields(useFormCtx: FormContextHook, prefix: string) {
           <div className={cn("flex flex-col gap-1.5", className)}>
             <div className="flex items-center gap-2">
               <Checkbox
-                id={name}
+                id={id}
                 checked={field.value === true}
                 onCheckedChange={(checked) => field.onChange(checked === true)}
                 onBlur={field.onBlur}
@@ -260,7 +268,7 @@ export function createFormFields(useFormCtx: FormContextHook, prefix: string) {
                 aria-describedby={described(error, description, footerId)}
               />
               <Label
-                htmlFor={name}
+                htmlFor={id}
                 className="text-[14px] font-medium tracking-normal text-ink normal-case"
               >
                 {label}
@@ -287,7 +295,7 @@ export function createFormFields(useFormCtx: FormContextHook, prefix: string) {
     disabled,
     options,
   }: CheckboxGroupFieldProps) {
-    const { control, error, footerId } = useFieldState(name);
+    const { control, error, id, footerId } = useFieldState(name);
     return (
       <Controller
         name={name}
@@ -307,11 +315,11 @@ export function createFormFields(useFormCtx: FormContextHook, prefix: string) {
               </legend>
               <div className="flex flex-wrap gap-x-4 gap-y-2">
                 {options.map((option) => {
-                  const id = `${name}-${option.value}`;
+                  const optionId = `${id}-${option.value}`;
                   return (
                     <div key={option.value} className="flex items-center gap-2">
                       <Checkbox
-                        id={id}
+                        id={optionId}
                         checked={values.includes(option.value)}
                         disabled={disabled}
                         onBlur={field.onBlur}
@@ -326,7 +334,7 @@ export function createFormFields(useFormCtx: FormContextHook, prefix: string) {
                         }
                       />
                       <Label
-                        htmlFor={id}
+                        htmlFor={optionId}
                         className="text-[14px] font-medium tracking-normal text-ink normal-case"
                       >
                         {option.label}
@@ -355,7 +363,7 @@ export function createFormFields(useFormCtx: FormContextHook, prefix: string) {
     className,
     disabled,
   }: BaseFieldProps) {
-    const { control, error, footerId } = useFieldState(name);
+    const { control, error, id, footerId } = useFieldState(name);
     return (
       <Controller
         name={name}
@@ -363,9 +371,9 @@ export function createFormFields(useFormCtx: FormContextHook, prefix: string) {
         render={({ field }) => (
           <div className={cn("flex flex-col gap-1.5", className)}>
             <div className="flex items-center justify-between gap-3">
-              <Label htmlFor={name}>{label}</Label>
+              <Label htmlFor={id}>{label}</Label>
               <Switch
-                id={name}
+                id={id}
                 checked={field.value === true}
                 onCheckedChange={field.onChange}
                 onBlur={field.onBlur}
@@ -395,16 +403,16 @@ export function createFormFields(useFormCtx: FormContextHook, prefix: string) {
     length = 6,
     autoFocus,
   }: OtpFieldProps) {
-    const { control, error, footerId } = useFieldState(name);
+    const { control, error, id, footerId } = useFieldState(name);
     return (
       <Controller
         name={name}
         control={control}
         render={({ field }) => (
           <div className={cn("flex flex-col gap-1.5", className)}>
-            <Label htmlFor={name}>{label}</Label>
+            <Label htmlFor={id}>{label}</Label>
             <InputOTP
-              id={name}
+              id={id}
               maxLength={length}
               inputMode="numeric"
               autoComplete="one-time-code"
