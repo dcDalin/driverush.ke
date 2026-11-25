@@ -25,3 +25,7 @@
 
 # Snaplet (npm run db:sync writes it from the running local database)
 /seed/.snaplet/
+
+# Business research and reports (private: the repo is public)
+/reports/
+/research_notes/
