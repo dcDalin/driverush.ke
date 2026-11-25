@@ -53,9 +53,16 @@ export async function signInWithPassword(
   ).toBeVisible();
 }
 
+/**
+ * Signs out, then waits for the reload that follows: the app clears the
+ * phone's progress and reloads once signed out (`progress-sync.tsx`), so the
+ * next step must not start before that page has loaded.
+ */
 export async function signOut(page: Page) {
   await page.getByRole("button", { name: "Your account" }).click();
+  const reloaded = page.waitForEvent("load");
   await page.getByRole("button", { name: "Sign out" }).click();
+  await reloaded;
   await expect(
     page.getByRole("button", { name: "Sign in", exact: true }),
   ).toBeVisible();
