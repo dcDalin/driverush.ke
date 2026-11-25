@@ -52,24 +52,36 @@ part if the link ends early.
 | `school_members_list`                                                                                                                                 | owner, admins, staff              |
 | `school_create_branch`, `school_update_branch`, `school_add_admin`, `school_set_admin_branches`, `school_remove_admin`, `school_cancel_member_invite` | owner, staff                      |
 | `admin_create_school`, `admin_set_school_status`, `admin_transfer_school_owner`                                                                       | DriveRush su or admin             |
+| `school_update_profile`, `school_update_branch_details`                                                                                               | owner, staff                      |
+| `admin_publish_livery`, `admin_retire_livery`, `admin_livery_draft_get`, `admin_set_sponsorship`, `admin_end_sponsorship`                             | DriveRush su or admin             |
+| `board_schools()`                                                                                                                                     | anyone, guests included           |
 | `grant_platform_role`, `revoke_platform_role`                                                                                                         | DriveRush su                      |
 
 ## Tables a client can read
 
-| Table                                      | Rows a client sees                                              | Client writes                 |
-| ------------------------------------------ | --------------------------------------------------------------- | ----------------------------- |
-| `profiles`                                 | own; staff all                                                  | own `full_name`, `avatar_url` |
-| `user_roles`                               | own; su all                                                     | none                          |
-| `schools`, `school_branches`               | staff; the school's members; learners it has added              | none                          |
-| `school_members`, `school_member_branches` | staff; the school's members                                     | none                          |
-| `school_member_invites`                    | staff; the school owner                                         | none                          |
-| `school_student_links`                     | own; the owner (whole school); an admin (their branches); staff | none                          |
-| `learner_progress`                         | own                                                             | own rows                      |
-| `plans`                                    | anyone (active); staff all                                      | none                          |
-| `learner_subscriptions`                    | own; staff                                                      | none                          |
-| `school_subscriptions`                     | the school owner; staff                                         | none                          |
-| `payments`                                 | the payer; the school owner; staff                              | none                          |
-| `subscription_pauses`                      | nobody                                                          | none                          |
+| Table                                      | Rows a client sees                                              | Client writes                                                        |
+| ------------------------------------------ | --------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `profiles`                                 | own; staff all                                                  | own `full_name`, `avatar_url`                                        |
+| `user_roles`                               | own; su all                                                     | none                                                                 |
+| `schools`, `school_branches`               | staff; the school's members; learners it has added              | none                                                                 |
+| `school_members`, `school_member_branches` | staff; the school's members                                     | none                                                                 |
+| `school_member_invites`                    | staff; the school owner                                         | none                                                                 |
+| `school_student_links`                     | own; the owner (whole school); an admin (their branches); staff | none                                                                 |
+| `learner_progress`                         | own                                                             | own rows                                                             |
+| `plans`                                    | anyone (active); staff all                                      | none                                                                 |
+| `learner_subscriptions`                    | own; staff                                                      | none                                                                 |
+| `school_subscriptions`                     | the school owner; staff                                         | none                                                                 |
+| `payments`                                 | the payer; the school owner; staff                              | none                                                                 |
+| `subscription_pauses`                      | nobody                                                          | none                                                                 |
+| `school_profiles`                          | anyone: active schools; members and staff: their own always     | none (`school_update_profile`)                                       |
+| `school_liveries`                          | anyone: live liveries of active schools; staff: all             | staff only: insert drafts, edit content, delete all but the live one |
+| `school_sponsorships`                      | staff                                                           | none (`admin_*` functions)                                           |
+| storage `school-media`                     | anyone by public URL; listing: staff                            | staff only (and the server)                                          |
+
+Who made or edited a profile or livery (`updated_by`, `created_by`) is
+granted to nobody. Going live or retiring a livery is
+`admin_publish_livery` / `admin_retire_livery`, which keep one live livery
+per school; staff cannot set `status` directly.
 
 Errors: `42501` refused (wrong caller), `P0001` a business rule (`admin_limit`,
 `already_owner`, `invalid_branches`, `not_pending`, `not_active`, `not_open`,

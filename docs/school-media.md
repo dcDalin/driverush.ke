@@ -28,10 +28,20 @@ and JPEG only. SVG is refused because it can carry script.
 - It is declared in `supabase/config.toml` for local stacks, and in
   `supabase/schemas/storage/school_media_bucket.sql` for every other
   database.
-- **No `storage.objects` policy names it.** A public bucket serves files
-  without one, and a SELECT policy would let anyone list it. Only the service
-  role writes: the server's logo upload and `livery:publish`.
-  `school_media.test.sql` pins this.
+- **Reading:** anyone, by public URL; no read policy exists for clients,
+  because a public one would let anyone list the bucket.
+- **Writing:** DriveRush staff only, on a password session: list, upload,
+  replace and delete (`storage.objects` policies in the same schema file).
+  School owners, learners and guests are refused; owners' logos go through
+  the server (service role, after its owner check), and `livery:publish`
+  uses the service role too.
+- `school_liveries` follows the same rule: anyone reads a live livery of an
+  active school; staff read everything and are the only ones who insert
+  (always a draft), edit or delete (never the live one); going live is
+  `admin_publish_livery`. `school_profiles` is public while the school is
+  active; only `school_update_profile` (owner, staff) writes it.
+- Proven twice: in SQL (`school_media.test.sql`) and through the real
+  Storage and Data APIs (`test/db/school-media.test.ts`).
 
 **Paths are content names:** `<school_id>/<logo|livery>/<sha256, 16 hex>.<ext>`.
 

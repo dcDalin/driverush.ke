@@ -9,7 +9,7 @@
 -- ===================================================
 begin;
 
-select plan(19);
+select plan(43);
 
 create temp table w as select tests.make_world() as j;
 create function pg_temp.w(k text) returns text language sql as $$ select j ->> k from w $$;
@@ -27,11 +27,14 @@ select results_eq(
   $$ values ('school-media', true, '5242880', '{image/webp,image/png,image/jpeg}') $$,
   'school-media is public, 5 MiB, raster images only (no SVG)'
 );
-select is_empty(
-  $$ select policyname from pg_policies
-      where schemaname = 'storage' and tablename = 'objects'
-        and coalesce(qual, '') || coalesce(with_check, '') like '%school-media%' $$,
-  'no storage policy names school-media: clients can neither list nor write it'
+select is(
+  (select string_agg(format('%s %s %s', p.policyname, p.cmd, array_to_string(p.roles, ',')), '; ' order by p.policyname::text)
+     from pg_policies as p
+    where p.schemaname = 'storage' and p.tablename = 'objects'
+      and (coalesce(p.qual, '') || coalesce(p.with_check, '')) like '%school-media%'),
+  'school-media: staff delete DELETE authenticated; school-media: staff list SELECT authenticated; '
+    || 'school-media: staff replace UPDATE authenticated; school-media: staff upload INSERT authenticated',
+  'school-media: only staff policies (list, upload, replace, delete); files are read by public URL'
 );
 select is(
   tests.sqlstate_as(pg_temp.w('owner_a'), format(
@@ -39,6 +42,37 @@ select is(
     pg_temp.p('school_a', 'logo', 1))),
   '42501',
   'a school owner cannot write into the bucket directly'
+);
+select is(
+  tests.sqlstate_as('anon', format(
+    $$insert into storage.objects (bucket_id, name) values ('school-media', %L)$$,
+    pg_temp.p('school_a', 'logo', 1))),
+  '42501',
+  'nor can a guest'
+);
+select is(
+  tests.sqlstate_as('otp:' || pg_temp.w('staff'), format(
+    $$insert into storage.objects (bucket_id, name) values ('school-media', %L)$$,
+    pg_temp.p('school_a', 'livery', 1))),
+  '42501',
+  'nor staff on an emailed-code session'
+);
+select is(
+  tests.sqlstate_as(pg_temp.w('staff'), format(
+    $$insert into storage.objects (bucket_id, name) values ('school-media', %L)$$,
+    pg_temp.p('school_a', 'livery', 1))),
+  'ok',
+  'staff on a password session upload'
+);
+select is(
+  tests.value_as('anon', $$select count(*) from storage.objects where bucket_id = 'school-media'$$),
+  '0',
+  'a guest cannot list the bucket'
+);
+select is(
+  tests.value_as(pg_temp.w('owner_a'), $$select count(*) from storage.objects where bucket_id = 'school-media'$$),
+  '0',
+  'nor can a school owner'
 );
 
 -- ── Paths stay in their school ─────────────────────────────────────────
@@ -108,10 +142,96 @@ select is(
   (select slug from public.schools where id = pg_temp.w('school_a')::uuid),
   'staff preview any livery in the manifest''s shape'
 );
+-- ── Who reads and writes livery rows ───────────────────────────────────
 select is(
-  tests.value_as(pg_temp.w('owner_a'), 'select count(*) from public.school_liveries'),
+  tests.value_as('anon', format('select string_agg(status::text, '','' order by status) from public.school_liveries where school_id = %L', pg_temp.w('school_a'))),
+  'live',
+  'a guest reads the live livery, not the retired one'
+);
+select is(
+  tests.value_as(pg_temp.w('owner_a'), format('select string_agg(status::text, '','' order by status) from public.school_liveries where school_id = %L', pg_temp.w('school_a'))),
+  'live',
+  'a school owner reads only the live one too'
+);
+select is(
+  tests.value_as(pg_temp.w('staff'), format('select count(*) from public.school_liveries where school_id = %L', pg_temp.w('school_a'))),
+  '2',
+  'staff read every livery'
+);
+select is(
+  tests.sqlstate_as('anon', 'select created_by from public.school_liveries limit 1'),
+  '42501',
+  'nobody reads who made a livery'
+);
+select is(
+  tests.sqlstate_as(pg_temp.w('owner_a'), format(
+    $$insert into public.school_liveries (school_id, label, base_color, rail, paint, marks)
+      select school_id, 'mine', base_color, rail, paint, marks from public.school_liveries where id = %L$$,
+    (select v2 from liv))),
+  '42501',
+  'a school owner cannot add a livery'
+);
+select is(
+  tests.value_as(pg_temp.w('owner_a'), format(
+    $$with u as (update public.school_liveries set label = 'hacked' where id = %L returning 1) select count(*) from u$$,
+    (select v2 from liv))),
   '0',
-  'a school owner reads no livery rows (only staff do)'
+  'a school owner cannot change one (no row matches)'
+);
+select is(
+  tests.value_as(pg_temp.w('owner_a'), format(
+    $$with d as (delete from public.school_liveries where id = %L returning 1) select count(*) from d$$,
+    (select v2 from liv))),
+  '0',
+  'nor delete one'
+);
+select is(
+  tests.sqlstate_as('anon', format($$update public.school_liveries set label = 'x' where id = %L$$, (select v2 from liv))),
+  '42501',
+  'a guest cannot write at all'
+);
+select is(
+  tests.sqlstate_as('otp:' || pg_temp.w('staff'), format(
+    $$insert into public.school_liveries (school_id, label, base_color, rail, paint, marks)
+      select school_id, 'otp', base_color, rail, paint, marks from public.school_liveries where id = %L$$,
+    (select v2 from liv))),
+  '42501',
+  'staff on an emailed-code session cannot add one'
+);
+select is(
+  tests.value_as(pg_temp.w('staff'), format(
+    $$with i as (insert into public.school_liveries (school_id, label, base_color, rail, paint, marks)
+      select school_id, 'staff draft', base_color, rail, paint, marks from public.school_liveries where id = %L
+      returning status) select string_agg(status::text, ',') from i$$,
+    (select v1 from liv))),
+  'draft',
+  'staff add a livery, always as a draft'
+);
+select is(
+  tests.value_as(pg_temp.w('staff'), format(
+    $$with u as (update public.school_liveries set label = 'renamed' where id = %L returning 1) select count(*) from u$$,
+    (select v2 from liv))),
+  '1',
+  'staff change a livery''s content'
+);
+select is(
+  tests.sqlstate_as(pg_temp.w('staff'), format($$update public.school_liveries set status = 'retired' where id = %L$$, (select v2 from liv))),
+  '42501',
+  'but not its status: going live or retiring is admin_publish_livery / admin_retire_livery'
+);
+select is(
+  tests.value_as(pg_temp.w('staff'), format(
+    $$with d as (delete from public.school_liveries where id = %L returning 1) select count(*) from d$$,
+    (select v2 from liv))),
+  '0',
+  'staff cannot delete the live livery'
+);
+select is(
+  tests.value_as(pg_temp.w('staff'), format(
+    $$with d as (delete from public.school_liveries where id = %L returning 1) select count(*) from d$$,
+    (select v1 from liv))),
+  '1',
+  'staff delete one that is not live'
 );
 
 -- ── Sponsorships ───────────────────────────────────────────────────────
@@ -124,6 +244,40 @@ select is(pg_temp.school((select slug from public.schools where id = pg_temp.w('
 select tests.run_as(pg_temp.w('staff'), format('select public.admin_end_sponsorship(%L)::text', (select id from sp)));
 select is((select ends_on from public.school_sponsorships where id = (select id from sp)), private.kenya_today(),
   'ending a sponsorship sets today''s Kenyan date');
+
+-- ── Profiles are public while the school is active ─────────────────────
+select is(
+  tests.value_as('anon', format('select tagline from public.school_profiles where school_id = %L', pg_temp.w('school_a'))),
+  'Learn with us',
+  'a guest reads an active school''s profile'
+);
+select is(
+  tests.sqlstate_as('anon', 'select updated_by from public.school_profiles limit 1'),
+  '42501',
+  'but not who edited it'
+);
+select is(
+  tests.sqlstate_as(pg_temp.w('owner_a'), format($$update public.school_profiles set tagline = 'x' where school_id = %L$$, pg_temp.w('school_a'))),
+  '42501',
+  'the owner edits it only through school_update_profile (no direct write)'
+);
+update public.schools set status = 'suspended' where id = pg_temp.w('school_a')::uuid;
+select is(
+  tests.value_as('anon', format('select count(*) from public.school_profiles where school_id = %L', pg_temp.w('school_a'))),
+  '0',
+  'a suspended school''s profile is hidden from guests'
+);
+select is(
+  tests.value_as('anon', format('select count(*) from public.school_liveries where school_id = %L', pg_temp.w('school_a'))),
+  '0',
+  'and so is its livery'
+);
+select is(
+  tests.value_as(pg_temp.w('owner_a'), format('select count(*) from public.school_profiles where school_id = %L', pg_temp.w('school_a'))),
+  '1',
+  'its owner still reads the profile'
+);
+update public.schools set status = 'active' where id = pg_temp.w('school_a')::uuid;
 
 -- ── What guests get ────────────────────────────────────────────────────
 select is(

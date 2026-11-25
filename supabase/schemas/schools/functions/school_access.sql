@@ -106,6 +106,30 @@ as $$
   );
 $$;
 
+-- Whether a school is active: the one public fact about a school that
+-- decides whether its profile and live livery are shown to everyone.
+--
+-- Access:  anon (evaluated as any caller inside policies, guests included)
+-- Guard:   public (a public fact; no row of schools is returned)
+-- Callers: RLS policies (school_profiles, school_liveries)
+create or replace function private.is_active_school(p_school_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from public.schools as s
+     where s.id = p_school_id and s.status = 'active'
+  );
+$$;
+
+revoke all on function private.is_active_school(uuid) from public;
+grant execute on function private.is_active_school(uuid) to service_role;
+comment on function private.is_active_school(uuid) is
+  'Whether this school is active (its profile and live livery are public).';
+
 revoke all on function private.is_school_owner(uuid) from public;
 revoke all on function private.is_school_member(uuid) from public;
 revoke all on function private.can_see_branch(uuid) from public;

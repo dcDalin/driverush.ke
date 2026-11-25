@@ -45,6 +45,18 @@ grant execute on function private.has_school_link(uuid) to authenticated;
 -- ── 3b. Anyone, guests included (public data only) ──────────────────────
 grant execute on function public.board_schools() to anon, authenticated;
 grant execute on function private.board_schools() to anon, authenticated;
+-- Row level security helper for the public profile and livery policies.
+grant execute on function private.is_active_school(uuid) to anon, authenticated;
+
+-- ── 3c. CHECKs on tables staff write directly (school_liveries) ─────────
+-- A CHECK runs its function as the writer. These only test their own
+-- arguments (a colour, a media path in the school's folder) and read no
+-- table, so any signed-in caller may run them.
+grant execute on function private.valid_hex_colour(text) to authenticated;
+grant execute on function private.valid_media_path(text, uuid) to authenticated;
+grant execute on function private.valid_media_paths(jsonb, uuid) to authenticated;
+grant execute on function private.valid_media_ref(jsonb, uuid) to authenticated;
+grant execute on function private.valid_paint(jsonb, uuid) to authenticated;
 
 -- ── 4. Learners, with their own session ─────────────────────────────────
 grant execute on function public.my_entitlement() to authenticated;

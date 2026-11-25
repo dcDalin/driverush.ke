@@ -66,30 +66,71 @@ create policy "school_member_invites: staff and owner read"
 -- ===================================================
 -- ACCESS: public.school_profiles
 -- ===================================================
--- Reads:  DriveRush staff; the school's owner and admins. Everyone else
---         (guests included) reads the public fields through board_schools().
--- Writes: No client: school_update_profile (owner, staff); school_set_logo
---         (the server, after uploading the file).
--- Grants: anon: none; authenticated: SELECT
+-- Reads:  anyone, guests included: an active school's profile is public
+--         (what learners read about it). The school's owner and admins and
+--         DriveRush staff also read it while the school is suspended or
+--         archived. `updated_by` (who edited) is granted to nobody.
+-- Writes: No client: school_update_profile (owner, staff: the words,
+--         contacts and colours); school_set_logo (the server, after
+--         uploading the file). No client ever writes a media path.
+-- Grants: anon: SELECT (public columns); authenticated: SELECT (public columns)
 alter table public.school_profiles enable row level security;
 
-create policy "school_profiles: staff and members read"
+create policy "school_profiles: anyone reads active schools"
+  on public.school_profiles for select to anon
+  using (private.is_active_school(school_id));
+
+create policy "school_profiles: public if active; members and staff"
   on public.school_profiles for select to authenticated
-  using ((select private.is_staff()) or private.is_school_member(school_id));
+  using (
+    private.is_active_school(school_id)
+    or private.is_school_member(school_id)
+    or (select private.is_staff())
+  );
 
 -- ===================================================
 -- ACCESS: public.school_liveries
 -- ===================================================
--- Reads:  DriveRush staff (drafts included). The live livery reaches
---         everyone through board_schools().
--- Writes: No client: livery:publish (service role) inserts drafts;
---         admin_publish_livery and admin_retire_livery (staff).
--- Grants: anon: none; authenticated: SELECT
+-- Reads:  anyone, guests included: the live livery of an active school
+--         (the board shows it to everyone). DriveRush staff read every
+--         livery: drafts, live and retired. `created_by` is granted to nobody.
+-- Writes: DriveRush staff only (password session, private.is_staff):
+--           insert  a draft (status draft, published_at null: the table's
+--                   defaults; the columns are not granted)
+--           update  a livery's content (label, colours, media paths)
+--           delete  a livery that is not live
+--         Going live or retiring is admin_publish_livery and
+--         admin_retire_livery (staff), which keep one live livery per
+--         school. `npm run livery:publish` writes drafts with the service
+--         role.
+-- Grants: anon: SELECT (content columns);
+--         authenticated: SELECT (content columns), INSERT and UPDATE (content
+--         columns), DELETE
 alter table public.school_liveries enable row level security;
 
-create policy "school_liveries: staff read"
+create policy "school_liveries: anyone reads live liveries"
+  on public.school_liveries for select to anon
+  using (status = 'live' and private.is_active_school(school_id));
+
+create policy "school_liveries: anyone reads live liveries, staff read all"
   on public.school_liveries for select to authenticated
-  using ((select private.is_staff()));
+  using (
+    (status = 'live' and private.is_active_school(school_id))
+    or (select private.is_staff())
+  );
+
+create policy "school_liveries: staff insert drafts"
+  on public.school_liveries for insert to authenticated
+  with check ((select private.is_staff()) and status = 'draft');
+
+create policy "school_liveries: staff update"
+  on public.school_liveries for update to authenticated
+  using ((select private.is_staff()))
+  with check ((select private.is_staff()));
+
+create policy "school_liveries: staff delete all but the live one"
+  on public.school_liveries for delete to authenticated
+  using ((select private.is_staff()) and status <> 'live');
 
 -- ===================================================
 -- ACCESS: public.school_sponsorships

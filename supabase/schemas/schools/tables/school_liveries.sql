@@ -39,7 +39,8 @@ create table public.school_liveries (
   marks jsonb not null check (private.valid_media_paths(marks, school_id) and marks ? 'full' and marks ? 'mono'),
   thumbs jsonb not null default '{}'::jsonb check (thumbs = '{}'::jsonb or private.valid_media_paths(thumbs, school_id)),
   stills jsonb not null default '{}'::jsonb check (stills = '{}'::jsonb or private.valid_media_paths(stills, school_id)),
-  created_by uuid references auth.users (id) on delete set null,
+  -- Who made it: the staff member (auth.uid()), or null from the service role.
+  created_by uuid default auth.uid() references auth.users (id) on delete set null,
   created_at timestamptz not null default now(),
   published_at timestamptz,
   check ((status = 'draft') = (published_at is null))

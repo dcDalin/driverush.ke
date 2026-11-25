@@ -25,6 +25,27 @@ grant all on all sequences in schema public to service_role;
 -- ── 3. anon: the plans (pricing page) ───────────────────────────────────
 grant select on public.plans to anon;
 
+-- A school's public face: everyone reads an active school's profile and its
+-- live livery (row level security picks the rows). Who edited or made them
+-- (updated_by, created_by) is not granted.
+grant select (school_id, tagline, about, phone, whatsapp, email, website_url, socials,
+              brand_paint, brand_ink, logo, logo_mono, updated_at)
+  on public.school_profiles to anon, authenticated;
+grant select (id, school_id, status, label, base_color, rail, paint, top_board, banner,
+              posters, marks, thumbs, stills, created_at, published_at)
+  on public.school_liveries to anon, authenticated;
+
+-- DriveRush staff make and edit liveries (the policies check private.is_staff).
+-- Status and published_at are not granted: going live or retiring is
+-- admin_publish_livery / admin_retire_livery.
+grant insert (school_id, label, base_color, rail, paint, top_board, banner, posters,
+              marks, thumbs, stills)
+  on public.school_liveries to authenticated;
+grant update (label, base_color, rail, paint, top_board, banner, posters, marks,
+              thumbs, stills)
+  on public.school_liveries to authenticated;
+grant delete on public.school_liveries to authenticated;
+
 -- ── 4. authenticated: reads (row level security picks the rows) ─────────
 grant select on public.learner_progress to authenticated;
 grant select on public.learner_subscriptions to authenticated;
@@ -32,11 +53,9 @@ grant select on public.payments to authenticated;
 grant select on public.plans to authenticated;
 grant select on public.profiles to authenticated;
 grant select on public.school_branches to authenticated;
-grant select on public.school_liveries to authenticated;
 grant select on public.school_member_branches to authenticated;
 grant select on public.school_member_invites to authenticated;
 grant select on public.school_members to authenticated;
-grant select on public.school_profiles to authenticated;
 grant select on public.school_sponsorships to authenticated;
 grant select on public.school_student_links to authenticated;
 grant select on public.school_subscriptions to authenticated;

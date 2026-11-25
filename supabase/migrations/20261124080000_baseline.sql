@@ -585,7 +585,8 @@ create table public.school_liveries (
   marks jsonb not null check (private.valid_media_paths(marks, school_id) and marks ? 'full' and marks ? 'mono'),
   thumbs jsonb not null default '{}'::jsonb check (thumbs = '{}'::jsonb or private.valid_media_paths(thumbs, school_id)),
   stills jsonb not null default '{}'::jsonb check (stills = '{}'::jsonb or private.valid_media_paths(stills, school_id)),
-  created_by uuid references auth.users (id) on delete set null,
+  -- Who made it: the staff member (auth.uid()), or null from the service role.
+  created_by uuid default auth.uid() references auth.users (id) on delete set null,
   created_at timestamptz not null default now(),
   published_at timestamptz,
   check ((status = 'draft') = (published_at is null))
@@ -1103,6 +1104,30 @@ as $$
      where l.school_id = p_school_id and l.user_id = auth.uid()
   );
 $$;
+
+-- Whether a school is active: the one public fact about a school that
+-- decides whether its profile and live livery are shown to everyone.
+--
+-- Access:  anon (evaluated as any caller inside policies, guests included)
+-- Guard:   public (a public fact; no row of schools is returned)
+-- Callers: RLS policies (school_profiles, school_liveries)
+create or replace function private.is_active_school(p_school_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from public.schools as s
+     where s.id = p_school_id and s.status = 'active'
+  );
+$$;
+
+revoke all on function private.is_active_school(uuid) from public;
+grant execute on function private.is_active_school(uuid) to service_role;
+comment on function private.is_active_school(uuid) is
+  'Whether this school is active (its profile and live livery are public).';
 
 revoke all on function private.is_school_owner(uuid) from public;
 revoke all on function private.is_school_member(uuid) from public;
@@ -3665,30 +3690,71 @@ create policy "school_member_invites: staff and owner read"
 -- ===================================================
 -- ACCESS: public.school_profiles
 -- ===================================================
--- Reads:  DriveRush staff; the school's owner and admins. Everyone else
---         (guests included) reads the public fields through board_schools().
--- Writes: No client: school_update_profile (owner, staff); school_set_logo
---         (the server, after uploading the file).
--- Grants: anon: none; authenticated: SELECT
+-- Reads:  anyone, guests included: an active school's profile is public
+--         (what learners read about it). The school's owner and admins and
+--         DriveRush staff also read it while the school is suspended or
+--         archived. `updated_by` (who edited) is granted to nobody.
+-- Writes: No client: school_update_profile (owner, staff: the words,
+--         contacts and colours); school_set_logo (the server, after
+--         uploading the file). No client ever writes a media path.
+-- Grants: anon: SELECT (public columns); authenticated: SELECT (public columns)
 alter table public.school_profiles enable row level security;
 
-create policy "school_profiles: staff and members read"
+create policy "school_profiles: anyone reads active schools"
+  on public.school_profiles for select to anon
+  using (private.is_active_school(school_id));
+
+create policy "school_profiles: public if active; members and staff"
   on public.school_profiles for select to authenticated
-  using ((select private.is_staff()) or private.is_school_member(school_id));
+  using (
+    private.is_active_school(school_id)
+    or private.is_school_member(school_id)
+    or (select private.is_staff())
+  );
 
 -- ===================================================
 -- ACCESS: public.school_liveries
 -- ===================================================
--- Reads:  DriveRush staff (drafts included). The live livery reaches
---         everyone through board_schools().
--- Writes: No client: livery:publish (service role) inserts drafts;
---         admin_publish_livery and admin_retire_livery (staff).
--- Grants: anon: none; authenticated: SELECT
+-- Reads:  anyone, guests included: the live livery of an active school
+--         (the board shows it to everyone). DriveRush staff read every
+--         livery: drafts, live and retired. `created_by` is granted to nobody.
+-- Writes: DriveRush staff only (password session, private.is_staff):
+--           insert  a draft (status draft, published_at null: the table's
+--                   defaults; the columns are not granted)
+--           update  a livery's content (label, colours, media paths)
+--           delete  a livery that is not live
+--         Going live or retiring is admin_publish_livery and
+--         admin_retire_livery (staff), which keep one live livery per
+--         school. `npm run livery:publish` writes drafts with the service
+--         role.
+-- Grants: anon: SELECT (content columns);
+--         authenticated: SELECT (content columns), INSERT and UPDATE (content
+--         columns), DELETE
 alter table public.school_liveries enable row level security;
 
-create policy "school_liveries: staff read"
+create policy "school_liveries: anyone reads live liveries"
+  on public.school_liveries for select to anon
+  using (status = 'live' and private.is_active_school(school_id));
+
+create policy "school_liveries: anyone reads live liveries, staff read all"
   on public.school_liveries for select to authenticated
-  using ((select private.is_staff()));
+  using (
+    (status = 'live' and private.is_active_school(school_id))
+    or (select private.is_staff())
+  );
+
+create policy "school_liveries: staff insert drafts"
+  on public.school_liveries for insert to authenticated
+  with check ((select private.is_staff()) and status = 'draft');
+
+create policy "school_liveries: staff update"
+  on public.school_liveries for update to authenticated
+  using ((select private.is_staff()))
+  with check ((select private.is_staff()));
+
+create policy "school_liveries: staff delete all but the live one"
+  on public.school_liveries for delete to authenticated
+  using ((select private.is_staff()) and status <> 'live');
 
 -- ===================================================
 -- ACCESS: public.school_sponsorships
@@ -3876,6 +3942,18 @@ grant execute on function private.has_school_link(uuid) to authenticated;
 -- ── 3b. Anyone, guests included (public data only) ──────────────────────
 grant execute on function public.board_schools() to anon, authenticated;
 grant execute on function private.board_schools() to anon, authenticated;
+-- Row level security helper for the public profile and livery policies.
+grant execute on function private.is_active_school(uuid) to anon, authenticated;
+
+-- ── 3c. CHECKs on tables staff write directly (school_liveries) ─────────
+-- A CHECK runs its function as the writer. These only test their own
+-- arguments (a colour, a media path in the school's folder) and read no
+-- table, so any signed-in caller may run them.
+grant execute on function private.valid_hex_colour(text) to authenticated;
+grant execute on function private.valid_media_path(text, uuid) to authenticated;
+grant execute on function private.valid_media_paths(jsonb, uuid) to authenticated;
+grant execute on function private.valid_media_ref(jsonb, uuid) to authenticated;
+grant execute on function private.valid_paint(jsonb, uuid) to authenticated;
 
 -- ── 4. Learners, with their own session ─────────────────────────────────
 grant execute on function public.my_entitlement() to authenticated;
@@ -3968,6 +4046,27 @@ grant all on all sequences in schema public to service_role;
 -- ── 3. anon: the plans (pricing page) ───────────────────────────────────
 grant select on public.plans to anon;
 
+-- A school's public face: everyone reads an active school's profile and its
+-- live livery (row level security picks the rows). Who edited or made them
+-- (updated_by, created_by) is not granted.
+grant select (school_id, tagline, about, phone, whatsapp, email, website_url, socials,
+              brand_paint, brand_ink, logo, logo_mono, updated_at)
+  on public.school_profiles to anon, authenticated;
+grant select (id, school_id, status, label, base_color, rail, paint, top_board, banner,
+              posters, marks, thumbs, stills, created_at, published_at)
+  on public.school_liveries to anon, authenticated;
+
+-- DriveRush staff make and edit liveries (the policies check private.is_staff).
+-- Status and published_at are not granted: going live or retiring is
+-- admin_publish_livery / admin_retire_livery.
+grant insert (school_id, label, base_color, rail, paint, top_board, banner, posters,
+              marks, thumbs, stills)
+  on public.school_liveries to authenticated;
+grant update (label, base_color, rail, paint, top_board, banner, posters, marks,
+              thumbs, stills)
+  on public.school_liveries to authenticated;
+grant delete on public.school_liveries to authenticated;
+
 -- ── 4. authenticated: reads (row level security picks the rows) ─────────
 grant select on public.learner_progress to authenticated;
 grant select on public.learner_subscriptions to authenticated;
@@ -3975,11 +4074,9 @@ grant select on public.payments to authenticated;
 grant select on public.plans to authenticated;
 grant select on public.profiles to authenticated;
 grant select on public.school_branches to authenticated;
-grant select on public.school_liveries to authenticated;
 grant select on public.school_member_branches to authenticated;
 grant select on public.school_member_invites to authenticated;
 grant select on public.school_members to authenticated;
-grant select on public.school_profiles to authenticated;
 grant select on public.school_sponsorships to authenticated;
 grant select on public.school_student_links to authenticated;
 grant select on public.school_subscriptions to authenticated;
@@ -4004,10 +4101,14 @@ grant delete on public.learner_progress to authenticated;
 -- Supabase's CDN, cached for a year (every path is named by its content, so
 -- a file never changes). Raster images only: SVG can carry script.
 --
--- No storage.objects policy exists for it on purpose: a public bucket serves
--- its files without one, and a SELECT policy would let anyone list the
--- bucket (Supabase lint 0025). Only the service role writes: the server's
--- logo upload and `npm run livery:publish`.
+-- Reading: a public bucket serves its files by URL with no policy, so there
+-- is no SELECT policy for anyone else: a public one would let anyone list
+-- the bucket (Supabase lint 0025).
+--
+-- Writing: DriveRush staff only (password session, private.is_staff), as
+-- for school_liveries: they may list, upload, replace and delete. Everyone
+-- else is refused. The service role (the server's logo upload after its
+-- owner check, and `npm run livery:publish`) bypasses row level security.
 --
 -- `supabase db diff` does not read the storage schema, so this row is an
 -- idempotent insert here (it lands in the baseline) and config.toml declares
@@ -4018,3 +4119,29 @@ on conflict (id) do update
   set public = excluded.public,
       file_size_limit = excluded.file_size_limit,
       allowed_mime_types = excluded.allowed_mime_types;
+
+-- ===================================================
+-- ACCESS: storage.objects in school-media
+-- ===================================================
+-- Reads:  anyone, by public URL (no policy needed); listing: staff only.
+-- Writes: DriveRush staff only. School owners' logos go through the server.
+drop policy if exists "school-media: staff list" on storage.objects;
+create policy "school-media: staff list"
+  on storage.objects for select to authenticated
+  using (bucket_id = 'school-media' and (select private.is_staff()));
+
+drop policy if exists "school-media: staff upload" on storage.objects;
+create policy "school-media: staff upload"
+  on storage.objects for insert to authenticated
+  with check (bucket_id = 'school-media' and (select private.is_staff()));
+
+drop policy if exists "school-media: staff replace" on storage.objects;
+create policy "school-media: staff replace"
+  on storage.objects for update to authenticated
+  using (bucket_id = 'school-media' and (select private.is_staff()))
+  with check (bucket_id = 'school-media' and (select private.is_staff()));
+
+drop policy if exists "school-media: staff delete" on storage.objects;
+create policy "school-media: staff delete"
+  on storage.objects for delete to authenticated
+  using (bucket_id = 'school-media' and (select private.is_staff()));

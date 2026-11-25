@@ -108,8 +108,14 @@ Each table's `rls/` file opens with an access block:
    membership table directly (that would recurse through its own policy).
 3. Add the table to `tests.table_access` and each policy to
    `tests.policy_access`; grant in `_grants/table_privileges.sql`.
-4. Clients write directly only a learner's own profile name and avatar and
-   their own `learner_progress`. Everything else goes through a function.
+4. Clients write directly only a learner's own profile name and avatar,
+   their own `learner_progress`, and (DriveRush staff only) the content of
+   `school_liveries` and the `school-media` bucket. Everything else goes
+   through a function.
+5. A CHECK runs its function as the writer: a table a client writes needs
+   its CHECK helpers granted to that role (`_grants/`, section 3c).
+6. Public data is public by row and by column: a policy for `anon` picks the
+   rows, a column grant leaves out who made or edited them.
 
 ## Roles in one paragraph
 
