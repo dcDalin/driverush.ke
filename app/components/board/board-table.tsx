@@ -441,6 +441,19 @@ function paintBoard(width: number): Promise<THREE.CanvasTexture> {
 
 type Pair = [number, number];
 
+/** A promo film's camera for this frame (dev server only, see useFrame). */
+type FilmWindow = Window & {
+  __filmCam?: (scene: {
+    car: { x: number; z: number; heading: number };
+    centre: { x: number; z: number };
+    others: { x: number; z: number; flipped: boolean }[];
+  }) => {
+    at: [number, number, number];
+    aim: [number, number, number];
+    fov?: number;
+  } | null;
+};
+
 /** A raised strip following a line of points on the board. Corners are mitred. */
 function stripGeometry(points: Pair[], width: number, height: number) {
   const half = width / 2;
@@ -2066,6 +2079,29 @@ function Scene({
       aimX = lerp(aimX, pose.target.x, closeUp);
       aimY = lerp(aimY, pose.target.y, closeUp);
       aimZ = lerp(aimZ, pose.target.z, closeUp);
+    }
+    // The promo films (marketing/social/film) may take the camera for a
+    // shot: a sweep of the room, a tracking shot beside the car. Dev server
+    // only; a production build drops this whole block.
+    if (import.meta.env.DEV) {
+      const film = (window as FilmWindow).__filmCam?.({
+        car: { x: car.x, z: car.z, heading: car.heading },
+        centre: { x: CX, z: CZ },
+        others: (challenge?.otherCars ?? []).map((other, i) => {
+          const pose = view.others[i] ?? other;
+          return { x: pose.x, z: pose.z, flipped: !!other.flipped };
+        }),
+      });
+      if (film) {
+        [camX, camY, camZ] = film.at;
+        [aimX, aimY, aimZ] = film.aim;
+        const lens = state.camera as THREE.PerspectiveCamera;
+        const fov = film.fov ?? VFOV;
+        if (lens.fov !== fov) {
+          lens.fov = fov;
+          lens.updateProjectionMatrix();
+        }
+      }
     }
     state.camera.position.set(camX, camY, camZ);
     state.camera.lookAt(aimX, aimY, aimZ);
