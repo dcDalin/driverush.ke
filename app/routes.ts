@@ -75,6 +75,8 @@ export default [
   // A driving school's dashboard (owners and branch admins). Signed in only.
   route("school", "routes/school-home.tsx"),
   route("school/:schoolId", "routes/school-dashboard.tsx"),
+  // DriveRush staff: schools, owners and staff roles. Signed in only.
+  route("console", "routes/console.tsx"),
 
   // Where shared achievement links land (`/s?k=quiz&…`). Deliberately short:
   // the URL travels through WhatsApp forwards. Renders a useful page for any
