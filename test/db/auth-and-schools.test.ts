@@ -151,9 +151,16 @@ describe("a guest", () => {
     );
   });
 
-  it("can read the plans (none active yet)", async () => {
-    const { data, error } = await anonClient().from("plans").select("code");
+  it("can read the active plans (the three passes)", async () => {
+    const { data, error } = await anonClient()
+      .from("plans")
+      .select("code")
+      .order("code");
     expect(error).toBeNull();
-    expect(data).toEqual([]);
+    expect(data?.map((p) => p.code)).toEqual([
+      "learner_extension",
+      "learner_pass",
+      "school_pass",
+    ]);
   });
 });

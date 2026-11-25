@@ -57,6 +57,8 @@ insert into tests.function_access (fn, access, guard, guard_detail, callers) val
   ('private.admin_set_sponsorship(uuid, date, date, text)', 'authenticated', 'admin', 'private.is_staff', 'DriveRush console (session)'),
   ('admin_end_sponsorship(uuid)', 'authenticated', 'admin', 'private.is_staff', 'DriveRush console (session)'),
   ('private.admin_end_sponsorship(uuid)', 'authenticated', 'admin', 'private.is_staff', 'DriveRush console (session)'),
+  ('admin_set_school_payments(uuid, text, text, text, boolean)', 'authenticated', 'admin', 'private.is_staff', 'DriveRush console (session)'),
+  ('private.admin_set_school_payments(uuid, text, text, text, boolean)', 'authenticated', 'admin', 'private.is_staff', 'DriveRush console (session)'),
   ('grant_platform_role(uuid, app_role)', 'authenticated', 'su', 'private.is_su', 'DriveRush console (session)'),
   ('private.grant_platform_role(uuid, app_role)', 'authenticated', 'su', 'private.is_su', 'DriveRush console (session)'),
   ('revoke_platform_role(uuid, app_role)', 'authenticated', 'su', 'private.is_su', 'DriveRush console (session)'),
@@ -80,6 +82,12 @@ insert into tests.function_access (fn, access, guard, guard_detail, callers) val
   ('private.school_cancel_member_invite(uuid)', 'authenticated', 'school', 'private.can_manage_school (owner or staff; owner invites staff only)', 'school dashboard (session)'),
   ('school_members_list(uuid)', 'authenticated', 'school', 'is_school_member or is_staff', 'school dashboard (session)'),
   ('private.school_members_list(uuid)', 'authenticated', 'school', 'is_school_member or is_staff', 'school dashboard (session)'),
+  ('school_set_pass_price(uuid, integer)', 'authenticated', 'school', 'private.can_manage_school (owner or staff)', 'school dashboard (session)'),
+  ('private.school_set_pass_price(uuid, integer)', 'authenticated', 'school', 'private.can_manage_school (owner or staff)', 'school dashboard (session)'),
+  ('school_pass_info(uuid)', 'authenticated', 'school', 'is_school_member or is_staff; bank label to owner and staff', 'school dashboard (session)'),
+  ('private.school_pass_info(uuid)', 'authenticated', 'school', 'is_school_member or is_staff; bank label to owner and staff', 'school dashboard (session)'),
+  ('school_earnings(uuid, uuid)', 'authenticated', 'school', 'is_school_member or is_staff; rows by can_see_branch', 'school dashboard (session)'),
+  ('private.school_earnings(uuid, uuid)', 'authenticated', 'school', 'is_school_member or is_staff; rows by can_see_branch', 'school dashboard (session)'),
   -- School owners and branch admins
   ('school_add_student(uuid, text)', 'authenticated', 'school', 'private.can_manage_branch (owner, branch admin or staff)', 'school dashboard (session)'),
   ('private.school_add_student(uuid, text)', 'authenticated', 'school', 'private.can_manage_branch (owner, branch admin or staff)', 'school dashboard (session)'),
@@ -98,6 +106,12 @@ insert into tests.function_access (fn, access, guard, guard_detail, callers) val
   ('private.learner_decline_school_link(uuid)', 'authenticated', 'self', 'link.user_id = auth.uid()', 'web (learner session)'),
   ('my_entitlement()', 'authenticated', 'self', 'answers for auth.uid() only', 'web (learner session)'),
   ('private.my_entitlement()', 'authenticated', 'self', 'answers for auth.uid() only', 'web (learner session)'),
+  ('start_pass_checkout(text, text, uuid)', 'authenticated', 'self', 'writes a payment for auth.uid() only', '/pass action (server, learner session)'),
+  ('private.start_pass_checkout(text, text, uuid)', 'authenticated', 'self', 'writes a payment for auth.uid() only', '/pass action (server, learner session)'),
+  ('my_pass_offers()', 'authenticated', 'self', 'answers for auth.uid() only', '/pass (server, learner session)'),
+  ('private.my_pass_offers()', 'authenticated', 'self', 'answers for auth.uid() only', '/pass (server, learner session)'),
+  ('pass_school_by_code(text)', 'authenticated', 'public', 'a school''s public price and branch names only', '/pass (server, learner session)'),
+  ('private.pass_school_by_code(text)', 'authenticated', 'public', 'a school''s public price and branch names only', '/pass (server, learner session)'),
   -- Anyone, guests included
   ('board_schools()', 'anon', 'public', 'active schools'' public profile and live livery only', 'web root loader, /api/board-schools (server)'),
   ('private.board_schools()', 'anon', 'public', 'active schools'' public profile and live livery only', 'web root loader, /api/board-schools (server)'),
@@ -112,7 +126,7 @@ insert into tests.function_access (fn, access, guard, guard_detail, callers) val
   -- Supabase Auth
   ('custom_access_token_hook(jsonb)', 'auth_hook', 'none', '', 'Supabase Auth (access token hook)'),
   -- Internal
-  ('private.activate_link(uuid, uuid)', 'service_role', 'none', '', 'called by match_pending_invites, school_add_student, learner_accept_school_link'),
+  ('private.activate_link(uuid, uuid)', 'service_role', 'none', '', 'called by match_pending_invites, school_add_student, learner_accept_school_link, settle_payment'),
   ('private.assert_admin_room(uuid)', 'service_role', 'none', '', 'called by enforce_member_admin_limit, enforce_invite_admin_limit'),
   ('private.assert_school_branches(uuid, uuid[])', 'service_role', 'none', '', 'called by school_add_admin, school_set_admin_branches'),
   ('private.can_manage_branch(uuid)', 'service_role', 'none', '', 'called by the school student functions'),
@@ -120,13 +134,16 @@ insert into tests.function_access (fn, access, guard, guard_detail, callers) val
   ('private.close_expired_links(uuid, citext)', 'service_role', 'none', '', 'called by activate_link, match_pending_invites, school_add_student, learner_accept_school_link'),
   ('private.confirmed_user_id(citext)', 'service_role', 'none', '', 'called by school_add_student, school_add_admin, set_school_owner'),
   ('private.current_link_id(uuid)', 'service_role', 'none', '', 'called by match_pending_invites, school_add_student, learner_accept_school_link, my_entitlement'),
-  ('private.end_link(uuid, link_end_reason)', 'service_role', 'none', '', 'called by school_release_student, learner_accept_school_link'),
+  ('private.end_link(uuid, link_end_reason)', 'service_role', 'none', '', 'called by school_release_student, learner_accept_school_link, settle_payment'),
   ('private.has_platform_role(app_role[])', 'service_role', 'none', '', 'called by is_staff, is_su'),
   ('private.is_local_stack()', 'service_role', 'none', '', 'the local seed'),
   ('private.match_pending_invites(uuid)', 'service_role', 'none', '', 'called by handle_new_user, handle_auth_user_updated'),
-  ('private.pause_subscription(uuid, uuid)', 'service_role', 'none', '', 'called by pause_subscriptions_for_link, pause_new_subscription'),
-  ('private.pause_subscriptions_for_link(uuid)', 'service_role', 'none', '', 'called by activate_link'),
-  ('private.resume_subscriptions_for_link(uuid, timestamp with time zone)', 'service_role', 'none', '', 'called by end_link'),
+  ('settle_payment(text, integer, numeric, jsonb)', 'service_role', 'none', '', '/api/webhooks/paystack, /pass/done (server, service role); the seed'),
+  ('fail_payment(text, jsonb)', 'service_role', 'none', '', '/api/webhooks/paystack, /pass/done (server, service role)'),
+  ('refund_payment(text, jsonb)', 'service_role', 'none', '', '/api/webhooks/paystack (server, service role)'),
+  ('private.settle_payment(text, integer, numeric, jsonb)', 'service_role', 'none', '', '/webhooks/paystack, /pass/done (server, after verifying with Paystack); the seed'),
+  ('private.fail_payment(text, jsonb)', 'service_role', 'none', '', '/webhooks/paystack, /pass/done (server)'),
+  ('private.refund_payment(text, jsonb)', 'service_role', 'none', '', '/webhooks/paystack (server)'),
   ('private.set_school_owner(uuid, citext, uuid)', 'service_role', 'none', '', 'called by admin_create_school, admin_transfer_school_owner'),
   ('private.signed_in_with_password()', 'service_role', 'none', '', 'called by has_platform_role'),
   ('school_set_logo(uuid, text, jsonb, uuid)', 'service_role', 'none', '', 'logo upload (server, after the owner gate); the seed'),
@@ -145,8 +162,7 @@ insert into tests.function_access (fn, access, guard, guard_detail, callers) val
   ('private.enforce_member_admin_limit()', 'trigger', 'none', '', 'trigger on school_members'),
   ('private.handle_auth_user_updated()', 'trigger', 'none', '', 'trigger on auth.users'),
   ('private.handle_new_user()', 'trigger', 'none', '', 'trigger on auth.users'),
-  ('private.pause_new_subscription()', 'trigger', 'none', '', 'trigger on learner_subscriptions'),
-  ('private.set_updated_at()', 'trigger', 'none', '', 'triggers on profiles, schools, school_branches, school_profiles, subscriptions, learner_progress');
+  ('private.set_updated_at()', 'trigger', 'none', '', 'triggers on profiles, schools, school_branches, school_profiles, subscriptions, school_payment_settings, learner_progress');
 
 -- ── Tables ─────────────────────────────────────────────────────────────
 -- anon / authenticated: the privileges the role holds, as 'SELECT' or
@@ -163,8 +179,8 @@ create table tests.table_access (
 
 insert into tests.table_access (tbl, anon, authenticated, reads, writes) values
   ('learner_progress', '', 'SELECT, INSERT(data, store, user_id, version), UPDATE(data, store, user_id, version), DELETE', 'own rows; schools via school_student_progress', 'own rows'),
-  ('learner_subscriptions', '', 'SELECT', 'own rows; staff', 'service role (payments); pause functions'),
-  ('payments', '', 'SELECT', 'payer; school owner; staff', 'service role'),
+  ('learner_subscriptions', '', 'SELECT', 'own rows; staff', 'settle_payment, refund_payment (service role); staff grants'),
+  ('payments', '', 'SELECT', 'payer; school owner; staff (admins via school_earnings)', 'start_pass_checkout; settle/fail/refund_payment (service role)'),
   ('plans', 'SELECT', 'SELECT', 'anyone (active); staff (all)', 'migrations'),
   ('profiles', '', 'SELECT, UPDATE(avatar_url, full_name)', 'own; staff', 'own name and avatar; handle_new_user'),
   ('school_branches', '', 'SELECT', 'staff; school members; linked learners', 'school_create_branch, school_update_branch, school_update_branch_details'),
@@ -172,12 +188,12 @@ insert into tests.table_access (tbl, anon, authenticated, reads, writes) values
   ('school_member_invites', '', 'SELECT', 'staff; school owner', 'school_add_admin, admin_* functions, match_pending_invites'),
   ('school_liveries', 'SELECT(banner, base_color, created_at, id, label, marks, paint, posters, published_at, rail, school_id, status, stills, thumbs, top_board)', 'SELECT(banner, base_color, created_at, id, label, marks, paint, posters, published_at, rail, school_id, status, stills, thumbs, top_board), INSERT(banner, base_color, label, marks, paint, posters, rail, school_id, stills, thumbs, top_board), UPDATE(banner, base_color, label, marks, paint, posters, rail, stills, thumbs, top_board), DELETE', 'anyone: live liveries of active schools; staff: all', 'staff only (policies + admin_publish_livery, admin_retire_livery), livery:publish included'),
   ('school_members', '', 'SELECT', 'staff; school members', 'admin_* functions, school_add_admin, school_remove_admin'),
+  ('school_payment_settings', '', 'SELECT', 'school owner; staff', 'admin_set_school_payments, school_set_pass_price'),
   ('school_profiles', 'SELECT(about, brand_ink, brand_paint, email, logo, logo_mono, phone, school_id, socials, tagline, updated_at, website_url, whatsapp)', 'SELECT(about, brand_ink, brand_paint, email, logo, logo_mono, phone, school_id, socials, tagline, updated_at, website_url, whatsapp)', 'anyone: active schools; members and staff: their own', 'school_update_profile (owner, staff); school_set_logo (server)'),
   ('school_sponsorships', '', 'SELECT', 'staff', 'admin_set_sponsorship, admin_end_sponsorship'),
   ('school_student_links', '', 'SELECT', 'own links; owner; branch admins; staff', 'school_* and learner_* link functions'),
   ('school_subscriptions', '', 'SELECT', 'school owner; staff', 'service role'),
   ('schools', '', 'SELECT', 'staff; members; linked learners', 'admin_create_school, admin_set_school_status'),
-  ('subscription_pauses', '', '', 'nobody (internal)', 'pause functions'),
   ('user_roles', '', 'SELECT', 'own; su', 'handle_new_user; grant/revoke_platform_role');
 
 create table tests.policy_access (
@@ -198,7 +214,6 @@ insert into tests.policy_access (tbl, policy, cmd, roles) values
   ('plans', 'plans: guests read active', 'SELECT', 'anon'),
   ('plans', 'plans: signed-in read active, staff read all', 'SELECT', 'authenticated'),
   ('profiles', 'profiles: read own or staff', 'SELECT', 'authenticated'),
-  ('subscription_pauses', 'subscription_pauses: clients no access', 'ALL', 'anon,authenticated'),
   ('profiles', 'profiles: update own', 'UPDATE', 'authenticated'),
   ('school_branches', 'school_branches: staff, members and linked learners read', 'SELECT', 'authenticated'),
   ('school_member_branches', 'school_member_branches: staff and members read', 'SELECT', 'authenticated'),
@@ -209,6 +224,7 @@ insert into tests.policy_access (tbl, policy, cmd, roles) values
   ('school_liveries', 'school_liveries: staff update', 'UPDATE', 'authenticated'),
   ('school_liveries', 'school_liveries: staff delete all but the live one', 'DELETE', 'authenticated'),
   ('school_members', 'school_members: staff and members read', 'SELECT', 'authenticated'),
+  ('school_payment_settings', 'school_payment_settings: owner or staff read', 'SELECT', 'authenticated'),
   ('school_profiles', 'school_profiles: anyone reads active schools', 'SELECT', 'anon'),
   ('school_profiles', 'school_profiles: public if active; members and staff', 'SELECT', 'authenticated'),
   ('school_sponsorships', 'school_sponsorships: staff read', 'SELECT', 'authenticated'),

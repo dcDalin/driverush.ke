@@ -111,6 +111,8 @@ const ROUTES: Record<string, Entry> = {
   },
   "routes/share-landing": { group: "Share landing", path: "/s" },
   "routes/auth-callback": { group: "Account", path: "/auth/callback" },
+  "routes/pass": { group: "Pass", path: "/pass" },
+  "routes/pass-done": { group: "Pass", path: "/pass/done" },
   "routes/school-home": { group: "School dashboard", path: "/school" },
   "routes/console": { group: "Console", path: "/console" },
   "routes/school-dashboard": {

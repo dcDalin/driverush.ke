@@ -8,6 +8,9 @@
  *   Team      (owner) the owner and admins, each admin's branches; add an
  *             admin by email, change their branches, remove them. At most 50.
  *   Branches  (owner) add, rename, close; address, map pin, phone, hours.
+ *   Passes    the code learners pay through and the link to hand out; the
+ *             owner sets the price (KES 500 to 1,000). Earnings: what the
+ *             school earned (an admin sees their branches).
  *   Profile   (owner, staff) what learners read about the school: tagline,
  *             about, contacts, socials, brand colours, and the logos
  *             (uploaded through the server to Supabase Storage).
@@ -21,12 +24,18 @@ import { data } from "react-router";
 
 import { SiteNav } from "~/components/brand/site-nav";
 import { BranchesPanel } from "~/components/school/branches-panel";
+import { EarningsPanel, PassPanel } from "~/components/school/pass-panel";
 import { ProfilePanel } from "~/components/school/profile-panel";
 import { NeedsSignIn, NothingHere } from "~/components/school/signed-out";
 import { StudentsPanel } from "~/components/school/students-panel";
 import { TeamPanel } from "~/components/school/team-panel";
 import { Badge } from "~/components/ui/badge";
 import { isStaffRole } from "~/database/auth/roles";
+import {
+  getSchoolPassInfo,
+  listSchoolEarnings,
+  setPassPrice,
+} from "~/database/billing/school";
 import type { Result } from "~/database/result";
 import { getSchoolDashboard } from "~/database/schools/dashboard";
 import { uploadSchoolLogo } from "~/database/schools/logo.server";
@@ -38,6 +47,7 @@ import { formFields, readFormIntent } from "~/lib/forms/form-intent";
 import { checkHoneypot } from "~/lib/forms/honeypot.server";
 import { dataWithError, dataWithSuccess } from "~/lib/forms/toast.server";
 import { validateForm } from "~/lib/forms/validate-form.server";
+import { SetPassPriceSchema } from "~/schemas/billing";
 import {
   AddAdminSchema,
   AddBranchSchema,
@@ -71,9 +81,13 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     role: caller.role,
   });
   if (!dashboard) return data({ state: "not-member" as const }, { headers });
-  const profile = dashboard.canManage
-    ? await getSchoolProfile(supabase, params.schoolId)
-    : null;
+  const [profile, passInfo, earnings] = await Promise.all([
+    dashboard.canManage
+      ? getSchoolProfile(supabase, params.schoolId)
+      : Promise.resolve(null),
+    getSchoolPassInfo(supabase, params.schoolId),
+    listSchoolEarnings(supabase, params.schoolId),
+  ]);
   // Logos are shown from Storage by their public URL.
   const base = process.env.SUPABASE_URL ?? "";
   const logoUrl = (ref: unknown) => {
@@ -85,6 +99,8 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       state: "ok" as const,
       ...dashboard,
       profile,
+      passInfo,
+      earnings,
       logos: {
         logo: logoUrl(profile?.logo),
         logo_mono: logoUrl(profile?.logo_mono),
@@ -108,6 +124,7 @@ const DONE = {
   "update-profile": "Profile saved. The site shows it within a few minutes.",
   "update-branch-details": "Branch details saved.",
   "upload-logo": "Logo saved.",
+  "set-pass-price": "Price saved. New payments use it.",
 } as const;
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -200,6 +217,12 @@ export async function action({ request, params }: Route.ActionArgs) {
             phone: v.phone,
             hours: hoursFromForm(v),
           }),
+        DONE[intent],
+      );
+    case "set-pass-price":
+      return form(
+        await validateForm(formData, SetPassPriceSchema),
+        (v) => setPassPrice(supabase, schoolId, v.priceKes),
         DONE[intent],
       );
     case "upload-logo": {
@@ -323,6 +346,15 @@ export default function SchoolDashboard({ loaderData }: Route.ComponentProps) {
                 <Badge variant="amber">{loaderData.school.status}</Badge>
               )}
             </header>
+            <PassPanel
+              schoolName={loaderData.school.name}
+              info={loaderData.passInfo}
+              canManage={loaderData.canManage}
+            />
+            <EarningsPanel
+              rows={loaderData.earnings}
+              ready={loaderData.passInfo?.ready ?? false}
+            />
             <StudentsPanel
               students={loaderData.students}
               branches={loaderData.branches}

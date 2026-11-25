@@ -29,6 +29,7 @@ import {
   levelState,
   nextLevel,
 } from "~/lib/board/curriculum";
+import { passHref, usePaywall } from "~/lib/board/use-paywall";
 import { useCourseProgress } from "~/lib/use-course-progress";
 
 /** A square paper Button, a thumb wide. */
@@ -97,7 +98,13 @@ export default function BoardLevelsSheet({
     dark: true,
     onGo: close,
   });
+  const paywall = usePaywall();
   const goTo = (to: Level) => {
+    if (paywall.walled(to)) {
+      close();
+      navigate(passHref(to));
+      return;
+    }
     if (saved && levelState(to, saved) === "locked") {
       skip.ask(to);
       return;

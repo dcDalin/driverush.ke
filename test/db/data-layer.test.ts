@@ -74,15 +74,33 @@ describe("entitlement", () => {
     const amina = await getMyEntitlement(
       await signInWithPassword("amina@learner.test"),
     );
-    expect(amina).toMatchObject({ tier: "school", school_slug: "heltz" });
+    // Amina paid KES 700 through Heltz (the seed settles it as the webhook would).
+    expect(amina).toMatchObject({
+      tier: "school",
+      school_slug: "heltz",
+      full_access: true,
+    });
     const dan = await getMyEntitlement(
       await signInWithPassword("dan@learner.test"),
     );
-    expect(dan).toMatchObject({ tier: "paid", school_slug: null });
+    expect(dan).toMatchObject({
+      tier: "paid",
+      school_slug: null,
+      full_access: true,
+    });
     const esther = await getMyEntitlement(
       await signInWithPassword("esther@learner.test"),
     );
-    expect(esther).toMatchObject({ tier: "free", school_id: null });
+    expect(esther).toMatchObject({
+      tier: "free",
+      school_id: null,
+      full_access: false,
+    });
+    const brian = await getMyEntitlement(
+      await signInWithPassword("brian@learner.test"),
+    );
+    // Linked to Heltz for free, no pass: the school car, not the course.
+    expect(brian).toMatchObject({ tier: "school", full_access: false });
   });
 });
 
@@ -292,7 +310,15 @@ describe("console", () => {
 describe("row level security through the API", () => {
   it("shows a guest only active plans and nothing else", async () => {
     const guest = anonClient();
-    expect((await guest.from("plans").select("code")).data).toEqual([]);
+    const plans = (await guest.from("plans").select("code").order("code")).data;
+    expect(plans?.map((p) => p.code)).toEqual([
+      "learner_extension",
+      "learner_pass",
+      "school_pass",
+    ]);
+    expect(
+      (await guest.from("school_payment_settings").select("code")).error?.code,
+    ).toBe("42501");
     for (const table of [
       "schools",
       "profiles",
@@ -314,7 +340,7 @@ describe("row level security through the API", () => {
       (await learner.from("school_member_invites").select("id")).data,
     ).toEqual([]);
     expect(
-      (await learner.from("subscription_pauses").select("link_id")).error?.code,
-    ).toBe("42501");
+      (await learner.from("school_payment_settings").select("code")).data,
+    ).toEqual([]);
   });
 });

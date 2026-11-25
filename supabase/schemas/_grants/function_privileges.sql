@@ -65,6 +65,12 @@ grant execute on function public.learner_accept_school_link(uuid) to authenticat
 grant execute on function private.learner_accept_school_link(uuid) to authenticated;
 grant execute on function public.learner_decline_school_link(uuid) to authenticated;
 grant execute on function private.learner_decline_school_link(uuid) to authenticated;
+grant execute on function public.pass_school_by_code(text) to authenticated;
+grant execute on function private.pass_school_by_code(text) to authenticated;
+grant execute on function public.start_pass_checkout(text, text, uuid) to authenticated;
+grant execute on function public.my_pass_offers() to authenticated;
+grant execute on function private.my_pass_offers() to authenticated;
+grant execute on function private.start_pass_checkout(text, text, uuid) to authenticated;
 
 -- ── 5. School owners and admins (each checks the caller's school role) ──
 grant execute on function public.school_create_branch(uuid, text, text) to authenticated;
@@ -95,6 +101,12 @@ grant execute on function public.school_members_list(uuid) to authenticated;
 grant execute on function private.school_members_list(uuid) to authenticated;
 grant execute on function public.school_student_progress(uuid, uuid) to authenticated;
 grant execute on function private.school_student_progress(uuid, uuid) to authenticated;
+grant execute on function public.school_pass_info(uuid) to authenticated;
+grant execute on function private.school_pass_info(uuid) to authenticated;
+grant execute on function public.school_set_pass_price(uuid, integer) to authenticated;
+grant execute on function private.school_set_pass_price(uuid, integer) to authenticated;
+grant execute on function public.school_earnings(uuid, uuid) to authenticated;
+grant execute on function private.school_earnings(uuid, uuid) to authenticated;
 
 -- ── 6. DriveRush console (each checks is_staff or is_su) ────────────────
 grant execute on function public.admin_create_school(text, text, text) to authenticated;
@@ -113,6 +125,8 @@ grant execute on function public.admin_set_sponsorship(uuid, date, date, text) t
 grant execute on function private.admin_set_sponsorship(uuid, date, date, text) to authenticated;
 grant execute on function public.admin_end_sponsorship(uuid) to authenticated;
 grant execute on function private.admin_end_sponsorship(uuid) to authenticated;
+grant execute on function public.admin_set_school_payments(uuid, text, text, text, boolean) to authenticated;
+grant execute on function private.admin_set_school_payments(uuid, text, text, text, boolean) to authenticated;
 grant execute on function public.grant_platform_role(uuid, public.app_role) to authenticated;
 grant execute on function private.grant_platform_role(uuid, public.app_role) to authenticated;
 grant execute on function public.revoke_platform_role(uuid, public.app_role) to authenticated;

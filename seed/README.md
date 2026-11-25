@@ -56,19 +56,19 @@ The command ends by printing this table.
 **Test fixture** (`local_demo.sql`, used by the tests; do not change it for
 the demo):
 
-| Email                        | Who                                    |
-| ---------------------------- | -------------------------------------- |
-| `su@driverush.test`          | DriveRush su                           |
-| `admin@driverush.test`       | DriveRush admin                        |
-| `owner@heltz.test`           | Heltz owner (Nairobi CBD, Westlands)   |
-| `cbd.admin@heltz.test`       | Heltz admin, Nairobi CBD               |
-| `westlands.admin@heltz.test` | Heltz admin, Westlands                 |
-| `owner@topgear.test`         | Top Gear owner (Thika Road)            |
-| `amina@learner.test`         | active at Heltz Nairobi CBD (progress) |
-| `brian@learner.test`         | active at Heltz Westlands (progress)   |
-| `chebet@learner.test`        | added by Heltz and Top Gear: chooses   |
-| `dan@learner.test`           | own paid month, no school              |
-| `esther@learner.test`        | free account                           |
+| Email                        | Who                                                                |
+| ---------------------------- | ------------------------------------------------------------------ |
+| `su@driverush.test`          | DriveRush su                                                       |
+| `admin@driverush.test`       | DriveRush admin                                                    |
+| `owner@heltz.test`           | Heltz owner (Nairobi CBD, Westlands)                               |
+| `cbd.admin@heltz.test`       | Heltz admin, Nairobi CBD                                           |
+| `westlands.admin@heltz.test` | Heltz admin, Westlands                                             |
+| `owner@topgear.test`         | Top Gear owner (Thika Road)                                        |
+| `amina@learner.test`         | active at Heltz Nairobi CBD, paid KES 700 through Heltz (progress) |
+| `brian@learner.test`         | active at Heltz Westlands (progress)                               |
+| `chebet@learner.test`        | added by Heltz and Top Gear: chooses                               |
+| `dan@learner.test`           | own pass, no school                                                |
+| `esther@learner.test`        | free account                                                       |
 
 **Demo schools** (`src/data/schools.ts`, made through the real RPCs):
 
@@ -78,25 +78,30 @@ the demo):
 | AA Driving School          | `owner@aa.test` (invited, then signed up) | Hurlingham, Mombasa, Nakuru       | `mombasa.admin@aa.test`; `nakuru.admin@aa.test`; `wanjiru@schools.test` (Hurlingham, and Petanns Kisumu); `new.admin@aa.test` (invite, no account) |
 | Petanns Driving School     | `owner@petanns.test`                      | Kisumu, Eldoret                   | `eldoret.admin@petanns.test`; `wanjiru@schools.test` (Kisumu)                                                                                      |
 
+Every school takes passes: the fixture's `HELTZ` (KES 700) and `TOPGEAR`
+(KES 600), and the demo schools' `BLIXEN`, `AADS` and `PETANNS` (KES 700),
+each with a made-up Paystack subaccount code.
+
 **Demo learners** (`src/data/people.ts`, `<first name>@learner.test`). Each
 one shows a link state:
 
-| State                                   | Learners                                                            |
-| --------------------------------------- | ------------------------------------------------------------------- |
-| active, matched when they signed up     | achieng, cynthia, david, joy, lilian, moses, samuel, victor, winnie |
-| active, had an account first            | baraka, kevin, nafula, tabitha                                      |
-| pending, no account yet                 | faith (Blixen), ruth (AA)                                           |
-| invite cancelled by the school          | queen                                                               |
-| choosing between two schools            | zawadi (Blixen / AA), brenda (Petanns / AA)                         |
-| switched school (accepted the second)   | collins (AA Nakuru, then Petanns Eldoret)                           |
-| declined a second school                | diana (stays at Blixen Machakos)                                    |
-| released by the school                  | omar                                                                |
-| moved to another branch                 | halima (Blixen Nairobi West, then Machakos)                         |
-| month ran out                           | george, yusuf                                                       |
-| month ran out, then added again         | purity                                                              |
-| own paid month paused by a school month | ian                                                                 |
-| own paid month, no school (plain cars)  | edwin, grace                                                        |
-| free account (rotating sponsors)        | hassan, irene, kelvin, mercy                                        |
+| State                                      | Learners                                            |
+| ------------------------------------------ | --------------------------------------------------- |
+| active, matched when they signed up        | cynthia, david, joy, lilian, samuel, victor, winnie |
+| active, paid for a pass through the school | achieng (Blixen), moses (AA)                        |
+| active, had an account first               | baraka, kevin, nafula, tabitha                      |
+| pending, no account yet                    | faith (Blixen), ruth (AA)                           |
+| invite cancelled by the school             | queen                                               |
+| choosing between two schools               | zawadi (Blixen / AA), brenda (Petanns / AA)         |
+| switched school (accepted the second)      | collins (AA Nakuru, then Petanns Eldoret)           |
+| declined a second school                   | diana (stays at Blixen Machakos)                    |
+| released by the school                     | omar                                                |
+| moved to another branch                    | halima (Blixen Nairobi West, then Machakos)         |
+| month ran out                              | george, yusuf                                       |
+| month ran out, then added again            | purity                                              |
+| own pass, then added by a school           | ian                                                 |
+| own pass, no school (sponsor cars)         | edwin, grace                                        |
+| free account (rotating sponsors)           | hassan, irene, kelvin, mercy                        |
 
 Progress (`src/data/progress.ts`) is worked out from each learner's position
 in the list. It covers board levels done (real levels from the course list),

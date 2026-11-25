@@ -11,14 +11,16 @@
 --   cbd.admin@heltz.test           Heltz admin, Nairobi CBD branch
 --   westlands.admin@heltz.test     Heltz admin, Westlands branch
 --   owner@topgear.test             Top Gear owner
---   amina@learner.test             linked to Heltz, Nairobi CBD
+--   amina@learner.test             linked to Heltz, Nairobi CBD; paid KES 700 through Heltz
 --   brian@learner.test             linked to Heltz, Westlands
 --   chebet@learner.test            added by both schools: chooses (2 pending)
---   dan@learner.test               own paid subscription, no school
+--   dan@learner.test               own pass (staff grant), no school
 --   esther@learner.test            free account
 --
 -- Schools, branches, invites and links are made first; the accounts come
 -- last, so their sign-up runs the real matching (match_pending_invites).
+-- Heltz (code HELTZ, KES 700) and Top Gear (TOPGEAR, KES 600) take passes;
+-- their subaccount codes are made up (Paystack test mode needs real ones).
 
 create function pg_temp.seed_user(p_email text, p_name text)
 returns uuid
@@ -101,8 +103,20 @@ begin
   select id, 'driverush_admin' from auth.users where email = 'admin@driverush.test';
 
   insert into public.learner_subscriptions (user_id, plan_id, starts_at, ends_at, source)
-  select v_dan, p.id, now(), now() + interval '1 month', 'grant'
-    from public.plans as p where p.code = 'learner_monthly';
+  select v_dan, p.id, now(), now() + interval '60 days', 'grant'
+    from public.plans as p where p.code = 'learner_pass';
+
+  insert into public.school_payment_settings (school_id, code, price_kes, paystack_subaccount_code, bank_label) values
+    (v_heltz, 'HELTZ', 700, 'ACCT_local_heltz', 'Equity ••4321'),
+    (v_topgear, 'TOPGEAR', 600, 'ACCT_local_topgear', 'KCB ••1188');
+
+  -- Amina paid through Heltz: a settled school pass, as the webhook leaves it.
+  insert into public.payments (payer_user_id, school_id, branch_id, plan_id, amount_kes,
+                               driverush_share_kes, school_share_kes, provider, provider_ref)
+  select u.id, v_heltz, v_cbd, p.id, 700, 300, 400, 'paystack', 'dr_local_amina'
+    from auth.users as u, public.plans as p
+   where u.email = 'amina@learner.test' and p.code = 'school_pass';
+  perform private.settle_payment('dr_local_amina', 700, 10.50, '{"seed": true}'::jsonb);
 
   insert into public.learner_progress (user_id, store, data, version)
   select u.id, 'streak', '{"json": {"days": 3, "best": 3, "lastDay": "2026-11-24"}}'::jsonb, 1

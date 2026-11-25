@@ -36,6 +36,29 @@ async function asActor(schools: Schools, place: Place) {
   return signInAs(resolve(schools, place).actor);
 }
 
+/**
+ * Pays for a pass through the school as the learner would: their session
+ * starts the checkout, then the payment is settled the way the Paystack
+ * webhook does once Paystack says it went through.
+ */
+async function payThroughSchool(schools: Schools, place: Place, email: string) {
+  const { school, branchId } = resolve(schools, place);
+  const me = await signInAs(email);
+  const started = mustValue(
+    `start_pass_checkout ${email} through ${school.passCode}`,
+    await me.rpc("start_pass_checkout", {
+      p_plan_code: "school_pass",
+      p_school_code: school.passCode,
+      p_branch_id: branchId,
+    }),
+  );
+  const payment = started[0];
+  if (!payment) throw new Error(`No checkout for ${email}`);
+  await sql`
+    select private.settle_payment(${payment.reference}, ${payment.amount_kes},
+                                  10.5, '{"seed": true}'::jsonb)`;
+}
+
 /** The month ran out: dates moved back 40 days, link closed as the app would. */
 async function expire(linkId: string) {
   await sql`
@@ -48,11 +71,12 @@ async function expire(linkId: string) {
      where id = ${linkId} and status = 'active'`;
 }
 
-async function ownMonth(userId: string) {
+/** A pass of their own, given by staff (as for a pass bought on its own). */
+async function ownPass(userId: string) {
   await sql`
     insert into public.learner_subscriptions (user_id, plan_id, starts_at, ends_at, source)
-    select ${userId}, p.id, now() - interval '3 days', now() + interval '27 days', 'grant'
-      from public.plans as p where p.code = 'learner_monthly'`;
+    select ${userId}, p.id, now() - interval '3 days', now() + interval '57 days', 'grant'
+      from public.plans as p where p.code = 'learner_pass'`;
 }
 
 async function seedLearner(schools: Schools, spec: LearnerSpec) {
@@ -67,6 +91,17 @@ async function seedLearner(schools: Schools, spec: LearnerSpec) {
       return {
         where: story.at,
         state: `active (${story.joins === "after" ? "matched on sign-up" : "had an account"})`,
+        joined: true,
+      };
+    }
+    case "schoolPass": {
+      if (story.joins === "before") await join();
+      await add(schools, story.at, email);
+      if (story.joins === "after") await join();
+      await payThroughSchool(schools, story.at, email);
+      return {
+        where: story.at,
+        state: "active, paid for a pass through the school",
         joined: true,
       };
     }
@@ -175,19 +210,19 @@ async function seedLearner(schools: Schools, spec: LearnerSpec) {
         joined: true,
       };
     }
-    case "paused": {
+    case "ownPassLinked": {
       const userId = await join();
-      await ownMonth(userId);
+      await ownPass(userId);
       await add(schools, story.at, email);
       return {
         where: story.at,
-        state: "active, own paid month paused",
+        state: "active, with their own pass",
         joined: true,
       };
     }
     case "paid":
-      await ownMonth(await join());
-      return { where: "-", state: "paid, plain cars", joined: true };
+      await ownPass(await join());
+      return { where: "-", state: "own pass, sponsor cars", joined: true };
     case "free":
       await join();
       return { where: "-", state: "free", joined: true };

@@ -12,7 +12,11 @@ const base: Entitlement = {
   branch_id: null,
   ends_at: null,
   pending_invites: 0,
+  full_access: false,
+  pass_ends_at: null,
 };
+
+const PASS_END = "2027-01-24T10:00:00Z";
 
 describe("liveryRule", () => {
   it("lets guests and free accounts see the schools take turns", () => {
@@ -29,15 +33,21 @@ describe("liveryRule", () => {
       kind: "plain",
     });
   });
-  it("gives a paying learner with no school plain cars", () => {
-    expect(liveryRule({ ...base, tier: "paid" })).toEqual({ kind: "plain" });
+  it("lets a paying learner with no school see the schools take turns", () => {
+    expect(liveryRule({ ...base, tier: "paid", full_access: true })).toEqual({
+      kind: "rotate",
+    });
   });
 });
 
 describe("hasFullAccess", () => {
-  it("opens for school and paid, not free or guests", () => {
-    expect(hasFullAccess({ ...base, tier: "school" })).toBe(true);
-    expect(hasFullAccess({ ...base, tier: "paid" })).toBe(true);
+  it("opens while a pass runs, alone or through a school", () => {
+    const pass = { full_access: true, pass_ends_at: PASS_END };
+    expect(hasFullAccess({ ...base, ...pass, tier: "paid" })).toBe(true);
+    expect(hasFullAccess({ ...base, ...pass, tier: "school" })).toBe(true);
+  });
+  it("stays shut for a school link alone, free accounts and guests", () => {
+    expect(hasFullAccess({ ...base, tier: "school" })).toBe(false);
     expect(hasFullAccess(base)).toBe(false);
     expect(hasFullAccess(null)).toBe(false);
   });

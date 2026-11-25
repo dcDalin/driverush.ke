@@ -29,9 +29,11 @@ export type Story =
   | { kind: "expired"; at: Place }
   /** Month ran out, then the school added them again: a fresh month. */
   | { kind: "renewed"; at: Place }
-  /** Bought their own month, then a school added them: their paid time is paused. */
-  | { kind: "paused"; at: Place }
-  /** Their own paid month, no school: plain cars. */
+  /** Active, and paid for a pass through their school (the school earns its share). */
+  | { kind: "schoolPass"; at: Place; joins: "before" | "after" }
+  /** Their own pass, then a school added them: the school car, the pass unchanged. */
+  | { kind: "ownPassLinked"; at: Place }
+  /** Their own pass, no school: sponsor schools take turns. */
   | { kind: "paid" }
   /** A free account: cloud progress, rotating sponsors. */
   | { kind: "free" };
@@ -51,7 +53,7 @@ function learner(name: string, story: Story, noProgress = false): LearnerSpec {
 export const DEMO_LEARNERS: LearnerSpec[] = [
   // Blixen
   learner("Achieng Otieno", {
-    kind: "active",
+    kind: "schoolPass",
     at: "blixen/Nairobi West",
     joins: "after",
   }),
@@ -77,7 +79,7 @@ export const DEMO_LEARNERS: LearnerSpec[] = [
     at: "blixen/Nairobi West",
     to: "Machakos",
   }),
-  learner("Ian Kamau", { kind: "paused", at: "blixen/Nairobi West" }),
+  learner("Ian Kamau", { kind: "ownPassLinked", at: "blixen/Nairobi West" }),
   // AA
   learner("Joy Atieno", {
     kind: "active",
@@ -94,7 +96,11 @@ export const DEMO_LEARNERS: LearnerSpec[] = [
     at: "aa/Nakuru",
     joins: "after",
   }),
-  learner("Moses Wekesa", { kind: "active", at: "aa/Mombasa", joins: "after" }),
+  learner("Moses Wekesa", {
+    kind: "schoolPass",
+    at: "aa/Mombasa",
+    joins: "after",
+  }),
   learner(
     "Nafula Simiyu",
     { kind: "active", at: "aa/Mombasa", joins: "before" },

@@ -11,7 +11,7 @@
 -- ===================================================
 begin;
 
-select plan(38);
+select plan(41);
 
 create temp table w as select tests.make_world() as j;
 create function pg_temp.w(k text) returns text language sql as $$ select j ->> k from w $$;
@@ -107,12 +107,21 @@ select is(tests.sqlstate_as(pg_temp.w('learner_a1'), format('update public.learn
   'progress: a learner cannot hand their rows to someone else');
 
 -- ── billing ────────────────────────────────────────────────────────────
-select is(tests.value_as('anon', 'select count(*) from public.plans'), '0',
-  'plans: anon sees only active plans (none yet)');
+select is(tests.value_as('anon', 'select string_agg(code, '','' order by code) from public.plans'), 'learner_extension,learner_pass,school_pass',
+  'plans: anon sees only the active plans (the three passes)');
 select is(tests.value_as(pg_temp.w('staff'), $$select count(*) from public.plans where code in ('learner_monthly', 'school_standard')$$), '2',
   'plans: staff see the inactive ones too');
-select is(tests.sqlstate_as(pg_temp.w('learner_a1'), 'select count(*) from public.subscription_pauses'), '42501',
-  'subscription_pauses: no client reads it');
+
+insert into public.school_payment_settings (school_id, code, paystack_subaccount_code, bank_label)
+values (pg_temp.w('school_a')::uuid, 'RLSA', 'ACCT_rls_a', 'Bank ••0001');
+select is(tests.value_as(pg_temp.w('owner_a'), 'select count(*) from public.school_payment_settings'), '1',
+  'school_payment_settings: the owner reads their school''s');
+select is(tests.value_as(pg_temp.w('admin_a1'), 'select count(*) from public.school_payment_settings'), '0',
+  'school_payment_settings: a branch admin does not (school_pass_info gives them the code)');
+select is(tests.value_as(pg_temp.w('owner_b'), 'select count(*) from public.school_payment_settings'), '0',
+  'school_payment_settings: another school''s owner does not');
+select is(tests.sqlstate_as(pg_temp.w('owner_a'), format($$update public.school_payment_settings set price_kes = 999 where school_id = %L$$, pg_temp.w('school_a'))), '42501',
+  'school_payment_settings: not even the owner writes it directly');
 
 select * from finish();
 rollback;

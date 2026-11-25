@@ -15,7 +15,15 @@ export type SeededSchool = {
   branches: Map<string, string>;
   /** Who adds learners at each branch: its first signed-up admin, else the owner. */
   actorFor: Map<string, string>;
+  /** The code its learners pay through (school_payment_settings). */
+  passCode: string;
 };
+
+/** HELTZ-style codes: the slug in capitals, padded to the 3-letter minimum. */
+export function passCodeFor(slug: string) {
+  const code = slug.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return code.length >= 3 ? code.slice(0, 12) : `${code}DS`;
+}
 
 async function seedSchool(spec: SchoolSpec): Promise<SeededSchool> {
   const su = await signInAs("su@driverush.test");
@@ -91,7 +99,21 @@ async function seedSchool(spec: SchoolSpec): Promise<SeededSchool> {
   for (const name of branches.keys())
     if (!actorFor.has(name)) actorFor.set(name, spec.owner.email);
 
-  return { spec, id, branches, actorFor };
+  // Payments on, as staff do it after making the school's Paystack
+  // subaccount (made-up codes: Paystack test mode needs real ones).
+  const passCode = passCodeFor(spec.slug);
+  must(
+    `admin_set_school_payments ${spec.slug}`,
+    await su.rpc("admin_set_school_payments", {
+      p_school_id: id,
+      p_code: passCode,
+      p_subaccount_code: `ACCT_demo_${spec.slug}`,
+      p_bank_label: "Demo Bank ••0000",
+      p_is_active: true,
+    }),
+  );
+
+  return { spec, id, branches, actorFor, passCode };
 }
 
 export async function seedSchools() {

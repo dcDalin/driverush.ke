@@ -1,13 +1,16 @@
 /**
- * What the signed-in learner gets (`my_entitlement()` in the database):
+ * What the signed-in learner gets (`my_entitlement()` in the database).
+ * Two separate things (owner, 2026-11-25):
  *
- *   school  linked to a school this month: full access, that school's livery
- *   paid    their own subscription: full access, plain cars
- *   free    a free account: progress saved, sponsor schools take turns
+ *   tier         whose cars they see
+ *     school     linked to a school (free for the school): that school's livery
+ *     paid       a pass and no school: sponsor schools take turns
+ *     free       neither: sponsor schools take turns
+ *   full_access  a pass is running (bought alone or through their school):
+ *                the course past the free levels opens (`~/lib/board/paywall`)
  *
- * Guests have no entitlement (null) and are treated as free.
- * `hasFullAccess` is the one gate for locked content. Nothing is locked yet:
- * which content is locked is the owner's call, and each lock should ask this.
+ * Guests have no entitlement (null): free, no pass.
+ * `hasFullAccess` is the one gate for locked content.
  */
 import * as React from "react";
 
@@ -75,9 +78,9 @@ export function useEntitlement(): Entitlement | null {
   return value.value;
 }
 
-/** Whether locked content is open: a school link or the learner's own subscription. */
+/** Whether locked content is open: a pass is running. A school link alone does not open it. */
 export function hasFullAccess(entitlement: Entitlement | null): boolean {
-  return entitlement?.tier === "school" || entitlement?.tier === "paid";
+  return entitlement?.full_access === true;
 }
 
 /** What the board's cars wear for this entitlement. */
@@ -92,6 +95,6 @@ export function liveryRule(entitlement: Entitlement | null): LiveryRule {
       ? { kind: "school", sponsorId: entitlement.school_slug }
       : { kind: "plain" };
   }
-  if (entitlement?.tier === "paid") return { kind: "plain" };
+  // A pass without a school: the sponsor schools take turns (owner, 2026-11-25).
   return { kind: "rotate" };
 }

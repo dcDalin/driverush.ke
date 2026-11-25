@@ -24,6 +24,17 @@ const REASONS: Record<string, string> = {
   not_admin: "That person is not an admin of this school.",
   cannot_revoke_user: "Everyone keeps the user role.",
   cannot_revoke_own_su: "You cannot remove your own su role.",
+  // Passes (billing/functions/passes.sql, school_passes.sql).
+  email_unconfirmed: "Confirm your email first, then pay.",
+  unknown_plan: "That pass is not on sale.",
+  extension_not_allowed: "Extensions are for learners who have had a pass.",
+  bad_code:
+    "That school code does not take payments. Check it with your school.",
+  branch_required: "Pick your branch.",
+  price_below_share:
+    "This school's price is not set up right. Tell your school.",
+  price_out_of_range: "Set a price from KES 500 to KES 1,000.",
+  payments_not_set_up: "Payments are not set up for this school yet.",
 };
 
 export function reasonFor(error: DbError): string {

@@ -40,7 +40,13 @@ export type Tier = "school" | "paid" | "free";
  */
 export type Entitlement = Omit<
   FunctionReturns<"my_entitlement">[number],
-  "tier" | "school_id" | "school_name" | "school_slug" | "branch_id" | "ends_at"
+  | "tier"
+  | "school_id"
+  | "school_name"
+  | "school_slug"
+  | "branch_id"
+  | "ends_at"
+  | "pass_ends_at"
 > & {
   tier: Tier;
   school_id: string | null;
@@ -49,4 +55,6 @@ export type Entitlement = Omit<
   school_slug: string | null;
   branch_id: string | null;
   ends_at: string | null;
+  /** When the learner's passes run out; null with no pass running. */
+  pass_ends_at: string | null;
 };

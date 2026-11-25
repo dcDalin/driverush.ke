@@ -294,8 +294,8 @@ async function routes(request) {
   }
 }
 
-/** Pages the worker leaves alone (school dashboard, console, sign-in). */
-const PRIVATE = /^\/(school|console|auth|api)(\/|\.data|$)/;
+/** Pages the worker leaves alone (school dashboard, console, sign-in, paying). */
+const PRIVATE = /^\/(school|console|auth|api|pass)(\/|\.data|$)/;
 
 self.addEventListener("fetch", (event) => {
   const { request } = event;

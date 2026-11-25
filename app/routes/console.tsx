@@ -8,6 +8,8 @@
  *            Its liveries: preview a draft on the board, publish it, retire
  *            it (drafts come from `npm run livery:publish`). Its
  *            sponsorships: when its cars take turns for everyone.
+ *            Its passes: turn on payments with its code and bank (a
+ *            Paystack subaccount), and see its price.
  *   Staff    (su only) who holds a staff role; grant or revoke by email.
  *
  * The loader reads `getConsoleOverview`; the action validates each intent
@@ -22,8 +24,13 @@ import {
   SchoolRow,
   StaffPanel,
 } from "~/components/console/console-panels";
+import { SchoolPaymentsBlock } from "~/components/console/school-payments";
 import { NeedsSignIn, NothingHere } from "~/components/school/signed-out";
 import { isStaffRole, isSuRole } from "~/database/auth/roles";
+import {
+  listSchoolPaymentSettings,
+  setSchoolPayments,
+} from "~/database/billing/school";
 import * as consoleDb from "~/database/console/mutations";
 import {
   findAccountIdByEmail,
@@ -34,6 +41,13 @@ import { getRequestClient, requireStaff } from "~/lib/auth/require.server";
 import { formFields, readFormIntent } from "~/lib/forms/form-intent";
 import { dataWithError, dataWithSuccess } from "~/lib/forms/toast.server";
 import { validateForm } from "~/lib/forms/validate-form.server";
+import { bankLabel, kenyanBanks } from "~/lib/payments/banks.server";
+import { getPaystackEnv, paymentsEnabled } from "~/lib/payments/env.server";
+import {
+  createSubaccount,
+  PaystackError,
+} from "~/lib/payments/paystack.server";
+import { SetUpPaymentsSchema } from "~/schemas/billing";
 import {
   ConsoleActionSchema,
   CreateSchoolSchema,
@@ -58,13 +72,20 @@ export async function loader({ request }: Route.LoaderArgs) {
   if (!isStaffRole(caller.role))
     return data({ state: "not-staff" as const }, { headers });
   const su = isSuRole(caller.role);
-  const overview = await getConsoleOverview(supabase, { su });
+  const [overview, settings, banks] = await Promise.all([
+    getConsoleOverview(supabase, { su }),
+    listSchoolPaymentSettings(supabase),
+    kenyanBanks(),
+  ]);
   return data(
     {
       state: "ok" as const,
       su,
       me: caller.userId,
       ...overview,
+      payments: Object.fromEntries(settings),
+      banks,
+      paymentsOn: paymentsEnabled(),
     },
     { headers },
   );
@@ -138,6 +159,48 @@ export async function action({ request }: Route.ActionArgs) {
     return reply(
       await consoleDb.setSponsorship(supabase, v),
       "Sponsorship saved.",
+    );
+  }
+
+  if (intent === "set-up-payments") {
+    const { errors, data: v } = await validateForm(
+      formData,
+      SetUpPaymentsSchema,
+    );
+    if (errors || !v) return invalid(errors);
+    if (!paymentsEnabled()) {
+      return dataWithError(
+        { ok: false as const },
+        "Payments are off on this server.",
+        { headers },
+      );
+    }
+    let subaccount: string;
+    try {
+      subaccount = (
+        await createSubaccount(getPaystackEnv().secretKey, {
+          businessName: v.businessName,
+          bankCode: v.bankCode,
+          accountNumber: v.accountNumber,
+        })
+      ).subaccount_code;
+    } catch (error) {
+      return dataWithError(
+        { ok: false as const },
+        error instanceof PaystackError
+          ? `Paystack said: ${error.message}`
+          : "Paystack did not answer. Try again.",
+        { headers },
+      );
+    }
+    return reply(
+      await setSchoolPayments(supabase, {
+        schoolId: v.schoolId,
+        code: v.code,
+        subaccountCode: subaccount,
+        bankLabel: bankLabel(await kenyanBanks(), v.bankCode, v.accountNumber),
+      }),
+      "Payments on. The school's learners can pay through it now.",
     );
   }
 
@@ -228,7 +291,19 @@ export default function Console({ loaderData }: Route.ComponentProps) {
                     <SchoolRow
                       key={`${school.id}:${school.status}`}
                       school={school}
-                    />
+                    >
+                      <SchoolPaymentsBlock
+                        schoolId={school.id}
+                        schoolName={school.name}
+                        suggestedCode={school.slug
+                          .toUpperCase()
+                          .replace(/[^A-Z0-9]/g, "")
+                          .slice(0, 12)}
+                        payments={loaderData.payments[school.id] ?? null}
+                        banks={loaderData.banks}
+                        paymentsOn={loaderData.paymentsOn}
+                      />
+                    </SchoolRow>
                   ))}
                 </ul>
               )}

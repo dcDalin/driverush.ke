@@ -39,6 +39,7 @@ export type Database = {
           created_at: string;
           ends_at: string;
           id: string;
+          payment_id: string | null;
           plan_id: string;
           source: string;
           starts_at: string;
@@ -51,6 +52,7 @@ export type Database = {
           created_at?: string;
           ends_at: string;
           id?: string;
+          payment_id?: string | null;
           plan_id: string;
           source?: string;
           starts_at?: string;
@@ -62,6 +64,7 @@ export type Database = {
           created_at?: string;
           ends_at?: string;
           id?: string;
+          payment_id?: string | null;
           plan_id?: string;
           source?: string;
           starts_at?: string;
@@ -70,6 +73,13 @@ export type Database = {
           user_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "learner_subscriptions_payment_id_fkey";
+            columns: ["payment_id"];
+            isOneToOne: true;
+            referencedRelation: "payments";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "learner_subscriptions_plan_id_fkey";
             columns: ["plan_id"];
@@ -82,7 +92,10 @@ export type Database = {
       payments: {
         Row: {
           amount_kes: number;
+          branch_id: string | null;
           created_at: string;
+          driverush_share_kes: number;
+          fee_kes: number | null;
           id: string;
           payer_user_id: string | null;
           plan_id: string | null;
@@ -90,13 +103,17 @@ export type Database = {
           provider_ref: string | null;
           raw: Json | null;
           school_id: string | null;
+          school_share_kes: number;
           settled_at: string | null;
           status: Database["public"]["Enums"]["payment_status"];
         };
         ComputedFields: never;
         Insert: {
           amount_kes: number;
+          branch_id?: string | null;
           created_at?: string;
+          driverush_share_kes: number;
+          fee_kes?: number | null;
           id?: string;
           payer_user_id?: string | null;
           plan_id?: string | null;
@@ -104,12 +121,16 @@ export type Database = {
           provider_ref?: string | null;
           raw?: Json | null;
           school_id?: string | null;
+          school_share_kes?: number;
           settled_at?: string | null;
           status?: Database["public"]["Enums"]["payment_status"];
         };
         Update: {
           amount_kes?: number;
+          branch_id?: string | null;
           created_at?: string;
+          driverush_share_kes?: number;
+          fee_kes?: number | null;
           id?: string;
           payer_user_id?: string | null;
           plan_id?: string | null;
@@ -117,10 +138,18 @@ export type Database = {
           provider_ref?: string | null;
           raw?: Json | null;
           school_id?: string | null;
+          school_share_kes?: number;
           settled_at?: string | null;
           status?: Database["public"]["Enums"]["payment_status"];
         };
         Relationships: [
+          {
+            foreignKeyName: "payments_branch_id_fkey";
+            columns: ["branch_id"];
+            isOneToOne: false;
+            referencedRelation: "school_branches";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "payments_plan_id_fkey";
             columns: ["plan_id"];
@@ -437,6 +466,51 @@ export type Database = {
           },
         ];
       };
+      school_payment_settings: {
+        Row: {
+          bank_label: string | null;
+          code: string;
+          created_at: string;
+          is_active: boolean;
+          paystack_subaccount_code: string | null;
+          price_kes: number;
+          school_id: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          bank_label?: string | null;
+          code: string;
+          created_at?: string;
+          is_active?: boolean;
+          paystack_subaccount_code?: string | null;
+          price_kes?: number;
+          school_id: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          bank_label?: string | null;
+          code?: string;
+          created_at?: string;
+          is_active?: boolean;
+          paystack_subaccount_code?: string | null;
+          price_kes?: number;
+          school_id?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "school_payment_settings_school_id_fkey";
+            columns: ["school_id"];
+            isOneToOne: true;
+            referencedRelation: "schools";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       school_profiles: {
         Row: {
           about: string | null;
@@ -677,46 +751,6 @@ export type Database = {
         };
         Relationships: [];
       };
-      subscription_pauses: {
-        Row: {
-          created_at: string;
-          link_id: string;
-          moved_start: boolean;
-          shifted_by: string;
-          subscription_id: string;
-        };
-        ComputedFields: never;
-        Insert: {
-          created_at?: string;
-          link_id: string;
-          moved_start: boolean;
-          shifted_by: string;
-          subscription_id: string;
-        };
-        Update: {
-          created_at?: string;
-          link_id?: string;
-          moved_start?: boolean;
-          shifted_by?: string;
-          subscription_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "subscription_pauses_link_id_fkey";
-            columns: ["link_id"];
-            isOneToOne: false;
-            referencedRelation: "school_student_links";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "subscription_pauses_subscription_id_fkey";
-            columns: ["subscription_id"];
-            isOneToOne: false;
-            referencedRelation: "learner_subscriptions";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
       user_roles: {
         Row: {
           created_at: string;
@@ -758,6 +792,16 @@ export type Database = {
         Args: { p_livery_id: string };
         Returns: undefined;
       };
+      admin_set_school_payments: {
+        Args: {
+          p_bank_label: string;
+          p_code: string;
+          p_is_active: boolean;
+          p_school_id: string;
+          p_subaccount_code: string;
+        };
+        Returns: undefined;
+      };
       admin_set_school_status: {
         Args: {
           p_school_id: string;
@@ -780,6 +824,10 @@ export type Database = {
       };
       board_schools: { Args: Record<PropertyKey, never>; Returns: Json };
       custom_access_token_hook: { Args: { event: Json }; Returns: Json };
+      fail_payment: {
+        Args: { p_raw: Json; p_reference: string };
+        Returns: undefined;
+      };
       grant_platform_role: {
         Args: {
           p_role: Database["public"]["Enums"]["app_role"];
@@ -800,12 +848,40 @@ export type Database = {
         Returns: {
           branch_id: string;
           ends_at: string;
+          full_access: boolean;
+          pass_ends_at: string;
           pending_invites: number;
           school_id: string;
           school_name: string;
           school_slug: string;
           tier: string;
         }[];
+      };
+      my_pass_offers: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          branch_id: string;
+          branch_name: string;
+          code: string;
+          linked: boolean;
+          price_kes: number;
+          school_id: string;
+          school_name: string;
+        }[];
+      };
+      pass_school_by_code: {
+        Args: { p_code: string };
+        Returns: {
+          branches: Json;
+          price_kes: number;
+          school_id: string;
+          school_name: string;
+          school_slug: string;
+        }[];
+      };
+      refund_payment: {
+        Args: { p_raw: Json; p_reference: string };
+        Returns: undefined;
       };
       revoke_platform_role: {
         Args: {
@@ -834,6 +910,19 @@ export type Database = {
         Args: { p_name: string; p_school_id: string; p_town: string };
         Returns: string;
       };
+      school_earnings: {
+        Args: { p_branch_id?: string; p_school_id: string };
+        Returns: {
+          branch_id: string;
+          branch_name: string;
+          learner_email: string;
+          paid_at: string;
+          payment_id: string;
+          price_kes: number;
+          school_share_kes: number;
+          status: Database["public"]["Enums"]["payment_status"];
+        }[];
+      };
       school_members_list: {
         Args: { p_school_id: string };
         Returns: {
@@ -849,6 +938,16 @@ export type Database = {
       school_move_student_branch: {
         Args: { p_branch_id: string; p_link_id: string };
         Returns: undefined;
+      };
+      school_pass_info: {
+        Args: { p_school_id: string };
+        Returns: {
+          bank_label: string;
+          code: string;
+          driverush_share_kes: number;
+          price_kes: number;
+          ready: boolean;
+        }[];
       };
       school_release_student: {
         Args: { p_link_id: string };
@@ -870,6 +969,10 @@ export type Database = {
           p_school_id: string;
         };
         Returns: string;
+      };
+      school_set_pass_price: {
+        Args: { p_price_kes: number; p_school_id: string };
+        Returns: undefined;
       };
       school_student_progress: {
         Args: { p_branch_id?: string; p_school_id: string };
@@ -919,6 +1022,30 @@ export type Database = {
           p_whatsapp: string;
         };
         Returns: undefined;
+      };
+      settle_payment: {
+        Args: {
+          p_amount_kes: number;
+          p_fee_kes: number;
+          p_raw: Json;
+          p_reference: string;
+        };
+        Returns: string;
+      };
+      start_pass_checkout: {
+        Args: {
+          p_branch_id?: string;
+          p_plan_code: string;
+          p_school_code?: string;
+        };
+        Returns: {
+          amount_kes: number;
+          email: string;
+          payment_id: string;
+          reference: string;
+          school_id: string;
+          school_name: string;
+        }[];
       };
     };
     Enums: {

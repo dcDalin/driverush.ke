@@ -4,7 +4,7 @@
 create type public.plan_audience as enum ('learner', 'school');
 
 comment on type public.plan_audience is
-  'Who buys the plan: a learner (own subscription) or a school (flat plan per school).';
+  'Who buys the plan: a learner (a pass, public or through their school) or a school (unused: schools pay nothing).';
 
 create type public.subscription_status as enum ('active', 'cancelled');
 

@@ -63,17 +63,17 @@ schema_paths = [
   './schemas/schools/tables/school_liveries.sql',
   './schemas/schools/tables/school_sponsorships.sql',
 
-  # billing: plans and subscriptions (provider-neutral; no money moves yet)
+  # billing: plans, learner passes, payments (Paystack) and school pass settings
   './schemas/billing/enums/billing_enums.sql',
   './schemas/billing/tables/plans.sql',
+  './schemas/billing/tables/payments.sql',
   './schemas/billing/tables/learner_subscriptions.sql',
   './schemas/billing/tables/school_subscriptions.sql',
-  './schemas/billing/tables/payments.sql',
+  './schemas/billing/tables/school_payment_settings.sql',
 
-  # students: a school's one-month link to a learner, by email
+  # students: a school's link to a learner, by email (free; a pass unlocks)
   './schemas/students/enums/student_enums.sql',
   './schemas/students/tables/school_student_links.sql',
-  './schemas/billing/tables/subscription_pauses.sql',
 
   # progress: the learner's saved progress, one row per app store
   './schemas/progress/tables/learner_progress.sql',
@@ -83,7 +83,6 @@ schema_paths = [
   './schemas/profiles/functions/custom_access_token_hook.sql',
   './schemas/schools/functions/school_access.sql',
   './schemas/schools/functions/admin_limit.sql',
-  './schemas/billing/functions/subscription_pauses.sql',
   './schemas/students/functions/link_lifecycle.sql',
   './schemas/profiles/functions/match_pending_invites.sql',
   './schemas/profiles/functions/handle_auth_users.sql',
@@ -97,6 +96,8 @@ schema_paths = [
   './schemas/students/functions/school_students.sql',
   './schemas/students/functions/learner_links.sql',
   './schemas/billing/functions/my_entitlement.sql',
+  './schemas/billing/functions/passes.sql',
+  './schemas/billing/functions/school_passes.sql',
   './schemas/progress/functions/school_student_progress.sql',
 
   # triggers

@@ -10,12 +10,19 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const ROUTES = path.resolve(__dirname, "../../routes");
-const GATED = /^(school-|console|api\/)/;
+const GATED = /^(school-|console|pass|api\/)/;
 /**
  * Public on purpose: the same answer for everyone, guests included, and
  * cached by the CDN. Nothing here reads a session.
  */
 const PUBLIC = new Set(["api/board-schools.ts"]);
+/**
+ * No session, so a different gate first: the caller's signature over the raw
+ * body (Paystack's webhook), before anything is read or written.
+ */
+const SIGNED = new Map([
+  ["api/webhooks.paystack.ts", /await readSignedPaystackEvent\(request\)/],
+]);
 const GATES = /await (getRequestClient|requireUser|requireStaff)\(request\)/;
 
 function files(dir: string, prefix = ""): string[] {
@@ -47,7 +54,7 @@ describe("gate first", () => {
         const first = body!
           .split("\n")
           .find((line) => line.trim() !== "" && !line.trim().startsWith("//"));
-        expect(first, `${file} ${name}`).toMatch(GATES);
+        expect(first, `${file} ${name}`).toMatch(SIGNED.get(file) ?? GATES);
       }
     });
   }

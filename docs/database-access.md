@@ -15,18 +15,25 @@ pgTAP checks against the live grants and policies; this page explains it.
 | DriveRush admin          | `driverush_admin` in `user_roles`                                             | Creates, suspends and re-owns schools; reads everything. Password session only.                                                                                                   |
 | DriveRush su             | `driverush_su` in `user_roles`                                                | Everything an admin can, plus granting and revoking platform roles. Password session only.                                                                                        |
 
-## A learner's tier (`my_entitlement()`)
+## A learner's tier and pass (`my_entitlement()`)
 
-| Tier     | When                                                    | Content                   | Cars                                |
-| -------- | ------------------------------------------------------- | ------------------------- | ----------------------------------- |
-| `school` | a current link (inside its month) with an active school | full                      | that school's livery (`sponsor_id`) |
-| `paid`   | their own subscription is running                       | full                      | plain                               |
-| `free`   | signed in, neither of the above                         | free tier, progress saved | sponsor schools take turns          |
-| guest    | not signed in                                           | free tier, nothing saved  | sponsor schools take turns          |
+Two separate things (owner, 2026-11-25): the tier says whose cars a learner
+sees, and `full_access` says whether a pass is running.
 
-A school link beats paid time. While it runs, the learner's paid time pauses:
-the subscription moves forward by the school month, and back by any unused
-part if the link ends early.
+| Tier     | When                                                    | Cars                                 |
+| -------- | ------------------------------------------------------- | ------------------------------------ |
+| `school` | a current link (inside its month) with an active school | that school's livery (`school_slug`) |
+| `paid`   | no school link, a pass running                          | sponsor schools take turns           |
+| `free`   | signed in, neither of the above                         | sponsor schools take turns           |
+| guest    | not signed in                                           | sponsor schools take turns           |
+
+A school link is free for the school and opens nothing by itself. A pass
+(`learner_subscriptions`, 60 days, or a 30-day extension) opens the course
+past the free levels: bought alone (KES 1,000) or through the school at the
+school's price (KES 500 to 1,000, DriveRush keeps KES 300). Passes run back
+to back; a school pass keeps the learner linked to that school while it runs.
+The functions are `billing/functions/passes.sql` (checkout, settle, fail,
+refund) and `school_passes.sql` (code, price, earnings, staff setup).
 
 ## School links (`school_student_links`)
 
@@ -72,7 +79,7 @@ part if the link ends early.
 | `learner_subscriptions`                    | own; staff                                                      | none                                                                 |
 | `school_subscriptions`                     | the school owner; staff                                         | none                                                                 |
 | `payments`                                 | the payer; the school owner; staff                              | none                                                                 |
-| `subscription_pauses`                      | nobody                                                          | none                                                                 |
+| `school_payment_settings`                  | the school owner; staff                                         | none                                                                 |
 | `school_profiles`                          | anyone: active schools; members and staff: their own always     | none (`school_update_profile`)                                       |
 | `school_liveries`                          | anyone: live liveries of active schools; staff: all             | staff only: insert drafts, edit content, delete all but the live one |
 | `school_sponsorships`                      | staff                                                           | none (`admin_*` functions)                                           |
@@ -105,6 +112,6 @@ dashboard.
 `npm run db:reset` gives the test personas, and `npm run db:seed` the full
 demo: 5 schools, their owners and admins, and learners in every link state
 (pending, active, choosing, switched, declined, released, moved, expired,
-renewed, paid and paused, free). Every account's password is
+renewed, paid through the school, own pass, free). Every account's password is
 `driverush-local-1`. The table of who is who, and how to add your own su
 (`SEED_SU_EMAIL` in `.env.local`), is in `seed/README.md`.

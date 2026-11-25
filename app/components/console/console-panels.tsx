@@ -106,7 +106,14 @@ function count(n: number, one: string, many = `${one}s`) {
   return `${n} ${n === 1 ? one : many}`;
 }
 
-export function SchoolRow({ school }: { school: ConsoleSchool }) {
+export function SchoolRow({
+  school,
+  children,
+}: {
+  school: ConsoleSchool;
+  /** More about the school under its liveries (its passes). */
+  children?: React.ReactNode;
+}) {
   const status = useInlineAction(`school-status:${school.id}`);
   const [next, setNext] = React.useState<SchoolStatus>(school.status);
   const owner = useServerForm({
@@ -212,6 +219,12 @@ export function SchoolRow({ school }: { school: ConsoleSchool }) {
         <Liveries slug={school.slug} liveries={school.liveries} />
         <Sponsorships schoolId={school.id} sponsorships={school.sponsorships} />
       </div>
+      {children && (
+        <>
+          <Separator />
+          {children}
+        </>
+      )}
     </li>
   );
 }

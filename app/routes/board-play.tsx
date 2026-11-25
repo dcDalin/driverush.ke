@@ -14,16 +14,29 @@ import * as React from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 
 import { BoardGame } from "~/components/board/board-player";
+import { PassWall } from "~/components/board/pass-wall";
 import { LoadingPanel } from "~/components/brand/traffic-loader";
 import { Button } from "~/components/ui/button";
 import { analytics } from "~/lib/analytics";
 import { challengeById } from "~/lib/board/challenges";
+import {
+  ALL_LEVELS,
+  type Level,
+  levelById,
+  MOCK_LEVEL_ID,
+} from "~/lib/board/curriculum";
 import { useLiveryPreview } from "~/lib/board/livery-preview";
 import {
   enterPlay,
   schoolHeld,
   useVisitSponsor,
 } from "~/lib/board/sponsor-visit";
+import {
+  countMockTry,
+  mightBeLocked,
+  mockTriesUsed,
+  usePaywall,
+} from "~/lib/board/use-paywall";
 import { BOARD_PATH } from "~/lib/board-guides";
 import { useBoardStore } from "~/lib/board-store";
 import { isDailyDrive, kenyaDay } from "~/lib/daily-drive";
@@ -104,9 +117,35 @@ export default function BoardPlay() {
   /** The game is being shut by this page itself: to change level, or to go. */
   const swapping = React.useRef(false);
 
+  // The paywall (`~/lib/board/use-paywall`): a locked level shows the pass
+  // card instead of starting. The mixed round with no task is the mock test.
+  const gate = usePaywall();
+  const target: Level | undefined = level
+    ? levelById(level)
+    : !learn && !free && !task
+      ? ALL_LEVELS.find((l) => l.id === MOCK_LEVEL_ID)
+      : undefined;
+  // Counted once as the page opens, so starting the free try does not lock
+  // the try already running.
+  const triesAtOpen = React.useRef<number | null>(null);
+  if (triesAtOpen.current === null && typeof window !== "undefined")
+    triesAtOpen.current = mockTriesUsed();
+  const waiting = Boolean(
+    target && gate.on && !gate.ready && mightBeLocked(target),
+  );
+  const walled = Boolean(
+    target && gate.walled(target, triesAtOpen.current ?? 0),
+  );
+  // Starting the mock test without a pass uses up the free try.
+  const freeMockTry = Boolean(
+    target?.kind === "mock" && gate.walled(target, Number.POSITIVE_INFINITY),
+  );
+
   React.useEffect(() => {
+    if (waiting || walled) return;
     const store = useBoardStore.getState();
     if (!store.overlayOpen) {
+      if (freeMockTry && !level && !learn && !free && !task) countMockTry();
       if (level) store.startLevel(level);
       else if (learn) store.learn();
       else if (free) store.freeDrive(from ?? "link");
@@ -119,7 +158,10 @@ export default function BoardPlay() {
       useBoardStore.getState().exit();
       swapping.current = false;
     };
-  }, [learn, free, from, task, level, daily]);
+    // `freeMockTry` is left out on purpose: it changes when the entitlement
+    // arrives, and the round must not restart for it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [learn, free, from, task, level, daily, waiting, walled]);
 
   // Close takes the learner back to the page they opened the game from. The
   // store is listened to directly, not read from a render: moving from one
@@ -155,6 +197,7 @@ export default function BoardPlay() {
         <Link to={BOARD_PATH}>Back to the Model Town Board</Link>
       </Button>
       <BoardGame />
+      {walled && target && <PassWall level={target} />}
     </main>
   );
 }

@@ -1,8 +1,8 @@
 -- ===================================================
--- pgTAP: tiers, paused paid time, the token hook and school progress
+-- pgTAP: tiers and passes, the token hook and school progress
 -- ===================================================
--- A learner's own paid time pauses while a school link runs and comes back
--- when it ends early; the access token carries a console role only on a
+-- A pass gives full access and a school link the school car, independently
+-- (a link never moves a pass); the access token carries a console role only on a
 -- password session; a school reads only its current learners' progress, an
 -- admin only in their branches. now() is fixed inside the transaction, so
 -- dates compare exactly.
@@ -17,40 +17,35 @@ create temp table w as select tests.make_world() as j;
 create function pg_temp.w(k text) returns text language sql as $$ select j ->> k from w $$;
 create function pg_temp.tier(p_user text) returns text
   language sql as $$ select tests.value_as(p_user, 'select tier from public.my_entitlement()') $$;
+create function pg_temp.access(p_user text) returns text
+  language sql as $$ select tests.value_as(p_user, 'select full_access from public.my_entitlement()') $$;
 create function pg_temp.sub(p_user text) returns public.learner_subscriptions
   language sql as $$ select * from public.learner_subscriptions where user_id = p_user::uuid order by created_at limit 1 $$;
 
--- ── Paid time pauses during a school month ─────────────────────────────
-insert into public.learner_subscriptions (user_id, plan_id, starts_at, ends_at)
-select pg_temp.w('learner_free')::uuid, p.id, now() - interval '5 days', now() + interval '25 days'
-  from public.plans as p where p.code = 'learner_monthly';
-select is(pg_temp.tier(pg_temp.w('learner_free')), 'paid', 'a learner with their own subscription is paid');
+-- ── Passes and school links (owner, 2026-11-25) ────────────────────────
+-- A pass unlocks; a school link is the school car and the school's view.
+-- A link never moves a pass.
+insert into public.learner_subscriptions (user_id, plan_id, starts_at, ends_at, source)
+select pg_temp.w('learner_free')::uuid, p.id, now() - interval '5 days', now() + interval '55 days', 'grant'
+  from public.plans as p where p.code = 'learner_pass';
+select is(pg_temp.tier(pg_temp.w('learner_free')), 'paid', 'a learner with a pass and no school is paid');
+select is(pg_temp.access(pg_temp.w('learner_free')), 'true', 'and has full access');
 
 select isnt(tests.run_as(pg_temp.w('owner_a'), format('select public.school_add_student(%L, %L)',
   pg_temp.w('a1'), (select email from auth.users where id = pg_temp.w('learner_free')::uuid))), null,
   'a school links them');
-select is(pg_temp.tier(pg_temp.w('learner_free')), 'school', 'the school tier wins');
-select is((pg_temp.sub(pg_temp.w('learner_free'))).ends_at, now() + interval '1 month' + interval '25 days',
-  'their paid time is pushed past the school month');
-select is((pg_temp.sub(pg_temp.w('learner_free'))).starts_at, now() - interval '5 days',
-  'a subscription already running keeps its start');
+select is(pg_temp.tier(pg_temp.w('learner_free')), 'school', 'the school car wins');
+select is(pg_temp.access(pg_temp.w('learner_free')), 'true', 'their own pass still opens everything');
+select is((pg_temp.sub(pg_temp.w('learner_free'))).ends_at, now() + interval '55 days',
+  'the link does not move the pass');
 
 select is(tests.run_as(pg_temp.w('owner_a'), format('select public.school_release_student(%L)',
   (select id from public.school_student_links where user_id = pg_temp.w('learner_free')::uuid and status = 'active'))), '',
-  'the school releases them the same moment');
-select is((pg_temp.sub(pg_temp.w('learner_free'))).ends_at, now() + interval '25 days',
-  'the unused school time is given back: paid time ends where it did');
+  'the school releases them');
 select is(pg_temp.tier(pg_temp.w('learner_free')), 'paid', 'and they are paid again');
 
--- ── Paid time bought during a school month starts after it ─────────────
-insert into public.learner_subscriptions (user_id, plan_id, starts_at, ends_at)
-select pg_temp.w('learner_a1')::uuid, p.id, now(), now() + interval '30 days'
-  from public.plans as p where p.code = 'learner_monthly';
-select is((pg_temp.sub(pg_temp.w('learner_a1'))).starts_at,
-  (select ends_at from public.school_student_links where id = pg_temp.w('link_a1')::uuid),
-  'a subscription bought during a school month starts when the month ends');
-select is((pg_temp.sub(pg_temp.w('learner_a1'))).ends_at - (pg_temp.sub(pg_temp.w('learner_a1'))).starts_at, interval '30 days',
-  'and keeps its full length');
+select is(pg_temp.tier(pg_temp.w('learner_a1')), 'school', 'a linked learner without a pass has the school car');
+select is(pg_temp.access(pg_temp.w('learner_a1')), 'false', 'but not full access: the link is free, the pass unlocks');
 
 -- ── Tiers ──────────────────────────────────────────────────────────────
 select is(pg_temp.tier(pg_temp.w('learner_a2')), 'school', 'a linked learner is school');

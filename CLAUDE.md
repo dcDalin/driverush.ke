@@ -78,12 +78,22 @@ remix-hook-form, shadcn everywhere. Guides: `docs/forms-and-data.md`,
   Guests' progress lasts one visit (owner decision): the head script in
   `guest-visit.ts` clears it on a new visit; `GUEST_PROGRESS_KEPT` reverses it.
 - `useEntitlement()` / `liveryRule()` (`app/lib/auth/entitlement.ts`): school
-  livery, plain cars (paid) or the usual turns. `hasFullAccess()` is the one
-  gate for locked content; nothing is locked yet.
+  livery for linked learners, otherwise the usual turns (paid included).
+  `hasFullAccess()` (a pass is running) is the one gate for locked content;
+  `app/lib/board/paywall.ts` says what is locked (past level 16, a second
+  mock test) and `use-paywall.ts` asks it in the game and the level lists,
+  only when the build has `VITE_PASSES=on` (the owner's launch switch).
 - `/school/:schoolId` (owners, branch admins) and `/console` (staff). The
   service worker and robots.txt leave `/school`, `/console`, `/auth`, `/api`
   alone.
-- Payments: not built. Provider undecided; tables are provider-neutral.
+- Payments (owner, 2026-11-25): learners buy 60-day passes through Paystack
+  (`app/lib/payments/`); schools pay nothing and earn through a Paystack
+  subaccount split. A school link is free; a pass unlocks. The database side
+  is `supabase/schemas/billing/` (`docs/database-access.md`). `/pass` and
+  `/pass/done` (learners), `/api/webhooks/paystack` (signature-gated), the
+  dashboard's Passes and Earnings panels and the console's payment setup.
+  Env: `PAYSTACK_SECRET_KEY`, `PAYSTACK_WEBHOOK_SECRET`, `VITE_PASSES`.
+  `.claude/launch.json` `dev-passes` runs it locally with passes on.
 - School profiles and liveries are data, not code (`docs/school-media.md`):
   owners edit their profile and logos on the dashboard; DriveRush makes
   liveries (`scripts/sponsor-art`, `seed/fixtures/liveries/<slug>/`,

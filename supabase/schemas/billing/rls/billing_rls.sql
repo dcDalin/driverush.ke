@@ -20,9 +20,9 @@ create policy "plans: signed-in read active, staff read all"
 -- ===================================================
 -- ACCESS: public.learner_subscriptions
 -- ===================================================
--- Reads:  A learner reads their own; DriveRush staff read all.
--- Writes: No client: the payment flow (service role); dates move through
---         the pause functions while a school link is current.
+-- Reads:  A learner reads their own passes; DriveRush staff read all.
+-- Writes: No client: settle_payment and refund_payment (service role), or
+--         staff grants (service role).
 -- Grants: anon: none; authenticated: SELECT
 alter table public.learner_subscriptions enable row level security;
 
@@ -45,8 +45,11 @@ create policy "school_subscriptions: owner or staff read"
 -- ===================================================
 -- ACCESS: public.payments
 -- ===================================================
--- Reads:  The learner who paid; the owner of the school paid for; staff.
--- Writes: No client: the payment flow (service role).
+-- Reads:  The learner who paid; the owner of the school they paid through;
+--         staff. Branch admins see their branches' payments through
+--         school_earnings, never the table.
+-- Writes: No client: start_pass_checkout (a pending row for the caller) and
+--         the payment flow (service role: settle, fail, refund).
 -- Grants: anon: none; authenticated: SELECT
 alter table public.payments enable row level security;
 
@@ -59,15 +62,16 @@ create policy "payments: payer, school owner or staff read"
   );
 
 -- ===================================================
--- ACCESS: public.subscription_pauses
+-- ACCESS: public.school_payment_settings
 -- ===================================================
--- Reads:  No client (internal bookkeeping of the pause functions).
--- Writes: No client: private.pause_subscription, resume_subscriptions_for_link.
--- Grants: anon: none; authenticated: none
-alter table public.subscription_pauses enable row level security;
+-- Reads:  The school's owner; DriveRush staff. Branch admins get the code and
+--         price through school_pass_info; learners resolve a code through
+--         pass_school_by_code.
+-- Writes: No client: admin_set_school_payments (staff), school_set_pass_price
+--         (owner).
+-- Grants: anon: none; authenticated: SELECT
+alter table public.school_payment_settings enable row level security;
 
--- Said out loud rather than left to "no policy" (advisor: rls_enabled_no_policy).
-create policy "subscription_pauses: clients no access"
-  on public.subscription_pauses for all to anon, authenticated
-  using (false)
-  with check (false);
+create policy "school_payment_settings: owner or staff read"
+  on public.school_payment_settings for select to authenticated
+  using ((select private.is_staff()) or private.is_school_owner(school_id));

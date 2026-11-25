@@ -72,12 +72,18 @@ export default [
   // Where Google sends a learner back after signing in.
   route("auth/callback", "routes/auth-callback.tsx"),
 
+  // Buying the full course (Paystack), and where Paystack sends the learner
+  // back. Signed in to pay; private like the dashboards.
+  route("pass", "routes/pass.tsx"),
+  route("pass/done", "routes/pass-done.tsx"),
+
   // A driving school's dashboard (owners and branch admins). Signed in only.
   route("school", "routes/school-home.tsx"),
   route("school/:schoolId", "routes/school-dashboard.tsx"),
   // Resource routes for fetchers (no page of their own).
   route("api/me/school-invites", "routes/api/me.school-invites.ts"),
   route("api/board-schools", "routes/api/board-schools.ts"),
+  route("api/webhooks/paystack", "routes/api/webhooks.paystack.ts"),
   // DriveRush staff: schools, owners and staff roles. Signed in only.
   route("console", "routes/console.tsx"),
 

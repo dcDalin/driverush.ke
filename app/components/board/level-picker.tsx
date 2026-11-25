@@ -9,7 +9,7 @@
  * filled in from this browser's saved progress once the page is running.
  */
 import * as React from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 import { useSkipAhead } from "~/components/board/skip-ahead";
 import { Icon } from "~/components/brand/icon";
@@ -35,6 +35,7 @@ import {
   type UnitState,
   unitState,
 } from "~/lib/board/curriculum";
+import { passHref, usePaywall } from "~/lib/board/use-paywall";
 import { BOARD_PLAY_PATH, levelHref } from "~/lib/board-guides";
 import { useCourseProgress } from "~/lib/use-course-progress";
 import { cn } from "~/lib/utils";
@@ -74,8 +75,11 @@ function LevelCard({
   replace,
   onPick,
   onLocked,
+  walled = false,
 }: {
   level: Level;
+  /** Needs a pass (`~/lib/board/use-paywall`): opens the pass page instead. */
+  walled?: boolean;
   /** Before saved progress is read, every level shows as open. */
   state: LevelState;
   /** The level the game is on, when the picker is open over it. */
@@ -85,6 +89,7 @@ function LevelCard({
   onPick?: (level: Level) => void;
   onLocked: (level: Level) => void;
 }) {
+  const navigate = useNavigate();
   const mock = level.kind === "mock";
   const done = state === "done";
   const next = state === "next";
@@ -104,6 +109,11 @@ function LevelCard({
             : `Level ${level.n}: ${level.title}. ${now ? "Playing now. " : ""}${STATE_SAID[state]}.`
         }
         onClick={(event) => {
+          if (walled && !now) {
+            event.preventDefault();
+            navigate(passHref(level));
+            return;
+          }
           if (locked && !now) {
             event.preventDefault();
             onLocked(level);
@@ -287,6 +297,7 @@ export function LevelPicker({
   const next = nextLevel(saved ?? EMPTY);
   const root = React.useRef<HTMLDivElement>(null);
   const inGame = current != null;
+  const paywall = usePaywall();
   const skip = useSkipAhead({
     next,
     replace,
@@ -447,6 +458,7 @@ export function LevelPicker({
                   replace={replace}
                   onPick={onPick}
                   onLocked={skip.ask}
+                  walled={paywall.walled(level)}
                 />
               ))}
             </ol>

@@ -56,6 +56,7 @@ grant select on public.school_branches to authenticated;
 grant select on public.school_member_branches to authenticated;
 grant select on public.school_member_invites to authenticated;
 grant select on public.school_members to authenticated;
+grant select on public.school_payment_settings to authenticated;
 grant select on public.school_sponsorships to authenticated;
 grant select on public.school_student_links to authenticated;
 grant select on public.school_subscriptions to authenticated;

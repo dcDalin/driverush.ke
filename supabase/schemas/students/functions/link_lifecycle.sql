@@ -2,7 +2,11 @@
 -- FUNCTIONS: starting and ending a school-learner link
 -- ===================================================
 -- Every status change of school_student_links goes through these, so the
--- subscription pause and the one-active-link rule are applied in one place.
+-- one-active-link rule is applied in one place. A link is free (owner,
+-- 2026-11-25): the school car and the school's view of the learner's
+-- progress. A pass (learner_subscriptions) is what unlocks the course; a pass
+-- bought through the school keeps the link open for as long as it runs
+-- (private.settle_payment).
 
 -- The confirmed account with this email, if any. Only a confirmed address
 -- matches, so nobody claims a school link by typing someone else's email.
@@ -57,12 +61,11 @@ as $$
    limit 1;
 $$;
 
--- Starts a pending link now for this learner: a month long, pausing their
--- own paid time.
+-- Starts a pending link now for this learner, a month long.
 --
 -- Access:  service_role
 -- Guard:   none (the grant is the gate)
--- Callers: private.match_pending_invites, school_add_student, learner_accept_school_link
+-- Callers: private.match_pending_invites, school_add_student, learner_accept_school_link, settle_payment
 create or replace function private.activate_link(p_link_id uuid, p_user_id uuid)
 returns void
 language plpgsql
@@ -81,17 +84,14 @@ begin
   if not found then
     raise exception 'not_pending' using errcode = 'P0001';
   end if;
-
-  perform private.pause_subscriptions_for_link(p_link_id);
 end;
 $$;
 
--- Ends an active link now (switched or released) and gives back the unused
--- part of the paid-time pause.
+-- Ends an active link now (switched or released).
 --
 -- Access:  service_role
 -- Guard:   none (the grant is the gate)
--- Callers: school_release_student, learner_accept_school_link
+-- Callers: school_release_student, learner_accept_school_link, settle_payment
 create or replace function private.end_link(p_link_id uuid, p_reason public.link_end_reason)
 returns void
 language plpgsql
@@ -107,8 +107,6 @@ begin
   if not found then
     raise exception 'not_active' using errcode = 'P0001';
   end if;
-
-  perform private.resume_subscriptions_for_link(p_link_id, v_now);
 end;
 $$;
 
@@ -130,6 +128,6 @@ comment on function private.close_expired_links(uuid, extensions.citext) is
 comment on function private.current_link_id(uuid) is
   'The learner''s current link: active and inside its month, or null.';
 comment on function private.activate_link(uuid, uuid) is
-  'Starts a pending link now for a month and pauses the learner''s paid time.';
+  'Starts a pending link now, a month long.';
 comment on function private.end_link(uuid, public.link_end_reason) is
-  'Ends an active link early (switched or released) and gives back unused paused time.';
+  'Ends an active link early (switched or released).';

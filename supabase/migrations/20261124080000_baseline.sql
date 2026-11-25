@@ -632,7 +632,7 @@ comment on table public.school_sponsorships is
 create type public.plan_audience as enum ('learner', 'school');
 
 comment on type public.plan_audience is
-  'Who buys the plan: a learner (own subscription) or a school (flat plan per school).';
+  'Who buys the plan: a learner (a pass, public or through their school) or a school (unused: schools pay nothing).';
 
 create type public.subscription_status as enum ('active', 'cancelled');
 
@@ -667,14 +667,67 @@ create table public.plans (
 comment on table public.plans is
   'Learner and school plans: price in KES, billing period and (for schools) limits.';
 
+-- ── supabase/schemas/billing/tables/payments.sql
+-- ===================================================
+-- TABLE: public.payments
+-- ===================================================
+-- Every payment a learner starts for a pass (owner, 2026-11-25): a public
+-- pass, a pass through their driving school, or an extension. Paystack takes
+-- the money on its checkout page; provider_ref is our own reference, sent to
+-- Paystack, so the webhook and the return page find the row and settling it
+-- twice changes nothing (unique (provider, provider_ref)).
+--
+-- A school pass is split at source: Paystack settles school_share_kes to the
+-- school's bank (its subaccount) and driverush_share_kes to DriveRush. The
+-- amounts are fixed when the checkout starts, from the school's price and the
+-- plan's share, so a later price change never alters a payment.
+--
+-- Written by start_pass_checkout (pending) and the payment flow (service
+-- role) only.
+create table public.payments (
+  id uuid primary key default gen_random_uuid(),
+  payer_user_id uuid references auth.users (id) on delete set null,
+  -- The school the learner paid through (its share is school_share_kes).
+  school_id uuid references public.schools (id) on delete set null,
+  branch_id uuid references public.school_branches (id) on delete set null,
+  plan_id uuid references public.plans (id),
+  amount_kes integer not null check (amount_kes > 0),
+  driverush_share_kes integer not null check (driverush_share_kes > 0),
+  school_share_kes integer not null default 0 check (school_share_kes >= 0),
+  -- Paystack's fee, paid by DriveRush (bearer: account); known once settled.
+  fee_kes numeric(10, 2) check (fee_kes is null or fee_kes >= 0),
+  provider text not null check (char_length(provider) between 2 and 40),
+  provider_ref text,
+  status public.payment_status not null default 'pending',
+  raw jsonb,
+  created_at timestamptz not null default now(),
+  settled_at timestamptz,
+  check (driverush_share_kes + school_share_kes = amount_kes),
+  check ((school_share_kes > 0) = (school_id is not null)),
+  check ((status in ('succeeded', 'refunded')) = (settled_at is not null)),
+  unique (provider, provider_ref)
+);
+
+create index payments_payer_idx on public.payments (payer_user_id);
+create index payments_school_idx on public.payments (school_id, settled_at);
+create index payments_branch_idx on public.payments (branch_id);
+create index payments_plan_idx on public.payments (plan_id);
+
+comment on table public.payments is
+  'Learner payments for passes (Paystack). A school pass carries the school''s share, split at source. Service role writes only.';
+
 -- ── supabase/schemas/billing/tables/learner_subscriptions.sql
 -- ===================================================
 -- TABLE: public.learner_subscriptions
 -- ===================================================
--- A learner's own paid time. Written by the payment flow (service role) only.
--- While a school link is current, the paid time pauses: the subscription's
--- dates move forward by the school month (subscription_pauses records each
--- move) and back by any unused part if the link ends early.
+-- A learner's passes: full access from starts_at to ends_at (owner,
+-- 2026-11-25: a 60-day pass, or a 30-day extension; never a subscription that
+-- renews). A pass bought while another runs starts when it ends, so a
+-- learner's passes are back to back. A school link never pauses a pass: the
+-- link is the school's view of the learner, the pass is what unlocks.
+--
+-- Written by settle_payment (source payment, with its payment_id) or by
+-- DriveRush staff (source grant) only.
 create table public.learner_subscriptions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users (id) on delete cascade,
@@ -683,16 +736,18 @@ create table public.learner_subscriptions (
   starts_at timestamptz not null default now(),
   ends_at timestamptz not null,
   source text not null default 'payment' check (source in ('payment', 'grant')),
+  payment_id uuid unique references public.payments (id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  check (ends_at > starts_at)
+  check (ends_at > starts_at),
+  check (source = 'grant' or payment_id is not null or status = 'cancelled')
 );
 
 create index learner_subscriptions_user_idx on public.learner_subscriptions (user_id, ends_at);
 create index learner_subscriptions_plan_idx on public.learner_subscriptions (plan_id);
 
 comment on table public.learner_subscriptions is
-  'A learner''s own paid time. Pauses (dates move forward) while a school link is current.';
+  'A learner''s passes (60 days, or a 30-day extension), back to back. Payment flow or staff grants only.';
 
 -- ── supabase/schemas/billing/tables/school_subscriptions.sql
 -- ===================================================
@@ -718,35 +773,38 @@ create index school_subscriptions_plan_idx on public.school_subscriptions (plan_
 comment on table public.school_subscriptions is
   'A school''s flat plan for a period.';
 
--- ── supabase/schemas/billing/tables/payments.sql
+-- ── supabase/schemas/billing/tables/school_payment_settings.sql
 -- ===================================================
--- TABLE: public.payments
+-- TABLE: public.school_payment_settings
 -- ===================================================
--- Every payment attempt, whatever the provider (chosen later). Written by the
--- service role only. A learner pays for themselves (payer_user_id), or a school
--- pays its plan (school_id, with payer_user_id the member who paid).
-create table public.payments (
-  id uuid primary key default gen_random_uuid(),
-  payer_user_id uuid references auth.users (id) on delete set null,
-  school_id uuid references public.schools (id) on delete set null,
-  plan_id uuid references public.plans (id),
-  amount_kes integer not null check (amount_kes > 0),
-  provider text not null check (char_length(provider) between 2 and 40),
-  provider_ref text,
-  status public.payment_status not null default 'pending',
-  raw jsonb,
+-- How a school's learners pay through it (owner, 2026-11-25): the code the
+-- school hands out (HELTZ), the price it sets (KES 500 to 1,000; DriveRush
+-- keeps a fixed share, the plan's limits.driverush_share_kes), and the
+-- Paystack subaccount its share settles to. Kept apart from schools because
+-- it holds payment details.
+--
+-- DriveRush staff set it up (admin_set_school_payments, after creating the
+-- subaccount with the school's bank details, which never land here: only a
+-- label like "Equity ••4321"). The owner sets the price
+-- (school_set_pass_price).
+create table public.school_payment_settings (
+  school_id uuid primary key references public.schools (id) on delete cascade,
+  code extensions.citext not null unique check (code::text ~ '^[A-Z0-9]{3,12}$'),
+  price_kes integer not null default 700 check (price_kes between 500 and 1000),
+  paystack_subaccount_code text check (
+    paystack_subaccount_code is null or paystack_subaccount_code ~ '^ACCT_[A-Za-z0-9_]+$'
+  ),
+  bank_label text check (bank_label is null or char_length(bank_label) between 2 and 80),
+  is_active boolean not null default true,
+  updated_by uuid references auth.users (id) on delete set null,
   created_at timestamptz not null default now(),
-  settled_at timestamptz,
-  check (num_nonnulls(payer_user_id, school_id) >= 1),
-  unique (provider, provider_ref)
+  updated_at timestamptz not null default now()
 );
 
-create index payments_payer_idx on public.payments (payer_user_id);
-create index payments_school_idx on public.payments (school_id);
-create index payments_plan_idx on public.payments (plan_id);
+create index school_payment_settings_updated_by_idx on public.school_payment_settings (updated_by);
 
-comment on table public.payments is
-  'Payment attempts, provider-neutral. Service role writes only.';
+comment on table public.school_payment_settings is
+  'A school''s pass code, price (KES 500 to 1,000) and Paystack subaccount. Staff set it up; the owner sets the price.';
 
 -- ── supabase/schemas/students/enums/student_enums.sql
 -- ===================================================
@@ -825,28 +883,6 @@ create index school_student_links_added_by_idx
 
 comment on table public.school_student_links is
   'A school''s one-month link to a learner, added by email to a branch. History is kept.';
-
--- ── supabase/schemas/billing/tables/subscription_pauses.sql
--- ===================================================
--- TABLE: public.subscription_pauses
--- ===================================================
--- Each time a school link pushed a learner's paid time forward: by how much,
--- and whether the subscription's start moved too (it had not started yet).
--- When the link ends early, the unused part is taken back from here. Internal:
--- no client reads it.
-create table public.subscription_pauses (
-  subscription_id uuid not null references public.learner_subscriptions (id) on delete cascade,
-  link_id uuid not null references public.school_student_links (id) on delete cascade,
-  shifted_by interval not null check (shifted_by >= interval '0'),
-  moved_start boolean not null,
-  created_at timestamptz not null default now(),
-  primary key (subscription_id, link_id)
-);
-
-create index subscription_pauses_link_idx on public.subscription_pauses (link_id);
-
-comment on table public.subscription_pauses is
-  'How far each school link pushed a learner''s paid time forward. Internal.';
 
 -- ── supabase/schemas/progress/tables/learner_progress.sql
 -- ===================================================
@@ -1238,165 +1274,16 @@ comment on function private.enforce_member_admin_limit() is
 comment on function private.enforce_invite_admin_limit() is
   'Trigger: a pending admin invite must fit within the 50.';
 
--- ── supabase/schemas/billing/functions/subscription_pauses.sql
--- ===================================================
--- FUNCTIONS: a learner's paid time pauses during a school month
--- ===================================================
--- No cron: when a link starts, every live or future subscription of the
--- learner that overlaps the link is pushed forward by the overlap (a
--- subscription that had not started yet now starts when the link ends).
--- When a link ends early, the unused part is taken back. A link that runs
--- its full month needs nothing: the push was exact.
-
--- Pushes one subscription past one link and records it.
---
--- Access:  service_role
--- Guard:   none (the grant is the gate)
--- Callers: private.pause_subscriptions_for_link, private.pause_new_subscription
-create or replace function private.pause_subscription(p_subscription_id uuid, p_link_id uuid)
-returns void
-language plpgsql
-set search_path = ''
-as $$
-declare
-  v_sub public.learner_subscriptions;
-  v_link public.school_student_links;
-  v_shift interval;
-  v_moved boolean;
-begin
-  select * into v_sub from public.learner_subscriptions where id = p_subscription_id for update;
-  select * into v_link from public.school_student_links where id = p_link_id;
-
-  if v_sub.status <> 'active' or v_link.status <> 'active'
-     or v_sub.ends_at <= v_link.starts_at or v_sub.starts_at >= v_link.ends_at then
-    return;
-  end if;
-
-  v_moved := v_sub.starts_at >= v_link.starts_at;
-  v_shift := v_link.ends_at - greatest(v_sub.starts_at, v_link.starts_at);
-
-  update public.learner_subscriptions
-     set starts_at = case when v_moved then starts_at + v_shift else starts_at end,
-         ends_at = ends_at + v_shift
-   where id = v_sub.id;
-
-  insert into public.subscription_pauses (subscription_id, link_id, shifted_by, moved_start)
-  values (v_sub.id, v_link.id, v_shift, v_moved)
-  on conflict (subscription_id, link_id)
-  do update set shifted_by = public.subscription_pauses.shifted_by + excluded.shifted_by;
-end;
-$$;
-
--- Access:  service_role
--- Guard:   none (the grant is the gate)
--- Callers: private.activate_link
-create or replace function private.pause_subscriptions_for_link(p_link_id uuid)
-returns void
-language plpgsql
-set search_path = ''
-as $$
-declare
-  v_link public.school_student_links;
-  v_sub_id uuid;
-begin
-  select * into v_link from public.school_student_links where id = p_link_id;
-  for v_sub_id in
-    select s.id from public.learner_subscriptions as s
-     where s.user_id = v_link.user_id
-       and s.status = 'active'
-       and s.ends_at > v_link.starts_at
-       and s.starts_at < v_link.ends_at
-     order by s.starts_at
-  loop
-    perform private.pause_subscription(v_sub_id, p_link_id);
-  end loop;
-end;
-$$;
-
--- Gives back the part of the pause a link did not use: it ended at p_at,
--- before its month was up.
---
--- Access:  service_role
--- Guard:   none (the grant is the gate)
--- Callers: private.end_link
-create or replace function private.resume_subscriptions_for_link(p_link_id uuid, p_at timestamptz)
-returns void
-language plpgsql
-set search_path = ''
-as $$
-declare
-  v_link public.school_student_links;
-  v_pause public.subscription_pauses;
-  v_back interval;
-begin
-  select * into v_link from public.school_student_links where id = p_link_id;
-  if p_at >= v_link.ends_at then
-    return;
-  end if;
-
-  for v_pause in
-    select * from public.subscription_pauses where link_id = p_link_id for update
-  loop
-    v_back := least(v_link.ends_at - p_at, v_pause.shifted_by);
-    update public.learner_subscriptions
-       set starts_at = case when v_pause.moved_start then starts_at - v_back else starts_at end,
-           ends_at = ends_at - v_back
-     where id = v_pause.subscription_id;
-    update public.subscription_pauses
-       set shifted_by = shifted_by - v_back
-     where subscription_id = v_pause.subscription_id and link_id = p_link_id;
-  end loop;
-end;
-$$;
-
--- A subscription bought while a school link is current starts when the link ends.
---
--- Access:  trigger
--- Guard:   none (the grant is the gate)
--- Callers: trigger on learner_subscriptions
-create or replace function private.pause_new_subscription()
-returns trigger
-language plpgsql
-set search_path = ''
-as $$
-declare
-  v_link_id uuid;
-begin
-  select l.id into v_link_id
-    from public.school_student_links as l
-   where l.user_id = new.user_id and l.status = 'active' and l.ends_at > now()
-   limit 1;
-  if v_link_id is not null then
-    perform private.pause_subscription(new.id, v_link_id);
-  end if;
-  return null;
-end;
-$$;
-
-revoke all on function private.pause_subscription(uuid, uuid) from public;
-revoke all on function private.pause_subscriptions_for_link(uuid) from public;
-revoke all on function private.resume_subscriptions_for_link(uuid, timestamptz) from public;
-revoke all on function private.pause_new_subscription() from public;
-grant execute on function private.pause_subscription(uuid, uuid) to service_role;
-grant execute on function private.pause_subscriptions_for_link(uuid) to service_role;
-grant execute on function private.resume_subscriptions_for_link(uuid, timestamptz) to service_role;
-grant execute on function private.pause_new_subscription() to service_role;
-
-comment on function private.pause_subscription(uuid, uuid) is
-  'Pushes a learner subscription past the part of a school link it overlaps, and records the push.';
-comment on function private.pause_subscriptions_for_link(uuid) is
-  'On a link starting: pauses every overlapping subscription of the learner.';
-comment on function private.resume_subscriptions_for_link(uuid, timestamptz) is
-  'On a link ending early: takes back the unused part of each pause it caused.';
-comment on function private.pause_new_subscription() is
-  'Trigger: a subscription bought during a current school link starts when the link ends.';
-
 -- ── supabase/schemas/students/functions/link_lifecycle.sql
 -- ===================================================
 -- FUNCTIONS: starting and ending a school-learner link
 -- ===================================================
 -- Every status change of school_student_links goes through these, so the
--- subscription pause and the one-active-link rule are applied in one place.
+-- one-active-link rule is applied in one place. A link is free (owner,
+-- 2026-11-25): the school car and the school's view of the learner's
+-- progress. A pass (learner_subscriptions) is what unlocks the course; a pass
+-- bought through the school keeps the link open for as long as it runs
+-- (private.settle_payment).
 
 -- The confirmed account with this email, if any. Only a confirmed address
 -- matches, so nobody claims a school link by typing someone else's email.
@@ -1451,12 +1338,11 @@ as $$
    limit 1;
 $$;
 
--- Starts a pending link now for this learner: a month long, pausing their
--- own paid time.
+-- Starts a pending link now for this learner, a month long.
 --
 -- Access:  service_role
 -- Guard:   none (the grant is the gate)
--- Callers: private.match_pending_invites, school_add_student, learner_accept_school_link
+-- Callers: private.match_pending_invites, school_add_student, learner_accept_school_link, settle_payment
 create or replace function private.activate_link(p_link_id uuid, p_user_id uuid)
 returns void
 language plpgsql
@@ -1475,17 +1361,14 @@ begin
   if not found then
     raise exception 'not_pending' using errcode = 'P0001';
   end if;
-
-  perform private.pause_subscriptions_for_link(p_link_id);
 end;
 $$;
 
--- Ends an active link now (switched or released) and gives back the unused
--- part of the paid-time pause.
+-- Ends an active link now (switched or released).
 --
 -- Access:  service_role
 -- Guard:   none (the grant is the gate)
--- Callers: school_release_student, learner_accept_school_link
+-- Callers: school_release_student, learner_accept_school_link, settle_payment
 create or replace function private.end_link(p_link_id uuid, p_reason public.link_end_reason)
 returns void
 language plpgsql
@@ -1501,8 +1384,6 @@ begin
   if not found then
     raise exception 'not_active' using errcode = 'P0001';
   end if;
-
-  perform private.resume_subscriptions_for_link(p_link_id, v_now);
 end;
 $$;
 
@@ -1524,9 +1405,9 @@ comment on function private.close_expired_links(uuid, extensions.citext) is
 comment on function private.current_link_id(uuid) is
   'The learner''s current link: active and inside its month, or null.';
 comment on function private.activate_link(uuid, uuid) is
-  'Starts a pending link now for a month and pauses the learner''s paid time.';
+  'Starts a pending link now, a month long.';
 comment on function private.end_link(uuid, public.link_end_reason) is
-  'Ends an active link early (switched or released) and gives back unused paused time.';
+  'Ends an active link early (switched or released).';
 
 -- ── supabase/schemas/profiles/functions/match_pending_invites.sql
 -- ===================================================
@@ -3336,12 +3217,16 @@ comment on function public.learner_decline_school_link(uuid) is
 -- FUNCTION: my_entitlement
 -- ===================================================
 -- What the signed-in learner gets right now, for the app to decide content
--- and livery:
---   school  a current link with an active school: full access, that school's
---           livery (school_slug, looked up in board_schools()), until ends_at
---   paid    their own subscription is running: full access, plain cars
---   free    a free account: progress saved, sponsor schools take turns
--- A school link beats paid time (which is paused meanwhile).
+-- and livery (owner, 2026-11-25):
+--   tier    school  a current link with an active school: that school's car
+--                   (school_slug, looked up in board_schools()); ends_at is
+--                   the link's end
+--           paid    no school link, a pass running: sponsor schools take
+--                   turns; ends_at is the pass's end
+--           free    neither
+--   full_access     a pass is running now (bought alone or through a school):
+--                   the course past the free levels opens
+--   pass_ends_at    when the learner's passes run out (they are back to back)
 -- pending_invites counts schools waiting for the learner to choose them.
 --
 -- Access:  authenticated (the learner)
@@ -3355,7 +3240,9 @@ returns table (
   school_slug text,
   branch_id uuid,
   ends_at timestamptz,
-  pending_invites integer
+  pending_invites integer,
+  full_access boolean,
+  pass_ends_at timestamptz
 )
 language plpgsql
 stable
@@ -3378,6 +3265,15 @@ begin
     join public.schools as s on s.id = l.school_id and s.status = 'active'
    where l.user_id = v_uid and l.status = 'pending';
 
+  select max(s.ends_at) into v_paid_until
+    from public.learner_subscriptions as s
+   where s.user_id = v_uid and s.status = 'active' and s.ends_at > now()
+     and exists (
+       select 1 from public.learner_subscriptions as n
+        where n.user_id = v_uid and n.status = 'active'
+          and n.starts_at <= now() and n.ends_at > now()
+     );
+
   select * into v_link from public.school_student_links
    where id = private.current_link_id(v_uid);
   if v_link.id is not null then
@@ -3386,21 +3282,19 @@ begin
 
   if v_school.id is not null then
     return query select 'school'::text, v_school.id, v_school.name, v_school.slug,
-                        v_link.branch_id, v_link.ends_at, v_pending;
+                        v_link.branch_id, v_link.ends_at, v_pending,
+                        v_paid_until is not null, v_paid_until;
     return;
   end if;
-
-  select max(s.ends_at) into v_paid_until
-    from public.learner_subscriptions as s
-   where s.user_id = v_uid and s.status = 'active'
-     and s.starts_at <= now() and s.ends_at > now();
 
   if v_paid_until is not null then
-    return query select 'paid'::text, null::uuid, null::text, null::text, null::uuid, v_paid_until, v_pending;
+    return query select 'paid'::text, null::uuid, null::text, null::text, null::uuid,
+                        v_paid_until, v_pending, true, v_paid_until;
     return;
   end if;
 
-  return query select 'free'::text, null::uuid, null::text, null::text, null::uuid, null::timestamptz, v_pending;
+  return query select 'free'::text, null::uuid, null::text, null::text, null::uuid,
+                      null::timestamptz, v_pending, false, null::timestamptz;
 end;
 $$;
 
@@ -3415,7 +3309,9 @@ returns table (
   school_slug text,
   branch_id uuid,
   ends_at timestamptz,
-  pending_invites integer
+  pending_invites integer,
+  full_access boolean,
+  pass_ends_at timestamptz
 )
 language sql
 stable
@@ -3431,9 +3327,820 @@ grant execute on function private.my_entitlement() to service_role;
 grant execute on function public.my_entitlement() to service_role;
 
 comment on function private.my_entitlement() is
-  'The signed-in learner''s tier now (school, paid or free), with the school livery and pending invites.';
+  'The signed-in learner''s tier now (school, paid or free), whether a pass is running, the school livery and pending invites.';
 comment on function public.my_entitlement() is
-  'The signed-in learner''s tier now (school, paid or free), with the school livery and pending invites.';
+  'The signed-in learner''s tier now (school, paid or free), whether a pass is running, the school livery and pending invites.';
+
+-- ── supabase/schemas/billing/functions/passes.sql
+-- ===================================================
+-- FUNCTIONS: a learner buys a pass (Paystack)
+-- ===================================================
+-- Owner, 2026-11-25. Three plans (reference rows in
+-- migrations/*_reference_plans.sql):
+--   learner_pass       KES 1,000 for 60 days, all to DriveRush
+--   school_pass        the school's price (KES 500 to 1,000) for 60 days;
+--                      DriveRush keeps limits.driverush_share_kes (300), the
+--                      rest settles to the school's bank (Paystack subaccount)
+--   learner_extension  KES 300 for 30 days, all to DriveRush, for a learner
+--                      who has had a pass
+--
+-- The flow: start_pass_checkout (learner session) writes a pending payment
+-- with the amounts fixed; the server sends the learner to Paystack with our
+-- reference; the webhook or the return page asks Paystack how it ended and
+-- calls settle_payment or fail_payment (service role). Settling is
+-- idempotent, so both may call it.
+
+-- A school's pass offer, from the code the school handed out. Only a school
+-- that can take payments answers (active, its payments set up).
+--
+-- Access:  authenticated (any signed-in learner)
+-- Guard:   public (a school's public price and branch names, nothing else)
+-- Callers: /pass (server, learner session)
+create or replace function private.pass_school_by_code(p_code text)
+returns table (
+  school_id uuid,
+  school_name text,
+  school_slug text,
+  price_kes integer,
+  branches jsonb
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select s.id, s.name, s.slug, ps.price_kes,
+         coalesce((
+           select jsonb_agg(jsonb_build_object('id', b.id, 'name', b.name, 'town', b.town) order by b.name)
+             from public.school_branches as b
+            where b.school_id = s.id and b.is_active
+         ), '[]'::jsonb)
+    from public.school_payment_settings as ps
+    join public.schools as s on s.id = ps.school_id and s.status = 'active'
+   where ps.code = upper(btrim(p_code))::extensions.citext
+     and ps.is_active
+     and ps.paystack_subaccount_code is not null;
+$$;
+
+-- The schools the caller can pay through without typing a code: their
+-- current school and any school waiting for them, each with its price and the
+-- branch it added them to. Only schools that can take payments.
+--
+-- Access:  authenticated (the learner)
+-- Guard:   self (answers for auth.uid() only)
+-- Callers: /pass (server, learner session)
+create or replace function private.my_pass_offers()
+returns table (
+  school_id uuid,
+  school_name text,
+  code text,
+  price_kes integer,
+  branch_id uuid,
+  branch_name text,
+  linked boolean
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_uid uuid := auth.uid();
+begin
+  if v_uid is null then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  return query
+    select s.id, s.name, ps.code::text, ps.price_kes, b.id, b.name,
+           l.status = 'active'
+      from public.school_student_links as l
+      join public.schools as s on s.id = l.school_id and s.status = 'active'
+      join public.school_payment_settings as ps
+        on ps.school_id = s.id and ps.is_active and ps.paystack_subaccount_code is not null
+      join public.school_branches as b on b.id = l.branch_id
+     where l.user_id = v_uid
+       and (l.status = 'pending' or (l.status = 'active' and l.ends_at > now()))
+     order by l.status = 'active' desc, s.name;
+end;
+$$;
+
+-- Starts a payment for the caller: a pending row with the amount and both
+-- shares worked out here, never by the client. A school pass goes to the
+-- school of p_school_code, or (no code) the learner's current school; its
+-- branch is p_branch_id, else the learner's link's branch, else the school's
+-- only branch. Each call is a new try with a new reference.
+--
+-- Access:  authenticated (the learner paying)
+-- Guard:   self (the payment is the caller's own)
+-- Callers: /pass action (server, learner session)
+create or replace function private.start_pass_checkout(
+  p_plan_code text,
+  p_school_code text default null,
+  p_branch_id uuid default null
+)
+returns table (
+  payment_id uuid,
+  reference text,
+  amount_kes integer,
+  email text,
+  school_id uuid,
+  school_name text
+)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_email extensions.citext;
+  v_plan public.plans;
+  v_settings public.school_payment_settings;
+  v_school public.schools;
+  v_branch_id uuid;
+  v_amount integer;
+  v_share integer;
+  v_ref text := 'dr_' || replace(gen_random_uuid()::text, '-', '');
+  v_payment_id uuid;
+begin
+  if v_uid is null then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+
+  select u.email::extensions.citext into v_email
+    from auth.users as u where u.id = v_uid and u.email_confirmed_at is not null;
+  if v_email is null then
+    raise exception 'email_unconfirmed' using errcode = 'P0001';
+  end if;
+
+  select * into v_plan from public.plans as p
+   where p.code = p_plan_code and p.is_active and p.audience = 'learner'
+     and p.code in ('learner_pass', 'school_pass', 'learner_extension');
+  if v_plan.id is null then
+    raise exception 'unknown_plan' using errcode = 'P0001';
+  end if;
+
+  if v_plan.code = 'learner_extension'
+     and not exists (select 1 from public.learner_subscriptions as s
+                      where s.user_id = v_uid and s.status = 'active') then
+    raise exception 'extension_not_allowed' using errcode = 'P0001';
+  end if;
+
+  if v_plan.code = 'school_pass' then
+    if nullif(btrim(p_school_code), '') is not null then
+      select * into v_settings from public.school_payment_settings as ps
+       where ps.code = upper(btrim(p_school_code))::extensions.citext;
+    else
+      select ps.* into v_settings
+        from public.school_student_links as l
+        join public.school_payment_settings as ps on ps.school_id = l.school_id
+       where l.id = private.current_link_id(v_uid);
+    end if;
+    if v_settings.school_id is not null then
+      select * into v_school from public.schools as s
+       where s.id = v_settings.school_id and s.status = 'active';
+    end if;
+    if v_school.id is null or not v_settings.is_active
+       or v_settings.paystack_subaccount_code is null then
+      raise exception 'bad_code' using errcode = 'P0001';
+    end if;
+
+    if p_branch_id is not null then
+      select b.id into v_branch_id from public.school_branches as b
+       where b.id = p_branch_id and b.school_id = v_school.id and b.is_active;
+      if v_branch_id is null then
+        raise exception 'branch_inactive' using errcode = 'P0001';
+      end if;
+    else
+      select l.branch_id into v_branch_id
+        from public.school_student_links as l
+        join public.school_branches as b on b.id = l.branch_id and b.is_active
+       where l.school_id = v_school.id and l.email = v_email and l.status in ('active', 'pending')
+       order by l.status = 'active' desc
+       limit 1;
+      if v_branch_id is null
+         and (select count(*) from public.school_branches as b
+               where b.school_id = v_school.id and b.is_active) = 1 then
+        select b.id into v_branch_id from public.school_branches as b
+         where b.school_id = v_school.id and b.is_active;
+      end if;
+      if v_branch_id is null then
+        raise exception 'branch_required' using errcode = 'P0001';
+      end if;
+    end if;
+
+    v_amount := v_settings.price_kes;
+    v_share := (v_plan.limits ->> 'driverush_share_kes')::integer;
+    if v_share is null or v_share <= 0 or v_share >= v_amount then
+      raise exception 'price_below_share' using errcode = 'P0001';
+    end if;
+  else
+    v_amount := v_plan.price_kes;
+    v_share := v_plan.price_kes;
+  end if;
+
+  insert into public.payments (
+    payer_user_id, school_id, branch_id, plan_id, amount_kes,
+    driverush_share_kes, school_share_kes, provider, provider_ref
+  ) values (
+    v_uid, v_school.id, v_branch_id, v_plan.id, v_amount,
+    v_share, v_amount - v_share, 'paystack', v_ref
+  )
+  returning id into v_payment_id;
+
+  return query select v_payment_id, v_ref, v_amount, v_email::text, v_school.id, v_school.name;
+end;
+$$;
+
+-- Paystack says the payment succeeded for this amount: mark it, add the pass
+-- (back to back after any pass still running) and, for a school pass, keep
+-- the learner linked to that school while the pass runs (a link with another
+-- school ends: switched). Returns the pass. Settling twice returns the same
+-- pass and changes nothing.
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: /webhooks/paystack, /pass/done (server, after verifying with Paystack); the seed
+create or replace function private.settle_payment(
+  p_reference text,
+  p_amount_kes integer,
+  p_fee_kes numeric,
+  p_raw jsonb
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_pay public.payments;
+  v_plan public.plans;
+  v_sub_id uuid;
+  v_start timestamptz;
+  v_end timestamptz;
+  v_email extensions.citext;
+  v_current public.school_student_links;
+  v_link_id uuid;
+begin
+  select * into v_pay from public.payments
+   where provider = 'paystack' and provider_ref = p_reference
+   for update;
+  if v_pay.id is null then
+    raise exception 'not_found' using errcode = 'P0002';
+  end if;
+  if v_pay.status = 'succeeded' then
+    select id into v_sub_id from public.learner_subscriptions where payment_id = v_pay.id;
+    return v_sub_id;
+  end if;
+  if v_pay.status = 'refunded' then
+    raise exception 'refunded' using errcode = 'P0001';
+  end if;
+  if p_amount_kes is distinct from v_pay.amount_kes then
+    raise exception 'amount_mismatch' using errcode = 'P0001';
+  end if;
+  if v_pay.payer_user_id is null then
+    raise exception 'no_payer' using errcode = 'P0001';
+  end if;
+
+  update public.payments
+     set status = 'succeeded', settled_at = now(), fee_kes = p_fee_kes, raw = p_raw
+   where id = v_pay.id;
+
+  select * into v_plan from public.plans where id = v_pay.plan_id;
+
+  select greatest(now(), coalesce(max(s.ends_at), now())) into v_start
+    from public.learner_subscriptions as s
+   where s.user_id = v_pay.payer_user_id and s.status = 'active' and s.ends_at > now();
+  v_end := v_start + v_plan.period;
+
+  insert into public.learner_subscriptions (user_id, plan_id, starts_at, ends_at, source, payment_id)
+  values (v_pay.payer_user_id, v_plan.id, v_start, v_end, 'payment', v_pay.id)
+  returning id into v_sub_id;
+
+  if v_pay.school_id is not null then
+    select u.email::extensions.citext into v_email from auth.users as u where u.id = v_pay.payer_user_id;
+    perform private.close_expired_links(v_pay.payer_user_id, v_email);
+
+    select * into v_current from public.school_student_links
+     where id = private.current_link_id(v_pay.payer_user_id);
+
+    if v_current.id is not null and v_current.school_id = v_pay.school_id then
+      v_link_id := v_current.id;
+    else
+      if v_current.id is not null then
+        perform private.end_link(v_current.id, 'switched');
+      end if;
+
+      select id into v_link_id from public.school_student_links
+       where school_id = v_pay.school_id and email = v_email and status = 'pending';
+      if v_link_id is null then
+        if v_pay.branch_id is null then
+          raise exception 'no_branch' using errcode = 'P0001';
+        end if;
+        insert into public.school_student_links (school_id, branch_id, email, user_id)
+        values (v_pay.school_id, v_pay.branch_id, v_email, v_pay.payer_user_id)
+        returning id into v_link_id;
+      else
+        update public.school_student_links
+           set user_id = v_pay.payer_user_id,
+               branch_id = coalesce(v_pay.branch_id, branch_id)
+         where id = v_link_id;
+      end if;
+      perform private.activate_link(v_link_id, v_pay.payer_user_id);
+    end if;
+
+    update public.school_student_links
+       set ends_at = greatest(ends_at, v_end)
+     where id = v_link_id;
+  end if;
+
+  return v_sub_id;
+end;
+$$;
+
+-- Paystack says the payment did not go through (or the learner gave up).
+-- A settled payment is never failed.
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: /webhooks/paystack, /pass/done (server, after verifying with Paystack)
+create or replace function private.fail_payment(p_reference text, p_raw jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not exists (select 1 from public.payments where provider = 'paystack' and provider_ref = p_reference) then
+    raise exception 'not_found' using errcode = 'P0002';
+  end if;
+  update public.payments
+     set status = 'failed', raw = p_raw
+   where provider = 'paystack' and provider_ref = p_reference and status = 'pending';
+end;
+$$;
+
+-- Money went back to the learner (refunded in the Paystack dashboard): the
+-- payment is refunded and its pass stops counting. A school link stays (it
+-- is free). Refunding twice changes nothing.
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: /webhooks/paystack (server)
+create or replace function private.refund_payment(p_reference text, p_raw jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_pay public.payments;
+begin
+  select * into v_pay from public.payments
+   where provider = 'paystack' and provider_ref = p_reference
+   for update;
+  if v_pay.id is null then
+    raise exception 'not_found' using errcode = 'P0002';
+  end if;
+  if v_pay.status = 'refunded' then
+    return;
+  end if;
+  if v_pay.status <> 'succeeded' then
+    raise exception 'not_settled' using errcode = 'P0001';
+  end if;
+
+  update public.payments
+     set status = 'refunded', raw = coalesce(v_pay.raw, '{}'::jsonb) || jsonb_build_object('refund', p_raw)
+   where id = v_pay.id;
+  update public.learner_subscriptions
+     set status = 'cancelled'
+   where payment_id = v_pay.id;
+end;
+$$;
+
+-- Access:  authenticated (any signed-in learner)
+-- Guard:   public (the private body returns only a school's public offer)
+-- Callers: /pass (server, learner session)
+create or replace function public.pass_school_by_code(p_code text)
+returns table (
+  school_id uuid,
+  school_name text,
+  school_slug text,
+  price_kes integer,
+  branches jsonb
+)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select * from private.pass_school_by_code(p_code);
+$$;
+
+-- Access:  authenticated (the learner)
+-- Guard:   self (the private body answers for auth.uid() only)
+-- Callers: /pass (server, learner session)
+create or replace function public.my_pass_offers()
+returns table (
+  school_id uuid,
+  school_name text,
+  code text,
+  price_kes integer,
+  branch_id uuid,
+  branch_name text,
+  linked boolean
+)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select * from private.my_pass_offers();
+$$;
+
+-- Access:  authenticated (the learner paying)
+-- Guard:   self (the private body writes only the caller's own payment)
+-- Callers: /pass action (server, learner session)
+create or replace function public.start_pass_checkout(
+  p_plan_code text,
+  p_school_code text default null,
+  p_branch_id uuid default null
+)
+returns table (
+  payment_id uuid,
+  reference text,
+  amount_kes integer,
+  email text,
+  school_id uuid,
+  school_name text
+)
+language sql
+security invoker
+set search_path = ''
+as $$
+  select * from private.start_pass_checkout(p_plan_code, p_school_code, p_branch_id);
+$$;
+
+revoke all on function private.pass_school_by_code(text) from public;
+revoke all on function public.pass_school_by_code(text) from public;
+-- The payment flow reaches these through the Data API, which shows only
+-- schema public: same-named wrappers, executable by the service role alone.
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: /api/webhooks/paystack, /pass/done (server, service role); the seed
+create or replace function public.settle_payment(
+  p_reference text,
+  p_amount_kes integer,
+  p_fee_kes numeric,
+  p_raw jsonb
+)
+returns uuid
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.settle_payment(p_reference, p_amount_kes, p_fee_kes, p_raw);
+$$;
+
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: /api/webhooks/paystack, /pass/done (server, service role)
+create or replace function public.fail_payment(p_reference text, p_raw jsonb)
+returns void
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.fail_payment(p_reference, p_raw);
+$$;
+
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: /api/webhooks/paystack (server, service role)
+create or replace function public.refund_payment(p_reference text, p_raw jsonb)
+returns void
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.refund_payment(p_reference, p_raw);
+$$;
+
+revoke all on function private.my_pass_offers() from public;
+revoke all on function public.my_pass_offers() from public;
+grant execute on function private.my_pass_offers() to service_role;
+grant execute on function public.my_pass_offers() to service_role;
+revoke all on function private.start_pass_checkout(text, text, uuid) from public;
+revoke all on function public.start_pass_checkout(text, text, uuid) from public;
+revoke all on function private.settle_payment(text, integer, numeric, jsonb) from public;
+revoke all on function private.fail_payment(text, jsonb) from public;
+revoke all on function private.refund_payment(text, jsonb) from public;
+grant execute on function private.pass_school_by_code(text) to service_role;
+grant execute on function public.pass_school_by_code(text) to service_role;
+grant execute on function private.start_pass_checkout(text, text, uuid) to service_role;
+grant execute on function public.start_pass_checkout(text, text, uuid) to service_role;
+grant execute on function private.settle_payment(text, integer, numeric, jsonb) to service_role;
+revoke all on function public.settle_payment(text, integer, numeric, jsonb) from public;
+revoke all on function public.fail_payment(text, jsonb) from public;
+revoke all on function public.refund_payment(text, jsonb) from public;
+grant execute on function public.settle_payment(text, integer, numeric, jsonb) to service_role;
+grant execute on function public.fail_payment(text, jsonb) to service_role;
+grant execute on function public.refund_payment(text, jsonb) to service_role;
+grant execute on function private.fail_payment(text, jsonb) to service_role;
+grant execute on function private.refund_payment(text, jsonb) to service_role;
+
+comment on function private.pass_school_by_code(text) is
+  'A school''s pass offer (name, price, active branches) from its code, if it can take payments.';
+comment on function public.pass_school_by_code(text) is
+  'A school''s pass offer (name, price, active branches) from its code, if it can take payments.';
+comment on function private.my_pass_offers() is
+  'Learner: their current and waiting schools that take payments, with price and branch.';
+comment on function public.my_pass_offers() is
+  'Learner: their current and waiting schools that take payments, with price and branch.';
+comment on function private.start_pass_checkout(text, text, uuid) is
+  'Learner: a pending payment for a pass, amounts and shares worked out here; returns our Paystack reference.';
+comment on function public.start_pass_checkout(text, text, uuid) is
+  'Learner: a pending payment for a pass, amounts and shares worked out here; returns our Paystack reference.';
+comment on function private.settle_payment(text, integer, numeric, jsonb) is
+  'Payment flow: marks a verified payment paid, adds the pass and keeps a school pass''s link open. Idempotent.';
+comment on function public.settle_payment(text, integer, numeric, jsonb) is
+  'Payment flow: marks a verified payment paid, adds the pass and keeps a school pass''s link open. Idempotent.';
+comment on function public.fail_payment(text, jsonb) is
+  'Payment flow: marks a pending payment failed.';
+comment on function public.refund_payment(text, jsonb) is
+  'Payment flow: marks a payment refunded and cancels its pass. Idempotent.';
+comment on function private.fail_payment(text, jsonb) is
+  'Payment flow: marks a pending payment failed.';
+comment on function private.refund_payment(text, jsonb) is
+  'Payment flow: marks a payment refunded and cancels its pass. Idempotent.';
+
+-- ── supabase/schemas/billing/functions/school_passes.sql
+-- ===================================================
+-- FUNCTIONS: a school's pass code, price and earnings
+-- ===================================================
+-- Owner, 2026-11-25: schools pay nothing and earn from every learner who pays
+-- through them (price minus DriveRush's fixed share). Paystack settles the
+-- school's share to its bank itself, so there is no balance to withdraw:
+-- earnings are a read of the payments.
+
+-- The school's code and price, for its team to hand out. The bank label is
+-- shown to the owner and staff only.
+--
+-- Access:  authenticated (school owner, branch admin or DriveRush staff)
+-- Guard:   school (is_school_member or is_staff)
+-- Callers: school dashboard (session)
+create or replace function private.school_pass_info(p_school_id uuid)
+returns table (
+  code text,
+  price_kes integer,
+  driverush_share_kes integer,
+  ready boolean,
+  bank_label text
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_owner_view boolean;
+begin
+  if not (private.is_school_member(p_school_id) or private.is_staff()) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  v_owner_view := private.is_school_owner(p_school_id) or private.is_staff();
+
+  return query
+    select ps.code::text,
+           ps.price_kes,
+           (select (p.limits ->> 'driverush_share_kes')::integer from public.plans as p where p.code = 'school_pass'),
+           ps.is_active and ps.paystack_subaccount_code is not null,
+           case when v_owner_view then ps.bank_label end
+      from public.school_payment_settings as ps
+     where ps.school_id = p_school_id;
+end;
+$$;
+
+-- The owner sets what their learners pay through the school (KES 500 to
+-- 1,000). Payments already started keep the price they started with.
+--
+-- Access:  authenticated (school owner or DriveRush staff)
+-- Guard:   school (private.can_manage_school: owner or staff)
+-- Callers: school dashboard (session)
+create or replace function private.school_set_pass_price(p_school_id uuid, p_price_kes integer)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not private.can_manage_school(p_school_id) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  if p_price_kes is null or p_price_kes not between 500 and 1000 then
+    raise exception 'price_out_of_range' using errcode = 'P0001';
+  end if;
+  update public.school_payment_settings
+     set price_kes = p_price_kes, updated_by = auth.uid()
+   where school_id = p_school_id;
+  if not found then
+    raise exception 'payments_not_set_up' using errcode = 'P0001';
+  end if;
+end;
+$$;
+
+-- What the school earned: every settled payment through it, newest first.
+-- The owner and staff see every branch; an admin only their branches.
+--
+-- Access:  authenticated (school owner, branch admin or DriveRush staff)
+-- Guard:   school (is_school_member or is_staff; rows by can_see_branch)
+-- Callers: school dashboard (session)
+create or replace function private.school_earnings(p_school_id uuid, p_branch_id uuid default null)
+returns table (
+  payment_id uuid,
+  paid_at timestamptz,
+  learner_email text,
+  branch_id uuid,
+  branch_name text,
+  price_kes integer,
+  school_share_kes integer,
+  status public.payment_status
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_all boolean;
+begin
+  if not (private.is_school_member(p_school_id) or private.is_staff()) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  v_all := private.is_school_owner(p_school_id) or private.is_staff();
+
+  return query
+    select p.id, p.settled_at, u.email::text, p.branch_id, b.name,
+           p.amount_kes, p.school_share_kes, p.status
+      from public.payments as p
+      left join auth.users as u on u.id = p.payer_user_id
+      left join public.school_branches as b on b.id = p.branch_id
+     where p.school_id = p_school_id
+       and p.status in ('succeeded', 'refunded')
+       and (p_branch_id is null or p.branch_id = p_branch_id)
+       and (v_all or (p.branch_id is not null and private.can_see_branch(p.branch_id)))
+     order by p.settled_at desc
+     limit 1000;
+end;
+$$;
+
+-- DriveRush staff turn a school's payments on: its code, the Paystack
+-- subaccount made with its bank details (by the console, from the school's
+-- own confirmation), and a label for the bank. The price stays (700 at
+-- first; the owner sets it).
+--
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (private.is_staff)
+-- Callers: DriveRush console (session)
+create or replace function private.admin_set_school_payments(
+  p_school_id uuid,
+  p_code text,
+  p_subaccount_code text,
+  p_bank_label text,
+  p_is_active boolean
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not private.is_staff() then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  if not exists (select 1 from public.schools where id = p_school_id) then
+    raise exception 'not_found' using errcode = 'P0002';
+  end if;
+
+  insert into public.school_payment_settings (
+    school_id, code, paystack_subaccount_code, bank_label, is_active, updated_by
+  ) values (
+    p_school_id, upper(btrim(p_code)), nullif(btrim(p_subaccount_code), ''),
+    nullif(btrim(p_bank_label), ''), coalesce(p_is_active, true), auth.uid()
+  )
+  on conflict (school_id) do update
+    set code = excluded.code,
+        paystack_subaccount_code = excluded.paystack_subaccount_code,
+        bank_label = excluded.bank_label,
+        is_active = excluded.is_active,
+        updated_by = excluded.updated_by;
+end;
+$$;
+
+-- Access:  authenticated (school owner, branch admin or DriveRush staff)
+-- Guard:   school (the private body checks is_school_member or is_staff)
+-- Callers: school dashboard (session)
+create or replace function public.school_pass_info(p_school_id uuid)
+returns table (
+  code text,
+  price_kes integer,
+  driverush_share_kes integer,
+  ready boolean,
+  bank_label text
+)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select * from private.school_pass_info(p_school_id);
+$$;
+
+-- Access:  authenticated (school owner or DriveRush staff)
+-- Guard:   school (the private body checks private.can_manage_school)
+-- Callers: school dashboard (session)
+create or replace function public.school_set_pass_price(p_school_id uuid, p_price_kes integer)
+returns void
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.school_set_pass_price(p_school_id, p_price_kes);
+$$;
+
+-- Access:  authenticated (school owner, branch admin or DriveRush staff)
+-- Guard:   school (the private body checks membership; rows by can_see_branch)
+-- Callers: school dashboard (session)
+create or replace function public.school_earnings(p_school_id uuid, p_branch_id uuid default null)
+returns table (
+  payment_id uuid,
+  paid_at timestamptz,
+  learner_email text,
+  branch_id uuid,
+  branch_name text,
+  price_kes integer,
+  school_share_kes integer,
+  status public.payment_status
+)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select * from private.school_earnings(p_school_id, p_branch_id);
+$$;
+
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (the private body checks private.is_staff)
+-- Callers: DriveRush console (session)
+create or replace function public.admin_set_school_payments(
+  p_school_id uuid,
+  p_code text,
+  p_subaccount_code text,
+  p_bank_label text,
+  p_is_active boolean
+)
+returns void
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.admin_set_school_payments(p_school_id, p_code, p_subaccount_code, p_bank_label, p_is_active);
+$$;
+
+revoke all on function private.school_pass_info(uuid) from public;
+revoke all on function public.school_pass_info(uuid) from public;
+revoke all on function private.school_set_pass_price(uuid, integer) from public;
+revoke all on function public.school_set_pass_price(uuid, integer) from public;
+revoke all on function private.school_earnings(uuid, uuid) from public;
+revoke all on function public.school_earnings(uuid, uuid) from public;
+revoke all on function private.admin_set_school_payments(uuid, text, text, text, boolean) from public;
+revoke all on function public.admin_set_school_payments(uuid, text, text, text, boolean) from public;
+grant execute on function private.school_pass_info(uuid) to service_role;
+grant execute on function public.school_pass_info(uuid) to service_role;
+grant execute on function private.school_set_pass_price(uuid, integer) to service_role;
+grant execute on function public.school_set_pass_price(uuid, integer) to service_role;
+grant execute on function private.school_earnings(uuid, uuid) to service_role;
+grant execute on function public.school_earnings(uuid, uuid) to service_role;
+grant execute on function private.admin_set_school_payments(uuid, text, text, text, boolean) to service_role;
+grant execute on function public.admin_set_school_payments(uuid, text, text, text, boolean) to service_role;
+
+comment on function private.school_pass_info(uuid) is
+  'School team: the school''s pass code, price, DriveRush''s share and whether payments are ready.';
+comment on function public.school_pass_info(uuid) is
+  'School team: the school''s pass code, price, DriveRush''s share and whether payments are ready.';
+comment on function private.school_set_pass_price(uuid, integer) is
+  'School owner or staff: sets the school pass price (KES 500 to 1,000).';
+comment on function public.school_set_pass_price(uuid, integer) is
+  'School owner or staff: sets the school pass price (KES 500 to 1,000).';
+comment on function private.school_earnings(uuid, uuid) is
+  'School team: settled payments through the school, by branch for admins.';
+comment on function public.school_earnings(uuid, uuid) is
+  'School team: settled payments through the school, by branch for admins.';
+comment on function private.admin_set_school_payments(uuid, text, text, text, boolean) is
+  'Staff: a school''s pass code, Paystack subaccount and bank label.';
+comment on function public.admin_set_school_payments(uuid, text, text, text, boolean) is
+  'Staff: a school''s pass code, Paystack subaccount and bank label.';
 
 -- ── supabase/schemas/progress/functions/school_student_progress.sql
 -- ===================================================
@@ -3572,10 +4279,9 @@ create or replace trigger school_subscriptions_set_updated_at
   before update on public.school_subscriptions
   for each row execute function private.set_updated_at();
 
--- Paid time bought during a school month starts when the month ends.
-create or replace trigger learner_subscriptions_pause_new
-  after insert on public.learner_subscriptions
-  for each row execute function private.pause_new_subscription();
+create or replace trigger school_payment_settings_set_updated_at
+  before update on public.school_payment_settings
+  for each row execute function private.set_updated_at();
 
 -- ── supabase/schemas/progress/triggers/progress_triggers.sql
 -- ===================================================
@@ -3791,9 +4497,9 @@ create policy "plans: signed-in read active, staff read all"
 -- ===================================================
 -- ACCESS: public.learner_subscriptions
 -- ===================================================
--- Reads:  A learner reads their own; DriveRush staff read all.
--- Writes: No client: the payment flow (service role); dates move through
---         the pause functions while a school link is current.
+-- Reads:  A learner reads their own passes; DriveRush staff read all.
+-- Writes: No client: settle_payment and refund_payment (service role), or
+--         staff grants (service role).
 -- Grants: anon: none; authenticated: SELECT
 alter table public.learner_subscriptions enable row level security;
 
@@ -3816,8 +4522,11 @@ create policy "school_subscriptions: owner or staff read"
 -- ===================================================
 -- ACCESS: public.payments
 -- ===================================================
--- Reads:  The learner who paid; the owner of the school paid for; staff.
--- Writes: No client: the payment flow (service role).
+-- Reads:  The learner who paid; the owner of the school they paid through;
+--         staff. Branch admins see their branches' payments through
+--         school_earnings, never the table.
+-- Writes: No client: start_pass_checkout (a pending row for the caller) and
+--         the payment flow (service role: settle, fail, refund).
 -- Grants: anon: none; authenticated: SELECT
 alter table public.payments enable row level security;
 
@@ -3830,18 +4539,19 @@ create policy "payments: payer, school owner or staff read"
   );
 
 -- ===================================================
--- ACCESS: public.subscription_pauses
+-- ACCESS: public.school_payment_settings
 -- ===================================================
--- Reads:  No client (internal bookkeeping of the pause functions).
--- Writes: No client: private.pause_subscription, resume_subscriptions_for_link.
--- Grants: anon: none; authenticated: none
-alter table public.subscription_pauses enable row level security;
+-- Reads:  The school's owner; DriveRush staff. Branch admins get the code and
+--         price through school_pass_info; learners resolve a code through
+--         pass_school_by_code.
+-- Writes: No client: admin_set_school_payments (staff), school_set_pass_price
+--         (owner).
+-- Grants: anon: none; authenticated: SELECT
+alter table public.school_payment_settings enable row level security;
 
--- Said out loud rather than left to "no policy" (advisor: rls_enabled_no_policy).
-create policy "subscription_pauses: clients no access"
-  on public.subscription_pauses for all to anon, authenticated
-  using (false)
-  with check (false);
+create policy "school_payment_settings: owner or staff read"
+  on public.school_payment_settings for select to authenticated
+  using ((select private.is_staff()) or private.is_school_owner(school_id));
 
 -- ── supabase/schemas/students/rls/school_student_links_rls.sql
 -- ===================================================
@@ -3962,6 +4672,12 @@ grant execute on function public.learner_accept_school_link(uuid) to authenticat
 grant execute on function private.learner_accept_school_link(uuid) to authenticated;
 grant execute on function public.learner_decline_school_link(uuid) to authenticated;
 grant execute on function private.learner_decline_school_link(uuid) to authenticated;
+grant execute on function public.pass_school_by_code(text) to authenticated;
+grant execute on function private.pass_school_by_code(text) to authenticated;
+grant execute on function public.start_pass_checkout(text, text, uuid) to authenticated;
+grant execute on function public.my_pass_offers() to authenticated;
+grant execute on function private.my_pass_offers() to authenticated;
+grant execute on function private.start_pass_checkout(text, text, uuid) to authenticated;
 
 -- ── 5. School owners and admins (each checks the caller's school role) ──
 grant execute on function public.school_create_branch(uuid, text, text) to authenticated;
@@ -3992,6 +4708,12 @@ grant execute on function public.school_members_list(uuid) to authenticated;
 grant execute on function private.school_members_list(uuid) to authenticated;
 grant execute on function public.school_student_progress(uuid, uuid) to authenticated;
 grant execute on function private.school_student_progress(uuid, uuid) to authenticated;
+grant execute on function public.school_pass_info(uuid) to authenticated;
+grant execute on function private.school_pass_info(uuid) to authenticated;
+grant execute on function public.school_set_pass_price(uuid, integer) to authenticated;
+grant execute on function private.school_set_pass_price(uuid, integer) to authenticated;
+grant execute on function public.school_earnings(uuid, uuid) to authenticated;
+grant execute on function private.school_earnings(uuid, uuid) to authenticated;
 
 -- ── 6. DriveRush console (each checks is_staff or is_su) ────────────────
 grant execute on function public.admin_create_school(text, text, text) to authenticated;
@@ -4010,6 +4732,8 @@ grant execute on function public.admin_set_sponsorship(uuid, date, date, text) t
 grant execute on function private.admin_set_sponsorship(uuid, date, date, text) to authenticated;
 grant execute on function public.admin_end_sponsorship(uuid) to authenticated;
 grant execute on function private.admin_end_sponsorship(uuid) to authenticated;
+grant execute on function public.admin_set_school_payments(uuid, text, text, text, boolean) to authenticated;
+grant execute on function private.admin_set_school_payments(uuid, text, text, text, boolean) to authenticated;
 grant execute on function public.grant_platform_role(uuid, public.app_role) to authenticated;
 grant execute on function private.grant_platform_role(uuid, public.app_role) to authenticated;
 grant execute on function public.revoke_platform_role(uuid, public.app_role) to authenticated;
@@ -4077,6 +4801,7 @@ grant select on public.school_branches to authenticated;
 grant select on public.school_member_branches to authenticated;
 grant select on public.school_member_invites to authenticated;
 grant select on public.school_members to authenticated;
+grant select on public.school_payment_settings to authenticated;
 grant select on public.school_sponsorships to authenticated;
 grant select on public.school_student_links to authenticated;
 grant select on public.school_subscriptions to authenticated;
