@@ -72,6 +72,8 @@ export function AccountButton() {
           className="w-full"
           onClick={async () => {
             setMenuOpen(false);
+            const { flushProgress } = await import("~/lib/progress/sync");
+            await flushProgress();
             await signOut();
             toast("You are signed out.");
           }}

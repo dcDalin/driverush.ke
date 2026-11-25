@@ -1,5 +1,7 @@
 import { TabBar } from "~/components/brand/tab-bar";
 import { AccountShell } from "~/components/account/account-shell";
+import { ProgressSync } from "~/components/account/progress-sync";
+import { guestVisitScript } from "~/lib/progress/guest-visit";
 import {
   isRouteErrorResponse,
   Link,
@@ -41,6 +43,12 @@ import { GA_MEASUREMENT_ID, gaHeadScript } from "~/lib/ga";
 import { useLearnerAnalytics } from "~/lib/use-learner-analytics";
 // Catches the browser's install prompt from the first load.
 import "~/lib/install";
+
+const GUEST_VISIT_SCRIPT = guestVisitScript(
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+    ? import.meta.env.VITE_SUPABASE_URL
+    : undefined,
+);
 
 const BOARD_INIT_SCRIPT = `try{var s=JSON.parse(localStorage.getItem("driverush:board")||"{}").state;if(s&&((s.learned&&s.learned.length)||(s.bestStars&&Object.keys(s.bestStars).length)))document.documentElement.dataset.board="started"}catch(e){}`;
 
@@ -189,6 +197,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         {/* The status bar's colour, by the same theme. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_COLOR_SCRIPT }} />
+        {/* A guest's progress lasts one visit: cleared before any store
+            reads it (`~/lib/progress/guest-visit.ts`). Before the board
+            marker below, which reads the same key. */}
+        {GUEST_VISIT_SCRIPT && (
+          <script dangerouslySetInnerHTML={{ __html: GUEST_VISIT_SCRIPT }} />
+        )}
         {/* A learner who has started the board course: marked before first
             paint, so the page opens as theirs (`course-label.css`). */}
         <script dangerouslySetInnerHTML={{ __html: BOARD_INIT_SCRIPT }} />
@@ -234,6 +248,8 @@ export default function App() {
       <TabBar />
       {/* The sign-in sheet, loaded the first time something opens it. */}
       <AccountShell />
+      {/* Saves a signed-in learner's progress; nudges a guest to sign in. */}
+      <ProgressSync />
     </>
   );
 }
