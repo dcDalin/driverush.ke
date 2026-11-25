@@ -22,6 +22,7 @@ create table public.payments (
 
 create index payments_payer_idx on public.payments (payer_user_id);
 create index payments_school_idx on public.payments (school_id);
+create index payments_plan_idx on public.payments (plan_id);
 
 comment on table public.payments is
   'Payment attempts, provider-neutral. Service role writes only.';

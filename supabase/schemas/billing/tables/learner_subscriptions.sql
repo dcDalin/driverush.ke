@@ -19,6 +19,7 @@ create table public.learner_subscriptions (
 );
 
 create index learner_subscriptions_user_idx on public.learner_subscriptions (user_id, ends_at);
+create index learner_subscriptions_plan_idx on public.learner_subscriptions (plan_id);
 
 comment on table public.learner_subscriptions is
   'A learner''s own paid time. Pauses (dates move forward) while a school link is current.';

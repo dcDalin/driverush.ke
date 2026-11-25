@@ -35,7 +35,9 @@
     "format:check": "prettier --check .",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm test",
     "test:routes": "vitest run --project routes",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "db:advisors": "supabase db advisors --local --level warn --fail-on warn",
+    "db:lint": "supabase db lint --local --schema public,private --level warning --fail-on warning"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

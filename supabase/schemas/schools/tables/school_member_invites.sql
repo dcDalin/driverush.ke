@@ -23,5 +23,7 @@ create unique index school_member_invites_open_idx
 create index school_member_invites_email_idx
   on public.school_member_invites (email) where status = 'pending';
 
+create index school_member_invites_invited_by_idx on public.school_member_invites (invited_by);
+
 comment on table public.school_member_invites is
   'An owner or admin added by an email with no confirmed account yet; taken up on confirmation.';

@@ -17,5 +17,7 @@ create table public.schools (
   updated_at timestamptz not null default now()
 );
 
+create index schools_created_by_idx on public.schools (created_by);
+
 comment on table public.schools is
   'A driving school (the paying customer). Created by DriveRush staff only.';

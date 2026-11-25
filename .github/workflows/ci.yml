@@ -56,6 +56,10 @@ jobs:
           echo "$out" | grep -q "No schema changes found"
       - name: Generated types are up to date
         run: npm run db:types:check
+      - name: Supabase advisors (no security or performance warnings)
+        run: npm run db:advisors
+      - name: Function bodies type-check (db lint)
+        run: npm run db:lint
       - name: Database and route suites (real auth and API)
         run: npx vitest run --project db --project routes
       - name: Stop the stack

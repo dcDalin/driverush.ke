@@ -47,8 +47,11 @@ create unique index school_student_links_open_idx
 
 create index school_student_links_email_idx
   on public.school_student_links (email) where status = 'pending';
+-- Covers the (branch_id, school_id) foreign key and a branch's list by status.
 create index school_student_links_branch_idx
-  on public.school_student_links (branch_id, status);
+  on public.school_student_links (branch_id, school_id, status);
+create index school_student_links_added_by_idx
+  on public.school_student_links (added_by);
 
 comment on table public.school_student_links is
   'A school''s one-month link to a learner, added by email to a branch. History is kept.';

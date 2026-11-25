@@ -6,13 +6,16 @@
 -- Grants: anon: SELECT; authenticated: SELECT
 alter table public.plans enable row level security;
 
-create policy "plans: anyone reads active"
-  on public.plans for select to anon, authenticated
+-- One policy per role and command, so Postgres never evaluates two
+-- permissive policies for the same read (advisor: multiple_permissive_policies).
+-- anon gets its own: it cannot call private.is_staff().
+create policy "plans: guests read active"
+  on public.plans for select to anon
   using (is_active);
 
-create policy "plans: staff read all"
+create policy "plans: signed-in read active, staff read all"
   on public.plans for select to authenticated
-  using ((select private.is_staff()));
+  using (is_active or (select private.is_staff()));
 
 -- ===================================================
 -- ACCESS: public.learner_subscriptions
@@ -62,3 +65,9 @@ create policy "payments: payer, school owner or staff read"
 -- Writes: No client: private.pause_subscription, resume_subscriptions_for_link.
 -- Grants: anon: none; authenticated: none
 alter table public.subscription_pauses enable row level security;
+
+-- Said out loud rather than left to "no policy" (advisor: rls_enabled_no_policy).
+create policy "subscription_pauses: clients no access"
+  on public.subscription_pauses for all to anon, authenticated
+  using (false)
+  with check (false);

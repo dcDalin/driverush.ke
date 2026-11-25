@@ -20,6 +20,7 @@ create unique index school_members_one_owner_idx
   on public.school_members (school_id) where role = 'owner';
 
 create index school_members_user_idx on public.school_members (user_id);
+create index school_members_added_by_idx on public.school_members (added_by);
 
 comment on table public.school_members is
   'A school''s owner (one) and admins (at most 50). Admin branch scope is in school_member_branches.';

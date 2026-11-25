@@ -109,3 +109,27 @@ and the `user_role` claim from `custom_access_token_hook`). School roles
 staff, and up to 50 `admin`s tied to branches by the owner. Learners are tied
 to a school through `school_student_links`, a month at a time. The full matrix
 is `docs/database-access.md`.
+
+## The dashboard's advisors
+
+Supabase's Security and Performance advisors (the warnings in the
+dashboard) must stay empty at WARN and above: `npm run db:advisors` runs them
+on the local stack and CI fails on any warning. `npm run db:lint` type-checks
+every function body. `supabase/tests/database/security_advisors.test.sql`
+holds the schema to the same rules, so a change fails pgTAP first:
+
+- every foreign key has a covering index;
+- every table with row level security has a policy (a table no client may
+  touch gets an explicit `"<table>: clients no access"` policy, `using
+(false) with check (false)`);
+- one permissive policy per table, role and command (split by role, or fold
+  the conditions into one `using`);
+- `auth.uid()` / `auth.jwt()` in a policy are wrapped in a `SELECT`.
+
+`unused_index` (INFO) counts index scans since the statistics were reset, so
+on a fresh or local database every index shows as unused until queries use
+it. It is not a warning; drop an index only if production traffic never uses
+it.
+
+Hosted-only advisors to settle when the project is created: leaked password
+protection (Auth > Passwords) and the MFA options.

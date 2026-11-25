@@ -98,3 +98,25 @@ export function forgedJwt(claims: Record<string, unknown>) {
     .digest("base64url");
   return `${head}.${body}.${sig}`;
 }
+
+/** A confirmed account with the demo password, made for one test. */
+export async function makeAccount(label: string) {
+  const email = uniqueEmail(label);
+  const { data, error } = await serviceClient().auth.admin.createUser({
+    email,
+    password: SEED_PASSWORD,
+    email_confirm: true,
+  });
+  if (error) throw error;
+  return { email, id: data.user.id, client: await signInWithPassword(email) };
+}
+
+export async function schoolIdBySlug(slug: string) {
+  const { data, error } = await serviceClient()
+    .from("schools")
+    .select("id")
+    .eq("slug", slug)
+    .single();
+  if (error) throw error;
+  return data.id;
+}

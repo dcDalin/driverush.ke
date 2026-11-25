@@ -14,7 +14,9 @@ create table public.school_member_branches (
     references public.school_branches (id, school_id) on delete cascade
 );
 
-create index school_member_branches_branch_idx on public.school_member_branches (branch_id);
+-- Cover both composite foreign keys (member and branch, each with school_id).
+create index school_member_branches_member_idx on public.school_member_branches (member_id, school_id);
+create index school_member_branches_branch_idx on public.school_member_branches (branch_id, school_id);
 
 comment on table public.school_member_branches is
   'Which branches a school admin works in (always branches of their own school).';

@@ -16,6 +16,7 @@ create table public.school_subscriptions (
 );
 
 create index school_subscriptions_school_idx on public.school_subscriptions (school_id, ends_at);
+create index school_subscriptions_plan_idx on public.school_subscriptions (plan_id);
 
 comment on table public.school_subscriptions is
   'A school''s flat plan for a period.';
