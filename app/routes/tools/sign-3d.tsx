@@ -32,6 +32,13 @@ import {
 import { cn } from "~/lib/utils";
 
 import { Button } from "~/components/ui/button";
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemTitle,
+} from "~/components/ui/item";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Textarea } from "~/components/ui/textarea";
@@ -255,50 +262,55 @@ export default function Sign3DTool({ loaderData }: Route.ComponentProps) {
             </div>
             <ul className="m-0 max-h-[60vh] list-none overflow-auto p-0">
               {signs.map((s, i) => (
-                <li
+                <Item
                   key={s.id}
+                  asChild
+                  size="sm"
                   className={cn(
-                    "flex items-center gap-2 border-b border-ink/40 px-2 py-1.5",
+                    "min-h-0 flex-nowrap gap-2 rounded-none border-0 border-b border-ink/40 px-2 py-1",
                     selectedId === s.id && "bg-paper-3",
                   )}
                 >
-                  <button
-                    type="button"
-                    onClick={() => setSelectedId(s.id)}
-                    className="min-w-0 flex-1 text-left outline-none"
-                  >
-                    <span className="block truncate font-display text-[12px] font-bold uppercase tracking-wide text-ink">
-                      {s.name || "(unnamed)"}
-                    </span>
-                    <span className="block truncate font-mono text-[9.5px] uppercase tracking-widest text-ink-3">
-                      {s.code ?? "—"} · {fileLabel(s.modelSrc)}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Move up"
-                    disabled={i === 0}
-                    onClick={() => moveSign(s.id, -1)}
-                    className="text-ink-3 outline-none hover:text-ink disabled:opacity-30"
-                  >
-                    <Icon
-                      icon={ChevronUpIcon}
-                      size={14}
-                    />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Move down"
-                    disabled={i === signs.length - 1}
-                    onClick={() => moveSign(s.id, 1)}
-                    className="text-ink-3 outline-none hover:text-ink disabled:opacity-30"
-                  >
-                    <Icon
-                      icon={ChevronDownIcon}
-                      size={14}
-                    />
-                  </button>
-                </li>
+                  <li>
+                    <ItemContent>
+                      <button
+                        type="button"
+                        aria-pressed={selectedId === s.id}
+                        onClick={() => setSelectedId(s.id)}
+                        className="min-w-0 text-left outline-none focus-visible:underline"
+                      >
+                        <ItemTitle className="block truncate font-display text-[12px] font-bold uppercase tracking-wide text-ink">
+                          {s.name || "(unnamed)"}
+                        </ItemTitle>
+                        <ItemDescription className="truncate font-mono text-[9.5px] uppercase tracking-widest text-ink-3">
+                          {s.code ?? "—"} · {fileLabel(s.modelSrc)}
+                        </ItemDescription>
+                      </button>
+                    </ItemContent>
+                    <ItemActions className="gap-0">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Move up"
+                        disabled={i === 0}
+                        onClick={() => moveSign(s.id, -1)}
+                        className="text-ink-3 hover:text-ink disabled:opacity-30"
+                      >
+                        <Icon icon={ChevronUpIcon} size={14} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Move down"
+                        disabled={i === signs.length - 1}
+                        onClick={() => moveSign(s.id, 1)}
+                        className="text-ink-3 hover:text-ink disabled:opacity-30"
+                      >
+                        <Icon icon={ChevronDownIcon} size={14} />
+                      </Button>
+                    </ItemActions>
+                  </li>
+                </Item>
               ))}
             </ul>
           </div>
