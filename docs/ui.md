@@ -41,4 +41,4 @@ These draw something shadcn has no part for, so they stay plain elements
   area (`image-focus-player`);
 - the 3D scenes, the canvas and the SVG brand art.
 
-The internal tools' list rows move to `Item` in PR #7.
+The internal tools' list rows are `Item` too (#7).

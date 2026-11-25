@@ -64,6 +64,8 @@ const buttonVariants = cva(
         "stamp-sm": "size-10 rounded-full p-0 text-base [&_svg]:size-4",
         // Square icon button, a thumb wide
         icon: "size-11 p-0",
+        // Small square icon button, for dense desktop tools only
+        "icon-sm": "size-8 p-0",
         // Inside a sentence: the sentence's own size and line
         inline:
           "h-auto gap-1 p-0 align-baseline text-[length:inherit] leading-[inherit]",

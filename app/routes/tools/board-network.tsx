@@ -3,6 +3,12 @@ import * as React from "react";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemTitle,
+} from "~/components/ui/item";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -424,31 +430,39 @@ export default function BoardNetworkTool() {
                 <ol className="m-0 mt-3 list-none p-0">
                   {route.steps.map((step, i) => (
                     <li key={`${step.from}-${step.title}`}>
-                      <button
-                        type="button"
-                        onClick={() => setActive(active === i ? null : i)}
+                      <Item
+                        asChild
+                        size="sm"
                         className={cn(
-                          "block w-full border-b border-line px-2 py-2 text-left",
+                          "min-h-0 rounded-none border-b-line px-2 py-2",
                           active === i && "bg-paper-3",
                         )}
                       >
-                        <span className="block text-[14px] leading-snug font-bold text-ink">
-                          {i + 1}. {step.title}
-                          {step.gear === "reverse" && (
-                            <span className="ml-2 font-mono text-[10px] tracking-widest text-rush uppercase">
-                              Reverse
-                            </span>
-                          )}
-                          {!step.confirmed && (
-                            <span className="ml-2 font-mono text-[10px] tracking-widest text-ink-3 uppercase">
-                              To confirm
-                            </span>
-                          )}
-                        </span>
-                        <span className="mt-1 block text-[13px] leading-snug text-ink-2">
-                          {step.why}
-                        </span>
-                      </button>
+                        <button
+                          type="button"
+                          aria-pressed={active === i}
+                          onClick={() => setActive(active === i ? null : i)}
+                        >
+                          <ItemContent>
+                            <ItemTitle className="text-[14px] font-bold text-ink">
+                              {i + 1}. {step.title}
+                              {step.gear === "reverse" && (
+                                <span className="ml-2 font-mono text-[10px] tracking-widest text-rush uppercase">
+                                  Reverse
+                                </span>
+                              )}
+                              {!step.confirmed && (
+                                <span className="ml-2 font-mono text-[10px] tracking-widest text-ink-3 uppercase">
+                                  To confirm
+                                </span>
+                              )}
+                            </ItemTitle>
+                            <ItemDescription className="mt-0.5 text-[13px] text-ink-2">
+                              {step.why}
+                            </ItemDescription>
+                          </ItemContent>
+                        </button>
+                      </Item>
                     </li>
                   ))}
                 </ol>
