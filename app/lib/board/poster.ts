@@ -24,7 +24,7 @@ const DAY_MS = 86_400_000;
 /** The school whose still is shown today. */
 export function posterSchool(now = Date.now()): string {
   const day = Math.floor(now / DAY_MS);
-  return POSTER_SCHOOLS[day % POSTER_SCHOOLS.length];
+  return POSTER_SCHOOLS[day % POSTER_SCHOOLS.length]!;
 }
 
 /** The board still for a school, 1200 or 2400 pixels wide. */

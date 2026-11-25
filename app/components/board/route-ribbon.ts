@@ -48,9 +48,9 @@ export function buildRibbon(line: StageLine, map: THREE.Texture): THREE.Mesh {
   const indices: number[] = [];
   let along = 0;
   for (let i = 0; i < count; i += 1) {
-    const p = line.points[i];
-    const before = line.points[Math.max(0, i - 1)];
-    const after = line.points[Math.min(count - 1, i + 1)];
+    const p = line.points[i]!;
+    const before = line.points[Math.max(0, i - 1)]!;
+    const after = line.points[Math.min(count - 1, i + 1)]!;
     if (i > 0) along += Math.hypot(p.x - before.x, p.z - before.z);
     const tx = after.x - before.x;
     const tz = after.z - before.z;

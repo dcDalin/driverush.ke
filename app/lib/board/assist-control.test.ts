@@ -344,10 +344,10 @@ describe("the car still goes where it is pointed", () => {
     for (const assist of [false, true]) {
       drive.assist = assist;
       const { samples } = run(task("S", 1, 60), () => runs - 40 * DEG, 1.5);
-      const last = samples[samples.length - 1];
+      const last = samples[samples.length - 1]!;
       ends.push(Math.abs(wrapPi(last.heading - (runs - 40 * DEG))));
     }
-    expect(ends[1]).toBeLessThan(ends[0] + 5 * DEG);
+    expect(ends[1]).toBeLessThan(ends[0]! + 5 * DEG);
   });
 });
 
@@ -435,7 +435,7 @@ describe("the thumb steers; the assist only steadies it", () => {
     const after = samples.filter((s) => s.t > 1);
     // it eases back to running along a lane, without swinging hard across
     expect(Math.min(...after.map(turned))).toBeGreaterThan(-10);
-    expect(Math.abs(turned(samples[samples.length - 1]))).toBeLessThan(3);
+    expect(Math.abs(turned(samples[samples.length - 1]!))).toBeLessThan(3);
     expect([2, 3]).toContain(laneAt());
   });
 

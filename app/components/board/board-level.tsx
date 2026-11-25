@@ -792,7 +792,9 @@ function WatchLevel({
 
   // Before Play, every way lies on the table, the chosen one brightest.
   React.useEffect(() => {
-    if (route) show(routeLines(route, step, wayColor(ways[played] ?? ways[0])));
+    // a route only plays from one of the ways, so there is at least one
+    if (route)
+      show(routeLines(route, step, wayColor((ways[played] ?? ways[0])!)));
     else if (line) {
       show([
         ...ways
@@ -805,7 +807,12 @@ function WatchLevel({
             width: 1.2,
             opacity: 0.35,
           })),
-        { id: "whole", points: line.points, color: wayColor(chosen), width: 2 },
+        {
+          id: "whole",
+          points: line.points,
+          color: wayColor(chosen!),
+          width: 2,
+        },
       ]);
       fitTable();
     }
@@ -860,7 +867,7 @@ function WatchLevel({
               <span className="font-mono text-[10px] font-bold tracking-widest text-white/55 uppercase">
                 Way {i + 1}
               </span>{" "}
-              {wayLabel(way, ways[0])}
+              {wayLabel(way, ways[0]!)}
             </span>
           </button>
         ))}

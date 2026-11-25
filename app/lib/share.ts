@@ -276,7 +276,7 @@ export function resolveShare(params: URLSearchParams): ResolvedShare {
     case "milestone": {
       const code = int(params.get("m"), MILESTONES.length - 1);
       if (code == null) break;
-      const moment = MILESTONES[code];
+      const moment = MILESTONES[code]!;
       const n = int(params.get("n"), 1000);
       if (n == null || !milestoneValid(moment, n)) break;
       return {

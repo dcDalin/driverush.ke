@@ -46,7 +46,7 @@ export function levelMoment(
   }
   const index = COURSE_UNITS.findIndex((unit) => unit.id === level.unit);
   if (index < 0) return null;
-  const unit = COURSE_UNITS[index];
+  const unit = COURSE_UNITS[index]!;
   if (unit.levels.every((l) => levelDone(l, saved))) {
     return { moment: "unit", n: index + 1 };
   }

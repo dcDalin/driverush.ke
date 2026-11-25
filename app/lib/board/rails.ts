@@ -190,9 +190,9 @@ function measure(edge: NetEdge): Measured {
   if (!m) {
     const at = [0];
     for (let i = 1; i < edge.points.length; i += 1) {
-      const a = edge.points[i - 1];
-      const b = edge.points[i];
-      at.push(at[i - 1] + Math.hypot(b.x - a.x, b.z - a.z));
+      const a = edge.points[i - 1]!;
+      const b = edge.points[i]!;
+      at.push(at[i - 1]! + Math.hypot(b.x - a.x, b.z - a.z));
     }
     m = { edge, at };
     measured.set(edge.id, m);
@@ -202,7 +202,8 @@ function measure(edge: NetEdge): Measured {
 
 function edgeLength(edge: NetEdge): number {
   const m = measure(edge);
-  return m.at[m.at.length - 1];
+  // `at` always starts with 0
+  return m.at[m.at.length - 1]!;
 }
 
 /** The point `s` metres along an edge, and the way the edge runs there. */
@@ -212,18 +213,18 @@ function pointOn(
 ): { x: number; z: number; h: number } {
   const { at } = measure(edge);
   const pts = edge.points;
-  const d = Math.max(0, Math.min(at[at.length - 1], s));
+  const d = Math.max(0, Math.min(at[at.length - 1]!, s));
   let lo = 0;
   let hi = at.length - 1;
   while (hi - lo > 1) {
     const mid = (lo + hi) >> 1;
-    if (at[mid] <= d) lo = mid;
+    if (at[mid]! <= d) lo = mid;
     else hi = mid;
   }
-  const a = pts[lo];
+  const a = pts[lo]!;
   const b = pts[hi] ?? a;
-  const span = at[hi] - at[lo];
-  const t = span > 0 ? (d - at[lo]) / span : 0;
+  const span = at[hi]! - at[lo]!;
+  const t = span > 0 ? (d - at[lo]!) / span : 0;
   return {
     x: a.x + (b.x - a.x) * t,
     z: a.z + (b.z - a.z) * t,
@@ -242,9 +243,9 @@ function project(
   let best = { s: 0, off: Infinity, h: 0 };
   for (let i = 0; i < pts.length - 1; i += 1) {
     // looking only near where it was, when told
-    if (near != null && (at[i + 1] < near - 6 || at[i] > near + 6)) continue;
-    const a = pts[i];
-    const b = pts[i + 1];
+    if (near != null && (at[i + 1]! < near - 6 || at[i]! > near + 6)) continue;
+    const a = pts[i]!;
+    const b = pts[i + 1]!;
     const dx = b.x - a.x;
     const dz = b.z - a.z;
     const span = dx * dx + dz * dz;
@@ -254,7 +255,11 @@ function project(
         : 0;
     const off = Math.hypot(a.x + dx * t - p.x, a.z + dz * t - p.z);
     if (off < best.off) {
-      best = { s: at[i] + (at[i + 1] - at[i]) * t, off, h: bearingOf(dx, dz) };
+      best = {
+        s: at[i]! + (at[i + 1]! - at[i]!) * t,
+        off,
+        h: bearingOf(dx, dz),
+      };
     }
   }
   return best;
@@ -588,7 +593,7 @@ function onLane(
 function pathsFrom(edge: NetEdge, s: number, change: boolean): Path[] {
   const out: Path[] = [];
   const walk = (chain: NetEdge[], budget: number) => {
-    const last = chain[chain.length - 1];
+    const last = chain[chain.length - 1]!;
     const rest = edgeLength(last) - (chain.length === 1 ? s : 0);
     if (rest >= budget || out.length >= 24) {
       out.push(layOut(chain, s, change));
@@ -690,7 +695,7 @@ function misfit(path: Path, car: CarState, knob: number): number {
     // the way along the path toward that point: halfway between how it runs
     // at the car and how it runs there (round a tight turn, the path a few
     // metres on has turned twice as far as a thumb pointing at it)
-    const way = p.h - wrapPi(p.h - path.points[0].h) / 2;
+    const way = p.h - wrapPi(p.h - path.points[0]!.h) / 2;
     const across = Math.abs(wrapPi(way - knob)) - ALONG_SLACK;
     const fit = Math.max(off, across);
     if (fit < best) best = fit;
@@ -721,7 +726,7 @@ function isPlan(path: Path, plan: string[]): boolean {
   if (!plan.length) return false;
   if (!path.edges.length) return plan[0] === path.key;
   const ids = path.edges.map((e) => e.id);
-  const from = plan.indexOf(ids[0]);
+  const from = plan.indexOf(ids[0]!);
   if (from < 0) return false;
   for (let k = 0; k < ids.length && from + k < plan.length; k += 1) {
     if (ids[k] !== plan[from + k]) return false;
@@ -772,7 +777,7 @@ export function rails(
 
   if (knob == null) {
     // let go: keep to the plan while the car rolls to a stop
-    const keep = plan ?? paths[0];
+    const keep = plan ?? paths[0]!;
     state.plan = keep.edges.length ? keep.edges.map((e) => e.id) : [keep.key];
     return { ...steerAlong(keep, car), weight: 1 };
   }
@@ -788,7 +793,7 @@ export function rails(
     if (task.length) paths = task;
     const longest = Math.max(...paths.map((p) => p.stays));
     const stay = paths.filter((p) => p.stays >= longest - 1);
-    pick = stay.find((p) => p === plan) ?? stay[0];
+    pick = stay.find((p) => p === plan) ?? stay[0]!;
   } else if (ask === "change") {
     // keys ask outright: into the lane beside, if there is one to go to
     const over = paths.filter((p) => p.change && p.side === options.side);
@@ -796,7 +801,7 @@ export function rails(
     pick =
       over[0] ??
       plan ??
-      stay.reduce((a, b) => (b.stays > a.stays ? b : a), stay[0] ?? paths[0]);
+      stay.reduce((a, b) => (b.stays > a.stays ? b : a), stay[0] ?? paths[0]!);
   } else if (ask === "exit") {
     const ours = paths.filter((p) => fitsTask(p, state.entry, options.exitTo));
     const leaving = (ours.some((p) => p.exit) ? ours : paths)
@@ -809,7 +814,7 @@ export function rails(
         ? soon.reduce((a, b) =>
             misfit(a, car, knob) <= misfit(b, car, knob) ? a : b,
           )
-        : (plan ?? paths[0]);
+        : (plan ?? paths[0]!);
   } else {
     // A thumb: the path it points along best, helped as much as it fits.
     // Picked by the knob as it is (a tight exit leaves no time to wait), with
@@ -844,10 +849,10 @@ export function rails(
     state.plan = [pick.key];
     return { ...steerAlong(pick, car, centring), weight };
   }
-  if (pick.edges[0].id !== state.edge) {
+  if (pick.edges[0]!.id !== state.edge) {
     // a path lying alongside (another way round the same ring lane), or the
     // lane beside: the car is now on it
-    state.edge = pick.edges[0].id;
+    state.edge = pick.edges[0]!.id;
     state.s = pick.s0;
     if (pick.change) state.changing = true;
   }
@@ -915,25 +920,25 @@ function steerAlong(
   // (the bend coming up within that aim counts, or the car cuts in at its start)
   let bend = 0;
   for (let i = near.i; i + 2 < pts.length && i - near.i <= reach; i += 1) {
-    bend = Math.max(bend, Math.abs(wrapPi(pts[i + 2].h - pts[i].h)) / 2);
+    bend = Math.max(bend, Math.abs(wrapPi(pts[i + 2]!.h - pts[i]!.h)) / 2);
   }
   if (bend > 1e-3) reach = Math.min(reach, Math.max(2, BEND_REACH / bend));
   const k = Math.min(pts.length - 1, near.i + Math.round(reach));
-  const aim = pts[k];
+  const aim = pts[k]!;
   // the bends in the next stretch set the speed
   let cap: number = CAR.maxSpeed;
   const ahead = Math.max(8, 1.6 * Math.abs(car.speed));
   for (let i = near.i; i + 2 < pts.length && i - near.i < ahead; i += 1) {
-    const turn = Math.abs(wrapPi(pts[i + 2].h - pts[i].h)) / 2;
+    const turn = Math.abs(wrapPi(pts[i + 2]!.h - pts[i]!.h)) / 2;
     if (turn > 1e-4) cap = Math.min(cap, Math.sqrt(BEND_GRIP / turn));
   }
   if (path.edges.some((e, i) => i < 2 && e.road === "aisle")) {
     cap = Math.min(cap, AISLE_SPEED);
   }
-  const key = path.edges.length ? laneKey(path.edges[0]) : null;
+  const key = path.edges.length ? laneKey(path.edges[0]!) : null;
   // the path's own way from where the car is level with it, then toward its
   // line from the car, no more than `centring`
-  const from = pts[near.i];
+  const from = pts[near.i]!;
   const own = k > near.i ? bearingOf(aim.x - from.x, aim.z - from.z) : from.h;
   const toward = wrapPi(bearingOf(aim.x - car.x, aim.z - car.z) - own);
   return {

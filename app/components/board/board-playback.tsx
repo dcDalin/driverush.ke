@@ -205,7 +205,7 @@ export function BoardPlayback({
             const next =
               PLAY_RATES[
                 (PLAY_RATES.indexOf(rate as 1) + 1) % PLAY_RATES.length
-              ];
+              ]!;
             setRate(next);
           }}
         >

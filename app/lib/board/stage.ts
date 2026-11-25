@@ -391,7 +391,7 @@ export const useStage = create<StageState>()((set, get) => ({
   toStep: (index) => {
     const { route } = get();
     if (!route) return;
-    const step = route.steps[clamp(index, 0, route.steps.length - 1)];
+    const step = route.steps[clamp(index, 0, route.steps.length - 1)]!;
     get().seek(step.from + 0.01);
   },
 

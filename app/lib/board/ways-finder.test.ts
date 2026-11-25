@@ -78,7 +78,7 @@ run("levels with only one way", () => {
           if (seenRows.has(key)) continue;
           seenRows.add(key);
           rows.push(
-            `${kind}\t${set.name}\t${from.label} -> ${to.label}\t${Math.round(plan.route.length)}m (open ${Math.round(open.plan.route.length)}m, ${openShapes.size} ways)\n    NOW:  ${said(shownWays(ways)[0].route)}\n    OPEN: ${said(open.plan.route)}`,
+            `${kind}\t${set.name}\t${from.label} -> ${to.label}\t${Math.round(plan.route.length)}m (open ${Math.round(open.plan.route.length)}m, ${openShapes.size} ways)\n    NOW:  ${said(shownWays(ways)[0]!.route)}\n    OPEN: ${said(open.plan.route)}`,
           );
         }
       }

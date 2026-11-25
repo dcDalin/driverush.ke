@@ -104,7 +104,7 @@ function PlatePreview({ logo }: { logo: string }) {
 export default function SponsorTool() {
   const [params, setParams] = useSearchParams();
   const sponsor = sponsorById(params.get("id")) ?? SPONSORS[0] ?? null;
-  const [view, setView] = React.useState(VIEWS[2].view);
+  const [view, setView] = React.useState(VIEWS[2]!.view);
   const [overlay, setOverlay] = React.useState(false);
   const [car, setCar] = React.useState<BoardCarId>("saloon");
   // The wheels turning and steering, to check them on each car.

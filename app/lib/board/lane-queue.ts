@@ -89,7 +89,7 @@ function lineModels(
   let n = 0;
   const models = counts.map((count) =>
     Array.from({ length: count }, () => {
-      const id = BOARD_CARS[n % BOARD_CARS.length].id;
+      const id = BOARD_CARS[n % BOARD_CARS.length]!.id;
       n += 1;
       return id;
     }),
@@ -110,7 +110,7 @@ function lineModels(
       if (!isBig(line[longest]) && sizeOf(line[longest]).length <= CAR.length) {
         break;
       }
-      line[longest] = SMALL_CARS[small % SMALL_CARS.length];
+      line[longest] = SMALL_CARS[small % SMALL_CARS.length]!;
       small += 1;
     }
   }
@@ -148,7 +148,7 @@ function allQueueCars(arm: ArmId): QueueCar[] {
     let nose = NOSE;
     options.forEach((option, slot) => {
       const n = cars.length;
-      const car = models[at][slot];
+      const car = models[at]![slot]!; // one model per lane option
       const length = sizeOf(car).length;
       const along = nose + length / 2;
       nose += length + between;
@@ -159,7 +159,7 @@ function allQueueCars(arm: ArmId): QueueCar[] {
         slot,
         option,
         exit: { arm: armForTurn(arm, option.turn), lane: option.exitLane },
-        paint: PAINTS[n % PAINTS.length],
+        paint: PAINTS[n % PAINTS.length]!,
         car,
         plate: `KD${String.fromCharCode(65 + n)} ${100 + n * 37}${String.fromCharCode(74 + n)}`,
         along,

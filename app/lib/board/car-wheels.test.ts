@@ -16,6 +16,8 @@ import { BOARD_CARS } from "~/lib/board/cars";
 const ROOT = process.cwd();
 const SECTORS = 36;
 
+type V3 = [number, number, number];
+
 type Wheel = {
   name: string;
   axle: [number, number, number];
@@ -43,18 +45,22 @@ async function wheelsOf(
   const nodes = doc.getRoot().listNodes();
   const trianglesOf = (node: Node) => {
     const m = node.getWorldMatrix();
-    const out: number[][][] = [];
+    const out: [V3, V3, V3][] = [];
     for (const prim of node.getMesh()!.listPrimitives()) {
       const at = prim.getAttribute("POSITION")!;
       const indices = prim.getIndices();
       const count = indices ? indices.getCount() : at.getCount();
       const point = (i: number) => {
-        const v = at.getElement(indices ? indices.getScalar(i) : i, []);
-        return [
+        const v = at.getElement(
+          indices ? indices.getScalar(i) : i,
+          [] as number[],
+        ) as V3;
+        const p: V3 = [
           m[0] * v[0] + m[4] * v[1] + m[8] * v[2] + m[12],
           m[1] * v[0] + m[5] * v[1] + m[9] * v[2] + m[13],
           m[2] * v[0] + m[6] * v[1] + m[10] * v[2] + m[14],
         ];
+        return p;
       };
       for (let i = 0; i < count; i += 3)
         out.push([point(i), point(i + 1), point(i + 2)]);
@@ -89,8 +95,8 @@ async function wheelsOf(
         }
         // Along its edges too: a tyre of few sides has few corners.
         for (let e = 0; e < 3; e += 1) {
-          const a = tri[e];
-          const b = tri[(e + 1) % 3];
+          const a = tri[e]!;
+          const b = tri[(e + 1) % 3]!;
           for (let s = 0; s <= 10; s += 1) {
             const y = a[1] + ((b[1] - a[1]) * s) / 10 - axle[1];
             const z = a[2] + ((b[2] - a[2]) * s) / 10 - axle[2];
@@ -98,24 +104,24 @@ async function wheelsOf(
               Math.floor(
                 ((Math.atan2(y, z) + Math.PI) / (2 * Math.PI)) * SECTORS,
               ) % SECTORS;
-            reach[k] = Math.max(reach[k], Math.hypot(y, z));
+            reach[k] = Math.max(reach[k]!, Math.hypot(y, z));
           }
         }
         const [a, b, c] = tri;
-        const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
-        const w = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+        const u: V3 = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+        const w: V3 = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
         const area =
           Math.hypot(
             u[1] * w[2] - u[2] * w[1],
             u[2] * w[0] - u[0] * w[2],
             u[0] * w[1] - u[1] * w[0],
           ) / 2;
-        const at = [0, 1, 2].map((k) => (a[k] + b[k] + c[k]) / 3);
+        const at = [0, 1, 2].map((k) => (a[k]! + b[k]! + c[k]!) / 3);
         pieces.push({ at, area });
         whole += area;
-        for (let k = 0; k < 3; k += 1) middle[k] += at[k] * area;
+        for (let k = 0; k < 3; k += 1) middle[k]! += at[k]! * area;
       }
-      for (let k = 0; k < 3; k += 1) middle[k] /= whole;
+      for (let k = 0; k < 3; k += 1) middle[k]! /= whole;
       const cov = [
         [0, 0, 0],
         [0, 0, 0],
@@ -124,13 +130,13 @@ async function wheelsOf(
       for (const { at, area } of pieces) {
         for (let i = 0; i < 3; i += 1) {
           for (let j = 0; j < 3; j += 1) {
-            cov[i][j] +=
-              (area * (at[i] - middle[i]) * (at[j] - middle[j])) / whole;
+            cov[i]![j]! +=
+              (area * (at[i]! - middle[i]!) * (at[j]! - middle[j]!)) / whole;
           }
         }
       }
       const times = (q: number[][], x: number[]) =>
-        q.map((row) => row[0] * x[0] + row[1] * x[1] + row[2] * x[2]);
+        q.map((row) => row[0]! * x[0]! + row[1]! * x[1]! + row[2]! * x[2]!);
       const unit = (x: number[]) => {
         const l = Math.hypot(...x);
         return x.map((k) => k / l);
@@ -141,17 +147,17 @@ async function wheelsOf(
         return x;
       };
       const v1 = strongest(cov, [0.1, 1, 0.3]);
-      const l1 = times(cov, v1).reduce((sum, x, i) => sum + x * v1[i], 0);
+      const l1 = times(cov, v1).reduce((sum, x, i) => sum + x * v1[i]!, 0);
       const rest = cov.map((row, i) =>
-        row.map((x, j) => x - l1 * v1[i] * v1[j]),
+        row.map((x, j) => x - l1 * v1[i]! * v1[j]!),
       );
       const v2 = strongest(rest, [0.3, 0.2, 1]);
       const axis = unit([
-        v1[1] * v2[2] - v1[2] * v2[1],
-        v1[2] * v2[0] - v1[0] * v2[2],
-        v1[0] * v2[1] - v1[1] * v2[0],
+        v1[1]! * v2[2]! - v1[2]! * v2[1]!,
+        v1[2]! * v2[0]! - v1[0]! * v2[2]!,
+        v1[0]! * v2[1]! - v1[1]! * v2[0]!,
       ]);
-      const lean = (Math.acos(Math.min(1, Math.abs(axis[0]))) * 180) / Math.PI;
+      const lean = (Math.acos(Math.min(1, Math.abs(axis[0]!))) * 180) / Math.PI;
       return {
         name: node.getName().slice(6),
         axle,

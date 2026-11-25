@@ -27,7 +27,7 @@ export function loader({ params }: Route.LoaderArgs) {
 /** "KSh 24,900" → 24900, for the structured data; null when it isn't one plain amount. */
 function amount(price: string): number | null {
   const match = /^KSh\s?([\d,]+)$/.exec(price.trim());
-  return match ? Number(match[1].replace(/,/g, "")) : null;
+  return match ? Number(match[1]!.replace(/,/g, "")) : null;
 }
 
 function schoolLd(school: DrivingSchoolPage) {

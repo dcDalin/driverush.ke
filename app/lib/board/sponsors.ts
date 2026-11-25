@@ -367,12 +367,12 @@ export function pickSponsor({
   }
   if (active.length) {
     const before = last ? active.findIndex((s) => s.id === last) : -1;
-    if (before >= 0) return active[(before + 1) % active.length];
+    if (before >= 0) return active[(before + 1) % active.length]!;
     const at = Math.min(
       active.length - 1,
       Math.max(0, Math.floor(roll * active.length)),
     );
-    return active[at];
+    return active[at]!;
   }
   const fallen = list.find((s) => s.id === fallback);
   return fallen && inPeriod(fallen, now) ? fallen : null;

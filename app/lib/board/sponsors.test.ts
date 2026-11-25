@@ -95,8 +95,8 @@ describe("pickSponsor", () => {
       school("now", { from: "2026-11-01", until: "2027-01-01" }),
     ];
     expect(pickSponsor({ roll: 0, now, list: dated })?.id).toBe("now");
-    expect(inPeriod(dated[0], now)).toBe(false);
-    expect(inPeriod(dated[1], now)).toBe(false);
+    expect(inPeriod(dated[0]!, now)).toBe(false);
+    expect(inPeriod(dated[1]!, now)).toBe(false);
   });
 
   it("lets ?sponsor= show any school, live or not", () => {
@@ -151,7 +151,7 @@ describe("the car a learner gets with a sponsoring school", () => {
     );
     expect(seen.size).toBe(3);
     expect(resolveCar("random", 0.99)).toBe(
-      BOARD_CARS[BOARD_CARS.length - 1].id,
+      BOARD_CARS[BOARD_CARS.length - 1]!.id,
     );
   });
 });

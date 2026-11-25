@@ -41,9 +41,9 @@ describe("lane options levels", () => {
   it("split the three-lane road: lanes 1 and 2, then lane 3", () => {
     const parts = lanesLevels.filter((l) => l.arm === "W");
     expect(parts.map((l) => l.lanes)).toEqual([[1, 2], [3]]);
-    expect(parts[1].n).toBe(parts[0].n + 1);
-    expect(queueCars("W", parts[0].lanes)).toHaveLength(3);
-    expect(queueCars("W", parts[1].lanes)).toHaveLength(5);
+    expect(parts[1]!.n).toBe(parts[0]!.n + 1);
+    expect(queueCars("W", parts[0]!.lanes)).toHaveLength(3);
+    expect(queueCars("W", parts[1]!.lanes)).toHaveLength(5);
   });
 
   it("count the old whole-road level as both parts done", () => {
@@ -61,9 +61,9 @@ describe("lane options levels", () => {
   it("split the four-lane road: lanes 1 to 3, then lane 4", () => {
     const parts = lanesLevels.filter((l) => l.arm === "S");
     expect(parts.map((l) => l.lanes)).toEqual([[1, 2, 3], [4]]);
-    expect(parts[1].n).toBe(parts[0].n + 1);
-    expect(queueCars("S", parts[0].lanes)).toHaveLength(5);
-    expect(queueCars("S", parts[1].lanes)).toHaveLength(4);
+    expect(parts[1]!.n).toBe(parts[0]!.n + 1);
+    expect(queueCars("S", parts[0]!.lanes)).toHaveLength(5);
+    expect(queueCars("S", parts[1]!.lanes)).toHaveLength(4);
   });
 
   it("open the first part from an old link to the whole road", () => {

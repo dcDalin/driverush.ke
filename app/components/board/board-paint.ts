@@ -57,11 +57,12 @@ function grainTexture(): THREE.CanvasTexture {
   const cell = size / cells;
   const patches = new Float32Array(cells * cells);
   for (let i = 0; i < patches.length; i += 1) patches[i] = 196 + rnd() * 59;
+  // wrapped into the grid, so always one of the patches
   const patch = (cx: number, cy: number) =>
     patches[
       (((cy % cells) + cells) % cells) * cells +
         (((cx % cells) + cells) % cells)
-    ];
+    ]!;
 
   const image = ctx.createImageData(size, size);
   for (let y = 0; y < size; y += 1) {
@@ -157,11 +158,11 @@ export function dashes(
   const steps = pattern.length % 2 ? [...pattern, ...pattern] : pattern;
   if (steps.some((v) => !(v > 0))) return [points];
   let step = 0;
-  let left = steps[0];
-  let dash: THREE.Vector2[] | null = [points[0].clone()];
+  let left = steps[0]!;
+  let dash: THREE.Vector2[] | null = [points[0]!.clone()];
   for (let i = 1; i < points.length; i += 1) {
-    const from = points[i - 1];
-    const to = points[i];
+    const from = points[i - 1]!;
+    const to = points[i]!;
     const length = from.distanceTo(to);
     let done = 0;
     while (length - done > left + 1e-9) {
@@ -175,13 +176,13 @@ export function dashes(
         dash = [cut];
       }
       step = (step + 1) % steps.length;
-      left = steps[step];
+      left = steps[step]!;
     }
     left -= length - done;
     if (dash) dash.push(to.clone());
   }
   if (dash && dash.length > 1) {
-    const reach = dash[0].distanceTo(dash[dash.length - 1]);
+    const reach = dash[0]!.distanceTo(dash[dash.length - 1]!);
     if (reach > 1e-4) out.push(dash);
   }
   return out;
@@ -334,7 +335,7 @@ function numberGeometry(count: number): THREE.BufferGeometry {
     }));
     // Two triangles, wound to face up.
     for (const i of [0, 2, 1, 0, 3, 2]) {
-      const p = placed[i];
+      const p = placed[i]!;
       positions.push(p.x, 0, p.z);
       uvs.push(p.u, p.v);
       normals.push(0, 1, 0);

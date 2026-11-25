@@ -119,7 +119,7 @@ export function BoardLaneOptions({ arm }: { arm: Road }) {
         <MDX.p>
           Drive it:{" "}
           <MDX.a href={levelHref(road.level)}>
-            level {index + 1}, {COURSE_LEVELS[index].title}
+            level {index + 1}, {COURSE_LEVELS[index]!.title}
           </MDX.a>
           . Every car is set out at once, and you take one at a time to its
           place.

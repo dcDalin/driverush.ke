@@ -319,9 +319,9 @@ function yellowKerbBeside(car: CarState, loc: Location): number | null {
     loc.kind === "road" && loc.what === "street" ? STREET_HALF : KERB_NEAR;
   const kerbs = kerbHighlights();
   for (let k = 0; k < kerbs.length; k += 1) {
-    const line = kerbs[k];
+    const line = kerbs[k]!;
     for (let i = 1; i < line.length; i += 1) {
-      if (fromSegment(car, line[i - 1], line[i]) < reach) return k;
+      if (fromSegment(car, line[i - 1]!, line[i]!) < reach) return k;
     }
   }
   return null;

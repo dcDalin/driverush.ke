@@ -237,7 +237,7 @@ function drawArt(
 ) {
   const gap = 24;
   const n = art.tiles.length;
-  const ratio = art.tiles[0].h / art.tiles[0].w;
+  const ratio = art.tiles[0]!.h / art.tiles[0]!.w;
   let w = (INNER - gap * (n - 1)) / n;
   let h = w * ratio;
   if (h > height) {

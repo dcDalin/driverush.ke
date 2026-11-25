@@ -174,9 +174,9 @@ function driveFree(
   });
   // start from the line's own first point, and let go once so the car answers
   placeCar({
-    x: path[0].x,
-    z: path[0].z,
-    heading: bearingOf(path[1].x - path[0].x, path[1].z - path[0].z),
+    x: path[0]!.x,
+    z: path[0]!.z,
+    heading: bearingOf(path[1]!.x - path[0]!.x, path[1]!.z - path[0]!.z),
   });
   stick.x = 0;
   stick.y = 0;
@@ -185,8 +185,8 @@ function driveFree(
   for (let i = 0; i < seconds / STEP && said.serious.length === 0; i += 1) {
     while (
       nearest < path.length - 1 &&
-      Math.hypot(path[nearest + 1].x - car.x, path[nearest + 1].z - car.z) <=
-        Math.hypot(path[nearest].x - car.x, path[nearest].z - car.z)
+      Math.hypot(path[nearest + 1]!.x - car.x, path[nearest + 1]!.z - car.z) <=
+        Math.hypot(path[nearest]!.x - car.x, path[nearest]!.z - car.z)
     ) {
       nearest += 1;
     }
@@ -195,12 +195,12 @@ function driveFree(
     let run = 0;
     while (aim < path.length - 1 && run < 4.5) {
       run += Math.hypot(
-        path[aim + 1].x - path[aim].x,
-        path[aim + 1].z - path[aim].z,
+        path[aim + 1]!.x - path[aim]!.x,
+        path[aim + 1]!.z - path[aim]!.z,
       );
       aim += 1;
     }
-    const bearing = bearingOf(path[aim].x - car.x, path[aim].z - car.z);
+    const bearing = bearingOf(path[aim]!.x - car.x, path[aim]!.z - car.z);
     stick.x = Math.sin(bearing) * 0.7;
     stick.y = -Math.cos(bearing) * 0.7;
     tick(STEP);
@@ -245,7 +245,7 @@ describe("free drive, parking", () => {
       drive.assist = assist;
       // only the forward stretch: up the aisle and nose first into the bay
       const said = driveFree(route.points, 120, []);
-      const end = route.points[route.points.length - 1];
+      const end = route.points[route.points.length - 1]!;
       expect(said.serious).toEqual([]);
       expect(Math.hypot(car.x - end.x, car.z - end.z)).toBeLessThan(2.5);
     },
@@ -259,8 +259,8 @@ describe("free drive, reversing", () => {
       const park = BOARD_CHALLENGES.find((c) => c.id === "park-angle")!;
       const route = challengeRoute(park)!;
       const n = route.points.length;
-      const end = route.points[n - 1];
-      const before = route.points[n - 2];
+      const end = route.points[n - 1]!;
+      const before = route.points[n - 2]!;
       drive.assist = assist;
       const said: Fault[] = [];
       beginChallenge(

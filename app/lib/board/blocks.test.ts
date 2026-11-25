@@ -60,8 +60,8 @@ const at = (x: number, z: number): CarState => ({
 /** Walk a route's own line, a quarter of a metre at a time. */
 function walk(route: Route, each: (x: number, z: number) => void): void {
   for (let i = 0; i < route.points.length - 1; i += 1) {
-    const a = route.points[i];
-    const b = route.points[i + 1];
+    const a = route.points[i]!;
+    const b = route.points[i + 1]!;
     const steps = Math.max(
       1,
       Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / 0.25),
@@ -79,7 +79,7 @@ beforeEach(() => {
   drive.seat = "south";
   drive.assist = true;
 });
-afterEach(() => setParkingLayout(PARKING_LAYOUTS[0].id));
+afterEach(() => setParkingLayout(PARKING_LAYOUTS[0]!.id));
 
 describe("the blocks", () => {
   it("stand on the road, and each closes some of the lane network", () => {
@@ -215,7 +215,7 @@ describe("the blocked-road tasks", () => {
   for (const task of BLOCKED) {
     it(`"${task.title}": driving the closed way hits a car that does not move`, () => {
       const closed = lessonPlan(lessonById(task.lesson)!)!.closed!;
-      const start = challengeRoute(task)!.points[0];
+      const start = challengeRoute(task)!.points[0]!;
       let fault: Fault | undefined;
       let over = false;
       beginChallenge(task, {
@@ -274,9 +274,9 @@ describe("the blocked-road tasks", () => {
       // the upside-down cars are where the instructor put them
       task.otherCars.forEach((other, i) => {
         if (!other.flipped) return;
-        expect(after[i].x).toBeCloseTo(stood[i].x, 5);
-        expect(after[i].z).toBeCloseTo(stood[i].z, 5);
-        expect(after[i].heading).toBeCloseTo(stood[i].heading, 5);
+        expect(after[i]!.x).toBeCloseTo(stood[i]!.x, 5);
+        expect(after[i]!.z).toBeCloseTo(stood[i]!.z, 5);
+        expect(after[i]!.heading).toBeCloseTo(stood[i]!.heading, 5);
       });
     });
   }

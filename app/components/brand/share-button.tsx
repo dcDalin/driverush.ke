@@ -273,7 +273,8 @@ export function ShareButton({
                     "focus-visible:border-ink/60 focus-visible:bg-paper-2 active:translate-y-px",
                   )}
                 >
-                  <Icon icon={TARGET_ICONS[t.id]} size={18} />
+                  {/* SHARE_TARGETS lists only the channels with an icon */}
+                  <Icon icon={TARGET_ICONS[t.id]!} size={18} />
                   {t.label}
                 </a>
               ))}

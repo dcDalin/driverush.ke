@@ -62,7 +62,7 @@ function follower(challenge: BoardChallenge, route: Route) {
     const speed = Math.abs(car.speed);
     const stopping = speed ** 2 / (2 * RELEASE_DECEL);
     for (let i = 0; i < route.steps.length; i += 1) {
-      const step = route.steps[i];
+      const step = route.steps[i]!;
       if (step.control !== "stop" || waited.has(i)) continue;
       const left = step.from - progress;
       if (left < 6 && left > -1.5 && left - stopping < 2.5) {
@@ -86,9 +86,9 @@ function driveAlong(id: string, route?: (ways: Way[]) => Route) {
   useBoardStore.getState().exit();
   useBoardStore.getState().resetProgress();
   useBoardStore.getState().start([id]);
-  const challenge = useBoardStore.getState().queue[0];
+  const challenge = useBoardStore.getState().queue[0]!;
   const ways = challengeWays(challenge);
-  const line = route ? route(ways) : ways[0].route;
+  const line = route ? route(ways) : ways[0]!.route;
   const each = follower(challenge, line);
   for (
     let i = 0;
@@ -109,9 +109,9 @@ describe("the ways a lesson can be driven", () => {
     for (const lesson of ALL) {
       const ways = lessonWays(lesson);
       expect(ways.length, lesson.id).toBeGreaterThan(0);
-      expect(ways[0].kind, lesson.id).toBe("answer");
+      expect(ways[0]!.kind, lesson.id).toBe("answer");
       expect(
-        ways[0].route.edges.map((e) => e.id),
+        ways[0]!.route.edges.map((e) => e.id),
         lesson.id,
       ).toEqual(lessonPlan(lesson)?.route?.edges.map((e) => e.id));
     }
@@ -125,7 +125,7 @@ describe("the ways a lesson can be driven", () => {
       for (const one of ways) {
         if (one.kind === "wrong_parking") continue;
         expect(one.route.length, lesson.id).toBeLessThanOrEqual(
-          wayLimit(ways[0].route.length) + 1e-6,
+          wayLimit(ways[0]!.route.length) + 1e-6,
         );
       }
     }
@@ -144,7 +144,7 @@ describe("the ways a lesson can be driven", () => {
       const shown = shownWays(lessonWays(lesson));
       const shapes = shown.map((one) => one.shape);
       expect(new Set(shapes).size, lesson.id).toBe(shapes.length);
-      expect(shown[0].kind, lesson.id).toBe("answer");
+      expect(shown[0]!.kind, lesson.id).toBe("answer");
     }
   });
 
@@ -155,14 +155,14 @@ describe("the ways a lesson can be driven", () => {
       (one) => one.route.steps.filter((s) => s.maneuver === "u_turn").length,
     );
     expect(gaps).toEqual([1, 1]);
-    expect(shown[1].shape).not.toBe(shown[0].shape);
+    expect(shown[1]!.shape).not.toBe(shown[0]!.shape);
   });
 
   it("marks a way through the parking area wrong, never passed", () => {
     const ways = lessonWays(lessonById("across-town")!);
     const wrong = ways.filter((one) => one.kind === "wrong_parking");
     expect(wrong).toHaveLength(1);
-    expect(wrong[0].route.throughParking).toBe(true);
+    expect(wrong[0]!.route.throughParking).toBe(true);
     const task = BOARD_CHALLENGES.find(
       (c) => isRouteTask(c) && c.lesson === "blocked-street",
     )!;
@@ -210,7 +210,7 @@ describe("driving another correct way", () => {
     // right to the two-way road from lane 3, not lane 4
     const s = driveAlong("to-two-way", (ways) => {
       const other = ways.find(
-        (one) => one.kind === "also" && one.shape === ways[0].shape,
+        (one) => one.kind === "also" && one.shape === ways[0]!.shape,
       );
       return other!.route;
     });

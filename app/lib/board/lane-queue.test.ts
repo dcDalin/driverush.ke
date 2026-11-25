@@ -68,8 +68,8 @@ function driveAlong(challenge: TurnChallenge, path: Vec[]): Outcome {
   for (let i = 0; i < 200 / STEP && !over; i += 1) {
     while (
       nearest < path.length - 1 &&
-      Math.hypot(path[nearest + 1].x - car.x, path[nearest + 1].z - car.z) <=
-        Math.hypot(path[nearest].x - car.x, path[nearest].z - car.z)
+      Math.hypot(path[nearest + 1]!.x - car.x, path[nearest + 1]!.z - car.z) <=
+        Math.hypot(path[nearest]!.x - car.x, path[nearest]!.z - car.z)
     ) {
       nearest += 1;
     }
@@ -89,12 +89,12 @@ function driveAlong(challenge: TurnChallenge, path: Vec[]): Outcome {
       let run = 0;
       while (aim < path.length - 1 && run < 4.5) {
         run += Math.hypot(
-          path[aim + 1].x - path[aim].x,
-          path[aim + 1].z - path[aim].z,
+          path[aim + 1]!.x - path[aim]!.x,
+          path[aim + 1]!.z - path[aim]!.z,
         );
         aim += 1;
       }
-      const bearing = bearingOf(path[aim].x - car.x, path[aim].z - car.z);
+      const bearing = bearingOf(path[aim]!.x - car.x, path[aim]!.z - car.z);
       stick.x = Math.sin(bearing) * 0.7;
       stick.y = -Math.cos(bearing) * 0.7;
     }
@@ -191,7 +191,7 @@ describe("the lane options line-up", () => {
   it("marks every standing car as one that wears the school's paint", () => {
     for (const arm of ["S", "W"] as const) {
       const cars = queueCars(arm);
-      const task = queueChallenge(cars, cars[0], {});
+      const task = queueChallenge(cars, cars[0]!, {});
       expect(task.otherCars).toHaveLength(cars.length - 1);
       expect(task.otherCars?.every((other) => other.school)).toBe(true);
     }
@@ -201,7 +201,7 @@ describe("the lane options line-up", () => {
     const cars = queueCars("S");
     expect(pickable(cars, []).map((c) => c.slot)).toEqual([0, 0, 0, 0]);
     const lane4 = cars.filter((c) => c.lane === 4);
-    const after = pickable(cars, [lane4[0].id, lane4[1].id]);
+    const after = pickable(cars, [lane4[0]!.id, lane4[1]!.id]);
     expect(after.find((c) => c.lane === 4)).toBe(lane4[2]);
     expect(
       pickable(
@@ -241,16 +241,16 @@ describe("the lane options line-up", () => {
   });
 
   it("can be driven home car by car on the four-lane road, kerb lane first", () => {
-    playLesson("S", (front) => front[0]);
+    playLesson("S", (front) => front[0]!);
   });
 
   it("can be driven home on the four-lane road, inside lane first", () => {
-    playLesson("S", (front) => front[front.length - 1]);
+    playLesson("S", (front) => front[front.length - 1]!);
   });
 
   it("can be driven home car by car on the three-lane road", () => {
-    playLesson("W", (front) => front[0]);
-    playLesson("W", (front) => front[front.length - 1]);
+    playLesson("W", (front) => front[0]!);
+    playLesson("W", (front) => front[front.length - 1]!);
   });
 
   it("stops a car taken out of another exit its lane may take", () => {

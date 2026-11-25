@@ -72,7 +72,7 @@ export function setVehicle(id: BoardCarId) {
   // Still on the start line: stand where this vehicle fits on the board.
   if (challenge && driving && !moved && snaps.length === 1) {
     Object.assign(car, taskStart(challenge, sizeOf(vehicle)));
-    snaps[0].car = { ...car };
+    snaps[0]!.car = { ...car };
     trail.length = 0;
     trail.push({ x: car.x, z: car.z });
     settle();
@@ -305,8 +305,8 @@ export function setBack(metres: number): boolean {
   if (!challenge || !callbacks || !engine || snaps.length === 0) return false;
   const want = driven - metres;
   let i = snaps.length - 1;
-  while (i > 0 && snaps[i].at > want) i -= 1;
-  const snap = snaps[i];
+  while (i > 0 && snaps[i]!.at > want) i -= 1;
+  const snap = snaps[i]!;
   snaps.length = i + 1;
   Object.assign(car, snap.car);
   car.speed = 0;
@@ -582,8 +582,9 @@ export function tick(frameSeconds: number): void {
     physicsStep(physics, car, input);
     view.reversing = car.speed < -0.05;
     driven += Math.abs(car.speed) * STEP;
-    if (driven - snaps[snaps.length - 1].at > SNAP_GAP) snapshot();
-    const last = trail[trail.length - 1];
+    if (driven - snaps[snaps.length - 1]!.at > SNAP_GAP) snapshot();
+    // the trail always keeps its first point
+    const last = trail[trail.length - 1]!;
     if (
       trail.length < TRAIL_MAX &&
       Math.hypot(car.x - last.x, car.z - last.z) > TRAIL_GAP

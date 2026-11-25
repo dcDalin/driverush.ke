@@ -136,16 +136,16 @@ function nearest(route: Route, car: CarState, from: number, wide = false) {
   const moving =
     car.speed < -0.05 ? "reverse" : car.speed > 0.05 ? "forward" : null;
   for (let i = 0; i < route.points.length - 1; i += 1) {
-    if (!wide && (route.at[i + 1] < from - 12 || route.at[i] > from + 30)) {
+    if (!wide && (route.at[i + 1]! < from - 12 || route.at[i]! > from + 30)) {
       continue;
     }
     if (moving) {
-      const middle = (route.at[i] + route.at[i + 1]) / 2;
+      const middle = (route.at[i]! + route.at[i + 1]!) / 2;
       const step = route.steps.find((s) => middle < s.to);
       if (step && step.gear !== moving) continue;
     }
-    const a = route.points[i];
-    const b = route.points[i + 1];
+    const a = route.points[i]!;
+    const b = route.points[i + 1]!;
     const dx = b.x - a.x;
     const dz = b.z - a.z;
     const span = dx * dx + dz * dz;
@@ -160,8 +160,8 @@ function nearest(route: Route, car: CarState, from: number, wide = false) {
     if (gap < best.gap) {
       best = {
         gap,
-        distance: route.at[i] + (route.at[i + 1] - route.at[i]) * t,
-        heading: route.headings[i],
+        distance: route.at[i]! + (route.at[i + 1]! - route.at[i]!) * t,
+        heading: route.headings[i]!,
       };
     }
   }
@@ -218,7 +218,8 @@ function followWay(
   t.laneTime = coming && at.gap > LANE_STRICT ? t.laneTime + dt : 0;
   if (coming && t.laneTime > OFF_GRACE) t.wrongLaneAt = index + 1;
   if (t.wrongLaneAt != null) {
-    const turn = route.steps[t.wrongLaneAt];
+    // set only where the step after this one exists
+    const turn = route.steps[t.wrongLaneAt]!;
     if (index > t.wrongLaneAt || (!coming && index < t.wrongLaneAt)) {
       t.wrongLaneAt = null;
     } else if (
@@ -232,7 +233,7 @@ function followWay(
 
   // its stop lines: a full stop before the line, every time
   for (let i = 0; i < route.steps.length; i += 1) {
-    const line = route.steps[i];
+    const line = route.steps[i]!;
     if (line.control !== "stop" || t.stopped.includes(i)) continue;
     const past = at.distance - line.from;
     if (past > -STOP_BEFORE && past < STOP_AFTER && speed < STOPPED) {
@@ -273,7 +274,7 @@ export function routeRefStep(
   let bestGap = Infinity;
   if (!wasOff) {
     routes.forEach((route, i) => {
-      const t = ref.ways[i];
+      const t = ref.ways[i]!;
       if (t.state !== "on") return;
       const at = followWay(t, route, car, speed, dt);
       if (t.state !== "on") {
@@ -288,8 +289,9 @@ export function routeRefStep(
     });
     if (best >= 0) ref.way = best;
   }
-  const route = routes[ref.way] ?? routes[0];
-  const own = ref.ways[ref.way];
+  const route = routes[ref.way] ?? routes[0]!;
+  // `ways` is grown to the routes above and `way` is one of them
+  const own = ref.ways[ref.way]!;
   if (wasOff) {
     // Off the route, the car is only somewhere along it again once it is
     // back on its line.
@@ -301,7 +303,7 @@ export function routeRefStep(
     0,
     route.steps.findIndex((s) => ref.progress < s.to),
   );
-  const step = route.steps[index] ?? route.steps[route.steps.length - 1];
+  const step = route.steps[index] ?? route.steps[route.steps.length - 1]!;
 
   // Where the route itself crosses the other lane, to turn, turn back or
   // park, keeping left is not judged.
@@ -350,8 +352,8 @@ export function routeRefStep(
 
   const still = speed < STOPPED;
   if (parks) {
-    const end = route.points[route.points.length - 1];
-    const facing = route.headings[route.headings.length - 1];
+    const end = route.points[route.points.length - 1]!;
+    const facing = route.headings[route.headings.length - 1]!;
     const gap = Math.hypot(car.x - end.x, car.z - end.z);
     const last = route.steps[route.steps.length - 1];
     const fit = BAY_FIT[last?.road === "flush_bay" ? "flush_bay" : "angle_bay"];

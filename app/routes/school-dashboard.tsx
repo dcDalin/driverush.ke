@@ -212,7 +212,8 @@ export async function action({ request, params }: Route.ActionArgs) {
       { ok: false, message: reasonFor(error) },
       { headers },
     );
-  return data<ActionResult>({ ok: true, message: DONE[intent] }, { headers });
+  // every intent in `calls` has its line in DONE
+  return data<ActionResult>({ ok: true, message: DONE[intent]! }, { headers });
 }
 
 export default function SchoolDashboard({ loaderData }: Route.ComponentProps) {

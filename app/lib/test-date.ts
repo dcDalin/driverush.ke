@@ -39,8 +39,8 @@ export function daysBetween(from: string, to: string): number {
   const [fy, fm, fd] = from.split("-").map(Number);
   const [ty, tm, td] = to.split("-").map(Number);
   // Noon on each day, so a clock change never tips the count by one.
-  const a = new Date(fy, fm - 1, fd, 12).getTime();
-  const b = new Date(ty, tm - 1, td, 12).getTime();
+  const a = new Date(fy!, fm! - 1, fd, 12).getTime();
+  const b = new Date(ty!, tm! - 1, td, 12).getTime();
   return Math.round((b - a) / 86_400_000);
 }
 
@@ -49,7 +49,8 @@ export function isDay(value: unknown): value is string {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return false;
   }
-  const [y, m, d] = value.split("-").map(Number);
+  // the pattern above makes three parts
+  const [y, m, d] = value.split("-").map(Number) as [number, number, number];
   const date = new Date(y, m - 1, d);
   return (
     date.getFullYear() === y &&

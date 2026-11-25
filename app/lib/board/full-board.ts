@@ -400,7 +400,7 @@ function straightKerbs(): Segment[] {
 function pieces(points: Point[]): Segment[] {
   const out: Segment[] = [];
   for (let i = 0; i < points.length - 1; i += 1) {
-    out.push(s(points[i].x, points[i].z, points[i + 1].x, points[i + 1].z));
+    out.push(s(points[i]!.x, points[i]!.z, points[i + 1]!.x, points[i + 1]!.z));
   }
   return out;
 }
@@ -616,7 +616,7 @@ function head(x: number, y: number, dx: number, dy: number, k = 1): string {
   const len = Math.hypot(dx, dy) || 1;
   const ux = dx / len;
   const uy = dy / len;
-  const pts = [
+  const pts: [number, number][] = [
     [x - uy * 0.72 * k, y + ux * 0.72 * k],
     [x + ux * 1.5 * k, y + uy * 1.5 * k],
     [x + uy * 0.72 * k, y - ux * 0.72 * k],
@@ -798,11 +798,12 @@ function mouthArc(arm: Arm, offsets: number[]): string {
     `${n(Math.cos(axis + turn) * RING_R)} ${n(Math.sin(axis + turn) * RING_R)}`;
   const dashes: string[] = [];
   for (let i = 0; i < turns.length; i += 1) {
-    const from = i === 0 ? turns[0] : (turns[i - 1] + turns[i]) / 2 + gap / 2;
+    const from =
+      i === 0 ? turns[0]! : (turns[i - 1]! + turns[i]!) / 2 + gap / 2;
     const to =
       i === turns.length - 1
-        ? turns[i]
-        : (turns[i] + turns[i + 1]) / 2 - gap / 2;
+        ? turns[i]!
+        : (turns[i]! + turns[i + 1]!) / 2 - gap / 2;
     dashes.push(`M${point(from)} A${RING_R} ${RING_R} 0 0 1 ${point(to)}`);
   }
   return dashes.join(" ");
@@ -1306,8 +1307,8 @@ export function fullBoardSvg(options: FullBoardOptions = {}): string {
       .map((route) => {
         if (route.points.length < 2) return "";
         const width = route.width ?? 0.9;
-        const a = route.points[route.points.length - 2];
-        const b = route.points[route.points.length - 1];
+        const a = route.points[route.points.length - 2]!;
+        const b = route.points[route.points.length - 1]!;
         const tip = route.arrow
           ? `<g fill="${route.color}">${head(b.x, b.z, b.x - a.x, b.z - a.z, width * 1.5)}</g>`
           : "";

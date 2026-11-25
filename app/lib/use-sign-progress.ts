@@ -43,8 +43,8 @@ export function useSignProgress(): Record<
     if (raw == null) return null;
     const [pelican, threeD] = raw.split("\n");
     return {
-      pelican: parsePersistedProgress(pelican),
-      "3d": parsePersistedProgress(threeD),
+      pelican: parsePersistedProgress(pelican ?? null),
+      "3d": parsePersistedProgress(threeD ?? null),
     };
   }, [raw]);
 }

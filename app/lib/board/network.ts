@@ -220,7 +220,7 @@ export function roundaboutWay(
 }
 
 /** Which roundabout lane an option goes round in, and why, for the ring step. */
-function ringWhy(lanes: number, lane: number, rule: LaneRule): string {
+function ringWhy(_lanes: number, lane: number, rule: LaneRule): string {
   if (rule.ring === lane) {
     return `Lane ${lane} on the road goes round in lane ${rule.ring} of the roundabout, counting from the outside.`;
   }
@@ -240,8 +240,8 @@ function lengthOf(points: Vec[]): number {
   let total = 0;
   for (let i = 1; i < points.length; i += 1) {
     total += Math.hypot(
-      points[i].x - points[i - 1].x,
-      points[i].z - points[i - 1].z,
+      points[i]!.x - points[i - 1]!.x,
+      points[i]!.z - points[i - 1]!.z,
     );
   }
   return total;
@@ -287,12 +287,12 @@ function soften(points: Vec[], passes = 3): Vec[] {
   // few metres and not a few centimetres.
   const total = lengthOf(points);
   const pieces = Math.max(2, Math.round(total / 3));
-  let out: Vec[] = [points[0]];
+  let out: Vec[] = [points[0]!];
   let walked = 0;
   let next = total / pieces;
   for (let i = 1; i < points.length && out.length < pieces; i += 1) {
-    const a = points[i - 1];
-    const b = points[i];
+    const a = points[i - 1]!;
+    const b = points[i]!;
     const span = Math.hypot(b.x - a.x, b.z - a.z);
     while (walked + span >= next && out.length < pieces) {
       const t = (next - walked) / span;
@@ -301,18 +301,18 @@ function soften(points: Vec[], passes = 3): Vec[] {
     }
     walked += span;
   }
-  out.push(points[points.length - 1]);
+  out.push(points[points.length - 1]!);
   for (let pass = 0; pass < passes; pass += 1) {
-    const next: Vec[] = [out[0]];
+    const next: Vec[] = [out[0]!];
     for (let i = 0; i < out.length - 1; i += 1) {
-      const a = out[i];
-      const b = out[i + 1];
+      const a = out[i]!;
+      const b = out[i + 1]!;
       next.push(
         { x: a.x * 0.75 + b.x * 0.25, z: a.z * 0.75 + b.z * 0.25 },
         { x: a.x * 0.25 + b.x * 0.75, z: a.z * 0.25 + b.z * 0.75 },
       );
     }
-    next.push(out[out.length - 1]);
+    next.push(out[out.length - 1]!);
     out = next;
   }
   return out;
@@ -533,15 +533,23 @@ function build(): Network {
         const i1 = onRing.indexOf(true);
         const i2 = onRing.lastIndexOf(true);
         const name = roundaboutWay(entry, n, way, exitLane);
+        // every way round goes onto the ring and off it again, with road
+        // either side
         const joined = node(
           `${name}:on`,
-          path[i1],
-          bearingOf(path[i1].x - path[i1 - 1].x, path[i1].z - path[i1 - 1].z),
+          path[i1]!,
+          bearingOf(
+            path[i1]!.x - path[i1 - 1]!.x,
+            path[i1]!.z - path[i1 - 1]!.z,
+          ),
         );
         const left = node(
           `${name}:off`,
-          path[i2],
-          bearingOf(path[i2 + 1].x - path[i2].x, path[i2 + 1].z - path[i2].z),
+          path[i2]!,
+          bearingOf(
+            path[i2 + 1]!.x - path[i2]!.x,
+            path[i2 + 1]!.z - path[i2]!.z,
+          ),
         );
         edge(
           last(laneId(entry, "approach", n)),
@@ -909,9 +917,9 @@ function build(): Network {
   for (const def of lanes.values()) {
     const stops = [...def.stations.values()].sort((a, b) => a - b);
     for (let i = 0; i < stops.length - 1; i += 1) {
-      const from = nodes.get(`${def.id}@${key(stops[i])}`) as NetNode;
-      const to = nodes.get(`${def.id}@${key(stops[i + 1])}`) as NetNode;
-      const control = def.marks.get(key(stops[i]));
+      const from = nodes.get(`${def.id}@${key(stops[i]!)}`) as NetNode;
+      const to = nodes.get(`${def.id}@${key(stops[i + 1]!)}`) as NetNode;
+      const control = def.marks.get(key(stops[i]!));
       const words = FOLLOW[def.road](def.lane);
       edge(
         from.id,
@@ -1076,14 +1084,15 @@ class Heap {
     let i = items.length - 1;
     while (i > 0) {
       const up = (i - 1) >> 1;
-      if (items[up][0] <= items[i][0]) break;
-      [items[up], items[i]] = [items[i], items[up]];
+      if (items[up]![0] <= items[i]![0]) break;
+      [items[up], items[i]] = [items[i]!, items[up]!];
       i = up;
     }
   }
   pop(): [number, string] {
     const items = this.items;
-    const top = items[0];
+    // only called while the heap has something in it
+    const top = items[0]!;
     const last = items.pop() as [number, string];
     if (items.length > 0) {
       items[0] = last;
@@ -1092,10 +1101,10 @@ class Heap {
         const l = i * 2 + 1;
         const r = l + 1;
         let low = i;
-        if (l < items.length && items[l][0] < items[low][0]) low = l;
-        if (r < items.length && items[r][0] < items[low][0]) low = r;
+        if (l < items.length && items[l]![0] < items[low]![0]) low = l;
+        if (r < items.length && items[r]![0] < items[low]![0]) low = r;
         if (low === i) break;
-        [items[low], items[i]] = [items[i], items[low]];
+        [items[low], items[i]] = [items[i]!, items[low]!];
         i = low;
       }
     }
@@ -1105,7 +1114,7 @@ class Heap {
 
 function bayOf(id: string): string | null {
   const m = /^(bay:[LR]\d+|flush:\d+):/.exec(id);
-  return m ? m[1] : null;
+  return m ? m[1]! : null;
 }
 
 /**
@@ -1200,7 +1209,7 @@ export function routeOf(edges: NetEdge[]): Route {
     e.points.forEach((p, i) => {
       if (i === 0 && points.length > 0) return;
       if (points.length > 0) {
-        const q = points[points.length - 1];
+        const q = points[points.length - 1]!;
         length += Math.hypot(p.x - q.x, p.z - q.z);
         const travel = bearingOf(p.x - q.x, p.z - q.z);
         facing.push(e.gear === "reverse" ? wrapPi(travel + Math.PI) : travel);
@@ -1239,9 +1248,9 @@ export function routeOf(edges: NetEdge[]): Route {
       // a few metres before the first move: part of that move
       const lead =
         steps.length === 1 &&
-        steps[0].maneuver === "follow" &&
-        !steps[0].control &&
-        steps[0].to - steps[0].from < STUB
+        steps[0]!.maneuver === "follow" &&
+        !steps[0]!.control &&
+        steps[0]!.to - steps[0]!.from < STUB
           ? steps.pop()
           : undefined;
       steps.push({
@@ -1433,21 +1442,21 @@ export function poseAt(route: Route, distance: number): Pose {
   let hi = route.at.length - 1;
   while (hi - lo > 1) {
     const mid = (lo + hi) >> 1;
-    if (route.at[mid] <= d) lo = mid;
+    if (route.at[mid]! <= d) lo = mid;
     else hi = mid;
   }
-  const a = route.points[lo];
-  const b = route.points[hi];
-  const span = route.at[hi] - route.at[lo];
-  const t = span > 0 ? (d - route.at[lo]) / span : 0;
+  const a = route.points[lo]!;
+  const b = route.points[hi]!;
+  const span = route.at[hi]! - route.at[lo]!;
+  const t = span > 0 ? (d - route.at[lo]!) / span : 0;
   let step = route.steps.findIndex((s) => d < s.to);
   if (step < 0) step = route.steps.length - 1;
   const reversing = route.steps[step]?.gear === "reverse";
-  const turn = wrapPi(route.headings[hi] - route.headings[lo]);
+  const turn = wrapPi(route.headings[hi]! - route.headings[lo]!);
   return {
     x: a.x + (b.x - a.x) * t,
     z: a.z + (b.z - a.z) * t,
-    heading: wrapPi(route.headings[lo] + turn * t),
+    heading: wrapPi(route.headings[lo]! + turn * t),
     reversing,
     step,
   };
@@ -1460,7 +1469,7 @@ export function stepPoints(route: Route, index: number): Vec[] {
   const first = poseAt(route, step.from);
   const last = poseAt(route, step.to);
   const inside = route.points.filter(
-    (_, i) => route.at[i] > step.from && route.at[i] < step.to,
+    (_, i) => route.at[i]! > step.from && route.at[i]! < step.to,
   );
   return [{ x: first.x, z: first.z }, ...inside, { x: last.x, z: last.z }];
 }
@@ -1492,8 +1501,8 @@ export function distanceNear(route: Route, p: Vec): number {
   let best = 0;
   let gap = Infinity;
   for (let i = 0; i < route.points.length - 1; i += 1) {
-    const a = route.points[i];
-    const b = route.points[i + 1];
+    const a = route.points[i]!;
+    const b = route.points[i + 1]!;
     const dx = b.x - a.x;
     const dz = b.z - a.z;
     const span = dx * dx + dz * dz;
@@ -1504,7 +1513,7 @@ export function distanceNear(route: Route, p: Vec): number {
     const d = Math.hypot(a.x + dx * t - p.x, a.z + dz * t - p.z);
     if (d < gap) {
       gap = d;
-      best = route.at[i] + (route.at[i + 1] - route.at[i]) * t;
+      best = route.at[i]! + (route.at[i + 1]! - route.at[i]!) * t;
     }
   }
   return best;
@@ -1520,10 +1529,10 @@ export function trimRoute(route: Route, from: number, to: number): Route {
   const at = [0];
   const headings = [first.heading];
   route.points.forEach((p, i) => {
-    if (route.at[i] <= a + 0.01 || route.at[i] >= b - 0.01) return;
+    if (route.at[i]! <= a + 0.01 || route.at[i]! >= b - 0.01) return;
     points.push(p);
-    at.push(route.at[i] - a);
-    headings.push(route.headings[i]);
+    at.push(route.at[i]! - a);
+    headings.push(route.headings[i]!);
   });
   points.push({ x: last.x, z: last.z });
   at.push(b - a);
@@ -1589,8 +1598,8 @@ export function controlAhead(
         : Math.ceil(e.points.length * 0.55);
     let on = Infinity;
     for (let i = 1; i < upTo; i += 1) {
-      const p = e.points[i];
-      const q = e.points[i - 1];
+      const p = e.points[i]!;
+      const q = e.points[i - 1]!;
       // only a car going the way the turn goes is making the turn
       const way = bearingOf(p.x - q.x, p.z - q.z);
       if (Math.abs(wrapPi(heading - way)) > (40 * Math.PI) / 180) continue;
@@ -1598,8 +1607,8 @@ export function controlAhead(
     }
     // a crossing is two points a few metres apart: measure to the line between
     if (e.maneuver === "follow") {
-      const a = e.points[0];
-      const b = e.points[e.points.length - 1];
+      const a = e.points[0]!;
+      const b = e.points[e.points.length - 1]!;
       const dx = b.x - a.x;
       const dz = b.z - a.z;
       const t = Math.min(

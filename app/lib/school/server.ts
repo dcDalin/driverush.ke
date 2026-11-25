@@ -41,8 +41,9 @@ export function reasonFor(
   error: Pick<PostgrestError, "code" | "message"> | null,
 ): string {
   if (!error) return "";
-  if (REASONS[error.message]) return REASONS[error.message];
-  if (error.code === "42501") return REASONS.forbidden;
+  const known = REASONS[error.message];
+  if (known) return known;
+  if (error.code === "42501") return REASONS.forbidden!;
   if (error.code === "23505") return "That already exists.";
   if (error.code === "23514") return "Check the details and try again.";
   return "Something went wrong. Try again.";

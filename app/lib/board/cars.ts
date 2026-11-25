@@ -215,7 +215,7 @@ export function resolveCar(
     pool.length - 1,
     Math.max(0, Math.floor(roll * pool.length)),
   );
-  return pool[at];
+  return pool[at]!;
 }
 
 const BIG_CARS: readonly BoardCarId[] = ENTRIES.filter((car) => car.big).map(
@@ -228,7 +228,7 @@ const BIG_CARS: readonly BoardCarId[] = ENTRIES.filter((car) => car.big).map(
  */
 export function parkedModel(i: number, flush = false): BoardCarId {
   const pool = flush && BIG_CARS.length ? BIG_CARS : SMALL_CARS;
-  return pool[i % pool.length];
+  return pool[i % pool.length]!;
 }
 
 /** The cars the learner is not driving, for the others on the board. */
@@ -250,5 +250,5 @@ export function modelBeside(
   // A big vehicle is on the table only where the task names it: the spaces
   // the unnamed cars stand in (bays, blocked roads) are a car's size.
   const beside = SMALL_CARS.filter((id) => id !== driven);
-  return beside[i % beside.length];
+  return beside[i % beside.length]!;
 }

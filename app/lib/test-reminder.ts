@@ -21,7 +21,7 @@ const END_UTC = "161500";
 
 /** `YYYY-MM-DD` plus `n` days, as `YYYYMMDD`. */
 function compact(day: string, n: number): string {
-  const [y, m, d] = day.split("-").map(Number);
+  const [y, m, d] = day.split("-").map(Number) as [number, number, number];
   const at = new Date(Date.UTC(y, m - 1, d + n));
   return at.toISOString().slice(0, 10).replaceAll("-", "");
 }

@@ -443,7 +443,7 @@ export function physicsStep(
   findWalls(physics);
 
   physics.others.forEach((body, i) => {
-    const pose = physics.poses[i];
+    const pose = physics.poses[i]!; // one pose per other body
     pose.x = body.position.x / SCALE;
     pose.z = body.position.y / SCALE;
     pose.heading = body.angle;

@@ -27,16 +27,16 @@ function rounded(points: Vec[], passes = 2): Vec[] {
   let out = points;
   for (let pass = 0; pass < passes; pass += 1) {
     if (out.length < 3) return out;
-    const next: Vec[] = [out[0]];
+    const next: Vec[] = [out[0]!];
     for (let i = 0; i < out.length - 1; i += 1) {
-      const a = out[i];
-      const b = out[i + 1];
+      const a = out[i]!;
+      const b = out[i + 1]!;
       next.push(
         { x: a.x * 0.75 + b.x * 0.25, z: a.z * 0.75 + b.z * 0.25 },
         { x: a.x * 0.25 + b.x * 0.75, z: a.z * 0.25 + b.z * 0.75 },
       );
     }
-    next.push(out[out.length - 1]);
+    next.push(out[out.length - 1]!);
     out = next;
   }
   return out;
@@ -110,7 +110,7 @@ export function turnBackPath(
   startAlong = 56,
   endAlong = 40,
 ): Vec[] {
-  const gap = U_TURN_GAPS[0];
+  const gap = U_TURN_GAPS[0]!;
   const inside = laneOffset(ARMS.N, ARMS.N.lanes);
   // Wide enough to clear the end of the reserve, tight enough to stay in the gap.
   const radius = Math.max(inside, RESERVE + 1.8);

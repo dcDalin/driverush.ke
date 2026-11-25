@@ -458,8 +458,8 @@ function stripGeometry(points: Pair[], width: number, height: number) {
   const left: Pair[] = [];
   const right: Pair[] = [];
   points.forEach(([x, z], i) => {
-    const a = points[Math.max(0, i - 1)];
-    const b = points[Math.min(points.length - 1, i + 1)];
+    const a = points[Math.max(0, i - 1)]!;
+    const b = points[Math.min(points.length - 1, i + 1)]!;
     const before: Pair = [x - a[0], z - a[1]];
     const after: Pair = [b[0] - x, b[1] - z];
     const l1 = Math.hypot(before[0], before[1]) || 1;
@@ -479,7 +479,7 @@ function stripGeometry(points: Pair[], width: number, height: number) {
     right.push([x - mx * reach, z - mz * reach]);
   });
   const shape = new THREE.Shape();
-  shape.moveTo(left[0][0], left[0][1]);
+  shape.moveTo(left[0]![0], left[0]![1]);
   for (const p of left.slice(1)) shape.lineTo(p[0], p[1]);
   for (const p of right.slice().reverse()) shape.lineTo(p[0], p[1]);
   shape.closePath();
@@ -1173,7 +1173,7 @@ function Scene({
       .catch(() => {
         // The frames stay plain.
       });
-    const brass = table.plates[0].material as THREE.MeshStandardMaterial;
+    const brass = table.plates[0]!.material as THREE.MeshStandardMaterial;
     const plain = brass.map;
     loadImage(sponsor.logo.mono)
       .then((logo) => {
@@ -1491,8 +1491,8 @@ function Scene({
     if (tier !== "high") return group;
     parkedCars(layout).forEach((spot, i) => {
       const parkedCar = carOnTable(
-        PARKED_PAINTS[i % PARKED_PAINTS.length],
-        PARKED_PLATES[i % PARKED_PLATES.length],
+        PARKED_PAINTS[i % PARKED_PAINTS.length]!,
+        PARKED_PLATES[i % PARKED_PLATES.length]!,
         tier,
         models?.[parkedModel(i, spot.flush)],
       );
@@ -2322,7 +2322,8 @@ type SceneProps = BoardTableProps & { shadow: number; onSlow: () => void };
  */
 function SceneWithCars(props: SceneProps) {
   const drivenUrl = srcOf(props.car);
-  const [driven] = useLoader(SturdyGLTFLoader, [drivenUrl], withMeshopt);
+  // one url in, one model out
+  const driven = useLoader(SturdyGLTFLoader, [drivenUrl], withMeshopt)[0]!;
   const [others, setOthers] = React.useState<
     Partial<Record<BoardCarId, THREE.Object3D>>
   >({});

@@ -64,8 +64,8 @@ describe("the lane network", () => {
     for (const edge of net.edges) {
       const a = net.nodes.get(edge.from);
       const b = net.nodes.get(edge.to);
-      const first = edge.points[0];
-      const last = edge.points[edge.points.length - 1];
+      const first = edge.points[0]!;
+      const last = edge.points[edge.points.length - 1]!;
       expect(Math.hypot(first.x - a!.x, first.z - a!.z)).toBeLessThan(0.02);
       expect(Math.hypot(last.x - b!.x, last.z - b!.z)).toBeLessThan(0.02);
     }
@@ -185,9 +185,9 @@ describe("parking", () => {
       place("Angle bay 3, left row").id,
       place("To the two-way road, top end").id,
     );
-    expect(route.steps[0].gear).toBe("reverse");
-    expect(route.steps[0].maneuver).toBe("leave_reverse");
-    expect(route.steps[1].gear).toBe("forward");
+    expect(route.steps[0]!.gear).toBe("reverse");
+    expect(route.steps[0]!.maneuver).toBe("leave_reverse");
+    expect(route.steps[1]!.gear).toBe("forward");
   });
 
   it("only ever enters an angle bay nose first", () => {
@@ -203,7 +203,7 @@ describe("parking", () => {
     expect(into.length).toBe(2);
     expect(into.every((e) => e.gear === "reverse")).toBe(true);
     const route = routeTo(laneStart("S", 4), place("Flush parking bay 1").id);
-    const last = route.steps[route.steps.length - 1];
+    const last = route.steps[route.steps.length - 1]!;
     expect(last.maneuver).toBe("park_reverse");
   });
 
@@ -235,7 +235,7 @@ describe("parking", () => {
         prev = pose;
       }
       const end = poseAt(route, route.length);
-      const node = net.nodes.get(route.edges[route.edges.length - 1].to);
+      const node = net.nodes.get(route.edges[route.edges.length - 1]!.to);
       expect(Math.abs(wrapPi(end.heading - node!.heading))).toBeLessThan(0.15);
     }
   });

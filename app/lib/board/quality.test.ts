@@ -88,12 +88,12 @@ describe("how sharp the scene is drawn", () => {
 describe("the ladder", () => {
   it("gives up shadows before any sharpness", () => {
     const steps = LADDER.high;
-    const firstSofter = steps.findIndex((s) => s.dpr < steps[0].dpr);
+    const firstSofter = steps.findIndex((s) => s.dpr < steps[0]!.dpr);
     const lastShadow = steps.map((s) => s.shadow > 0).lastIndexOf(true);
     expect(lastShadow).toBeLessThan(firstSofter);
     for (let i = 1; i < steps.length; i += 1) {
-      expect(steps[i].shadow).toBeLessThanOrEqual(steps[i - 1].shadow);
-      expect(steps[i].dpr).toBeLessThanOrEqual(steps[i - 1].dpr);
+      expect(steps[i]!.shadow).toBeLessThanOrEqual(steps[i - 1]!.shadow);
+      expect(steps[i]!.dpr).toBeLessThanOrEqual(steps[i - 1]!.dpr);
     }
   });
 
@@ -197,7 +197,7 @@ describe("lane numbers", () => {
     expect(texts.length).toBe(numbers.length);
     expect(numbers.length).toBeGreaterThan(0);
     texts.forEach((match, i) => {
-      const number = numbers[i];
+      const number = numbers[i]!;
       expect(Number(match[1])).toBeCloseTo(number.x, 1);
       expect(Number(match[2])).toBeCloseTo(number.z, 1);
       expect(Number(match[3])).toBeCloseTo((number.bearing * 180) / Math.PI, 1);

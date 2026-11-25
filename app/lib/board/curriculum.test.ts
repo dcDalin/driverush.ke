@@ -80,7 +80,7 @@ describe("the course", () => {
   it("teaches before it asks: no unit drives before it has taught", () => {
     for (const unit of UNITS) {
       if (unit.id === "mock") continue;
-      expect(unit.levels[0].kind).not.toBe("drive");
+      expect(unit.levels[0]!.kind).not.toBe("drive");
     }
     // The board and the lanes come before any driving at all.
     const firstDrive = ALL_LEVELS.findIndex((l) => l.kind === "drive");
@@ -135,25 +135,25 @@ describe("progress through the course", () => {
   });
 
   it("skips what is done when finding where to continue", () => {
-    const first = ALL_LEVELS[0];
+    const first = ALL_LEVELS[0]!;
     const saved = { learned: [learnedKey(first)], bestStars: {} };
     expect(nextLevel(saved).n).toBe(2);
     expect(levelAfter(first)?.n).toBe(2);
-    expect(levelAfter(ALL_LEVELS[ALL_LEVELS.length - 1])).toBeUndefined();
+    expect(levelAfter(ALL_LEVELS[ALL_LEVELS.length - 1]!)).toBeUndefined();
     expect(levelBefore(first)).toBeUndefined();
-    expect(levelBefore(ALL_LEVELS[1])).toBe(first);
+    expect(levelBefore(ALL_LEVELS[1]!)).toBe(first);
   });
 
   it("marks each level done, next, open or locked", () => {
     const state = (id: string, saved: Parameters<typeof levelState>[1]) =>
-      levelState(levelById(id) ?? ALL_LEVELS[Number(id) - 1], saved);
+      levelState(levelById(id) ?? ALL_LEVELS[Number(id) - 1]!, saved);
     // A first visit: level 1 is next, everything after is locked, the mock
     // test can be taken any time.
     expect(state("1", EMPTY)).toBe("next");
     expect(state("2", EMPTY)).toBe("locked");
     expect(state("mock-test", EMPTY)).toBe("open");
-    expect(unitState(UNITS[0], EMPTY)).toBe("current");
-    expect(unitState(UNITS[1], EMPTY)).toBe("locked");
+    expect(unitState(UNITS[0]!, EMPTY)).toBe("current");
+    expect(unitState(UNITS[1]!, EMPTY)).toBe("locked");
 
     // Levels 1 to 9 done: 10 is next, 11 locked.
     const nine = {
@@ -170,11 +170,11 @@ describe("progress through the course", () => {
     for (let n = 1; n <= 9; n++) expect(state(String(n), nine)).toBe("done");
     expect(state("10", nine)).toBe("next");
     expect(state("11", nine)).toBe("locked");
-    expect(unitState(UNITS[0], nine)).toBe("done");
+    expect(unitState(UNITS[0]!, nine)).toBe("done");
 
     // Skipped ahead to 14 and finished it: 10 still next, 11 to 13 open
     // behind, 15 open after it, 16 locked.
-    const l14 = ALL_LEVELS[13];
+    const l14 = ALL_LEVELS[13]!;
     const skipped = {
       learned: [
         ...nine.learned,

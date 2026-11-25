@@ -254,7 +254,7 @@ describe("what the scene draws", () => {
     point(0);
     for (let i = 0; i < 180; i += 1) tick(STEP);
     expect(trail.length).toBeGreaterThan(5);
-    expect(trail[0].z).toBeGreaterThan(trail[trail.length - 1].z);
+    expect(trail[0]!.z).toBeGreaterThan(trail[trail.length - 1]!.z);
     beginChallenge(TASK, NOTHING);
     expect(trail.length).toBe(1);
     stopDriving();

@@ -172,7 +172,7 @@ type Follow = {
  */
 function follower(challenge: TurnChallenge, path: Vec[], options: Follow = {}) {
   let nearest = 0;
-  const first = locate(path[0].x, path[0].z);
+  const first = locate(path[0]!.x, path[0]!.z);
   const wantLane = first.kind === "arm" ? first.lane : null;
   return (seconds: number, outcome: Outcome) => {
     const loc = locate(car.x, car.z);
@@ -196,14 +196,14 @@ function follower(challenge: TurnChallenge, path: Vec[], options: Follow = {}) {
 
     while (
       nearest < path.length - 1 &&
-      Math.hypot(path[nearest + 1].x - car.x, path[nearest + 1].z - car.z) <=
-        Math.hypot(path[nearest].x - car.x, path[nearest].z - car.z)
+      Math.hypot(path[nearest + 1]!.x - car.x, path[nearest + 1]!.z - car.z) <=
+        Math.hypot(path[nearest]!.x - car.x, path[nearest]!.z - car.z)
     ) {
       nearest += 1;
     }
     outcome.strayed = Math.max(
       outcome.strayed,
-      Math.hypot(path[nearest].x - car.x, path[nearest].z - car.z),
+      Math.hypot(path[nearest]!.x - car.x, path[nearest]!.z - car.z),
     );
     if (!options.through && atBox(challenge)) {
       letGo();
@@ -214,8 +214,8 @@ function follower(challenge: TurnChallenge, path: Vec[], options: Follow = {}) {
     let run = 0;
     while (aim < path.length - 1 && run < 4.5) {
       run += Math.hypot(
-        path[aim + 1].x - path[aim].x,
-        path[aim + 1].z - path[aim].z,
+        path[aim + 1]!.x - path[aim]!.x,
+        path[aim + 1]!.z - path[aim]!.z,
       );
       aim += 1;
     }
@@ -225,7 +225,7 @@ function follower(challenge: TurnChallenge, path: Vec[], options: Follow = {}) {
       Math.sin(seconds * 5.3) *
       Math.cos(seconds * 1.7 + 1);
     point(
-      bearingOf(path[aim].x - car.x, path[aim].z - car.z) + wobble,
+      bearingOf(path[aim]!.x - car.x, path[aim]!.z - car.z) + wobble,
       options.push,
     );
   };
@@ -552,7 +552,7 @@ describe("driving properly", () => {
     it(`passes every shipped task, lane changes included, assist ${assist ? "on" : "off"}`, () => {
       drive.assist = assist;
       for (const challenge of TURN_TASKS) {
-        const result = proper(challenge, SHIPPED_LANES[challenge.id]);
+        const result = proper(challenge, SHIPPED_LANES[challenge.id]!);
         expect(result.fault, challenge.id).toBeUndefined();
         expect(result.small, challenge.id).toEqual([]);
         expect(result.offRoad, challenge.id).toBe(false);
@@ -657,7 +657,7 @@ describe("solid things are solid", () => {
       else onward(seconds, outcome);
     });
     expect(result.small.map((f) => f.id)).toEqual(["kerb"]);
-    expect(result.small[0].serious).toBe(false);
+    expect(result.small[0]!.serious).toBe(false);
     expect(result.offRoad).toBe(false);
     // The middle of the car never gets past the edge of the tarmac.
     expect(leftmost).toBeGreaterThan(-armHalfWidth(ARMS.S));
@@ -736,11 +736,11 @@ describe("solid things are solid", () => {
 
   it("the red car gets shoved, and that ends the attempt", () => {
     const challenge = TURN_TASKS.find((c) => c.id === "behind-red")!;
-    const before = { ...challenge.otherCars[0] };
+    const before = { ...challenge.otherCars[0]! };
     const result = proper(challenge, 1, { through: true });
     expect(result.fault).toMatchObject({ id: "collision", serious: true });
     // It was parked facing west, and it has been pushed further west.
-    expect(view.others[0].x).toBeLessThan(before.x - 0.3);
+    expect(view.others[0]!.x).toBeLessThan(before.x - 0.3);
   });
 });
 
@@ -1019,7 +1019,7 @@ function routeFollower(
 
     if (!options.runStopLines) {
       for (let i = 0; i < route.steps.length; i += 1) {
-        const step = route.steps[i];
+        const step = route.steps[i]!;
         if (step.control !== "stop" || waited.has(i)) continue;
         const left = step.from - progress;
         if (left < 6 && left > -1.5 && left - stopping < 2.5) {
@@ -1064,7 +1064,7 @@ function routeFollower(
     }
     if (here.reversing && options.sloppyReverse != null) {
       // roughly the way the reverse goes, and no better than that
-      const step = route.steps[here.step];
+      const step = route.steps[here.step]!;
       const middle = poseAt(route, (step.from + step.to) / 2);
       bearing = middle.heading + Math.PI + options.sloppyReverse * DEG;
     }
@@ -1074,7 +1074,7 @@ function routeFollower(
 
 describe("the parked cars move, and the bay to take with them", () => {
   const PARKING_TASKS = ROUTE_TASKS.filter((c) => c.otherCars.length > 0);
-  afterEach(() => setParkingLayout(PARKING_LAYOUTS[0].id));
+  afterEach(() => setParkingLayout(PARKING_LAYOUTS[0]!.id));
 
   it("always dresses the board with the same number of cars", () => {
     for (const layout of PARKING_LAYOUTS) {
@@ -1112,8 +1112,8 @@ describe("the parked cars move, and the bay to take with them", () => {
       it(`passes "${task.title}" with the cars laid out "${layout.id}"`, () => {
         setParkingLayout(layout.id);
         const route = challengeRoute(task)!;
-        const end = route.points[route.points.length - 1];
-        const start = route.points[0];
+        const end = route.points[route.points.length - 1]!;
+        const start = route.points[0]!;
         // no parked car stands where the task starts or ends
         for (const other of task.otherCars) {
           expect(Math.hypot(other.x - end.x, other.z - end.z)).toBeGreaterThan(
@@ -1158,7 +1158,7 @@ describe("no stopping on a pedestrian crossing", () => {
   it("costs a star for standing on it", () => {
     const result = waitingAt(2.5, 7);
     expect(result.small.map((f) => f.id)).toEqual(["crossing_stop"]);
-    expect(faultTip(result.small[0]).rule).toContain("pedestrian crossing");
+    expect(faultTip(result.small[0]!).rule).toContain("pedestrian crossing");
     expect(result.goal).toBe(true);
   });
 
@@ -1201,7 +1201,7 @@ describe("no stopping beside a yellow kerb, but a brief pause is fine", () => {
   it("costs a star for standing in the street beside its yellow kerb", () => {
     const result = standing(() => inStreet() && car.x > 24 && car.x < 40, 7);
     expect(result.small.map((f) => f.id)).toEqual(["kerb_stop"]);
-    expect(faultTip(result.small[0]).rule).toContain("Yellow kerb");
+    expect(faultTip(result.small[0]!).rule).toContain("Yellow kerb");
     expect(result.goal).toBe(true);
   });
 
@@ -1331,7 +1331,7 @@ describe("tasks away from the roundabout", () => {
 
     let slowest = 0;
     play(
-      TURN_TASKS[0],
+      TURN_TASKS[0]!,
       () => {
         point(car.heading + Math.PI, 0.7);
         slowest = Math.min(slowest, car.speed);
@@ -1361,7 +1361,7 @@ describe("leaving the route breaks no rule, but it is not a pass", () => {
     useBoardStore.getState().exit();
     useBoardStore.getState().resetProgress();
     useBoardStore.getState().start([id]);
-    const challenge = useBoardStore.getState().queue[0];
+    const challenge = useBoardStore.getState().queue[0]!;
     const route = challengeRoute(challenge)!;
     const options: RouteFollow = { ...how, aside: how.stray ?? how.aside };
     const each = routeFollower(challenge, route, options);
@@ -1403,7 +1403,7 @@ describe("leaving the route breaks no rule, but it is not a pass", () => {
       faults: 0,
       hinted: false,
     });
-    expect(s.bestScores!["down-the-street"].ms).toBeGreaterThan(0);
+    expect(s.bestScores!["down-the-street"]!.ms).toBeGreaterThan(0);
   });
 
   it("off the route and back to the box: the drive goes on, and does not pass", () => {

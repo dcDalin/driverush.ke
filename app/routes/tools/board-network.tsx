@@ -184,7 +184,7 @@ export default function BoardNetworkTool() {
           arrow: i === driven.steps.length - 1 || active === i,
         })),
       );
-      const start = driven.points[0];
+      const start = driven.points[0]!;
       return fullBoardSvg({
         seen,
         routes: lines,
@@ -200,7 +200,7 @@ export default function BoardNetworkTool() {
           {
             x: start.x,
             z: start.z,
-            heading: driven.headings[0],
+            heading: driven.headings[0]!,
             color: CAR_COLORS.player,
           },
         ],

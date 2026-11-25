@@ -32,7 +32,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     .map((row) => ({ role: row.role, ...row.schools! }))
     .sort((a, b) => a.name.localeCompare(b.name));
   if (schools.length === 1)
-    throw redirect(`/school/${schools[0].id}`, { headers });
+    throw redirect(`/school/${schools[0]!.id}`, { headers });
   return data({ signedIn: true as const, schools }, { headers });
 }
 

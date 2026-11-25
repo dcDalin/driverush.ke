@@ -43,7 +43,7 @@ const card =
 /** "3 Dec", the way the test day is said back. */
 function shortDay(day: string): string {
   const [y, m, d] = day.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString("en-KE", {
+  return new Date(y!, m! - 1, d).toLocaleDateString("en-KE", {
     day: "numeric",
     month: "short",
   });
@@ -52,7 +52,7 @@ function shortDay(day: string): string {
 /** A day as "2026-12-03" and back, in the learner's own time zone. */
 function dayToDate(day: string): Date {
   const [y, m, d] = day.split("-").map(Number);
-  return new Date(y, m - 1, d);
+  return new Date(y!, m! - 1, d);
 }
 function dateToDay(date: Date): string {
   const mm = String(date.getMonth() + 1).padStart(2, "0");

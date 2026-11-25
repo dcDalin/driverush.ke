@@ -195,13 +195,13 @@ export function locate(x: number, z: number): Location {
 /** The turn you make by entering on one arm and leaving on another. */
 export function turnBetween(entry: ArmId, exit: ArmId): Turn {
   const steps = (ARM_ORDER.indexOf(exit) - ARM_ORDER.indexOf(entry) + 4) % 4;
-  return (["back", "left", "straight", "right"] as const)[steps];
+  return (["back", "left", "straight", "right"] as const)[steps]!;
 }
 
 /** The arm you reach from `entry` by making `turn`. */
 export function armForTurn(entry: ArmId, turn: Turn): ArmId {
   const steps = { back: 0, left: 1, straight: 2, right: 3 }[turn];
-  return ARM_ORDER[(ARM_ORDER.indexOf(entry) + steps) % 4];
+  return ARM_ORDER[(ARM_ORDER.indexOf(entry) + steps) % 4]!;
 }
 
 /** One option of one approach lane: the way it goes through the roundabout. */

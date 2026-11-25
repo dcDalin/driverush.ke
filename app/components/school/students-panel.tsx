@@ -198,7 +198,11 @@ function StudentItem({
           <Form method="post" className="flex gap-2">
             <input type="hidden" name="intent" value="move-student" />
             <input type="hidden" name="linkId" value={student.id} />
-            <Select name="branchId" defaultValue={moveTo[0].id} disabled={busy}>
+            <Select
+              name="branchId"
+              defaultValue={moveTo[0]!.id}
+              disabled={busy}
+            >
               <SelectTrigger
                 size="sm"
                 className="w-36"

@@ -311,7 +311,7 @@ function TaskHint({
     setOpen(false);
     if (!at) return;
     const { route, index } = at;
-    const now = route.steps[index];
+    const now = route.steps[index]!;
     const then = route.steps[index + 1];
     useStage.getState().show([
       {

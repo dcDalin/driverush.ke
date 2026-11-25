@@ -153,7 +153,7 @@ export function relatedSigns(sign: SignPage, count = 6): SignPage[] {
   const at = sameClass.findIndex((s) => s.slug === sign.slug);
   const following = Array.from(
     { length: sameClass.length - 1 },
-    (_, i) => sameClass[(at + i + 1) % sameClass.length],
+    (_, i) => sameClass[(at + i + 1) % sameClass.length]!,
   );
   // Pages that are in search first, so links lead somewhere a search engine
   // will keep. The order within each group stays the chart's.

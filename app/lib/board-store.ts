@@ -720,10 +720,10 @@ export const useBoardStore = create<BoardState>()(
           const points = picked.option.route.points;
           let from = 0;
           for (let i = 1; i < points.length; i += 1) {
-            const d = Math.hypot(points[i].x - car.x, points[i].z - car.z);
+            const d = Math.hypot(points[i]!.x - car.x, points[i]!.z - car.z);
             const best = Math.hypot(
-              points[from].x - car.x,
-              points[from].z - car.z,
+              points[from]!.x - car.x,
+              points[from]!.z - car.z,
             );
             if (d < best) from = i;
             else if (d > best + 8) break;

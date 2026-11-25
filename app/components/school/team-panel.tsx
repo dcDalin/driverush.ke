@@ -124,7 +124,7 @@ function AddAdmin({ branches }: { branches: Branch[] }) {
       </div>
       <BranchBoxes
         branches={branches}
-        checked={branches.length === 1 ? [branches[0].id] : []}
+        checked={branches.length === 1 ? [branches[0]!.id] : []}
         prefix="new-admin"
       />
       <Button

@@ -471,7 +471,7 @@ export function levelById(id: string | null | undefined): Level | undefined {
 }
 
 export function unitOf(level: Level): Unit {
-  return UNITS.find((u) => u.id === level.unit) ?? UNITS[0];
+  return UNITS.find((u) => u.id === level.unit) ?? UNITS[0]!;
 }
 
 /** What the saved progress needs to hold to say which levels are done. */
@@ -558,7 +558,7 @@ export function weakestDrive(saved: CourseProgress): Level | undefined {
 export function nextLevel(saved: CourseProgress): Level {
   return (
     COURSE_LEVELS.find((l) => !levelDone(l, saved)) ??
-    ALL_LEVELS[ALL_LEVELS.length - 1]
+    ALL_LEVELS[ALL_LEVELS.length - 1]!
   );
 }
 

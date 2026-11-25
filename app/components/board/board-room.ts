@@ -118,7 +118,7 @@ function whiteboard() {
       [330, 70],
       [330, 128],
       [330, 186],
-    ]) {
+    ] as const) {
       ctx.beginPath();
       ctx.moveTo(x, y);
       ctx.lineTo(x + 120, y);
@@ -429,7 +429,7 @@ export async function hangSchool(
   loaded.forEach((result, i) => {
     if (result.status !== "fulfilled") return;
     textures.push(result.value);
-    for (const m of room.slots[jobs[i][0]] ?? []) wear(m, result.value);
+    for (const m of room.slots[jobs[i]![0]] ?? []) wear(m, result.value);
   });
   return textures;
 }

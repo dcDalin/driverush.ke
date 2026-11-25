@@ -49,8 +49,8 @@ function along(route: Route): string[] {
   const state = createLineState();
   const crossed: string[] = [];
   for (let i = 0; i < route.points.length - 1; i += 1) {
-    const a = route.points[i];
-    const b = route.points[i + 1];
+    const a = route.points[i]!;
+    const b = route.points[i + 1]!;
     const steps = Math.max(
       1,
       Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / 0.25),

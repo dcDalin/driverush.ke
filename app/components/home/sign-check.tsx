@@ -39,7 +39,7 @@ function shuffled<T>(items: readonly T[]): T[] {
   const out = [...items];
   for (let i = out.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [out[i], out[j]] = [out[j], out[i]];
+    [out[i], out[j]] = [out[j]!, out[i]!];
   }
   return out;
 }
@@ -89,7 +89,7 @@ export function SignCheck({
     setPosition(0);
     setMissed([]);
     setFinished(false);
-    ask(next[0]);
+    ask(next[0]!);
   }
 
   function pick(option: FocusRegion) {
@@ -119,7 +119,7 @@ export function SignCheck({
       return;
     }
     setPosition(following);
-    ask(deck[following]);
+    ask(deck[following]!);
   }
 
   return (

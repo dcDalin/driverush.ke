@@ -215,7 +215,7 @@ describe("the roundabout is gone round in one lane", () => {
 });
 
 describe("turning back through a gap in the reserve", () => {
-  const gap = U_TURN_GAPS[0];
+  const gap = U_TURN_GAPS[0]!;
   const middle = (gap.from + gap.to) / 2;
   const inGap = { x: -1.5, z: -middle };
   const back: TurnChallenge = {

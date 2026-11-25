@@ -707,7 +707,7 @@ export function taskGoalBox(challenge: BoardChallenge): Box | null {
   if (!isRouteTask(challenge)) return goalBox(challenge.goal);
   const route = challengeRoute(challenge);
   if (!route) return { x0: -2, x1: 2, z0: -2, z1: 2 };
-  const end = route.points[route.points.length - 1];
+  const end = route.points[route.points.length - 1]!;
   if (taskParks(challenge)) {
     return {
       x0: end.x - 2.4,
@@ -717,7 +717,7 @@ export function taskGoalBox(challenge: BoardChallenge): Box | null {
     };
   }
   const tail = route.points.filter(
-    (_, i) => route.at[i] >= route.length - ROAD_BOX,
+    (_, i) => route.at[i]! >= route.length - ROAD_BOX,
   );
   const xs = tail.map((p) => p.x);
   const zs = tail.map((p) => p.z);

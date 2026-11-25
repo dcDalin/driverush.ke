@@ -47,7 +47,7 @@ export function SignClassList() {
               <span
                 aria-hidden
                 className="size-7 shrink-0 rounded-md border border-line bg-white"
-                style={regionSpriteStyle(signs[0].crop, CHART_SRC, THUMB_PAD)}
+                style={regionSpriteStyle(signs[0]!.crop, CHART_SRC, THUMB_PAD)}
               />
               <span>{category.label}</span>
               <span className="ml-auto font-mono text-[10px] font-normal tracking-wider normal-case opacity-70">

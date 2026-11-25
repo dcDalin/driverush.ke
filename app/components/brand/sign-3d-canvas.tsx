@@ -108,11 +108,11 @@ const STICKER_GEOMETRY = (() => {
   const height = (arcLength * SIGN_BRAND.logoHeight) / SIGN_BRAND.logoWidth;
   const lift = 0.0015;
   // Where a distance along the wrap lands on the octagon.
-  const corner = (k: number) => {
+  const corner = (k: number): [number, number] => {
     const angle = (k * Math.PI) / 4;
     return [POST_RADIUS * Math.sin(angle), POST_RADIUS * Math.cos(angle)];
   };
-  const onPost = (arc: number) => {
+  const onPost = (arc: number): [number, number] => {
     const k = Math.min(Math.floor(Math.abs(arc) / facet), 1);
     const t = (Math.abs(arc) - k * facet) / facet;
     const [x0, z0] = corner(k);
@@ -125,7 +125,7 @@ const STICKER_GEOMETRY = (() => {
   const uvs: number[] = [];
   const indices: number[] = [];
   for (let i = 0; i < stops.length - 1; i++) {
-    const [a, b] = [stops[i], stops[i + 1]];
+    const [a, b] = [stops[i]!, stops[i + 1]!];
     const [ax, az] = onPost(a);
     const [bx, bz] = onPost(b);
     const len = Math.hypot(bx - ax, bz - az);
@@ -135,7 +135,7 @@ const STICKER_GEOMETRY = (() => {
     for (const [x, z, arc] of [
       [ax, az, a],
       [bx, bz, b],
-    ]) {
+    ] as const) {
       for (const y of [-height / 2, height / 2]) {
         positions.push(x + nx * lift, y, z + nz * lift);
         normals.push(nx, 0, nz);

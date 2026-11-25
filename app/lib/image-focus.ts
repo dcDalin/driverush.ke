@@ -112,7 +112,7 @@ function categoryNounPhrase(id: SignCategoryId): string {
  */
 export function describeCategorySet(ids: readonly SignCategoryId[]): string {
   if (ids.length === 0) return "every sign";
-  if (ids.length === 1) return categoryNounPhrase(ids[0]);
+  if (ids.length === 1) return categoryNounPhrase(ids[0]!);
   if (ids.length <= 3) {
     const parts = ids.map((id) => getSignCategory(id).label.toLowerCase());
     return `${parts.slice(0, -1).join(", ")} & ${parts[parts.length - 1]}`;

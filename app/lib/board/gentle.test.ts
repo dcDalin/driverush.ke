@@ -24,10 +24,10 @@ beforeEach(() => {
 
 describe("the first drive", () => {
   it("is level 1, and anyone who has passed a task has had it", () => {
-    expect(ALL_LEVELS[0].id).toBe(WARMUP_LEVEL_ID);
+    expect(ALL_LEVELS[0]!.id).toBe(WARMUP_LEVEL_ID);
     expect(nextLevel({ learned: [], bestStars: {} }).id).toBe(WARMUP_LEVEL_ID);
     expect(
-      levelDone(ALL_LEVELS[0], { learned: [], bestStars: { straight: 2 } }),
+      levelDone(ALL_LEVELS[0]!, { learned: [], bestStars: { straight: 2 } }),
     ).toBe(true);
   });
 
