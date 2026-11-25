@@ -8,7 +8,7 @@ import { createHmac, randomUUID } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { inject } from "vitest";
 
-import type { Database } from "~/lib/supabase/database.types";
+import type { Database } from "~/database/types";
 
 export const SEED_PASSWORD = "driverush-local-1";
 

@@ -5,8 +5,8 @@
  */
 import { createClient } from "@supabase/supabase-js";
 
-import type { Database } from "./database.types";
-import { getSupabaseServerEnv } from "./env.server";
+import { getSupabaseServerEnv } from "../env.server";
+import type { Database } from "../types";
 
 let cached: ReturnType<typeof createClient<Database>> | null = null;
 

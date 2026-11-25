@@ -12,7 +12,7 @@
  *   - Old progress set aside before accounts (legacy) fills a store only when
  *     neither the phone nor the account has it.
  */
-import type { Json } from "~/lib/supabase/database.types";
+import type { Json } from "~/database/types";
 
 import type { ProgressStore } from "./keys";
 

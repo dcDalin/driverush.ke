@@ -2,7 +2,7 @@
  * The signed-in learner, in the browser.
  *
  * Accounts are optional: the board and signs work for guests. The session
- * lives in cookies (`~/lib/supabase/browser.ts`), so server loaders that need
+ * lives in cookies (`~/database/supabase/browser.ts`), so server loaders that need
  * it later (school dashboard, console) see the same one. Pages render as a
  * guest on the server and during hydration, then switch once the browser has
  * read the session, so cached and offline pages never depend on it.
@@ -68,7 +68,8 @@ function start() {
 
 /** The browser's Supabase client, loaded the first time it is needed. */
 export async function loadClient() {
-  const { getSupabaseBrowserClient } = await import("~/lib/supabase/browser");
+  const { getSupabaseBrowserClient } =
+    await import("~/database/supabase/browser");
   return getSupabaseBrowserClient();
 }
 

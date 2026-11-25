@@ -11,6 +11,7 @@
  *   3. on sign-out, clears the progress keys so the next person on the phone
  *      starts clean.
  */
+import { listMyProgress, upsertMyProgress } from "~/database/progress/progress";
 import { loadClient } from "~/lib/auth/session";
 
 import {
@@ -81,13 +82,10 @@ export function startProgressSync(
   ) {
     const rows = stores
       .filter((s) => values[s] != null)
-      .map((store) => ({ user_id: userId, store, ...toRow(values[store]!) }));
+      .map((store) => ({ store, ...toRow(values[store]!) }));
     if (rows.length === 0) return 0;
-    const supabase = await loadClient();
-    const { error } = await supabase
-      .from("learner_progress")
-      .upsert(rows, { onConflict: "user_id,store" });
-    if (error) throw error;
+    const { error } = await upsertMyProgress(await loadClient(), userId, rows);
+    if (error) throw new Error(error);
     for (const row of rows) pushed.set(row.store, values[row.store]!);
     return rows.length;
   }
@@ -106,14 +104,16 @@ export function startProgressSync(
   }
 
   async function firstSync() {
-    const supabase = await loadClient();
-    const { data, error } = await supabase
-      .from("learner_progress")
-      .select("store, data");
-    if (error || stopped) return;
+    let saved: Awaited<ReturnType<typeof listMyProgress>>;
+    try {
+      saved = await listMyProgress(await loadClient());
+    } catch {
+      return; // Offline: the phone keeps working; the next sign-in syncs.
+    }
+    if (stopped) return;
 
     const cloud: Partial<Record<ProgressStore, string>> = {};
-    for (const row of data ?? []) {
+    for (const row of saved) {
       const value = fromRow(row.data);
       if (value != null) cloud[row.store as ProgressStore] = value;
     }

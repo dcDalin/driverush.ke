@@ -11,7 +11,8 @@
  */
 import * as React from "react";
 
-import type { Entitlement } from "~/lib/supabase/types";
+import { getMyEntitlement } from "~/database/entitlement/get-my-entitlement";
+import type { Entitlement } from "~/database/types";
 
 import { loadClient, useSession } from "./session";
 
@@ -22,10 +23,14 @@ const listeners = new Set<() => void>();
 let inFlight: Promise<void> | null = null;
 
 async function fetchEntitlement(userId: string) {
-  const supabase = await loadClient();
-  const { data, error } = await supabase.rpc("my_entitlement");
-  if (error || !data?.[0]) return;
-  cache = { userId, value: data[0] as unknown as Entitlement, at: Date.now() };
+  let value: Entitlement | null;
+  try {
+    value = await getMyEntitlement(await loadClient());
+  } catch {
+    return; // Offline or a hiccup: the next focus tries again.
+  }
+  if (!value) return;
+  cache = { userId, value, at: Date.now() };
   for (const fn of listeners) fn();
 }
 

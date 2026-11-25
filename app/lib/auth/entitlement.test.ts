@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { Entitlement } from "~/lib/supabase/types";
+import type { Entitlement } from "~/database/types";
 
 import { hasFullAccess, liveryRule } from "./entitlement";
 

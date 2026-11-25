@@ -1,30 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  callbackUrl,
-  cleanCode,
-  normalizeEmail,
-  signInErrorMessage,
-} from "./sign-in";
+import { signInErrorMessage } from "~/database/auth/sign-in";
 
-describe("normalizeEmail", () => {
-  it("trims and lower-cases an address", () => {
-    expect(normalizeEmail("  Wanjiru@Mail.COM ")).toBe("wanjiru@mail.com");
-  });
-  it("refuses something that is not an address", () => {
-    expect(normalizeEmail("wanjiru")).toBeNull();
-    expect(normalizeEmail("wanjiru@mail")).toBeNull();
-    expect(normalizeEmail("a b@mail.com")).toBeNull();
-  });
-});
-
-describe("cleanCode", () => {
-  it("keeps six digits from a pasted code", () => {
-    expect(cleanCode("123 456")).toBe("123456");
-    expect(cleanCode("1234567")).toBe("123456");
-    expect(cleanCode("12a3")).toBe("123");
-  });
-});
+import { callbackUrl, googleEnabled } from "./sign-in";
 
 describe("callbackUrl", () => {
   it("returns to the page the learner was on", () => {
@@ -41,6 +19,13 @@ describe("callbackUrl", () => {
     expect(callbackUrl("https://driverush.ke", "https://evil.test")).toBe(
       "https://driverush.ke/auth/callback?next=%2F",
     );
+  });
+});
+
+describe("googleEnabled", () => {
+  it("is off unless the build turns it on", () => {
+    expect(googleEnabled({})).toBe(false);
+    expect(googleEnabled({ VITE_AUTH_GOOGLE: "on" })).toBe(true);
   });
 });
 

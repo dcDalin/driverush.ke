@@ -4,8 +4,8 @@
  */
 import { createBrowserClient } from "@supabase/ssr";
 
-import type { Database } from "./database.types";
-import { getSupabaseClientEnv } from "./env.client";
+import { getSupabaseClientEnv } from "../env.client";
+import type { Database } from "../types";
 
 let cached: ReturnType<typeof createBrowserClient<Database>> | null = null;
 

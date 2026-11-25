@@ -16,8 +16,8 @@ import {
   serializeCookieHeader,
 } from "@supabase/ssr";
 
-import type { Database } from "./database.types";
-import { getSupabaseServerEnv } from "./env.server";
+import { getSupabaseServerEnv } from "../env.server";
+import type { Database } from "../types";
 
 export function createSupabaseServerClient(request: Request) {
   const env = getSupabaseServerEnv();
