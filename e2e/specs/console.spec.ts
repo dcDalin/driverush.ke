@@ -11,7 +11,9 @@ test("DriveRush staff create a school for an owner who has not signed up", async
   const slug = `e2e-${Date.now().toString(36)}`;
   await page.getByLabel("School name").fill("E2E Driving School");
   await page.getByLabel("Short name (for links)").fill(slug);
-  await page.getByLabel("Owner's email", { exact: true }).fill(`${slug}@e2e.test`);
+  await page
+    .getByLabel("Owner's email", { exact: true })
+    .fill(`${slug}@e2e.test`);
   await page.getByRole("button", { name: "Create school" }).click();
   await expect(page.getByText("School created.")).toBeVisible();
   await expect(

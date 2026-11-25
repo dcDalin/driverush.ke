@@ -5,6 +5,14 @@
     "**/.client/**/*",
     ".react-router/types/**/*"
   ],
+  // marketing/ is gitignored: promo films live only on the machine that makes them.
+  "exclude": [
+    "node_modules",
+    "build",
+    "marketing",
+    "playwright-report",
+    "test-results"
+  ],
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "types": ["node", "vite/client"],

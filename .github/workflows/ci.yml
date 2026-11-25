@@ -1,0 +1,103 @@
+# Every pull request and push to main (thinkrush db-security.yml):
+#   static    typecheck, lint, formatting, unit tests (no database)
+#   database  the local Supabase stack: pgTAP, every schema change has a
+#             migration, generated types current, db and route suites
+#   e2e       the built app against the local stack, in Chromium
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Formatting
+        run: npm run format:check
+      - name: Unit tests
+        run: npm test
+
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Start the local Supabase stack
+        run: npx supabase start
+      - name: pgTAP (security manifest, guards, row level security, behaviour)
+        run: npm run test:pgtap
+      - name: Every schema change has a migration (db diff is empty)
+        run: |
+          out="$(npx supabase db diff 2>&1)"
+          echo "$out" | tail -20
+          echo "$out" | grep -q "No schema changes found"
+      - name: Generated types are up to date
+        run: npm run db:types:check
+      - name: Database and route suites (real auth and API)
+        run: npx vitest run --project db --project routes
+      - name: Stop the stack
+        if: always()
+        run: npx supabase stop --no-backup
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Start the local Supabase stack
+        run: npx supabase start
+      - name: Point the app at the local stack
+        run: |
+          eval "$(npx supabase status -o env)"
+          {
+            echo "SUPABASE_URL=$API_URL"
+            echo "SUPABASE_PUBLISHABLE_KEY=$PUBLISHABLE_KEY"
+            echo "VITE_SUPABASE_URL=$API_URL"
+            echo "VITE_SUPABASE_PUBLISHABLE_KEY=$PUBLISHABLE_KEY"
+            echo "SESSION_SECRET=$(openssl rand -hex 32)"
+            echo "HONEYPOT_SECRET=$(openssl rand -hex 32)"
+          } >> "$GITHUB_ENV"
+      - name: Build
+        run: npx react-router build
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: End-to-end tests
+        run: npm run test:e2e
+      - name: Keep the report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+      - name: Stop the stack
+        if: always()
+        run: npx supabase stop --no-backup
