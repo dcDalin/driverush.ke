@@ -183,14 +183,17 @@ export function TrainerResultCard({
       >
         <div className="flex items-center justify-between gap-3 bg-ink px-4 py-2.5 font-sans text-[10.5px] font-semibold tracking-wider text-paper uppercase">
           <span>{scope === "chart" ? "Whole chart" : "Round done"}</span>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             aria-label="Close"
             onClick={onExit}
-            className="relative -my-1 inline-flex size-6 shrink-0 items-center justify-center rounded-md border border-paper text-paper transition-colors duration-100 outline-none before:absolute before:-inset-2.5 before:content-[''] hover:bg-paper hover:text-ink focus-visible:bg-paper focus-visible:text-ink"
+            // A small framed close on the ink strip, with a 44 px hit area.
+            className="relative -my-1 size-6 rounded-md border border-paper text-paper before:absolute before:-inset-2.5 before:content-[''] hover:bg-paper hover:text-ink focus-visible:bg-paper focus-visible:text-ink"
           >
             <Icon icon={CloseIcon} size={13} />
-          </button>
+          </Button>
         </div>
 
         <RoundDoneScene crop className="h-24 border-b border-line sm:h-28" />

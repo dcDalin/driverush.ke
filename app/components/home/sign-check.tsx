@@ -197,22 +197,27 @@ function Playing({
             const isPicked = chosen === option.id;
             return (
               <li key={option.id}>
-                <button
+                <Button
                   type="button"
+                  variant={
+                    !answered
+                      ? "paper"
+                      : isAnswer
+                        ? "green"
+                        : isPicked
+                          ? "rush"
+                          : "paper"
+                  }
                   onClick={() => onPick(option)}
                   disabled={answered}
                   className={cn(
-                    "w-full rounded-lg border border-line px-3 py-2.5 text-left font-display text-[14px] font-bold tracking-tight transition-colors outline-none",
+                    // A tile: full width, left-aligned, wrapping, and still
+                    // fully coloured once answered (no disabled fade).
+                    "h-auto w-full justify-start rounded-lg px-3 py-2.5 text-left font-display text-[14px] font-bold tracking-tight whitespace-normal disabled:opacity-100",
                     !answered &&
-                      "bg-surface text-ink hover:bg-ink hover:text-paper focus-visible:bg-ink focus-visible:text-paper",
-                    answered &&
-                      isAnswer &&
-                      "bg-kenya-green text-kenya-green-foreground",
+                      "hover:bg-ink hover:text-paper focus-visible:bg-ink focus-visible:text-paper",
                     answered && isAnswer && isPicked && "dr-confirm",
-                    answered &&
-                      !isAnswer &&
-                      isPicked &&
-                      "dr-shake bg-rush text-white",
+                    answered && !isAnswer && isPicked && "dr-shake text-white",
                     answered &&
                       !isAnswer &&
                       !isPicked &&
@@ -220,7 +225,7 @@ function Playing({
                   )}
                 >
                   {option.name}
-                </button>
+                </Button>
               </li>
             );
           })}
