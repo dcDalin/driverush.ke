@@ -33,8 +33,8 @@ and JPEG only. SVG is refused because it can carry script.
 - **Writing:** DriveRush staff only, on a password session: list, upload,
   replace and delete (`storage.objects` policies in the same schema file).
   School owners, learners and guests are refused; owners' logos go through
-  the server (service role, after its owner check), and `livery:publish`
-  uses the service role too.
+  the server (service role, after its owner check). `livery:publish` signs
+  in as staff and goes through these same rules.
 - `school_liveries` follows the same rule: anyone reads a live livery of an
   active school; staff read everything and are the only ones who insert
   (always a draft), edit or delete (never the live one); going live is
@@ -100,8 +100,12 @@ and JPEG only. SVG is refused because it can carry script.
    `?sponsor=<slug>`.
 4. **Hosted.**
    - `npm run livery:publish <slug> -- --hosted` needs
-     `LIVERY_SUPABASE_URL` and `LIVERY_SERVICE_ROLE_KEY` in `.env.local`. It
-     asks you to type the slug.
+     `LIVERY_SUPABASE_URL` and `LIVERY_SUPABASE_PUBLISHABLE_KEY` (both public)
+     in `.env.local`. It signs you in as DriveRush staff: your email (or
+     `LIVERY_STAFF_EMAIL`) and your password, typed and never stored. A
+     non-staff account is refused. Then it asks you to type the slug.
+   - No service role key: staff upload and add drafts under row level
+     security, like the console, and the draft records who made it.
    - It writes a **draft**.
    - Preview it at `/model-town-board/play?livery=<id>`, signed in as staff
      with a password.

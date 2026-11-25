@@ -585,7 +585,7 @@ create table public.school_liveries (
   marks jsonb not null check (private.valid_media_paths(marks, school_id) and marks ? 'full' and marks ? 'mono'),
   thumbs jsonb not null default '{}'::jsonb check (thumbs = '{}'::jsonb or private.valid_media_paths(thumbs, school_id)),
   stills jsonb not null default '{}'::jsonb check (stills = '{}'::jsonb or private.valid_media_paths(stills, school_id)),
-  -- Who made it: the staff member (auth.uid()), or null from the service role.
+  -- Who made it: the staff member signed in (the console, livery:publish).
   created_by uuid default auth.uid() references auth.users (id) on delete set null,
   created_at timestamptz not null default now(),
   published_at timestamptz,
@@ -2748,7 +2748,7 @@ $$;
 --
 -- Access:  authenticated (DriveRush su or admin)
 -- Guard:   admin (private.is_staff)
--- Callers: DriveRush console (session); livery:publish --live (service role)
+-- Callers: DriveRush console (session); livery:publish --live (staff session)
 create or replace function private.admin_publish_livery(p_livery_id uuid)
 returns void
 language plpgsql
@@ -2758,7 +2758,7 @@ as $$
 declare
   v_school_id uuid;
 begin
-  if not (private.is_staff() or (select auth.role()) = 'service_role') then
+  if not private.is_staff() then
     raise exception 'forbidden' using errcode = '42501';
   end if;
   select school_id into v_school_id from public.school_liveries where id = p_livery_id for update;
@@ -2881,7 +2881,7 @@ $$;
 
 -- Access:  authenticated (DriveRush su or admin)
 -- Guard:   admin (the private body checks private.is_staff)
--- Callers: DriveRush console (session); livery:publish --live (service role)
+-- Callers: DriveRush console (session); livery:publish --live (staff session)
 create or replace function public.admin_publish_livery(p_livery_id uuid)
 returns void
 language sql
@@ -3725,8 +3725,8 @@ create policy "school_profiles: public if active; members and staff"
 --           delete  a livery that is not live
 --         Going live or retiring is admin_publish_livery and
 --         admin_retire_livery (staff), which keep one live livery per
---         school. `npm run livery:publish` writes drafts with the service
---         role.
+--         school. `npm run livery:publish` signs in as staff and goes
+--         through these same policies.
 -- Grants: anon: SELECT (content columns);
 --         authenticated: SELECT (content columns), INSERT and UPDATE (content
 --         columns), DELETE
@@ -4107,8 +4107,9 @@ grant delete on public.learner_progress to authenticated;
 --
 -- Writing: DriveRush staff only (password session, private.is_staff), as
 -- for school_liveries: they may list, upload, replace and delete. Everyone
--- else is refused. The service role (the server's logo upload after its
--- owner check, and `npm run livery:publish`) bypasses row level security.
+-- else is refused. `npm run livery:publish` signs in as staff and goes
+-- through these policies; only the server's logo upload (after its owner
+-- check) uses the service role.
 --
 -- `supabase db diff` does not read the storage schema, so this row is an
 -- idempotent insert here (it lands in the baseline) and config.toml declares

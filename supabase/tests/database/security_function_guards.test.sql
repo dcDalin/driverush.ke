@@ -9,7 +9,7 @@
 -- ===================================================
 begin;
 
-select plan(56);
+select plan(57);
 
 create temp table w as select tests.make_world() as j;
 create function pg_temp.w(k text) returns text language sql as $$ select j ->> k from w $$;
@@ -150,6 +150,8 @@ select is(tests.sqlstate_as(pg_temp.w('staff'), format('select public.admin_set_
   'staff on a password session start a sponsorship');
 select is(tests.sqlstate_as(pg_temp.w('staff'), 'select public.admin_publish_livery(gen_random_uuid())'), 'P0002',
   'staff publishing a livery that does not exist get not_found');
+select is(tests.sqlstate_as('service', 'select public.admin_publish_livery(gen_random_uuid())'), '42501',
+  'the service role does not publish: going live is a staff member''s act');
 select is(tests.sqlstate_as('anon', 'select jsonb_typeof(public.board_schools())'), 'ok',
   'anyone, guests included, reads the board''s schools');
 

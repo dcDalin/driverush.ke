@@ -13,9 +13,15 @@
  * are not sent again: only what changed is uploaded, and phones keep the
  * rest cached.
  *
- * --hosted reads LIVERY_SUPABASE_URL and LIVERY_SERVICE_ROLE_KEY (never
- * committed: put them in .env.local) and asks you to type the slug before it
- * writes anything.
+ * It works as a DriveRush staff member, signed in with a password, the same
+ * as the console: row level security lets staff upload to school-media and
+ * add a draft livery, and nobody else (no service role key is used, so none
+ * has to sit on a laptop). Locally that is the demo su (su@driverush.test).
+ *
+ * --hosted reads LIVERY_SUPABASE_URL and LIVERY_SUPABASE_PUBLISHABLE_KEY
+ * (both public; .env.local), asks for your staff email (or reads
+ * LIVERY_STAFF_EMAIL) and your password (typed, never stored), then asks you
+ * to type the slug before it writes anything.
  */
 import { existsSync } from "node:fs";
 import { join } from "node:path";
@@ -27,31 +33,101 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "~/database/types";
 
 import { assertLocalStack } from "./src/guard";
-import { LOCAL_API_URL, serviceClient, sql } from "./src/local";
+import { LOCAL_API_URL, signInAs, sql } from "./src/local";
 import { type UploadCount, uploadLivery } from "./src/media";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 
-async function hostedClient(slug: string) {
+const STAFF_ROLES = new Set(["driverush_su", "driverush_admin"]);
+
+/** The `user_role` claim the access token hook gave this session. */
+function roleOf(accessToken: string) {
+  const payload = accessToken.split(".")[1] ?? "";
+  try {
+    return (
+      JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as {
+        user_role?: string;
+      }
+    ).user_role;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Reads a line without showing it (a password). */
+function askHidden(question: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const input = process.stdin;
+    let value = "";
+    process.stdout.write(question);
+    input.setRawMode(true);
+    input.resume();
+    input.setEncoding("utf8");
+    const done = (error?: Error) => {
+      input.setRawMode(false);
+      input.pause();
+      input.off("data", onData);
+      process.stdout.write("\n");
+      if (error) reject(error);
+      else resolve(value);
+    };
+    const onData = (chunk: string) => {
+      for (const ch of chunk) {
+        if (ch === "\r" || ch === "\n") return done();
+        if (ch === "\u0003") return done(new Error("Nothing changed."));
+        if (ch === "\u007f" || ch === "\b") value = value.slice(0, -1);
+        else value += ch;
+      }
+    };
+    input.on("data", onData);
+  });
+}
+
+/** Signs in to the hosted project as a staff member, after asking first. */
+async function hostedStaff(slug: string) {
   const url = process.env.LIVERY_SUPABASE_URL;
-  const key = process.env.LIVERY_SERVICE_ROLE_KEY;
+  const key = process.env.LIVERY_SUPABASE_PUBLISHABLE_KEY;
   if (!url || !key) {
     throw new Error(
-      "--hosted needs LIVERY_SUPABASE_URL and LIVERY_SERVICE_ROLE_KEY (in .env.local).",
+      "--hosted needs LIVERY_SUPABASE_URL and LIVERY_SUPABASE_PUBLISHABLE_KEY (in .env.local).",
     );
   }
-  if (!process.stdin.isTTY)
-    throw new Error("--hosted asks first: run it in a terminal.");
+  if (!process.stdin.isTTY) {
+    throw new Error("--hosted asks for your password: run it in a terminal.");
+  }
   const project = new URL(url).hostname.split(".")[0];
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  const answer = await rl.question(
-    `Publish to the HOSTED project ${project}. Type the slug (${slug}) to go on: `,
-  );
-  rl.close();
-  if (answer.trim() !== slug) throw new Error("Nothing changed.");
-  return createClient<Database>(url, key, {
+  const ask = async (question: string) => {
+    const rl = createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+    const answer = await rl.question(question);
+    rl.close();
+    return answer.trim();
+  };
+  const email =
+    process.env.LIVERY_STAFF_EMAIL?.trim() ||
+    (await ask("Your DriveRush staff email: "));
+  const password = await askHidden("Password: ");
+
+  const client = createClient<Database>(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+  const { data, error } = await client.auth.signInWithPassword({
+    email,
+    password,
+  });
+  if (error || !data.session) {
+    throw new Error(`Sign-in failed: ${error?.message ?? "no session"}`);
+  }
+  if (!STAFF_ROLES.has(roleOf(data.session.access_token) ?? "")) {
+    throw new Error(`${email} is not DriveRush staff. Nothing changed.`);
+  }
+  const answer = await ask(
+    `Publish to the HOSTED project ${project} as ${email}. Type the slug (${slug}) to go on: `,
+  );
+  if (answer !== slug) throw new Error("Nothing changed.");
+  return client;
 }
 
 async function main() {
@@ -69,15 +145,16 @@ async function main() {
   const dir = join(ROOT, "seed", "fixtures", "liveries", slug);
   if (!existsSync(dir)) throw new Error(`No livery folder at ${dir}`);
 
-  let admin;
+  // A staff session: the database's own rules decide what it may do.
+  let staff;
   if (hosted) {
-    admin = await hostedClient(slug);
+    staff = await hostedStaff(slug);
   } else {
     await assertLocalStack();
-    admin = serviceClient();
+    staff = await signInAs("su@driverush.test");
   }
 
-  const { data: school, error } = await admin
+  const { data: school, error } = await staff
     .from("schools")
     .select("id, name")
     .eq("slug", slug)
@@ -89,8 +166,8 @@ async function main() {
     );
 
   const count: UploadCount = { uploaded: 0, kept: 0 };
-  const { row } = await uploadLivery(admin, school.id, dir, count);
-  const { data: livery, error: insertError } = await admin
+  const { row } = await uploadLivery(staff, school.id, dir, count);
+  const { data: livery, error: insertError } = await staff
     .from("school_liveries")
     .insert(row)
     .select("id")
@@ -98,7 +175,7 @@ async function main() {
   if (insertError) throw new Error(insertError.message);
 
   if (live) {
-    const { error: publishError } = await admin.rpc("admin_publish_livery", {
+    const { error: publishError } = await staff.rpc("admin_publish_livery", {
       p_livery_id: livery.id,
     });
     if (publishError) throw new Error(publishError.message);

@@ -101,8 +101,8 @@ create policy "school_profiles: public if active; members and staff"
 --           delete  a livery that is not live
 --         Going live or retiring is admin_publish_livery and
 --         admin_retire_livery (staff), which keep one live livery per
---         school. `npm run livery:publish` writes drafts with the service
---         role.
+--         school. `npm run livery:publish` signs in as staff and goes
+--         through these same policies.
 -- Grants: anon: SELECT (content columns);
 --         authenticated: SELECT (content columns), INSERT and UPDATE (content
 --         columns), DELETE

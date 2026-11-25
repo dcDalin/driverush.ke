@@ -119,7 +119,7 @@ $$;
 --
 -- Access:  authenticated (DriveRush su or admin)
 -- Guard:   admin (private.is_staff)
--- Callers: DriveRush console (session); livery:publish --live (service role)
+-- Callers: DriveRush console (session); livery:publish --live (staff session)
 create or replace function private.admin_publish_livery(p_livery_id uuid)
 returns void
 language plpgsql
@@ -129,7 +129,7 @@ as $$
 declare
   v_school_id uuid;
 begin
-  if not (private.is_staff() or (select auth.role()) = 'service_role') then
+  if not private.is_staff() then
     raise exception 'forbidden' using errcode = '42501';
   end if;
   select school_id into v_school_id from public.school_liveries where id = p_livery_id for update;
@@ -252,7 +252,7 @@ $$;
 
 -- Access:  authenticated (DriveRush su or admin)
 -- Guard:   admin (the private body checks private.is_staff)
--- Callers: DriveRush console (session); livery:publish --live (service role)
+-- Callers: DriveRush console (session); livery:publish --live (staff session)
 create or replace function public.admin_publish_livery(p_livery_id uuid)
 returns void
 language sql

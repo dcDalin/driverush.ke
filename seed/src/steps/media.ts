@@ -1,9 +1,10 @@
 /**
  * The five schools' look and profile, the way they are made for real:
  *
- * 1. their livery folders (seed/fixtures/liveries/<slug>/) go to the
- *    school-media bucket (files already there are not sent again) and become
- *    a draft `school_liveries` row, which the su publishes;
+ * 1. the su uploads their livery folders (seed/fixtures/liveries/<slug>/)
+ *    to the school-media bucket (files already there are not sent again) as
+ *    a draft `school_liveries` row, and publishes it: the staff path
+ *    `npm run livery:publish` takes;
  * 2. each owner fills in their profile and branch details on a session of
  *    their own (school_update_profile, school_update_branch_details), and
  *    the server's upload path records their logos (school_set_logo);
@@ -40,9 +41,11 @@ export async function seedMedia(root: string) {
       select id from public.schools where slug = ${profile.slug}`;
     if (!school) throw new Error(`No school ${profile.slug} to dress`);
 
-    // 1. The livery: uploaded as a draft, then published by the su.
-    const { meta, row } = await uploadLivery(admin, school.id, dir, count);
-    const { data: livery, error } = await admin
+    // 1. The livery: uploaded by the su (staff may write school-media and
+    //    add drafts; row level security refuses everyone else), then
+    //    published by the su.
+    const { meta, row } = await uploadLivery(su, school.id, dir, count);
+    const { data: livery, error } = await su
       .from("school_liveries")
       .insert(row)
       .select("id")

@@ -11,8 +11,9 @@
 --
 -- Writing: DriveRush staff only (password session, private.is_staff), as
 -- for school_liveries: they may list, upload, replace and delete. Everyone
--- else is refused. The service role (the server's logo upload after its
--- owner check, and `npm run livery:publish`) bypasses row level security.
+-- else is refused. `npm run livery:publish` signs in as staff and goes
+-- through these policies; only the server's logo upload (after its owner
+-- check) uses the service role.
 --
 -- `supabase db diff` does not read the storage schema, so this row is an
 -- idempotent insert here (it lands in the baseline) and config.toml declares
