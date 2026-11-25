@@ -10,6 +10,8 @@
     "node_modules",
     "build",
     "marketing",
+    // seed/ has its own tsconfig: Snaplet's types need `npm run db:sync`.
+    "seed",
     "playwright-report",
     "test-results"
   ],

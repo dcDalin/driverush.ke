@@ -1,5 +1,6 @@
 .DS_Store
 .env
+.env.local
 /node_modules/
 
 # React Router
@@ -21,3 +22,6 @@
 # Playwright
 /playwright-report/
 /test-results/
+
+# Snaplet (npm run db:sync writes it from the running local database)
+/seed/.snaplet/

@@ -87,3 +87,12 @@ Progress rows (`learner_progress.data`) hold `{ "json": <the store's saved
 value> }`, the localStorage value of that store. The app syncs them
 (`app/lib/progress/`); `app/lib/school/progress-summary.ts` reads them for the
 dashboard.
+
+## Trying it locally
+
+`npm run db:reset` gives the test personas, and `npm run db:seed` the full
+demo: 5 schools, their owners and admins, and learners in every link state
+(pending, active, choosing, switched, declined, released, moved, expired,
+renewed, paid and paused, free). Every account's password is
+`driverush-local-1`. The table of who is who, and how to add your own su
+(`SEED_SU_EMAIL` in `.env.local`), is in `seed/README.md`.

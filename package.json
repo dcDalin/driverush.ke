@@ -37,7 +37,11 @@
     "test:routes": "vitest run --project routes",
     "test:e2e": "playwright test",
     "db:advisors": "supabase db advisors --local --level warn --fail-on warn",
-    "db:lint": "supabase db lint --local --schema public,private --level warning --fail-on warning"
+    "db:lint": "supabase db lint --local --schema public,private --level warning --fail-on warning",
+    "db:sync": "cd seed && mkdir -p .snaplet && echo '{ \"adapter\": \"postgres\" }' > .snaplet/config.json && SNAPLET_DISABLE_TELEMETRY=1 snaplet-seed sync",
+    "db:seed": "SNAPLET_DISABLE_TELEMETRY=1 tsx seed/seed.ts",
+    "db:refresh": "npm run db:sync && npm run db:seed --",
+    "seed:typecheck": "tsc -p seed"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -86,6 +90,7 @@
     "@playwright/test": "^1.63.0",
     "@posthog/cli": "^0.20.1",
     "@react-router/dev": "7.14.0",
+    "@snaplet/seed": "^0.97.20",
     "@tailwindcss/vite": "^4.2.2",
     "@types/matter-js": "^0.20.2",
     "@types/mdx": "^2.0.13",
@@ -104,6 +109,7 @@
     "jpeg-js": "^0.4.4",
     "meshoptimizer": "^1.3.0",
     "opentype.js": "^2.0.0",
+    "postgres": "^4.1.1",
     "prettier": "^3.10.1",
     "prettier-plugin-tailwindcss": "^0.6.14",
     "remark-frontmatter": "^5.0.0",
@@ -112,6 +118,7 @@
     "sharp": "^0.35.5",
     "supabase": "^2.122.1",
     "tailwindcss": "^4.2.2",
+    "tsx": "^4.23.15",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.74.0",
     "vite": "^8.0.3",

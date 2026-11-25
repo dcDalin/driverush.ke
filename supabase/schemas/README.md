@@ -33,9 +33,12 @@ it: every change is a new migration.
 - Order in `schema_paths`: extensions and `private`, every enum and table, then
   functions, triggers and policies, then grants. A `language sql` function is
   checked against the tables it reads when it is created, so tables come first.
-- Reference rows every database needs (the plans) are a migration, not a seed.
-  `seeds/local_demo.sql` is local demo data and refuses to run anywhere but a
-  CLI stack (`private.is_local_stack()`).
+- Reference rows every database needs (the plans) are a migration, not a seed:
+  `*_reference_*.sql`, idempotent, so the full seed can re-run it after its
+  reset. `seeds/local_demo.sql` is the test personas and refuses to run
+  anywhere but a CLI stack (`private.is_local_stack()`). The full demo is the
+  Snaplet seed in `seed/` (`npm run db:seed`, `seed/README.md`); run
+  `npm run db:sync` after a schema change so it sees the new shape.
 
 ## Who can call a function
 

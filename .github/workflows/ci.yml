@@ -62,6 +62,15 @@ jobs:
         run: npm run db:lint
       - name: Database and route suites (real auth and API)
         run: npx vitest run --project db --project routes
+      - name: Full demo seed (Snaplet) builds and runs
+        run: |
+          npm run db:sync
+          npm run seed:typecheck
+          npm run db:seed -- --yes
+      - name: The suites still pass on the seeded database
+        run: |
+          npm run test:pgtap
+          npx vitest run --project db --project routes
       - name: Stop the stack
         if: always()
         run: npx supabase stop --no-backup
