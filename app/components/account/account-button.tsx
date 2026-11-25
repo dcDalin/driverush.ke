@@ -18,6 +18,8 @@ import {
 import { signOut, useSession } from "~/lib/auth/session";
 import { useSignInSheet } from "~/lib/auth/sign-in-sheet-store";
 
+import { MySchool } from "./my-school";
+
 export function AccountButton() {
   const session = useSession();
   const show = useSignInSheet((s) => s.show);
@@ -60,7 +62,8 @@ export function AccountButton() {
           {initial}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-64">
+      <PopoverContent align="end" className="w-72">
+        <MySchool userId={user.id} />
         <p className="text-[12px] font-medium text-ink-3">Signed in as</p>
         <p className="mb-3 truncate text-[14px] font-semibold text-ink">
           {user.email}

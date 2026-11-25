@@ -179,9 +179,51 @@ export function nextSchool(): Sponsor | null {
   return next && next.id !== current.id ? next : null;
 }
 
+/**
+ * What the signed-in learner's entitlement asks of the board
+ * (`~/lib/auth/entitlement.ts`): their school's livery, plain cars, or the
+ * usual turns. A `?sponsor=` hold in the address still wins (promo videos,
+ * checking a school's car).
+ */
+let ruled = false;
+export function applyLiveryRule(
+  rule:
+    | { kind: "rotate" }
+    | { kind: "school"; sponsorId: string }
+    | { kind: "plain" },
+): void {
+  if (typeof window === "undefined") return;
+  visitSponsor();
+  if (sponsorById(heldId())) return;
+  if (rule.kind === "rotate") {
+    if (!ruled) return;
+    ruled = false;
+    held = false;
+    show(
+      pickSponsor({
+        roll: Math.random(),
+        now: new Date(),
+        last: read("localStorage", LAST_KEY),
+      }),
+      {
+        remember: true,
+      },
+    );
+    return;
+  }
+  ruled = true;
+  held = true;
+  // A school's own learners see its livery even outside its paid period.
+  show(rule.kind === "school" ? sponsorById(rule.sponsorId) : null, {
+    remember: false,
+  });
+}
+
 /** A school is held by `?sponsor=`: the address is not ours to write. */
 export function schoolHeld(): boolean {
-  return held;
+  // A school held by the learner's entitlement (their own school) is shown
+  // in the address like any other; only `?sponsor=` keeps it as given.
+  return held && !ruled;
 }
 
 const none = () => null;

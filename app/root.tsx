@@ -1,6 +1,7 @@
 import { TabBar } from "~/components/brand/tab-bar";
 import { AccountShell } from "~/components/account/account-shell";
 import { ProgressSync } from "~/components/account/progress-sync";
+import { EntitlementLivery } from "~/components/account/entitlement-livery";
 import { guestVisitScript } from "~/lib/progress/guest-visit";
 import {
   isRouteErrorResponse,
@@ -250,6 +251,8 @@ export default function App() {
       <AccountShell />
       {/* Saves a signed-in learner's progress; nudges a guest to sign in. */}
       <ProgressSync />
+      {/* The board's livery for the learner's school, plan or neither. */}
+      <EntitlementLivery />
     </>
   );
 }
