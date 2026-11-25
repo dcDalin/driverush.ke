@@ -105,7 +105,12 @@ begin
     from public.plans as p where p.code = 'learner_monthly';
 
   insert into public.learner_progress (user_id, store, data, version)
-  select u.id, 'streak', '{"state": {"days": 3}}'::jsonb, 1
+  select u.id, 'streak', '{"json": {"days": 3, "best": 3, "lastDay": "2026-11-24"}}'::jsonb, 1
     from auth.users as u where u.email in ('amina@learner.test', 'brian@learner.test');
+
+  -- Rows are stored as the app saves them: { json: <the store's saved value> }.
+  insert into public.learner_progress (user_id, store, data, version)
+  select u.id, 'board', '{"json": {"state": {"learned": ["l1", "l2", "l3", "l4", "l5"]}, "version": 1}}'::jsonb, 1
+    from auth.users as u where u.email = 'amina@learner.test';
 end;
 $$;

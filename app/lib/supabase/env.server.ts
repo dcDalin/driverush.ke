@@ -1,7 +1,9 @@
 /**
  * Server-side Supabase settings, checked once on first use. The service role
  * key bypasses row level security, so it lives only here: never in a VITE_
- * variable, never in code that reaches the browser.
+ * variable, never in code that reaches the browser. It is optional: only the
+ * service client needs it (`service.server.ts` refuses to start without it),
+ * so a server that never uses it never holds it.
  *
  * Local values come from `npx supabase status -o env` (see `.env.example`).
  */
@@ -12,9 +14,7 @@ const serverEnvSchema = z.object({
   SUPABASE_PUBLISHABLE_KEY: z
     .string()
     .min(1, "SUPABASE_PUBLISHABLE_KEY is required"),
-  SUPABASE_SERVICE_ROLE_KEY: z
-    .string()
-    .min(1, "SUPABASE_SERVICE_ROLE_KEY is required"),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
 });
 
 export type SupabaseServerEnv = z.infer<typeof serverEnvSchema>;

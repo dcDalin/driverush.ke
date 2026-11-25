@@ -639,6 +639,18 @@ export type Database = {
         Args: { p_name: string; p_school_id: string; p_town: string };
         Returns: string;
       };
+      school_members_list: {
+        Args: { p_school_id: string };
+        Returns: {
+          branch_ids: string[];
+          created_at: string;
+          email: string;
+          full_name: string;
+          member_id: string;
+          role: Database["public"]["Enums"]["school_role"];
+          user_id: string;
+        }[];
+      };
       school_move_student_branch: {
         Args: { p_branch_id: string; p_link_id: string };
         Returns: undefined;

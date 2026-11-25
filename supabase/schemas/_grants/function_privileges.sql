@@ -71,6 +71,8 @@ grant execute on function public.school_cancel_student_invite(uuid) to authentic
 grant execute on function private.school_cancel_student_invite(uuid) to authenticated;
 grant execute on function public.school_move_student_branch(uuid, uuid) to authenticated;
 grant execute on function private.school_move_student_branch(uuid, uuid) to authenticated;
+grant execute on function public.school_members_list(uuid) to authenticated;
+grant execute on function private.school_members_list(uuid) to authenticated;
 grant execute on function public.school_student_progress(uuid, uuid) to authenticated;
 grant execute on function private.school_student_progress(uuid, uuid) to authenticated;
 

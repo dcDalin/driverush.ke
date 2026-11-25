@@ -13,6 +13,11 @@ let cached: ReturnType<typeof createClient<Database>> | null = null;
 export function getSupabaseServiceClient() {
   if (!cached) {
     const env = getSupabaseServerEnv();
+    if (!env.SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error(
+        "SUPABASE_SERVICE_ROLE_KEY is required for the service client",
+      );
+    }
     cached = createClient<Database>(
       env.SUPABASE_URL,
       env.SUPABASE_SERVICE_ROLE_KEY,

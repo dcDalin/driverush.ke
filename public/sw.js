@@ -275,6 +275,9 @@ async function routes(request) {
   }
 }
 
+/** Pages the worker leaves alone (school dashboard, console, sign-in). */
+const PRIVATE = /^\/(school|console|auth)(\/|\.data|$)/;
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
@@ -282,6 +285,9 @@ self.addEventListener("fetch", (event) => {
   // Analytics and anything else not ours is left alone.
   if (url.origin !== self.location.origin) return;
   if (url.pathname === "/sw.js") return;
+  // Signed-in dashboards and sign-in hold people's details: never kept
+  // offline, so the next person on the phone cannot open a saved copy.
+  if (PRIVATE.test(url.pathname)) return;
 
   if (request.mode === "navigate") {
     event.respondWith(networkFirst(request, true));

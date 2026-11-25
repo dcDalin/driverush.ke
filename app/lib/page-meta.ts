@@ -111,6 +111,12 @@ const ROUTES: Record<string, Entry> = {
   },
   "routes/share-landing": { group: "Share landing", path: "/s" },
   "routes/auth-callback": { group: "Account", path: "/auth/callback" },
+  "routes/school-home": { group: "School dashboard", path: "/school" },
+  "routes/school-dashboard": {
+    group: "School dashboard",
+    template: "/school/:schoolId",
+    path: "/school/:schoolId",
+  },
 };
 
 /** Labels for the page whose deepest matched route is `routeId`. */

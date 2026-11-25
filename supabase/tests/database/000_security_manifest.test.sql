@@ -64,6 +64,8 @@ insert into tests.function_access (fn, access, guard, guard_detail, callers) val
   ('private.school_remove_admin(uuid)', 'authenticated', 'school', 'private.can_manage_school (owner or staff)', 'school dashboard (session)'),
   ('school_cancel_member_invite(uuid)', 'authenticated', 'school', 'private.can_manage_school (owner or staff; owner invites staff only)', 'school dashboard (session)'),
   ('private.school_cancel_member_invite(uuid)', 'authenticated', 'school', 'private.can_manage_school (owner or staff; owner invites staff only)', 'school dashboard (session)'),
+  ('school_members_list(uuid)', 'authenticated', 'school', 'is_school_member or is_staff', 'school dashboard (session)'),
+  ('private.school_members_list(uuid)', 'authenticated', 'school', 'is_school_member or is_staff', 'school dashboard (session)'),
   -- School owners and branch admins
   ('school_add_student(uuid, text)', 'authenticated', 'school', 'private.can_manage_branch (owner, branch admin or staff)', 'school dashboard (session)'),
   ('private.school_add_student(uuid, text)', 'authenticated', 'school', 'private.can_manage_branch (owner, branch admin or staff)', 'school dashboard (session)'),

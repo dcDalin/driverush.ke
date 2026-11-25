@@ -72,6 +72,10 @@ export default [
   // Where Google sends a learner back after signing in.
   route("auth/callback", "routes/auth-callback.tsx"),
 
+  // A driving school's dashboard (owners and branch admins). Signed in only.
+  route("school", "routes/school-home.tsx"),
+  route("school/:schoolId", "routes/school-dashboard.tsx"),
+
   // Where shared achievement links land (`/s?k=quiz&…`). Deliberately short:
   // the URL travels through WhatsApp forwards. Renders a useful page for any
   // payload, including one that's broken or missing, and never 404s.

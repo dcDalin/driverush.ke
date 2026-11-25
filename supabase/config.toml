@@ -87,6 +87,7 @@ schema_paths = [
   './schemas/schools/functions/admin_schools.sql',
   './schemas/schools/functions/school_branches.sql',
   './schemas/schools/functions/school_admins.sql',
+  './schemas/schools/functions/school_members_list.sql',
   './schemas/students/functions/school_students.sql',
   './schemas/students/functions/learner_links.sql',
   './schemas/billing/functions/my_entitlement.sql',

@@ -9,7 +9,7 @@
 -- ===================================================
 begin;
 
-select plan(37);
+select plan(40);
 
 create temp table w as select tests.make_world() as j;
 create function pg_temp.w(k text) returns text language sql as $$ select j ->> k from w $$;
@@ -22,7 +22,7 @@ insert into probed values
   ('school_create_branch'), ('school_update_branch'), ('school_add_admin'),
   ('school_set_admin_branches'), ('school_remove_admin'), ('school_cancel_member_invite'),
   ('school_add_student'), ('school_release_student'), ('school_cancel_student_invite'),
-  ('school_move_student_branch'), ('school_student_progress'),
+  ('school_move_student_branch'), ('school_student_progress'), ('school_members_list'),
   ('learner_accept_school_link'), ('learner_decline_school_link'), ('my_entitlement');
 
 -- ── anon can call nothing ──────────────────────────────────────────────
@@ -98,6 +98,13 @@ select is(tests.sqlstate_as(pg_temp.w('learner_a1'), format('select count(*) fro
   'a learner cannot read a school''s progress list');
 select is(tests.sqlstate_as(pg_temp.w('owner_b'), format('select count(*) from public.school_student_progress(%L)', pg_temp.w('school_a'))), '42501',
   'another school''s owner cannot read the progress list');
+
+select is(tests.sqlstate_as(pg_temp.w('learner_a1'), format('select count(*) from public.school_members_list(%L)', pg_temp.w('school_a'))), '42501',
+  'a learner cannot read a school''s team');
+select is(tests.sqlstate_as(pg_temp.w('owner_b'), format('select count(*) from public.school_members_list(%L)', pg_temp.w('school_a'))), '42501',
+  'another school''s owner cannot read the team');
+select is(tests.value_as(pg_temp.w('admin_a1'), format('select count(*) from public.school_members_list(%L)', pg_temp.w('school_a'))), '3',
+  'an admin reads their school''s team (owner and two admins)');
 
 -- ── Learners ───────────────────────────────────────────────────────────
 select is(tests.sqlstate_as(pg_temp.w('learner_free'), format('select public.learner_accept_school_link(%L)', pg_temp.w('link_a1'))), '42501',
