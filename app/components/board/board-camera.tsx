@@ -15,7 +15,13 @@
 import * as React from "react";
 
 import { Icon } from "~/components/brand/icon";
-import { FocusIcon, MinusIcon, PlusIcon } from "~/components/brand/icons";
+import {
+  FocusIcon,
+  type IconDef,
+  MinusIcon,
+  PlusIcon,
+} from "~/components/brand/icons";
+import { Button } from "~/components/ui/button";
 import type { Seat } from "~/lib/board/joystick";
 import { cam, fitTable, followCar, panBy, zoomBy } from "~/lib/board/stage";
 import { cn } from "~/lib/utils";
@@ -30,8 +36,28 @@ const AWAY: Record<Seat, { x: number; z: number }> = {
 /** The table is seen at a slant, so a drag up the screen covers more of it. */
 const SLANT = 0.7;
 
-const buttonClass =
-  "inline-flex size-11 items-center justify-center rounded-md border-2 border-white/15 bg-[#101114]/85 text-white outline-none transition-colors hover:bg-white/15 focus-visible:border-white";
+/**
+ * Zoom in, zoom out, and back to the usual view: in a drive the usual view
+ * follows the car, off it the whole table. Shared by the buttons beside the
+ * table and the game's More menu.
+ */
+export function zoomActions(driving: boolean): {
+  label: string;
+  icon: IconDef;
+  run: () => void;
+}[] {
+  return [
+    { label: "Zoom in", icon: PlusIcon, run: () => zoomBy(0.7) },
+    { label: "Zoom out", icon: MinusIcon, run: () => zoomBy(1.4) },
+    driving
+      ? { label: "Follow the car", icon: FocusIcon, run: () => followCar() }
+      : {
+          label: "Show the whole table",
+          icon: FocusIcon,
+          run: () => fitTable(),
+        },
+  ];
+}
 
 /**
  * Zoom in, zoom out, and back to the usual view. On their own so the drive
@@ -44,33 +70,19 @@ export function BoardZoomButtons({
   driving?: boolean;
   className?: string;
 }) {
-  const reset = driving ? followCar : fitTable;
   return (
     <div className={cn("flex flex-col gap-2", className)}>
-      <button
-        type="button"
-        aria-label="Zoom in"
-        className={buttonClass}
-        onClick={() => zoomBy(0.7)}
-      >
-        <Icon icon={PlusIcon} size={20} />
-      </button>
-      <button
-        type="button"
-        aria-label="Zoom out"
-        className={buttonClass}
-        onClick={() => zoomBy(1.4)}
-      >
-        <Icon icon={MinusIcon} size={20} />
-      </button>
-      <button
-        type="button"
-        aria-label={driving ? "Follow the car" : "Show the whole table"}
-        className={buttonClass}
-        onClick={() => reset()}
-      >
-        <Icon icon={FocusIcon} size={20} />
-      </button>
+      {zoomActions(driving).map((action) => (
+        <Button
+          key={action.label}
+          variant="game"
+          size="icon"
+          aria-label={action.label}
+          onClick={action.run}
+        >
+          <Icon icon={action.icon} size={20} />
+        </Button>
+      ))}
     </div>
   );
 }

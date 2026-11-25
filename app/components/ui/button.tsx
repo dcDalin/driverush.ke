@@ -36,6 +36,24 @@ const buttonVariants = cva(
         ghost: "bg-transparent text-ink hover:bg-paper-2 active:translate-y-0",
         // Inline link styling
         link: "bg-transparent text-rush underline-offset-4 hover:underline active:translate-y-0",
+        // A quiet second choice, as underlined text: "Not now", "Close"
+        quiet:
+          "bg-transparent px-0 font-semibold text-ink-2 underline underline-offset-4 hover:text-ink focus-visible:text-ink active:translate-y-0",
+        // The same, stronger: ink type on a red underline, for a way on
+        "quiet-rush":
+          "bg-transparent px-0 font-bold text-ink underline decoration-rush decoration-2 underline-offset-4 hover:text-rush focus-visible:text-rush active:translate-y-0",
+        // The game's own buttons, on its dark ground in both themes.
+        // Gold: the one thing to do next.
+        "game-gold":
+          "border-2 border-game-gold bg-game-gold text-game-gold-foreground hover:border-game-gold-hover hover:bg-game-gold-hover focus-visible:outline-white",
+        // Over the table: a dark chip that reads on any part of the board
+        game: "border-2 border-white/15 bg-game/85 text-white hover:bg-white/15 focus-visible:outline-white",
+        // In a game panel: an outline on the panel's own dark ground
+        "game-outline":
+          "border-2 border-white/20 bg-white/5 text-white hover:bg-white/15 focus-visible:outline-white",
+        // In a game panel: a quiet underlined choice
+        "game-link":
+          "bg-transparent px-0 text-white/75 underline underline-offset-4 hover:text-white focus-visible:text-white focus-visible:outline-white active:translate-y-0",
       },
       size: {
         sm: "h-9 px-3.5 text-[13px]",
@@ -44,8 +62,22 @@ const buttonVariants = cva(
         // Circular icon button
         stamp: "size-14 rounded-full p-0 text-lg [&_svg]:size-5",
         "stamp-sm": "size-10 rounded-full p-0 text-base [&_svg]:size-4",
+        // Square icon button, a thumb wide
+        icon: "size-11 p-0",
+        // Inside a sentence: the sentence's own size and line
+        inline:
+          "h-auto gap-1 p-0 align-baseline text-[length:inherit] leading-[inherit]",
       },
     },
+    compoundVariants: [
+      // Text-only buttons keep no side padding at the default size: the
+      // size's padding would otherwise outrank the variant's.
+      {
+        variant: ["quiet", "quiet-rush", "game-link"],
+        size: "default",
+        class: "px-0",
+      },
+    ],
     defaultVariants: {
       variant: "paper",
       size: "default",

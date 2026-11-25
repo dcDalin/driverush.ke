@@ -9,10 +9,7 @@ import { createPortal } from "react-dom";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { useShallow } from "zustand/react/shallow";
 
-import {
-  BoardCameraPad,
-  BoardZoomButtons,
-} from "~/components/board/board-camera";
+import { BoardCameraPad, zoomActions } from "~/components/board/board-camera";
 import { BoardCarPicks } from "~/components/board/board-car-picks";
 import { LevelCheer } from "~/components/board/board-cheer";
 import { BoardControls } from "~/components/board/board-controls";
@@ -53,6 +50,13 @@ import {
 } from "~/components/brand/icons";
 import { ShareButton } from "~/components/brand/share-button";
 import { Button } from "~/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 import { analytics } from "~/lib/analytics";
 import { faultRule, faultTip } from "~/lib/board/board-rules";
 import {
@@ -229,20 +233,22 @@ function Minimap({
   const sideways = seat === "east" || seat === "west";
   const end = finish ? placeOnPage(finish.x, finish.z, seat) : null;
   return (
-    <button
-      type="button"
+    <Button
+      variant="game"
       aria-label={end ? "Show where this task ends" : "Show the whole board"}
       data-board-minimap
       disabled={!live}
       onClick={onPeek}
       className={cn(
-        "pointer-events-auto relative block overflow-hidden rounded-md border-2 border-white/80 p-0 shadow-[0_3px_0_rgba(0,0,0,0.45)] outline-none focus-visible:border-kenya-gold",
+        // A picture of the board, not a chip: no fill, a light frame that
+        // reads on any part of the table, and full colour while it waits.
+        "pointer-events-auto relative block h-auto overflow-hidden border-white/80 bg-transparent p-0 hover:bg-transparent hover:brightness-110 disabled:opacity-100",
         sideways ? "w-28 sm:w-40" : "w-[4.5rem] sm:w-24",
       )}
       style={{ aspectRatio: sideways ? 1 / BOARD_ASPECT : BOARD_ASPECT }}
     >
-      <div
-        className="size-full [&>svg]:block [&>svg]:size-full"
+      <span
+        className="block size-full [&>svg]:block [&>svg]:size-full"
         dangerouslySetInnerHTML={{ __html: svg }}
       />
       {/* The finish, ringed so it shows at this size. */}
@@ -259,7 +265,7 @@ function Minimap({
         ref={dot}
         className="absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-ink bg-kenya-gold"
       />
-    </button>
+    </Button>
   );
 }
 
@@ -336,9 +342,9 @@ function TaskHint({
     onNextStep();
   };
 
-  // tall enough for a thumb
+  // A Button's height, in the game's small capitals
   const small =
-    "min-h-11 rounded-md border-2 px-4 py-2 font-mono text-[12px] font-bold uppercase tracking-widest outline-none transition-colors focus-visible:border-white";
+    "px-4 font-mono text-[12px] font-bold uppercase tracking-widest";
 
   return (
     <>
@@ -348,44 +354,31 @@ function TaskHint({
           bare && "hidden",
         )}
       >
-        <button
-          type="button"
+        <Button
+          variant="game"
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
-          className={cn(
-            small,
-            "inline-flex items-center gap-1.5 border-white/15 bg-[#101114]/85 hover:bg-white/15",
-          )}
+          className={cn(small, "gap-1.5")}
         >
           <Icon icon={InfoIcon} size={16} />
           Hint
-        </button>
+        </Button>
         {open && (
           <>
-            <button
-              type="button"
-              onClick={nextStep}
-              className={cn(
-                small,
-                "border-[#f6c416] bg-[#f6c416] text-[#17181b] hover:bg-[#ffd84d]",
-              )}
-            >
+            <Button variant="game-gold" onClick={nextStep} className={small}>
               Next step
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="game"
               onClick={() => {
                 setOpen(false);
                 setTip(null);
                 onShowMe();
               }}
-              className={cn(
-                small,
-                "border-white/40 bg-[#101114]/85 hover:bg-white/15",
-              )}
+              className={cn(small, "border-white/40")}
             >
               Show me
-            </button>
+            </Button>
           </>
         )}
       </div>
@@ -411,17 +404,18 @@ function TaskHint({
               Then: {tip.then}
             </p>
           )}
-          <button
-            type="button"
+          <Button
+            variant="game"
+            size="icon"
             aria-label="Close hint"
             onClick={() => {
               setTip(null);
               useStage.getState().clear();
             }}
-            className="absolute top-0 right-0 inline-flex size-11 items-center justify-center rounded-md transition-colors outline-none hover:bg-white/15 focus-visible:bg-white/15"
+            className="absolute top-0 right-0 border-transparent bg-transparent"
           >
             <Icon icon={CloseIcon} size={16} />
-          </button>
+          </Button>
         </div>
       )}
     </>
@@ -667,14 +661,14 @@ function StuckChip({ onRestart }: { onRestart: () => void }) {
   if (!stuck) return null;
   return (
     <div className="dr-rise pointer-events-none absolute inset-x-0 bottom-[calc(13.5rem+env(safe-area-inset-bottom))] z-30 flex justify-center px-3">
-      <button
-        type="button"
+      <Button
+        variant="game-gold"
         onClick={onRestart}
-        className="pointer-events-auto inline-flex min-h-11 items-center gap-2 rounded-md border-2 border-[#17181b] bg-[#f6c416] px-4 text-[14px] font-bold text-[#17181b] outline-none focus-visible:ring-2 focus-visible:ring-white"
+        className="pointer-events-auto px-4 text-[14px] font-bold"
       >
         <Icon icon={RefreshIcon} size={16} />
         Stuck? Start again
-      </button>
+      </Button>
     </div>
   );
 }
@@ -689,10 +683,8 @@ const awayForTurn = (showing: boolean) =>
     showing && "invisible opacity-0",
   );
 
-const hudButton =
-  "inline-flex size-11 items-center justify-center rounded-md border-2 border-white/15 bg-[#101114]/85 outline-none transition-colors hover:bg-white/15 focus-visible:border-white";
-const moreItem =
-  "flex min-h-11 items-center gap-2.5 rounded-sm px-2.5 text-left text-[14px] font-semibold text-white outline-none transition-colors hover:bg-white/10 focus-visible:bg-white/10";
+/** An item of the More menu, on the game's dark ground. */
+const moreItem = "text-white focus:bg-white/10";
 
 /** Said once, on a learner's first drive. */
 const COACH_STEPS = [
@@ -1023,8 +1015,10 @@ export function BoardGame() {
     document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
       const store = useBoardStore.getState();
-      // The settings sheet closes itself on Escape. It must not take the
-      // board with it.
+      // A sheet or the More menu closes itself on Escape. It must not take
+      // the board with it. Radix marks the key handled as it closes, and
+      // React has already re-rendered by now, so the flags below read false.
+      if (e.defaultPrevented) return;
       if (heldRef.current.settingsOpen || heldRef.current.levelsOpen) return;
       if (e.key === "Escape") askRef.current();
       if (e.key === "Enter") {
@@ -1149,14 +1143,15 @@ export function BoardGame() {
       {/* While the table loads there is no task bar yet, so the way out is
           drawn here. Learn and level panels bring their own. */}
       {!unsupported && !painted && s.mode === "drive" && (
-        <button
-          type="button"
+        <Button
+          variant="game"
+          size="icon"
           aria-label="Close"
           onClick={s.exit}
-          className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-3 z-30 inline-flex size-11 items-center justify-center rounded-md border-2 border-white/15 bg-[#101114]/85 transition-colors outline-none hover:bg-white/15 focus-visible:border-white sm:top-5 sm:right-6"
+          className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-3 z-30 sm:top-5 sm:right-6"
         >
           <Icon icon={CloseIcon} size={20} />
-        </button>
+        </Button>
       )}
 
       <BoardFps />
@@ -1253,103 +1248,102 @@ export function BoardGame() {
             <div className="pointer-events-auto flex items-center gap-2">
               {/* A popup owns the screen: only the way out stays beside it. */}
               {!quiet && (
-                <button
-                  type="button"
-                  aria-label="More: restart, settings, zoom"
-                  aria-expanded={moreOpen}
-                  aria-controls="board-more"
-                  onClick={() => setMoreOpen((v) => !v)}
-                  className={cn(
-                    hudButton,
-                    moreOpen && "border-white bg-white/15",
-                  )}
+                <DropdownMenu
+                  open={moreOpen}
+                  onOpenChange={setMoreOpen}
+                  // The game stays live under it: a tap on the table closes
+                  // the menu and lands where it was aimed.
+                  modal={false}
                 >
-                  <Icon icon={MenuIcon} size={20} />
-                </button>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="game"
+                      size="icon"
+                      aria-label="More: restart, settings, zoom"
+                      className="data-[state=open]:border-white data-[state=open]:bg-white/15"
+                    >
+                      <Icon icon={MenuIcon} size={20} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    sideOffset={8}
+                    className="w-48 rounded-md border-2 border-white/15 bg-game/95 p-1.5 text-white shadow-none"
+                  >
+                    <DropdownMenuItem className={moreItem} onSelect={s.restart}>
+                      <Icon icon={RefreshIcon} size={18} />
+                      Restart
+                    </DropdownMenuItem>
+                    {pickedCar && (
+                      <DropdownMenuItem
+                        className={moreItem}
+                        onSelect={s.putBack}
+                      >
+                        <Icon icon={ChevronLeftIcon} size={18} />
+                        Put it back
+                      </DropdownMenuItem>
+                    )}
+                    {level && (
+                      <DropdownMenuItem
+                        className={moreItem}
+                        onSelect={openLevels}
+                      >
+                        <Icon icon={GridIcon} size={18} />
+                        All levels
+                      </DropdownMenuItem>
+                    )}
+                    {/* The whole board with no task. In place of this drive,
+                        as moving between levels is, so Close still leaves
+                        the game. */}
+                    {!free && (
+                      <DropdownMenuItem
+                        className={moreItem}
+                        onSelect={() =>
+                          navigate(freeDriveHref("more_menu"), {
+                            replace: true,
+                          })
+                        }
+                      >
+                        <Icon icon={GoIcon} size={18} />
+                        Free drive
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem
+                      className={moreItem}
+                      onSelect={() => setSettingsOpen(true)}
+                    >
+                      <Icon icon={SettingsIcon} size={18} />
+                      Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="mx-0 my-1.5 bg-white/15" />
+                    {/* Zoom keeps the menu open, for a few taps in a row. */}
+                    <div className="flex gap-1">
+                      {zoomActions(true).map((action) => (
+                        <DropdownMenuItem
+                          key={action.label}
+                          aria-label={action.label}
+                          className={cn(moreItem, "flex-1 justify-center px-0")}
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            action.run();
+                          }}
+                        >
+                          <Icon icon={action.icon} size={20} />
+                        </DropdownMenuItem>
+                      ))}
+                    </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
-              <button
-                type="button"
+              <Button
+                variant="game"
+                size="icon"
                 aria-label="Close"
                 onClick={askToLeave}
-                className={hudButton}
               >
                 <Icon icon={CloseIcon} size={20} />
-              </button>
+              </Button>
             </div>
-            {moreOpen && !quiet && (
-              <div
-                id="board-more"
-                className="dr-rise pointer-events-auto grid w-48 gap-1 rounded-md border-2 border-white/15 bg-[#101114]/95 p-1.5"
-              >
-                <button
-                  type="button"
-                  className={moreItem}
-                  onClick={() => {
-                    setMoreOpen(false);
-                    s.restart();
-                  }}
-                >
-                  <Icon icon={RefreshIcon} size={18} />
-                  Restart
-                </button>
-                {pickedCar && (
-                  <button
-                    type="button"
-                    className={moreItem}
-                    onClick={() => {
-                      setMoreOpen(false);
-                      s.putBack();
-                    }}
-                  >
-                    <Icon icon={ChevronLeftIcon} size={18} />
-                    Put it back
-                  </button>
-                )}
-                {level && (
-                  <button
-                    type="button"
-                    className={moreItem}
-                    onClick={() => {
-                      setMoreOpen(false);
-                      openLevels();
-                    }}
-                  >
-                    <Icon icon={GridIcon} size={18} />
-                    All levels
-                  </button>
-                )}
-                {/* The whole board with no task. In place of this drive, as
-                    moving between levels is, so Close still leaves the game. */}
-                {!free && (
-                  <button
-                    type="button"
-                    className={moreItem}
-                    onClick={() => {
-                      setMoreOpen(false);
-                      navigate(freeDriveHref("more_menu"), { replace: true });
-                    }}
-                  >
-                    <Icon icon={GoIcon} size={18} />
-                    Free drive
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className={moreItem}
-                  onClick={() => {
-                    setMoreOpen(false);
-                    setSettingsOpen(true);
-                  }}
-                >
-                  <Icon icon={SettingsIcon} size={18} />
-                  Settings
-                </button>
-                <BoardZoomButtons
-                  driving
-                  className="flex-row justify-between border-t border-white/15 pt-1.5 [&>button]:flex-1"
-                />
-              </div>
-            )}
             {/* Free drive: the clock, the count, and the way to finish. On a
                 phone they stack, so the task column keeps its width. */}
             {free && (
@@ -1385,13 +1379,13 @@ export function BoardGame() {
                     );
                   })()}
                 </div>
-                <button
-                  type="button"
+                <Button
+                  variant="game-gold"
                   onClick={() => setSummaryOpen(true)}
-                  className="inline-flex min-h-11 items-center rounded-md bg-[#f6c416] px-3.5 text-[13.5px] font-bold text-[#17181b] outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  className="px-3.5 text-[13.5px] font-bold"
                 >
                   Finish
-                </button>
+                </Button>
               </div>
             )}
             {/* A car from a line-up is a lesson: no clock, no stars. */}
@@ -1482,25 +1476,25 @@ export function BoardGame() {
               </span>
               <span className="flex items-center gap-1">
                 {coachStep < COACH_STEPS.length - 1 && (
-                  <button
-                    type="button"
+                  <Button
+                    variant="ghost"
                     onClick={endCoach}
-                    className="min-h-11 px-3 font-mono text-[11px] font-bold tracking-widest uppercase underline underline-offset-4 outline-none"
+                    className="px-3 font-mono text-[11px] font-bold tracking-widest text-game-gold-foreground uppercase underline underline-offset-4 hover:bg-black/10 focus-visible:outline-game-gold-foreground"
                   >
                     Skip
-                  </button>
+                  </Button>
                 )}
-                <button
-                  type="button"
+                <Button
+                  variant="game"
                   onClick={() =>
                     coachStep < COACH_STEPS.length - 1
                       ? setCoachStep((n) => n + 1)
                       : endCoach()
                   }
-                  className="min-h-11 rounded-md bg-[#17181b] px-4 font-mono text-[11px] font-bold tracking-widest text-white uppercase outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  className="border-transparent bg-game-gold-foreground px-4 font-mono text-[11px] font-bold tracking-widest uppercase hover:bg-game"
                 >
                   {coachStep < COACH_STEPS.length - 1 ? "Next" : "Got it"}
-                </button>
+                </Button>
               </span>
             </div>
           </div>
@@ -1670,21 +1664,21 @@ export function BoardGame() {
               Watch the right way
             </Button>
           )}
-          <button
-            type="button"
+          <Button
+            variant="quiet"
             onClick={pickedCar ? s.putBack : s.exit}
-            className="min-h-11 w-full text-center text-[13.5px] font-semibold text-ink-2 underline underline-offset-4 outline-none hover:text-ink focus-visible:text-ink"
+            className="w-full text-[13.5px]"
           >
             {pickedCar ? "Back to the cars" : "Close"}
-          </button>
+          </Button>
           {level && !pickedCar && (
-            <button
-              type="button"
+            <Button
+              variant="quiet"
               onClick={openLevels}
-              className="-mt-2 flex min-h-11 w-full items-center justify-center text-[13.5px] font-semibold text-ink-2 underline underline-offset-4 outline-none hover:text-ink focus-visible:text-ink"
+              className="-mt-2 w-full text-[13.5px]"
             >
               All levels
-            </button>
+            </Button>
           )}
         </BoardSheet>
       )}

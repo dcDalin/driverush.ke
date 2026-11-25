@@ -234,13 +234,14 @@ export function ShareButton({
                   {canSendPicture && (
                     <>
                       {" "}
-                      <button
-                        type="button"
+                      <Button
+                        variant="quiet"
+                        size="inline"
                         onClick={savePicture}
-                        className="font-semibold text-ink underline underline-offset-2"
+                        className="text-ink underline-offset-2"
                       >
                         Save it instead
-                      </button>
+                      </Button>
                     </>
                   )}
                 </p>

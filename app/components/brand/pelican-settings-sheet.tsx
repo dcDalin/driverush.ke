@@ -1,5 +1,6 @@
 import * as React from "react";
 
+import { ConfirmAction } from "~/components/brand/confirm-action";
 import {
   CheckIcon,
   FocusIcon,
@@ -217,16 +218,16 @@ export function PelicanSettingsSheet() {
               <span className="font-sans text-[10.5px] font-medium tracking-wider text-ink-2 uppercase">
                 Known {mastered} / {regions.length}
               </span>
-              <Button
-                variant="paper"
-                size="sm"
-                onClick={() => {
-                  if (window.confirm("Reset your progress on all signs?"))
-                    resetProgress();
-                }}
+              <ConfirmAction
+                title="Reset your progress on all signs?"
+                description="Every sign marked as known starts again. This cannot be undone."
+                confirm="Reset"
+                onConfirm={resetProgress}
               >
-                Reset mastery
-              </Button>
+                <Button variant="paper" size="sm">
+                  Reset mastery
+                </Button>
+              </ConfirmAction>
             </div>
           </SettingSection>
 
@@ -260,18 +261,16 @@ export function PelicanSettingsSheet() {
         </SheetBody>
 
         <SheetFooter>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              if (
-                window.confirm("Reset all trainer settings to their defaults?")
-              )
-                resetSettings();
-            }}
+          <ConfirmAction
+            title="Reset all trainer settings to their defaults?"
+            description="Your progress on the signs stays as it is."
+            confirm="Reset"
+            onConfirm={resetSettings}
           >
-            Reset all settings
-          </Button>
+            <Button variant="ghost" size="sm">
+              Reset all settings
+            </Button>
+          </ConfirmAction>
         </SheetFooter>
       </SheetContent>
     </Sheet>

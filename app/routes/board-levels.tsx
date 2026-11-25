@@ -8,6 +8,7 @@ import { Link } from "react-router";
 import { LevelPicker } from "~/components/board/level-picker";
 import { SiteFooter } from "~/components/brand/site-footer";
 import { SiteNav } from "~/components/brand/site-nav";
+import { Button } from "~/components/ui/button";
 import { COURSE_LEVELS, doneCount, UNITS } from "~/lib/board/curriculum";
 import {
   BOARD_LEVELS_DESCRIPTION,
@@ -83,12 +84,9 @@ export default function BoardLevelsPage() {
           <LevelPicker reveal stripClassName="top-16" />
 
           <p className="m-0 mt-8">
-            <Link
-              to={`${BOARD_PLAY_PATH}?learn=1`}
-              className="inline-flex min-h-11 items-center font-sans text-[14.5px] font-bold text-ink underline decoration-rush decoration-2 underline-offset-4 outline-none hover:text-rush focus-visible:text-rush"
-            >
-              Explore the board
-            </Link>
+            <Button variant="quiet-rush" asChild>
+              <Link to={`${BOARD_PLAY_PATH}?learn=1`}>Explore the board</Link>
+            </Button>
           </p>
         </div>
       </main>

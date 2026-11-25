@@ -8,6 +8,7 @@ import * as React from "react";
 
 import type { ExtraCar } from "~/components/board/board-table";
 import { LoadingPanel } from "~/components/brand/traffic-loader";
+import { Button } from "~/components/ui/button";
 import { analytics } from "~/lib/analytics";
 import type { BoardCarId } from "~/lib/board/cars";
 import type { BoardChallenge } from "~/lib/board/challenges";
@@ -67,13 +68,13 @@ class LoadGuard extends React.Component<
         <p className="m-0 max-w-sm text-[15px] leading-snug">
           The board did not finish loading. Check your connection and try again.
         </p>
-        <button
-          type="button"
+        <Button
+          variant="game-gold"
           onClick={this.props.onRetry}
-          className="min-h-11 rounded-md bg-[#f6c416] px-5 text-[14.5px] font-bold text-[#17181b] outline-none focus-visible:ring-2 focus-visible:ring-white"
+          className="font-bold"
         >
           Try again
-        </button>
+        </Button>
       </div>
     );
   }

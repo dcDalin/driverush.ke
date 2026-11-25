@@ -9,6 +9,7 @@ import { Link } from "react-router";
 
 import { RoundDoneScene } from "~/components/brand/art/scenes";
 import { CelebrationConfetti } from "~/components/brand/celebration-confetti";
+import { ConfirmAction } from "~/components/brand/confirm-action";
 import { Icon } from "~/components/brand/icon";
 import {
   ArrowRightIcon,
@@ -243,23 +244,21 @@ export function TrainerResultCard({
                 </p>
               )}
               {allKnown && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    // It wipes everything learned, so it asks first.
-                    if (
-                      window.confirm(
-                        "Reset your progress? Everything marked as known starts again.",
-                      )
-                    ) {
-                      onResetMastery();
-                    }
-                  }}
-                  className="mt-2 inline-flex items-center gap-1.5 font-sans text-[10px] font-medium tracking-wider text-ink-3 uppercase outline-none hover:text-ink focus-visible:text-ink"
+                // It wipes everything learned, so it asks first.
+                <ConfirmAction
+                  title="Reset your progress?"
+                  description="Everything marked as known starts again."
+                  confirm="Reset"
+                  onConfirm={onResetMastery}
                 >
-                  <Icon icon={RefreshIcon} size={11} />
-                  Reset progress
-                </button>
+                  <Button
+                    variant="quiet"
+                    className="mt-1 h-auto min-h-9 gap-1.5 text-[10px] font-medium tracking-wider text-ink-3 uppercase no-underline hover:underline"
+                  >
+                    <Icon icon={RefreshIcon} size={11} />
+                    Reset progress
+                  </Button>
+                </ConfirmAction>
               )}
             </motion.div>
           )}

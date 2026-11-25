@@ -57,8 +57,8 @@ const TOTAL = COURSE_LEVELS.length;
 /** More levels today than this are said as "2 of 9", not drawn as dots. */
 const MAX_DOTS = 6;
 
-const quiet =
-  "inline-flex min-h-11 items-center font-sans text-[14.5px] font-bold text-ink underline decoration-rush decoration-2 underline-offset-4 outline-none hover:text-rush focus-visible:text-rush";
+/** Layout for a quiet-rush Button: a long level name wraps. */
+const quiet = "h-auto min-h-11 justify-start text-left whitespace-normal";
 
 export function BoardLevels({ className }: { className?: string }) {
   const saved = useCourseProgress();
@@ -193,9 +193,11 @@ export function BoardLevels({ className }: { className?: string }) {
             </p>
           )}
           {weakest && weakest.kind === "drive" && (
-            <Link to={levelHref(weakest.id)} className={quiet}>
-              Or get 3 stars on level {weakest.n}: {weakest.title}
-            </Link>
+            <Button variant="quiet-rush" asChild className={quiet}>
+              <Link to={levelHref(weakest.id)}>
+                Or get 3 stars on level {weakest.n}: {weakest.title}
+              </Link>
+            </Button>
           )}
         </div>
       </div>
@@ -230,9 +232,9 @@ export function BoardLevels({ className }: { className?: string }) {
           <h2 className="m-0 font-display text-[18px] leading-tight font-extrabold tracking-tight text-ink uppercase">
             Units
           </h2>
-          <Link to={BOARD_LEVELS_PATH} className={quiet}>
-            All levels
-          </Link>
+          <Button variant="quiet-rush" asChild className={quiet}>
+            <Link to={BOARD_LEVELS_PATH}>All levels</Link>
+          </Button>
         </div>
         <ol className="m-0 grid list-none gap-2 p-0 sm:grid-cols-2">
           {units.map((unit, i) => {
@@ -331,9 +333,9 @@ export function BoardLevels({ className }: { className?: string }) {
         <Icon icon={ChevronRightIcon} size={18} className="shrink-0" />
       </Link>
 
-      <Link to={`${BOARD_PLAY_PATH}?learn=1`} className={quiet}>
-        Explore the board
-      </Link>
+      <Button variant="quiet-rush" asChild className={quiet}>
+        <Link to={`${BOARD_PLAY_PATH}?learn=1`}>Explore the board</Link>
+      </Button>
     </div>
   );
 }

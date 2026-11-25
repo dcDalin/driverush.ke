@@ -13,6 +13,8 @@ import {
   PlayIcon,
   RefreshIcon,
 } from "~/components/brand/icons";
+import { Button } from "~/components/ui/button";
+import { Slider } from "~/components/ui/slider";
 import { REVERSE_COLOR, ROUTE_COLOR } from "~/lib/board/lessons";
 import { type Route, type RouteStep, stepPoints } from "~/lib/board/network";
 import {
@@ -66,8 +68,59 @@ export function StepTags({ step }: { step: RouteStep }) {
 /** Said wherever a step rests on a rule a driving school has not confirmed. */
 export const UNSURE_NOTE = "Schools differ here. Ask your instructor.";
 
-const iconButton =
-  "inline-flex size-11 shrink-0 items-center justify-center rounded-md border-2 border-white/15 bg-white/5 text-white outline-none transition-colors hover:bg-white/15 focus-visible:border-white disabled:opacity-35";
+/**
+ * Where the car is along the route, to drag. It follows the car frame by
+ * frame while it plays: only this small part re-renders, not the player.
+ */
+function PlaybackScrubber({
+  length,
+  playing,
+  follow,
+  onSeek,
+}: {
+  length: number;
+  playing: boolean;
+  /** Anything that moves the car without playing: a step, the end, a route. */
+  follow: unknown[];
+  onSeek: (distance: number) => void;
+}) {
+  const [at, setAt] = React.useState(play.distance);
+  React.useEffect(() => {
+    let frame = 0;
+    const tick = () => {
+      setAt(play.distance);
+      if (playing) frame = requestAnimationFrame(tick);
+    };
+    tick();
+    return () => cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing, ...follow]);
+  return (
+    <Slider
+      min={0}
+      max={length}
+      step={0.5}
+      value={[at]}
+      aria-label="Where the car is along the route"
+      onValueChange={(values) => {
+        // a one-thumb slider always reports one value
+        const next = values[0]!;
+        setAt(next);
+        onSeek(next);
+      }}
+      className={cn(
+        "h-6 cursor-pointer",
+        "[&_[data-slot=slider-track]]:bg-white/15",
+        "[&_[data-slot=slider-range]]:bg-game-gold",
+        "[&_[data-slot=slider-thumb]]:border-game-gold [&_[data-slot=slider-thumb]]:bg-game-gold",
+        "[&_[data-slot=slider-thumb]]:focus-visible:ring-white/40",
+      )}
+    />
+  );
+}
+
+/** Step and speed: dimmer than the panel's other buttons when spent. */
+const stepButton = "disabled:opacity-35";
 
 export function BoardPlayback({
   note,
@@ -87,24 +140,16 @@ export function BoardPlayback({
   const seek = useStage((s) => s.seek);
   const toStep = useStage((s) => s.toStep);
 
-  // The slider follows the car without re-rendering on every frame.
-  const slider = React.useRef<HTMLInputElement>(null);
-  React.useEffect(() => {
-    let frame = 0;
-    const follow = () => {
-      if (slider.current) slider.current.value = String(play.distance);
-      if (playing) frame = requestAnimationFrame(follow);
-    };
-    follow();
-    return () => cancelAnimationFrame(frame);
-  }, [playing, index, ended, route]);
-
   // Space plays and pauses, as in any player.
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== " ") return;
       const target = e.target as HTMLElement | null;
-      if (target && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(target.tagName)) {
+      if (
+        target &&
+        (/^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(target.tagName) ||
+          target.getAttribute("role") === "slider")
+      ) {
         return;
       }
       e.preventDefault();
@@ -146,35 +191,31 @@ export function BoardPlayback({
         </div>
       )}
 
-      <input
-        ref={slider}
-        type="range"
-        min={0}
-        max={route.length}
-        step={0.5}
-        defaultValue={0}
-        aria-label="Where the car is along the route"
-        className="h-6 w-full cursor-pointer accent-[#f6c416]"
-        onChange={(e) => {
+      <PlaybackScrubber
+        length={route.length}
+        playing={playing}
+        follow={[index, ended, route]}
+        onSeek={(distance) => {
           setPlaying(false);
-          seek(Number(e.target.value));
+          seek(distance);
         }}
       />
 
       <div className="flex items-center gap-2">
-        <button
-          type="button"
+        <Button
+          variant="game-outline"
+          size="icon"
           aria-label="Previous step"
-          className={iconButton}
+          className={stepButton}
           disabled={index === 0}
           onClick={() => toStep(index - 1)}
         >
           <Icon icon={ChevronLeftIcon} size={18} />
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="game-gold"
           aria-label={ended ? "Play again" : playing ? "Pause" : "Play"}
-          className="inline-flex h-11 min-w-0 flex-1 items-center justify-center rounded-md border-2 border-[#f6c416] bg-[#f6c416] text-[#17181b] transition-colors outline-none hover:bg-[#ffd84d] focus-visible:border-white"
+          className="min-w-0 flex-1 gap-0 px-0"
           onClick={() => {
             cam.follow = true;
             setPlaying(!playing);
@@ -187,20 +228,22 @@ export function BoardPlayback({
           <span className="ml-2 font-mono text-[11px] font-bold tracking-widest uppercase">
             {ended ? "Again" : playing ? "Pause" : "Play"}
           </span>
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="game-outline"
+          size="icon"
           aria-label="Next step"
-          className={iconButton}
+          className={stepButton}
           disabled={index >= total - 1}
           onClick={() => toStep(index + 1)}
         >
           <Icon icon={ChevronRightIcon} size={18} />
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant="game-outline"
+          size="icon"
           aria-label={`Playback speed ${rate} times. Change speed.`}
-          className={cn(iconButton, "w-14 font-mono text-[12px] font-bold")}
+          className={cn(stepButton, "w-14 font-mono text-[12px] font-bold")}
           onClick={() => {
             const next =
               PLAY_RATES[
@@ -210,7 +253,7 @@ export function BoardPlayback({
           }}
         >
           {rate}x
-        </button>
+        </Button>
       </div>
     </div>
   );

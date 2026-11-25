@@ -99,6 +99,14 @@
   --color-plate-blue-foreground: var(--plate-blue-foreground);
   --color-magenta-foreground: var(--magenta-foreground);
 
+  /* ---------- The game (Model Town Board) ----------
+     The table is played on a dark ground in both themes, so these do not
+     flip in dark mode. Gold is the game's one action colour. */
+  --color-game: var(--game);
+  --color-game-gold: var(--game-gold);
+  --color-game-gold-hover: var(--game-gold-hover);
+  --color-game-gold-foreground: var(--game-gold-foreground);
+
   /* ---------- Status — semantic aliases over brand voices ---------- */
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
@@ -276,6 +284,12 @@
   --cream: #fff4d6;
   --rust: #7a2a12;
   --olive: #4f5b26;
+
+  /* The game: the same in both themes (see @theme) */
+  --game: #101114;
+  --game-gold: #f6c416;
+  --game-gold-hover: #ffd84d;
+  --game-gold-foreground: #17181b;
 
   --amber-foreground: var(--kenya-black);
   --cream-foreground: var(--kenya-black);

@@ -8,6 +8,7 @@ import { useNavigate } from "react-router";
 
 import { Icon } from "~/components/brand/icon";
 import { ArrowRightIcon, LockIcon } from "~/components/brand/icons";
+import { Button } from "~/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -22,8 +23,9 @@ import { cn } from "~/lib/utils";
 export const hrefOfLevel = (level: Level) =>
   level.kind === "mock" ? BOARD_PLAY_PATH : levelHref(level.id);
 
-const button =
-  "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-soft px-4 py-2.5 text-center text-[14.5px] font-bold leading-snug no-underline outline-none transition-colors";
+/** Room for a long level name to wrap, at least a thumb high. */
+const choice =
+  "h-auto min-h-12 w-full whitespace-normal px-4 py-2.5 text-center font-bold leading-snug";
 
 export function useSkipAhead({
   next,
@@ -86,27 +88,21 @@ export function useSkipAhead({
               </div>
             </div>
             <div className="grid gap-2">
-              <button
-                type="button"
+              <Button
+                variant="rush"
                 onClick={() => go(next, false)}
-                className={cn(
-                  button,
-                  "bg-rush text-white hover:brightness-90 focus-visible:ring-2 focus-visible:ring-ink",
-                )}
+                className={choice}
               >
                 Go to level {next.n}
                 <Icon icon={ArrowRightIcon} size={16} />
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant="paper"
                 onClick={() => go(asked, true)}
-                className={cn(
-                  button,
-                  "border border-ink/25 text-ink hover:bg-paper-2 focus-visible:bg-paper-2",
-                )}
+                className={choice}
               >
                 Skip ahead to level {asked.n}
-              </button>
+              </Button>
             </div>
           </div>
         )}

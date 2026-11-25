@@ -132,13 +132,9 @@ export function InstallNudge({
             Add it
           </Button>
         )}
-        <button
-          type="button"
-          onClick={close}
-          className="min-h-11 px-3 text-[13.5px] font-semibold text-ink-2 underline underline-offset-4 outline-none hover:text-ink focus-visible:text-ink"
-        >
+        <Button variant="quiet" onClick={close} className="px-3 text-[13.5px]">
           {way.kind === "prompt" ? "Not now" : "Got it"}
-        </button>
+        </Button>
       </span>
     </div>
   );

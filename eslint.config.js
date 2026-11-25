@@ -76,6 +76,24 @@ export default tseslint.config(
       "react/no-unescaped-entities": ["error", { forbid: [">", "}"] }],
       // Sponsor links keep the referrer so schools see the visits came from us.
       "react/jsx-no-target-blank": ["error", { allowReferrer: true }],
+      // shadcn/Radix controls render labelable elements (buttons, inputs), so a
+      // <label> wrapped round one labels it.
+      "jsx-a11y/label-has-associated-control": [
+        "error",
+        {
+          controlComponents: [
+            "Checkbox",
+            "Input",
+            "RadioGroupItem",
+            "Select",
+            "SelectTrigger",
+            "Slider",
+            "Switch",
+            "Textarea",
+          ],
+          depth: 4,
+        },
+      ],
       // Sheets and dialogs focus their first field on open, as Radix expects.
       "jsx-a11y/no-autofocus": "off",
       // react-three-fiber elements take three.js props.
