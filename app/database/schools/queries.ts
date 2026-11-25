@@ -28,7 +28,7 @@ export async function getSchool(
   return orThrow(
     await supabase
       .from("schools")
-      .select("id, name, status, sponsor_id")
+      .select("id, name, status, slug")
       .eq("id", schoolId)
       .maybeSingle(),
   );
@@ -41,7 +41,7 @@ export async function listBranches(
   return orThrow(
     await supabase
       .from("school_branches")
-      .select("id, name, town, is_active")
+      .select("id, name, town, is_active, address, lat, lng, phone, hours")
       .eq("school_id", schoolId)
       .order("name"),
   );
@@ -97,5 +97,21 @@ export async function listStudentProgress(
 ): Promise<StudentProgressRow[]> {
   return orThrow(
     await supabase.rpc("school_student_progress", { p_school_id: schoolId }),
+  );
+}
+
+/** The school's profile (owner, admins and staff read it), or null before its first edit. */
+export async function getSchoolProfile(
+  supabase: TypedSupabaseClient,
+  schoolId: string,
+) {
+  return orThrow(
+    await supabase
+      .from("school_profiles")
+      .select(
+        "tagline, about, phone, whatsapp, email, website_url, socials, brand_paint, brand_ink, logo, logo_mono, updated_at",
+      )
+      .eq("school_id", schoolId)
+      .maybeSingle(),
   );
 }

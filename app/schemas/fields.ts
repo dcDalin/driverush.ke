@@ -47,3 +47,13 @@ export const OptionalTextSchema = z
   .trim()
   .max(80, "At most 80 characters.")
   .default("");
+
+/** A calendar day as a date input gives it: YYYY-MM-DD. */
+export const DaySchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date.");
+
+/** An optional day: empty becomes "". */
+export const OptionalDaySchema = z
+  .union([z.literal(""), DaySchema])
+  .default("");

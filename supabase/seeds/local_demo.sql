@@ -59,9 +59,9 @@ begin
     return;
   end if;
 
-  insert into public.schools (slug, name, sponsor_id) values ('heltz', 'Heltz Driving School', 'heltz')
+  insert into public.schools (slug, name) values ('heltz', 'Heltz Driving School')
   returning id into v_heltz;
-  insert into public.schools (slug, name, sponsor_id) values ('topgear', 'Top Gear Driving School', 'topgear')
+  insert into public.schools (slug, name) values ('topgear', 'Top Gear Driving School')
   returning id into v_topgear;
 
   insert into public.school_branches (school_id, name, town) values (v_heltz, 'Nairobi CBD', 'Nairobi')

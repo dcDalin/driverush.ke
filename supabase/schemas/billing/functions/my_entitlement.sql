@@ -4,7 +4,7 @@
 -- What the signed-in learner gets right now, for the app to decide content
 -- and livery:
 --   school  a current link with an active school: full access, that school's
---           livery (sponsor_id), until ends_at
+--           livery (school_slug, looked up in board_schools()), until ends_at
 --   paid    their own subscription is running: full access, plain cars
 --   free    a free account: progress saved, sponsor schools take turns
 -- A school link beats paid time (which is paused meanwhile).
@@ -18,7 +18,7 @@ returns table (
   tier text,
   school_id uuid,
   school_name text,
-  sponsor_id text,
+  school_slug text,
   branch_id uuid,
   ends_at timestamptz,
   pending_invites integer
@@ -51,7 +51,7 @@ begin
   end if;
 
   if v_school.id is not null then
-    return query select 'school'::text, v_school.id, v_school.name, v_school.sponsor_id,
+    return query select 'school'::text, v_school.id, v_school.name, v_school.slug,
                         v_link.branch_id, v_link.ends_at, v_pending;
     return;
   end if;
@@ -78,7 +78,7 @@ returns table (
   tier text,
   school_id uuid,
   school_name text,
-  sponsor_id text,
+  school_slug text,
   branch_id uuid,
   ends_at timestamptz,
   pending_invites integer

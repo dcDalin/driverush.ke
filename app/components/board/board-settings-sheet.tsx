@@ -178,7 +178,7 @@ export function BoardSettingsSheet({
                       <img
                         src={
                           sponsor?.livery && choice.value !== "random"
-                            ? carThumb(choice.value, sponsor.id)
+                            ? carThumb(choice.value, sponsor)
                             : choice.thumb
                         }
                         // Offline, a school's picture may not be saved yet:

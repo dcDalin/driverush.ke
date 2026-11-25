@@ -19,7 +19,8 @@ import { useSearchParams } from "react-router";
 import type { CarView } from "~/components/board/sponsor-car-canvas";
 import { BOARD_CARS, type BoardCarId } from "~/lib/board/cars";
 import { CAR_COLORS } from "~/lib/board/full-board";
-import { sponsorById } from "~/lib/board/sponsors";
+import { useLiveryPreview } from "~/lib/board/livery-preview";
+import { sponsorById, useCatalog } from "~/lib/board/school-catalog";
 
 import type { Route } from "./+types/car-thumb";
 
@@ -46,7 +47,12 @@ export default function CarThumb() {
   const wanted = params.get("car");
   const car: BoardCarId =
     BOARD_CARS.find((c) => c.id === wanted)?.id ?? BOARD_CARS[0].id;
-  const school = sponsorById(params.get("school"));
+  const preview = useLiveryPreview();
+  const schools = useCatalog();
+  const school =
+    preview.state === "ready"
+      ? preview.sponsor
+      : sponsorById(params.get("school"), schools);
   const number = (name: string, fallback: number) => {
     const n = Number(params.get(name));
     return params.has(name) && Number.isFinite(n) ? n : fallback;

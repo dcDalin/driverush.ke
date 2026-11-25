@@ -17,6 +17,10 @@
  *                    tab's session, with no shuffling: for showing a school
  *                    its own car, checking one before it goes live, and
  *                    recording promo videos.
+ *   `?livery=<id>`   staff only: holds a draft livery for a preview
+ *                    (`holdPreview`, from `board-play.tsx`).
+ *
+ * The schools themselves come from `~/lib/board/school-catalog` (Supabase).
  */
 import * as React from "react";
 
@@ -24,10 +28,11 @@ import { analytics, getPostHog } from "~/lib/analytics";
 import {
   askedSchool,
   pickSponsor,
+  previewSchool,
   type Sponsor,
   sponsorById,
   type SponsorPlace,
-} from "~/lib/board/sponsors";
+} from "~/lib/board/school-catalog";
 
 /** A held school (`?sponsor=`), for the tab's session. */
 const KEY = "driverush:sponsor";
@@ -87,9 +92,16 @@ function subscribe(listener: () => void) {
 
 function show(next: Sponsor | null, { remember }: { remember: boolean }) {
   const changed = current === undefined || current?.id !== next?.id;
+  // The same school can come back as another object (a staff preview of a
+  // new livery, a refreshed list): the board still has to redraw.
+  const redraw = changed || current !== next;
   current = next;
   if (next && remember) write("localStorage", LAST_KEY, next.id);
-  if (!changed) return;
+  if (!redraw) return;
+  if (!changed) {
+    for (const listener of listeners) listener();
+    return;
+  }
   // Every event after this carries the school, so drives can be counted per
   // school. PostHog keeps registered properties across visits, so no school
   // clears the last one.
@@ -112,17 +124,15 @@ function heldId(): string | null {
 export function visitSponsor(): Sponsor | null {
   if (typeof window === "undefined") return null;
   if (current === undefined) {
-    const now = new Date();
     // A held school that does not exist (an old link) holds nothing.
     const pinned = sponsorById(heldId());
     held = pinned !== null;
     waiting = true;
     show(
       pinned ??
-        askedSchool(inAddress("school"), { now }) ??
+        askedSchool(inAddress("school")) ??
         pickSponsor({
           roll: Math.random(),
-          now,
           last: read("localStorage", LAST_KEY),
         }),
       // A held school is not a turn: the shuffle carries on from before it.
@@ -141,7 +151,7 @@ export function enterPlay(asked: string | null): void {
   if (typeof window === "undefined") return;
   const had = visitSponsor();
   if (held) return;
-  const school = askedSchool(asked, { now: new Date() });
+  const school = askedSchool(asked);
   if (school && school.id !== had?.id) {
     waiting = true;
     show(school, { remember: true });
@@ -167,7 +177,7 @@ export function startRound(queue: readonly unknown[], pos: number): void {
     return;
   }
   if (held) return;
-  show(pickSponsor({ roll: Math.random(), now: new Date(), last: had?.id }), {
+  show(pickSponsor({ roll: Math.random(), last: had?.id }), {
     remember: true,
   });
 }
@@ -175,7 +185,7 @@ export function startRound(queue: readonly unknown[], pos: number): void {
 /** The school the next task will show, when it is another one. */
 export function nextSchool(): Sponsor | null {
   if (typeof window === "undefined" || held || !current) return null;
-  const next = pickSponsor({ roll: 0, now: new Date(), last: current.id });
+  const next = pickSponsor({ roll: 0, last: current.id });
   return next && next.id !== current.id ? next : null;
 }
 
@@ -202,21 +212,31 @@ export function applyLiveryRule(
     show(
       pickSponsor({
         roll: Math.random(),
-        now: new Date(),
         last: read("localStorage", LAST_KEY),
       }),
-      {
-        remember: true,
-      },
+      { remember: true },
     );
     return;
   }
   ruled = true;
   held = true;
-  // A school's own learners see its livery even outside its paid period.
+  // A school's own learners see its livery whether or not it sponsors.
   show(rule.kind === "school" ? sponsorById(rule.sponsorId) : null, {
     remember: false,
   });
+}
+
+/**
+ * Staff preview a livery (a draft too) on the board: it joins the list for
+ * this tab and is held like `?sponsor=`.
+ */
+export function holdPreview(sponsor: Sponsor): void {
+  if (typeof window === "undefined") return;
+  previewSchool(sponsor);
+  write("sessionStorage", KEY, sponsor.id);
+  visitSponsor();
+  held = true;
+  show(sponsor, { remember: false });
 }
 
 /** A school is held by `?sponsor=`: the address is not ours to write. */

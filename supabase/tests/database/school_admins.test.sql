@@ -79,7 +79,7 @@ select throws_ok(
 
 -- ── Staff create schools and set owners ────────────────────────────────
 create temp table new_school as select tests.run_as(pg_temp.w('staff'),
-  $$select public.admin_create_school('Fresh School', 'fresh-school', null, 'founder@example.test')$$)::uuid as id;
+  $$select public.admin_create_school('Fresh School', 'fresh-school', 'founder@example.test')$$)::uuid as id;
 select is(
   (select role::text from public.school_member_invites where school_id = (select id from new_school) and status = 'pending'),
   'owner', 'a school created for an email with no account waits on an owner invite');

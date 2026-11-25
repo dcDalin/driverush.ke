@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 /**
  * Photograph each board vehicle from `/tools/car-thumb` into
- * `public/assets/board/cars/thumbs/<id>.webp`, and again in each live driving
- * school's paint and roof board into `thumbs/<school>/<id>.webp`: the small
+ * `public/assets/board/cars/thumbs/<id>.webp`, and again in each driving
+ * school's paint and roof board into its livery folder,
+ * `seed/fixtures/liveries/<school>/thumbs/<id>.webp` (published to Supabase
+ * Storage with the rest of its livery, `npm run livery:publish`): the small
  * pictures beside the names in the board's car menu, which shows the school
  * on the board at the time, as the car will look when driven.
  *
@@ -16,9 +18,14 @@
  *   npm run build:car-thumbs     # terminal 2
  *   DEV_URL=http://localhost:5732 npm run build:car-thumbs
  *
- * After a vehicle's model or a school's paint changes, run this again and bump
- * `THUMB_V` in `app/lib/board/cars.ts` and the `?v=` in `public/sw.js`. The
- * script prints the picture size to put in `CAR_THUMB_SIZE` there.
+ * The dev server must show the schools: seed the local database
+ * (`npm run db:seed`), or publish the school locally first
+ * (`npm run livery:publish <school> -- --live`).
+ *
+ * After a vehicle's model changes, run this again and bump `THUMB_V` in
+ * `app/lib/board/cars.ts` and the `?v=` in `public/sw.js` (the plain
+ * pictures; a school's are named by content). The script prints the picture
+ * size to put in `CAR_THUMB_SIZE` there.
  *
  * Requires Google Chrome, as `build-og-images.mjs` does.
  */
@@ -35,6 +42,7 @@ const execFileAsync = promisify(execFile);
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OUT_DIR = path.join(ROOT, "public", "assets", "board", "cars", "thumbs");
+const LIVERIES = path.join(ROOT, "seed", "fixtures", "liveries");
 const DEV_URL = process.env.DEV_URL ?? "http://localhost:5730";
 
 /** Keep in step with WIDTH and HEIGHT in `app/routes/tools/car-thumb.tsx`. */
@@ -82,25 +90,11 @@ async function carIds() {
   return [...list.matchAll(/^\s{4}id: "([a-z]+)"/gm)].map((m) => m[1]);
 }
 
-/**
- * The live schools, read from the app's own list: each entry's `id`, and its
- * `live` that follows.
- */
+/** The schools with a livery folder (seed/fixtures/liveries/<school>/). */
 async function liveSchools() {
-  const source = await readFile(
-    path.join(ROOT, "app", "lib", "board", "sponsors.ts"),
-    "utf8",
-  );
-  const list = source.slice(source.indexOf("export const SPONSORS"));
-  const live = [];
-  let id = null;
-  for (const m of list.matchAll(
-    /^ {4}(id|live): (?:"([a-z]+)"|(true|false))/gm,
-  )) {
-    if (m[1] === "id") id = m[2];
-    else if (id && m[3] === "true") live.push(id);
-  }
-  return live;
+  const { readdir } = await import("node:fs/promises");
+  const entries = await readdir(LIVERIES, { withFileTypes: true });
+  return entries.filter((e) => e.isDirectory()).map((e) => e.name);
 }
 
 /** One vehicle, cut to its own edges. Null if the shot came back empty. */
@@ -189,7 +183,9 @@ async function main() {
       const width = Math.round(shot.width * shrink);
       const height = Math.round(shot.height * shrink);
       const small = await sharp(shot.data).resize(width, height).toBuffer();
-      const dir = shot.school ? path.join(OUT_DIR, shot.school) : OUT_DIR;
+      const dir = shot.school
+        ? path.join(LIVERIES, shot.school, "thumbs")
+        : OUT_DIR;
       await mkdir(dir, { recursive: true });
       const out = path.join(dir, `${shot.id}.webp`);
       await sharp({

@@ -34,8 +34,8 @@ select is((pg_temp.link('wanjiru@example.test', 'school_a')).status, 'active', '
 select is((pg_temp.link('wanjiru@example.test', 'school_a')).ends_at, now() + interval '1 month', 'the link runs one month from the match');
 select is(pg_temp.tier((select id from wanjiru)), 'school', 'the learner''s tier is school');
 select is(
-  tests.value_as((select id::text from wanjiru), 'select sponsor_id from public.my_entitlement()'),
-  (select sponsor_id from public.schools where id = pg_temp.w('school_a')::uuid),
+  tests.value_as((select id::text from wanjiru), 'select school_slug from public.my_entitlement()'),
+  (select slug from public.schools where id = pg_temp.w('school_a')::uuid),
   'and they wear the school''s livery');
 
 -- ── Only a confirmed email matches ─────────────────────────────────────

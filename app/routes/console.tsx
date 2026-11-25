@@ -3,7 +3,11 @@
  *
  *   Schools  every school with its owner, status, branches and students this
  *            month; create a school for an owner's email; suspend, archive or
- *            reactivate; hand a school to another owner; open its dashboard.
+ *            reactivate; hand a school to another owner; open its dashboard
+ *            (where staff can edit its profile too).
+ *            Its liveries: preview a draft on the board, publish it, retire
+ *            it (drafts come from `npm run livery:publish`). Its
+ *            sponsorships: when its cars take turns for everyone.
  *   Staff    (su only) who holds a staff role; grant or revoke by email.
  *
  * The loader reads `getConsoleOverview`; the action validates each intent
@@ -27,7 +31,6 @@ import {
 } from "~/database/console/queries";
 import type { Result } from "~/database/result";
 import { getRequestClient, requireStaff } from "~/lib/auth/require.server";
-import { SPONSORS } from "~/lib/board/sponsors";
 import { formFields, readFormIntent } from "~/lib/forms/form-intent";
 import { dataWithError, dataWithSuccess } from "~/lib/forms/toast.server";
 import { validateForm } from "~/lib/forms/validate-form.server";
@@ -35,7 +38,7 @@ import {
   ConsoleActionSchema,
   CreateSchoolSchema,
   GrantRoleSchema,
-  NO_LIVERY,
+  SetSponsorshipSchema,
   TransferOwnerSchema,
 } from "~/schemas/console";
 
@@ -61,7 +64,6 @@ export async function loader({ request }: Route.LoaderArgs) {
       state: "ok" as const,
       su,
       me: caller.userId,
-      sponsors: SPONSORS.map((s) => ({ id: s.id, school: s.school })),
       ...overview,
     },
     { headers },
@@ -102,7 +104,6 @@ export async function action({ request }: Route.ActionArgs) {
       await consoleDb.createSchool(supabase, {
         name: v.name,
         slug: v.slug,
-        sponsorId: v.sponsorId === NO_LIVERY ? null : v.sponsorId,
         ownerEmail: v.ownerEmail,
       }),
       "School created.",
@@ -125,6 +126,18 @@ export async function action({ request }: Route.ActionArgs) {
       result.data === "invited"
         ? "Invited: they become owner when they sign up."
         : "New owner set.",
+    );
+  }
+
+  if (intent === "set-sponsorship") {
+    const { errors, data: v } = await validateForm(
+      formData,
+      SetSponsorshipSchema,
+    );
+    if (errors || !v) return invalid(errors);
+    return reply(
+      await consoleDb.setSponsorship(supabase, v),
+      "Sponsorship saved.",
     );
   }
 
@@ -158,6 +171,24 @@ export async function action({ request }: Route.ActionArgs) {
       "Status saved.",
     );
   }
+  if (v.intent === "publish-livery") {
+    return reply(
+      await consoleDb.publishLivery(supabase, v.liveryId),
+      "Livery published. Phones see it within a few minutes.",
+    );
+  }
+  if (v.intent === "retire-livery") {
+    return reply(
+      await consoleDb.retireLivery(supabase, v.liveryId),
+      "Livery taken off the board.",
+    );
+  }
+  if (v.intent === "end-sponsorship") {
+    return reply(
+      await consoleDb.endSponsorship(supabase, v.sponsorshipId),
+      "Sponsorship ended today.",
+    );
+  }
   const userId = await findAccountIdByEmail(supabase, v.email);
   if (!userId) return noAccount();
   return reply(
@@ -188,7 +219,7 @@ export default function Console({ loaderData }: Route.ComponentProps) {
             </h1>
             <section className="flex flex-col gap-4">
               <h2 className="font-display text-[20px] font-bold">Schools</h2>
-              <CreateSchool sponsors={loaderData.sponsors} />
+              <CreateSchool />
               {loaderData.schools.length === 0 ? (
                 <p className="text-[14px] text-ink-3">No schools yet.</p>
               ) : (

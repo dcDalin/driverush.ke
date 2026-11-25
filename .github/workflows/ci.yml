@@ -93,11 +93,16 @@ jobs:
           {
             echo "SUPABASE_URL=$API_URL"
             echo "SUPABASE_PUBLISHABLE_KEY=$PUBLISHABLE_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
             echo "VITE_SUPABASE_URL=$API_URL"
             echo "VITE_SUPABASE_PUBLISHABLE_KEY=$PUBLISHABLE_KEY"
             echo "SESSION_SECRET=$(openssl rand -hex 32)"
             echo "HONEYPOT_SECRET=$(openssl rand -hex 32)"
           } >> "$GITHUB_ENV"
+      - name: Seed the full demo (schools' liveries in Storage)
+        run: |
+          npm run db:sync
+          npm run db:seed -- --yes
       - name: Build
         run: npx react-router build
       - name: Install Chromium

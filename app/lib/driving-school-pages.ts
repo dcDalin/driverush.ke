@@ -7,7 +7,7 @@
  * are never stated as fact. A school that publishes no prices gets a page that
  * says so and what to ask, never an estimate. We don't rank schools, and a
  * page here is not a review: sponsors of the board get the same page as
- * anyone else (see `sponsorId`), and being a sponsor never adds a price.
+ * anyone else (see `schoolSlug`), and being a sponsor never adds a price.
  *
  * Read by the route (`routes/driving-school.tsx`), the sitemap, `/llms.txt`
  * and `title-lengths.test.ts`.
@@ -52,8 +52,8 @@ export type DrivingSchoolPage = {
   courseLength?: { text: string; source: SchoolSource };
   /** Other things the school says about itself, each with a source. */
   notes: { text: string; source: SchoolSource }[];
-  /** The `Sponsor` id in `lib/board/sponsors.ts`, when the school's cars are on our Model Town Board. */
-  sponsorId?: string;
+  /** The school's slug in Supabase (`board_schools()`), when its cars can be on our Model Town Board. */
+  schoolSlug?: string;
   /** Another school shares the name: say so, so learners check the town. */
   nameClash?: string;
   /** When we last checked the school's own pages. */
@@ -198,7 +198,7 @@ export const DRIVING_SCHOOL_PAGES: readonly DrivingSchoolPage[] = [
         ),
       },
     ],
-    sponsorId: "petanns",
+    schoolSlug: "petanns",
   }),
   school({
     slug: "aa-driving-school",
@@ -273,7 +273,7 @@ export const DRIVING_SCHOOL_PAGES: readonly DrivingSchoolPage[] = [
       },
     ],
     notes: [],
-    sponsorId: "aa",
+    schoolSlug: "aa",
   }),
   school({
     slug: "rocky-driving-school",
@@ -620,7 +620,7 @@ export const DRIVING_SCHOOL_PAGES: readonly DrivingSchoolPage[] = [
         ),
       },
     ],
-    sponsorId: "heltz",
+    schoolSlug: "heltz",
   }),
   school({
     slug: "top-gear-driving-school",
@@ -729,7 +729,7 @@ export const DRIVING_SCHOOL_PAGES: readonly DrivingSchoolPage[] = [
         source: TOPGEAR_FLIER,
       },
     ],
-    sponsorId: "topgear",
+    schoolSlug: "topgear",
   }),
   school({
     slug: "blixen-auto-driving-school",
@@ -808,7 +808,7 @@ export const DRIVING_SCHOOL_PAGES: readonly DrivingSchoolPage[] = [
         ),
       },
     ],
-    sponsorId: "blixen",
+    schoolSlug: "blixen",
   }),
   school({
     slug: "wings-driving-school",

@@ -32,6 +32,7 @@ import {
 import type { Seat } from "~/lib/board/joystick";
 import { posterPath, posterSchool } from "~/lib/board/poster";
 import { car as boardCar } from "~/lib/board/runtime";
+import { sponsorById } from "~/lib/board/school-catalog";
 import { cam, panBy } from "~/lib/board/stage";
 import { regionSpriteStyle } from "~/lib/image-focus";
 import { OG_CARDS, OG_HEIGHT, OG_WIDTH, type OgCardId } from "~/lib/og-cards";
@@ -201,7 +202,8 @@ function DefaultCard() {
  */
 function BoardCard() {
   const [params] = useSearchParams();
-  const still = posterPath(params.get("sponsor") ?? posterSchool());
+  const asked = sponsorById(params.get("sponsor"));
+  const still = posterPath(asked ?? posterSchool());
   return (
     <Card
       id="board"

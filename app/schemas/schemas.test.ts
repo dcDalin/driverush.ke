@@ -64,9 +64,9 @@ describe("form schemas", () => {
     expect(
       CreateSchoolSchema.safeParse({ ...base, slug: "Rafiki School" }).success,
     ).toBe(false);
-    expect(
-      CreateSchoolSchema.parse({ ...base, slug: "rafiki" }).sponsorId,
-    ).toBe("none");
+    expect(CreateSchoolSchema.parse({ ...base, slug: "Rafiki" }).slug).toBe(
+      "rafiki",
+    );
   });
 
   it("never explain with an em dash", () => {

@@ -9,7 +9,7 @@
 -- ===================================================
 begin;
 
-select plan(40);
+select plan(56);
 
 create temp table w as select tests.make_world() as j;
 create function pg_temp.w(k text) returns text language sql as $$ select j ->> k from w $$;
@@ -23,24 +23,27 @@ insert into probed values
   ('school_set_admin_branches'), ('school_remove_admin'), ('school_cancel_member_invite'),
   ('school_add_student'), ('school_release_student'), ('school_cancel_student_invite'),
   ('school_move_student_branch'), ('school_student_progress'), ('school_members_list'),
-  ('learner_accept_school_link'), ('learner_decline_school_link'), ('my_entitlement');
+  ('learner_accept_school_link'), ('learner_decline_school_link'), ('my_entitlement'),
+  ('school_update_profile'), ('school_update_branch_details'),
+  ('admin_livery_draft_get'), ('admin_publish_livery'), ('admin_retire_livery'),
+  ('admin_set_sponsorship'), ('admin_end_sponsorship');
 
 -- ── anon can call nothing ──────────────────────────────────────────────
 select is(tests.sqlstate_as('anon', 'select public.my_entitlement()'), '42501',
   'anon cannot ask for an entitlement');
 select is(tests.sqlstate_as('anon', format('select public.school_add_student(%L, %L)', pg_temp.w('a1'), 'x@y.test')), '42501',
   'anon cannot add a student');
-select is(tests.sqlstate_as('anon', $$select public.admin_create_school('New School', 'new-school', null, 'o@x.test')$$), '42501',
+select is(tests.sqlstate_as('anon', $$select public.admin_create_school('New School', 'new-school', 'o@x.test')$$), '42501',
   'anon cannot create a school');
 
 -- ── DriveRush console ──────────────────────────────────────────────────
-select is(tests.sqlstate_as(pg_temp.w('learner_free'), $$select public.admin_create_school('New School', 'new-school', null, 'o@x.test')$$), '42501',
+select is(tests.sqlstate_as(pg_temp.w('learner_free'), $$select public.admin_create_school('New School', 'new-school', 'o@x.test')$$), '42501',
   'a learner cannot create a school');
-select is(tests.sqlstate_as(pg_temp.w('owner_a'), $$select public.admin_create_school('New School', 'new-school', null, 'o@x.test')$$), '42501',
+select is(tests.sqlstate_as(pg_temp.w('owner_a'), $$select public.admin_create_school('New School', 'new-school', 'o@x.test')$$), '42501',
   'a school owner cannot create a school');
-select is(tests.sqlstate_as('otp:' || pg_temp.w('staff'), $$select public.admin_create_school('New School', 'new-school', null, 'o@x.test')$$), '42501',
+select is(tests.sqlstate_as('otp:' || pg_temp.w('staff'), $$select public.admin_create_school('New School', 'new-school', 'o@x.test')$$), '42501',
   'DriveRush admin on an emailed-code session cannot create a school');
-select is(tests.sqlstate_as(pg_temp.w('staff'), $$select public.admin_create_school('New School', 'new-school', null, 'o@x.test')$$), 'ok',
+select is(tests.sqlstate_as(pg_temp.w('staff'), $$select public.admin_create_school('New School', 'new-school', 'o@x.test')$$), 'ok',
   'DriveRush admin on a password session creates a school');
 select is(tests.sqlstate_as(pg_temp.w('owner_a'), format('select public.admin_set_school_status(%L, %L)', pg_temp.w('school_a'), 'suspended')), '42501',
   'a school owner cannot suspend their school');
@@ -113,6 +116,42 @@ select is(tests.sqlstate_as(pg_temp.w('learner_free'), format('select public.lea
   'a learner cannot decline someone else''s link');
 select is(tests.sqlstate_as(pg_temp.w('learner_free'), 'select tier from public.my_entitlement()'), 'ok',
   'a learner reads their own entitlement');
+
+-- ── Profiles and branch details (owner or staff) ───────────────────────
+select is(tests.sqlstate_as(pg_temp.w('admin_a1'), format($$select public.school_update_profile(%L, 'Tag', null, null, null, null, null, '{}', null, null)$$, pg_temp.w('school_a'))), '42501',
+  'a branch admin cannot edit the school profile');
+select is(tests.sqlstate_as(pg_temp.w('owner_b'), format($$select public.school_update_profile(%L, 'Tag', null, null, null, null, null, '{}', null, null)$$, pg_temp.w('school_a'))), '42501',
+  'another school''s owner cannot edit the profile');
+select is(tests.sqlstate_as(pg_temp.w('owner_a'), format($$select public.school_update_profile(%L, 'Tag', null, null, null, null, null, '{}', '#aabbcc', null)$$, pg_temp.w('school_a'))), 'ok',
+  'the owner edits their school profile');
+select is(tests.sqlstate_as(pg_temp.w('admin_a1'), format($$select public.school_update_branch_details(%L, 'Moi Avenue', -1.28, 36.82, null, null)$$, pg_temp.w('a1'))), '42501',
+  'a branch admin cannot edit branch details');
+select is(tests.sqlstate_as(pg_temp.w('owner_a'), format($$select public.school_update_branch_details(%L, 'Moi Avenue', -1.28, 36.82, '0712 345 678', '{"mon": {"open": "08:00", "close": "17:00"}, "sun": null}')$$, pg_temp.w('a1'))), 'ok',
+  'the owner sets a branch''s address, pin, phone and hours');
+select is(tests.sqlstate_as('anon', 'select public.school_set_logo(gen_random_uuid(), ''logo'', null, null)'), '42501',
+  'no client can record a logo path');
+select is(tests.sqlstate_as(pg_temp.w('owner_a'), format('select public.school_set_logo(%L, ''logo'', null, null)', pg_temp.w('school_a'))), '42501',
+  'not even the school owner (only the server, after its upload)');
+
+-- ── Liveries and sponsorships (staff) ──────────────────────────────────
+select is(tests.sqlstate_as(pg_temp.w('owner_a'), 'select public.admin_livery_draft_get(gen_random_uuid())'), '42501',
+  'a school owner cannot preview drafts');
+select is(tests.sqlstate_as(pg_temp.w('owner_a'), 'select public.admin_publish_livery(gen_random_uuid())'), '42501',
+  'a school owner cannot publish a livery');
+select is(tests.sqlstate_as(pg_temp.w('owner_a'), 'select public.admin_retire_livery(gen_random_uuid())'), '42501',
+  'a school owner cannot retire a livery');
+select is(tests.sqlstate_as(pg_temp.w('owner_a'), format('select public.admin_set_sponsorship(%L, current_date, null, null)', pg_temp.w('school_a'))), '42501',
+  'a school owner cannot start a sponsorship');
+select is(tests.sqlstate_as(pg_temp.w('owner_a'), 'select public.admin_end_sponsorship(gen_random_uuid())'), '42501',
+  'a school owner cannot end a sponsorship');
+select is(tests.sqlstate_as('otp:' || pg_temp.w('staff'), format('select public.admin_set_sponsorship(%L, current_date, null, null)', pg_temp.w('school_a'))), '42501',
+  'staff on an emailed-code session cannot either');
+select is(tests.sqlstate_as(pg_temp.w('staff'), format('select public.admin_set_sponsorship(%L, current_date, null, null)', pg_temp.w('school_a'))), 'ok',
+  'staff on a password session start a sponsorship');
+select is(tests.sqlstate_as(pg_temp.w('staff'), 'select public.admin_publish_livery(gen_random_uuid())'), 'P0002',
+  'staff publishing a livery that does not exist get not_found');
+select is(tests.sqlstate_as('anon', 'select jsonb_typeof(public.board_schools())'), 'ok',
+  'anyone, guests included, reads the board''s schools');
 
 -- ── Coverage ───────────────────────────────────────────────────────────
 select is_empty(

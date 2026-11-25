@@ -64,7 +64,6 @@ describe("console", () => {
               name: "Route Test School",
               slug,
               ownerEmail: `${slug}@routes.test`,
-              sponsorId: "none",
             }),
             cookie,
           ),

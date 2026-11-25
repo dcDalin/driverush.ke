@@ -1,8 +1,8 @@
 /**
  * The three demo schools the full seed adds next to the test fixture's Heltz
- * and Top Gear (supabase/seeds/local_demo.sql, never changed here). Names and
- * `sponsorId` follow the live sponsors in app/lib/board/sponsors.ts, so each
- * school's learners see its paint on the board.
+ * and Top Gear (supabase/seeds/local_demo.sql, never changed here). Their
+ * slugs name their livery folders (seed/fixtures/liveries/<slug>/), which the
+ * media step publishes, so each school's learners see its paint on the board.
  *
  * Every school is made the way it would be for real: DriveRush staff create
  * it with an owner's email, the owner adds branches and admins.
@@ -20,7 +20,6 @@ export type AdminSpec = {
 export type SchoolSpec = {
   slug: string;
   name: string;
-  sponsorId: string;
   owner: { email: string; name: string; joins: "before" | "after" };
   branches: BranchSpec[];
   admins: AdminSpec[];
@@ -30,7 +29,6 @@ export const DEMO_SCHOOLS: SchoolSpec[] = [
   {
     slug: "blixen",
     name: "Blixen Auto Driving School",
-    sponsorId: "blixen",
     owner: {
       email: "owner@blixen.test",
       name: "Njoroge Kariuki",
@@ -60,7 +58,6 @@ export const DEMO_SCHOOLS: SchoolSpec[] = [
   {
     slug: "aa",
     name: "AA Driving School",
-    sponsorId: "aa",
     // Signs up after staff create the school: the owner invite is taken up then.
     owner: { email: "owner@aa.test", name: "Fatuma Ali", joins: "after" },
     branches: [
@@ -100,7 +97,6 @@ export const DEMO_SCHOOLS: SchoolSpec[] = [
   {
     slug: "petanns",
     name: "Petanns Driving School",
-    sponsorId: "petanns",
     owner: {
       email: "owner@petanns.test",
       name: "Peter Ann Owino",

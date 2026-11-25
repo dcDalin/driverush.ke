@@ -92,6 +92,7 @@ import {
   tick,
   view,
 } from "~/lib/board/runtime";
+import type { Sponsor, TopBoard } from "~/lib/board/school-catalog";
 import {
   SHOW_TOTAL,
   showcaseCamera,
@@ -103,7 +104,6 @@ import {
   sponsorShown,
   useVisitSponsor,
 } from "~/lib/board/sponsor-visit";
-import type { Sponsor, TopBoard } from "~/lib/board/sponsors";
 import {
   advance,
   asDriveSpan,
@@ -1177,6 +1177,7 @@ function Scene({
     return () => {
       alive = false;
       hung.forEach((t) => t.dispose());
+      table.room.rail(null);
       if (logoMesh) {
         table.group.remove(logoMesh);
         dispose(logoMesh);

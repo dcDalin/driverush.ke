@@ -1019,7 +1019,7 @@ export type FullBoardOptions = {
   }[];
   /**
    * A sponsoring school's logo (white on transparent), painted faintly in
-   * {@link sponsorSpot}. See `~/lib/board/sponsors`.
+   * {@link sponsorSpot}. See `~/lib/board/school-catalog`.
    */
   sponsorLogo?: string;
 };

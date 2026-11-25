@@ -43,7 +43,7 @@ to date when an asset or an agreement changes. No personal contact details here.
 
 ## Driving schools' brands (Model Town Board sponsors)
 
-- **What they are:** each school's name, logo and car paint, copied from the school's own car and logo so the board car is recognisably theirs. Drawn by `scripts/sponsor-art/<id>/design.mjs`, built by `npm run build:sponsors` into `public/assets/board/sponsors/<id>/`.
+- **What they are:** each school's name, logo and car paint, copied from the school's own car and logo so the board car is recognisably theirs. Drawn by `scripts/sponsor-art/<id>/design.mjs`, built by `npm run build:sponsors` into `seed/fixtures/liveries/<id>/`, and published to Supabase Storage (the `school-media` bucket) with `npm run livery:publish <id>` (`docs/school-media.md`). Schools' own logo uploads (dashboard, Profile) are theirs and stored there too.
 - **Heltz Driving Academy:** copied from the owner's photo of their car (`scripts/sponsor-art/heltz/reference.jpg`). Their real car has no roof board; the one on the board cars is our design in their look (owner, 2026-11-21).
   - **Agreement and artwork:** _to fill in: who at Heltz agreed, when, and where their artwork files are kept_
 - **Top Gear Driving School** (added 2026-11-21): copied from three photos of their cars and their logo, supplied by the owner (`scripts/sponsor-art/topgear/reference-*.{png,jpg}`, `logo.jpg`). The TG mark is traced from their logo. Their door lettering has no free match, so its letters are drawn to the photo's shapes.
@@ -55,7 +55,7 @@ to date when an asset or an agreement changes. No personal contact details here.
 - **Petanns Driving School** (Petanns Kenya, "Shule Ya Wakenya"; added 2026-11-22): copied from photos of their cars and their emblem, supplied by the owner (`scripts/sponsor-art/petanns/reference-*.jpg`, `logo.jpg`). Their emblem is shown as their own picture; it has a photograph of a car in it, whose own rights are theirs to answer for. Its outline is traced for one-colour places. Their phone number is on the paint as on their cars. Their real cars carry no roof board; the one on the board cars is our design in their look. No link: none of their material shows a site.
   - **Agreement and artwork:** _to fill in: who at Petanns agreed, when, and where their artwork files are kept_
 - **Typefaces standing in for the schools' lettering** (all SIL Open Font License, files and licences in `scripts/sponsor-art/fonts/`): Rubik Mono One and Righteous (Heltz); Anton, Alfa Slab One and Arvo Bold (Top Gear); Poppins and Michroma (Blixen); Poppins (AA); Alfa Slab One, Kaushan Script and Poppins (Petanns). Only pictures made with them are shipped, never the font files.
-- **If a school's sponsorship ends:** set `live: false` in `app/lib/board/sponsors.ts` (or remove its entry) and delete its folder in `public/assets/board/sponsors/`.
+- **If a school's sponsorship ends:** in the console, End its sponsorship (its cars stop taking turns) and Retire its livery if its own learners should stop seeing it too; then remove its files from the bucket through the Storage API (`docs/school-media.md`).
 
 ## Voice clips
 

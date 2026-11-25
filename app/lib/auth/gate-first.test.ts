@@ -11,6 +11,11 @@ import { describe, expect, it } from "vitest";
 
 const ROUTES = path.resolve(__dirname, "../../routes");
 const GATED = /^(school-|console|api\/)/;
+/**
+ * Public on purpose: the same answer for everyone, guests included, and
+ * cached by the CDN. Nothing here reads a session.
+ */
+const PUBLIC = new Set(["api/board-schools.ts"]);
 const GATES = /await (getRequestClient|requireUser|requireStaff)\(request\)/;
 
 function files(dir: string, prefix = ""): string[] {
@@ -23,7 +28,7 @@ function files(dir: string, prefix = ""): string[] {
 
 describe("gate first", () => {
   const gated = files(ROUTES).filter(
-    (file) => GATED.test(file) && /\.tsx?$/.test(file),
+    (file) => GATED.test(file) && /\.tsx?$/.test(file) && !PUBLIC.has(file),
   );
 
   it("finds the account routes", () => {

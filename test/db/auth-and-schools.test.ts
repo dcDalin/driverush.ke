@@ -44,7 +44,6 @@ describe("the access token", () => {
     const { error } = await staff.rpc("admin_create_school", {
       p_name: "Code Session School",
       p_slug: "code-session-school",
-      p_sponsor_id: "",
       p_owner_email: "nobody@vitest.test",
     });
     expect(error?.code).toBe("42501");
@@ -95,7 +94,7 @@ describe("a school links a learner by email", () => {
     expect(error).toBeNull();
     expect(data?.[0]).toMatchObject({
       tier: "school",
-      sponsor_id: "heltz",
+      school_slug: "heltz",
       pending_invites: 0,
     });
   });

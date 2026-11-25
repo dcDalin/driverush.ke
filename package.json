@@ -23,6 +23,7 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:diff": "supabase db diff -f",
+    "db:baseline": "node scripts/db-baseline.mjs",
     "db:diff:check": "supabase db diff 2>&1 | grep -q \"No schema changes found\"",
     "db:migration:new": "supabase migration new",
     "db:gen-types": "supabase gen types typescript --local > app/database/types/database.ts && prettier --write app/database/types/database.ts",
@@ -41,7 +42,8 @@
     "db:sync": "cd seed && mkdir -p .snaplet && echo '{ \"adapter\": \"postgres\" }' > .snaplet/config.json && SNAPLET_DISABLE_TELEMETRY=1 snaplet-seed sync",
     "db:seed": "SNAPLET_DISABLE_TELEMETRY=1 tsx seed/seed.ts",
     "db:refresh": "npm run db:sync && npm run db:seed --",
-    "seed:typecheck": "tsc -p seed"
+    "seed:typecheck": "tsc -p seed",
+    "livery:publish": "tsx seed/livery-publish.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -74,6 +76,7 @@
     "remix-toast": "^4.0.0",
     "remix-utils": "^9.3.1",
     "shadcn": "^4.5.0",
+    "sharp": "^0.35.5",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
     "three": "^0.184.0",
@@ -115,7 +118,6 @@
     "remark-frontmatter": "^5.0.0",
     "remark-gfm": "^4.0.1",
     "remark-mdx-frontmatter": "^5.2.0",
-    "sharp": "^0.35.5",
     "supabase": "^2.122.1",
     "tailwindcss": "^4.2.2",
     "tsx": "^4.23.15",

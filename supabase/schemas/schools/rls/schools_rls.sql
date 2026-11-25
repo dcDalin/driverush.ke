@@ -62,3 +62,43 @@ alter table public.school_member_invites enable row level security;
 create policy "school_member_invites: staff and owner read"
   on public.school_member_invites for select to authenticated
   using ((select private.is_staff()) or private.is_school_owner(school_id));
+
+-- ===================================================
+-- ACCESS: public.school_profiles
+-- ===================================================
+-- Reads:  DriveRush staff; the school's owner and admins. Everyone else
+--         (guests included) reads the public fields through board_schools().
+-- Writes: No client: school_update_profile (owner, staff); school_set_logo
+--         (the server, after uploading the file).
+-- Grants: anon: none; authenticated: SELECT
+alter table public.school_profiles enable row level security;
+
+create policy "school_profiles: staff and members read"
+  on public.school_profiles for select to authenticated
+  using ((select private.is_staff()) or private.is_school_member(school_id));
+
+-- ===================================================
+-- ACCESS: public.school_liveries
+-- ===================================================
+-- Reads:  DriveRush staff (drafts included). The live livery reaches
+--         everyone through board_schools().
+-- Writes: No client: livery:publish (service role) inserts drafts;
+--         admin_publish_livery and admin_retire_livery (staff).
+-- Grants: anon: none; authenticated: SELECT
+alter table public.school_liveries enable row level security;
+
+create policy "school_liveries: staff read"
+  on public.school_liveries for select to authenticated
+  using ((select private.is_staff()));
+
+-- ===================================================
+-- ACCESS: public.school_sponsorships
+-- ===================================================
+-- Reads:  DriveRush staff. board_schools() says only whether one is current.
+-- Writes: No client: admin_set_sponsorship and admin_end_sponsorship (staff).
+-- Grants: anon: none; authenticated: SELECT
+alter table public.school_sponsorships enable row level security;
+
+create policy "school_sponsorships: staff read"
+  on public.school_sponsorships for select to authenticated
+  using ((select private.is_staff()));

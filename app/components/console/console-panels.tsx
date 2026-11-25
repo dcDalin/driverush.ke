@@ -21,22 +21,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import type { ConsoleSchool, StaffMember } from "~/database/console/queries";
+import { Separator } from "~/components/ui/separator";
+import type {
+  ConsoleLivery,
+  ConsoleSchool,
+  ConsoleSponsorship,
+  StaffMember,
+} from "~/database/console/queries";
 import type { SchoolStatus } from "~/database/types";
 import { useInlineAction } from "~/lib/forms/use-inline-action";
 import { useServerForm } from "~/lib/forms/use-server-form";
 import {
   CreateSchoolSchema,
   GrantRoleSchema,
-  NO_LIVERY,
+  SetSponsorshipSchema,
   TransferOwnerSchema,
 } from "~/schemas/console";
 
-export function CreateSchool({
-  sponsors,
-}: {
-  sponsors: { id: string; school: string }[];
-}) {
+export function CreateSchool() {
   const { methods, fetcher, formRef, busy } = useServerForm({
     schema: CreateSchoolSchema,
     key: "create-school",
@@ -46,7 +48,6 @@ export function CreateSchool({
       name: "",
       slug: "",
       ownerEmail: "",
-      sponsorId: NO_LIVERY,
     },
   });
   return (
@@ -80,15 +81,6 @@ export function CreateSchool({
             inputMode: "email",
             placeholder: "owner@school.co.ke",
           }}
-        />
-        <SelectField
-          name="sponsorId"
-          label="Livery"
-          disabled={busy}
-          options={[
-            { label: "None yet (plain cars)", value: NO_LIVERY },
-            ...sponsors.map((s) => ({ label: s.school, value: s.id })),
-          ]}
         />
         <Button
           type="submit"
@@ -133,9 +125,20 @@ export function SchoolRow({ school }: { school: ConsoleSchool }) {
           {school.name}
         </Link>
         <Badge variant={STATUS_BADGE[school.status]}>{school.status}</Badge>
-        {school.sponsor_id && (
-          <Badge variant="outline">livery: {school.sponsor_id}</Badge>
+        {school.liveries.some((l) => l.status === "live") ? (
+          <Badge variant="outline">livery on</Badge>
+        ) : (
+          <Badge variant="outline">plain cars</Badge>
         )}
+        {currentSponsorship(school.sponsorships) && (
+          <Badge variant="green">sponsoring</Badge>
+        )}
+        <Link
+          to={`/school/${school.id}#profile`}
+          className="ml-auto text-[13px] underline underline-offset-4"
+        >
+          Edit profile
+        </Link>
       </div>
       <p className="text-[13px] text-ink-3">
         Owner {school.ownerEmail ?? "invited, not signed up yet"} ·{" "}
@@ -204,7 +207,193 @@ export function SchoolRow({ school }: { school: ConsoleSchool }) {
           </owner.fetcher.Form>
         </ServerFormProvider>
       </div>
+      <Separator />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Liveries slug={school.slug} liveries={school.liveries} />
+        <Sponsorships schoolId={school.id} sponsorships={school.sponsorships} />
+      </div>
     </li>
+  );
+}
+
+/** Today in Kenya, as the database writes sponsorship days. */
+function kenyaToday(now = Date.now()) {
+  return new Date(now + 3 * 3_600_000).toISOString().slice(0, 10);
+}
+
+function currentSponsorship(list: ConsoleSponsorship[]) {
+  const today = kenyaToday();
+  return (
+    list.find(
+      (p) => p.starts_on <= today && (p.ends_on === null || p.ends_on >= today),
+    ) ?? null
+  );
+}
+
+const LIVERY_BADGE = {
+  live: "green",
+  draft: "amber",
+  retired: "outline",
+} as const;
+
+/**
+ * A school's liveries: a draft (from `npm run livery:publish`) is previewed
+ * on the board with `?livery=`, then published; the live one can be retired.
+ */
+function Liveries({
+  slug,
+  liveries,
+}: {
+  slug: string;
+  liveries: ConsoleLivery[];
+}) {
+  const shown = liveries.filter((l) => l.status !== "retired").slice(0, 4);
+  return (
+    <div className="flex flex-col gap-2">
+      <h3 className="text-[13px] font-semibold text-ink-2">Liveries</h3>
+      {shown.length === 0 ? (
+        <p className="m-0 text-[13px] text-ink-3">
+          None yet. Make one with the art pipeline, then{" "}
+          <code>npm run livery:publish {slug}</code>.
+        </p>
+      ) : (
+        <ul className="m-0 flex list-none flex-col gap-2 p-0">
+          {shown.map((livery) => (
+            <LiveryRow key={livery.id} livery={livery} />
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function LiveryRow({ livery }: { livery: ConsoleLivery }) {
+  const action = useInlineAction(`livery:${livery.id}`);
+  return (
+    <li className="flex flex-wrap items-center gap-2">
+      <Badge variant={LIVERY_BADGE[livery.status]}>{livery.status}</Badge>
+      <span className="text-[13px]">{livery.label}</span>
+      <span className="ml-auto flex gap-1.5">
+        <Button size="sm" variant="ghost" asChild>
+          <Link to={`/model-town-board/play?livery=${livery.id}`}>Preview</Link>
+        </Button>
+        {livery.status === "draft" ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="paper"
+            isLoading={action.busy}
+            onClick={() =>
+              action.submit({ intent: "publish-livery", liveryId: livery.id })
+            }
+          >
+            Publish
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            isLoading={action.busy}
+            onClick={() =>
+              action.submit({ intent: "retire-livery", liveryId: livery.id })
+            }
+          >
+            Retire
+          </Button>
+        )}
+      </span>
+    </li>
+  );
+}
+
+/** When the school's cars take turns for guests and free learners. */
+function Sponsorships({
+  schoolId,
+  sponsorships,
+}: {
+  schoolId: string;
+  sponsorships: ConsoleSponsorship[];
+}) {
+  const current = currentSponsorship(sponsorships);
+  const end = useInlineAction(`sponsorship:${current?.id ?? schoolId}`);
+  const form = useServerForm({
+    schema: SetSponsorshipSchema,
+    key: `set-sponsorship:${schoolId}`,
+    resetOnSuccess: true,
+    defaultValues: {
+      intent: "set-sponsorship",
+      schoolId,
+      startsOn: kenyaToday(),
+      endsOn: "",
+      note: "",
+    },
+  });
+  return (
+    <div className="flex flex-col gap-2">
+      <h3 className="text-[13px] font-semibold text-ink-2">Sponsorship</h3>
+      {current ? (
+        <div className="flex flex-wrap items-center gap-2 text-[13px]">
+          <span>
+            Since {current.starts_on}
+            {current.ends_on ? `, until ${current.ends_on}` : ", no end set"}
+            {current.note ? ` (${current.note})` : ""}
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            isLoading={end.busy}
+            onClick={() =>
+              end.submit({
+                intent: "end-sponsorship",
+                sponsorshipId: current.id,
+              })
+            }
+          >
+            End today
+          </Button>
+        </div>
+      ) : (
+        <p className="m-0 text-[13px] text-ink-3">
+          Not sponsoring: only its own learners see its cars.
+        </p>
+      )}
+      <ServerFormProvider methods={form.methods}>
+        <form.fetcher.Form
+          ref={form.formRef}
+          method="post"
+          onSubmit={form.methods.handleSubmit}
+          noValidate
+          className="flex flex-wrap items-start gap-2"
+        >
+          <HoneypotInputs />
+          <InputField
+            name="startsOn"
+            label="From"
+            className="w-40"
+            disabled={form.busy}
+            inputProps={{ type: "date" }}
+          />
+          <InputField
+            name="endsOn"
+            label="Until (optional)"
+            className="w-40"
+            disabled={form.busy}
+            inputProps={{ type: "date" }}
+          />
+          <Button
+            type="submit"
+            size="sm"
+            variant="paper"
+            className="mt-6"
+            isLoading={form.busy}
+          >
+            Add
+          </Button>
+        </form.fetcher.Form>
+      </ServerFormProvider>
+    </div>
   );
 }
 

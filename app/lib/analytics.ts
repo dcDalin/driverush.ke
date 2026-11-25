@@ -449,7 +449,7 @@ export const analytics = {
     nudged: boolean;
   }) => emit("board_first_move", args, false),
 
-  // ----- driving-school sponsors (see ~/lib/board/sponsors) -----
+  // ----- driving-school sponsors (see ~/lib/board/school-catalog) -----
 
   /**
    * A sponsoring school was on screen in one place, once per place per

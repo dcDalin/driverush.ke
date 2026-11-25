@@ -56,7 +56,6 @@ $$;
 create or replace function private.admin_create_school(
   p_name text,
   p_slug text,
-  p_sponsor_id text,
   p_owner_email text
 )
 returns uuid
@@ -71,8 +70,8 @@ begin
     raise exception 'forbidden' using errcode = '42501';
   end if;
 
-  insert into public.schools (name, slug, sponsor_id, created_by)
-  values (btrim(p_name), lower(btrim(p_slug)), nullif(lower(btrim(p_sponsor_id)), ''), auth.uid())
+  insert into public.schools (name, slug, created_by)
+  values (btrim(p_name), lower(btrim(p_slug)), auth.uid())
   returning id into v_school_id;
 
   perform private.set_school_owner(v_school_id, lower(btrim(p_owner_email))::extensions.citext, auth.uid());
@@ -128,7 +127,6 @@ $$;
 create or replace function public.admin_create_school(
   p_name text,
   p_slug text,
-  p_sponsor_id text,
   p_owner_email text
 )
 returns uuid
@@ -136,7 +134,7 @@ language sql
 security invoker
 set search_path = ''
 as $$
-  select private.admin_create_school(p_name, p_slug, p_sponsor_id, p_owner_email);
+  select private.admin_create_school(p_name, p_slug, p_owner_email);
 $$;
 
 -- Access:  authenticated (DriveRush su or admin)
@@ -164,29 +162,29 @@ as $$
 $$;
 
 revoke all on function private.set_school_owner(uuid, extensions.citext, uuid) from public;
-revoke all on function private.admin_create_school(text, text, text, text) from public;
+revoke all on function private.admin_create_school(text, text, text) from public;
 revoke all on function private.admin_set_school_status(uuid, public.school_status) from public;
 revoke all on function private.admin_transfer_school_owner(uuid, text) from public;
-revoke all on function public.admin_create_school(text, text, text, text) from public;
+revoke all on function public.admin_create_school(text, text, text) from public;
 revoke all on function public.admin_set_school_status(uuid, public.school_status) from public;
 revoke all on function public.admin_transfer_school_owner(uuid, text) from public;
 grant execute on function private.set_school_owner(uuid, extensions.citext, uuid) to service_role;
-grant execute on function private.admin_create_school(text, text, text, text) to service_role;
+grant execute on function private.admin_create_school(text, text, text) to service_role;
 grant execute on function private.admin_set_school_status(uuid, public.school_status) to service_role;
 grant execute on function private.admin_transfer_school_owner(uuid, text) to service_role;
-grant execute on function public.admin_create_school(text, text, text, text) to service_role;
+grant execute on function public.admin_create_school(text, text, text) to service_role;
 grant execute on function public.admin_set_school_status(uuid, public.school_status) to service_role;
 grant execute on function public.admin_transfer_school_owner(uuid, text) to service_role;
 
 comment on function private.set_school_owner(uuid, extensions.citext, uuid) is
   'Makes an email the school owner now (confirmed account) or by invite; replaces the current owner.';
-comment on function private.admin_create_school(text, text, text, text) is
+comment on function private.admin_create_school(text, text, text) is
   'DriveRush staff: creates a school and sets its owner by email.';
 comment on function private.admin_set_school_status(uuid, public.school_status) is
   'DriveRush staff: sets a school active, suspended or archived.';
 comment on function private.admin_transfer_school_owner(uuid, text) is
   'DriveRush staff: makes another email the school owner. Returns added or invited.';
-comment on function public.admin_create_school(text, text, text, text) is
+comment on function public.admin_create_school(text, text, text) is
   'DriveRush staff: creates a school and sets its owner by email.';
 comment on function public.admin_set_school_status(uuid, public.school_status) is
   'DriveRush staff: sets a school active, suspended or archived.';

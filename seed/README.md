@@ -3,10 +3,10 @@
 Demo data for the **local** Supabase stack. Built like thinkrush
 `packages/db-seed`, with two tiers.
 
-| Tier                   | Command                                     | What you get                                                                                                         |
-| ---------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| SQL seed (fast)        | `npm run db:reset`                          | Migrations, the reference rows (plans) and `supabase/seeds/local_demo.sql`: the test personas (2 schools, 11 people) |
-| Full demo (TypeScript) | `npm run db:seed` (or `npm run db:refresh`) | Everything above, plus your own su, 3 more schools and 32 more learners in every state, with progress                |
+| Tier                   | Command                                     | What you get                                                                                                                                                           |
+| ---------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SQL seed (fast)        | `npm run db:reset`                          | Migrations, the reference rows (plans) and `supabase/seeds/local_demo.sql`: the test personas (2 schools, 11 people)                                                   |
+| Full demo (TypeScript) | `npm run db:seed` (or `npm run db:refresh`) | Everything above, plus your own su, 3 more schools, 32 more learners in every state with progress, and all 5 schools' profiles, liveries (in Storage) and sponsorships |
 
 The tests use the test personas, and both tiers have them. The pgTAP, db,
 route and e2e suites pass after either command.
@@ -128,6 +128,18 @@ show empty rows too. Every run gives the same people and the same numbers.
    that ran out is back-dated.
 7. **Progress** (`src/steps/progress.ts`) writes rows in the app's
    `{ json: ... }` shape.
+8. **Profiles, liveries, sponsorships** (`src/steps/media.ts`).
+   - First it removes the last run's folders from the `school-media` bucket:
+     a reset gives every school a new id.
+   - Then, for each of the five schools:
+     - It uploads `fixtures/liveries/<slug>/` (`src/media.ts`: content-named
+       paths, one-year cache, files already stored are skipped) as a draft
+       livery, and the su publishes it.
+     - The owner fills in the profile and branch details, and the logos go
+       in through `school_set_logo`.
+     - The su starts a sponsorship.
+   - Profiles use only what the schools publish (`src/data/school-profiles.ts`).
+     Branch addresses say "demo branch", and branch phones are made up.
 
 Snaplet is used only for the reset. Nothing is generated at random, and
 Copycat is not used.
@@ -143,6 +155,9 @@ Copycat is not used.
   reset step re-runs it. Demo rows go in a step here.
 - **A test persona**: only in `supabase/seeds/local_demo.sql`, and only when a
   test needs it.
+- **A school's look**: its art in `fixtures/liveries/<slug>/` (see
+  `docs/school-media.md`). `npm run livery:publish <slug>` sends one school
+  without reseeding.
 - Every email ends in `.test`, and every URL is loopback.
   `test/seed/local-only.test.ts` fails otherwise.
 

@@ -204,29 +204,44 @@ export type Database = {
       };
       school_branches: {
         Row: {
+          address: string | null;
           created_at: string;
+          hours: Json | null;
           id: string;
           is_active: boolean;
+          lat: number | null;
+          lng: number | null;
           name: string;
+          phone: string | null;
           school_id: string;
           town: string | null;
           updated_at: string;
         };
         ComputedFields: never;
         Insert: {
+          address?: string | null;
           created_at?: string;
+          hours?: Json | null;
           id?: string;
           is_active?: boolean;
+          lat?: number | null;
+          lng?: number | null;
           name: string;
+          phone?: string | null;
           school_id: string;
           town?: string | null;
           updated_at?: string;
         };
         Update: {
+          address?: string | null;
           created_at?: string;
+          hours?: Json | null;
           id?: string;
           is_active?: boolean;
+          lat?: number | null;
+          lng?: number | null;
           name?: string;
+          phone?: string | null;
           school_id?: string;
           town?: string | null;
           updated_at?: string;
@@ -234,6 +249,72 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "school_branches_school_id_fkey";
+            columns: ["school_id"];
+            isOneToOne: false;
+            referencedRelation: "schools";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      school_liveries: {
+        Row: {
+          banner: Json | null;
+          base_color: string;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          label: string;
+          marks: NonNullable<Json>;
+          paint: NonNullable<Json>;
+          posters: Json | null;
+          published_at: string | null;
+          rail: NonNullable<Json>;
+          school_id: string;
+          status: Database["public"]["Enums"]["livery_status"];
+          stills: NonNullable<Json>;
+          thumbs: NonNullable<Json>;
+          top_board: Json | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          banner?: Json | null;
+          base_color: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          label: string;
+          marks: NonNullable<Json>;
+          paint: NonNullable<Json>;
+          posters?: Json | null;
+          published_at?: string | null;
+          rail: NonNullable<Json>;
+          school_id: string;
+          status?: Database["public"]["Enums"]["livery_status"];
+          stills?: NonNullable<Json>;
+          thumbs?: NonNullable<Json>;
+          top_board?: Json | null;
+        };
+        Update: {
+          banner?: Json | null;
+          base_color?: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          label?: string;
+          marks?: NonNullable<Json>;
+          paint?: NonNullable<Json>;
+          posters?: Json | null;
+          published_at?: string | null;
+          rail?: NonNullable<Json>;
+          school_id?: string;
+          status?: Database["public"]["Enums"]["livery_status"];
+          stills?: NonNullable<Json>;
+          thumbs?: NonNullable<Json>;
+          top_board?: Json | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "school_liveries_school_id_fkey";
             columns: ["school_id"];
             isOneToOne: false;
             referencedRelation: "schools";
@@ -349,6 +430,105 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "school_members_school_id_fkey";
+            columns: ["school_id"];
+            isOneToOne: false;
+            referencedRelation: "schools";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      school_profiles: {
+        Row: {
+          about: string | null;
+          brand_ink: string | null;
+          brand_paint: string | null;
+          email: string | null;
+          logo: Json | null;
+          logo_mono: Json | null;
+          phone: string | null;
+          school_id: string;
+          socials: NonNullable<Json>;
+          tagline: string | null;
+          updated_at: string;
+          updated_by: string | null;
+          website_url: string | null;
+          whatsapp: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          about?: string | null;
+          brand_ink?: string | null;
+          brand_paint?: string | null;
+          email?: string | null;
+          logo?: Json | null;
+          logo_mono?: Json | null;
+          phone?: string | null;
+          school_id: string;
+          socials?: NonNullable<Json>;
+          tagline?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+          website_url?: string | null;
+          whatsapp?: string | null;
+        };
+        Update: {
+          about?: string | null;
+          brand_ink?: string | null;
+          brand_paint?: string | null;
+          email?: string | null;
+          logo?: Json | null;
+          logo_mono?: Json | null;
+          phone?: string | null;
+          school_id?: string;
+          socials?: NonNullable<Json>;
+          tagline?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+          website_url?: string | null;
+          whatsapp?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "school_profiles_school_id_fkey";
+            columns: ["school_id"];
+            isOneToOne: true;
+            referencedRelation: "schools";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      school_sponsorships: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          ends_on: string | null;
+          id: string;
+          note: string | null;
+          school_id: string;
+          starts_on: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          ends_on?: string | null;
+          id?: string;
+          note?: string | null;
+          school_id: string;
+          starts_on: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          ends_on?: string | null;
+          id?: string;
+          note?: string | null;
+          school_id?: string;
+          starts_on?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "school_sponsorships_school_id_fkey";
             columns: ["school_id"];
             isOneToOne: false;
             referencedRelation: "schools";
@@ -473,7 +653,6 @@ export type Database = {
           id: string;
           name: string;
           slug: string;
-          sponsor_id: string | null;
           status: Database["public"]["Enums"]["school_status"];
           updated_at: string;
         };
@@ -484,7 +663,6 @@ export type Database = {
           id?: string;
           name: string;
           slug: string;
-          sponsor_id?: string | null;
           status?: Database["public"]["Enums"]["school_status"];
           updated_at?: string;
         };
@@ -494,7 +672,6 @@ export type Database = {
           id?: string;
           name?: string;
           slug?: string;
-          sponsor_id?: string | null;
           status?: Database["public"]["Enums"]["school_status"];
           updated_at?: string;
         };
@@ -565,13 +742,21 @@ export type Database = {
     };
     Functions: {
       admin_create_school: {
-        Args: {
-          p_name: string;
-          p_owner_email: string;
-          p_slug: string;
-          p_sponsor_id: string;
-        };
+        Args: { p_name: string; p_owner_email: string; p_slug: string };
         Returns: string;
+      };
+      admin_end_sponsorship: {
+        Args: { p_sponsorship_id: string };
+        Returns: undefined;
+      };
+      admin_livery_draft_get: { Args: { p_livery_id: string }; Returns: Json };
+      admin_publish_livery: {
+        Args: { p_livery_id: string };
+        Returns: undefined;
+      };
+      admin_retire_livery: {
+        Args: { p_livery_id: string };
+        Returns: undefined;
       };
       admin_set_school_status: {
         Args: {
@@ -580,10 +765,20 @@ export type Database = {
         };
         Returns: undefined;
       };
+      admin_set_sponsorship: {
+        Args: {
+          p_ends_on: string;
+          p_note: string;
+          p_school_id: string;
+          p_starts_on: string;
+        };
+        Returns: string;
+      };
       admin_transfer_school_owner: {
         Args: { p_email: string; p_school_id: string };
         Returns: string;
       };
+      board_schools: { Args: Record<PropertyKey, never>; Returns: Json };
       custom_access_token_hook: { Args: { event: Json }; Returns: Json };
       grant_platform_role: {
         Args: {
@@ -608,7 +803,7 @@ export type Database = {
           pending_invites: number;
           school_id: string;
           school_name: string;
-          sponsor_id: string;
+          school_slug: string;
           tier: string;
         }[];
       };
@@ -667,6 +862,15 @@ export type Database = {
         Args: { p_branch_ids: string[]; p_member_id: string };
         Returns: undefined;
       };
+      school_set_logo: {
+        Args: {
+          p_actor: string;
+          p_kind: string;
+          p_ref: Json;
+          p_school_id: string;
+        };
+        Returns: string;
+      };
       school_student_progress: {
         Args: { p_branch_id?: string; p_school_id: string };
         Returns: {
@@ -690,11 +894,38 @@ export type Database = {
         };
         Returns: undefined;
       };
+      school_update_branch_details: {
+        Args: {
+          p_address: string;
+          p_branch_id: string;
+          p_hours: Json;
+          p_lat: number;
+          p_lng: number;
+          p_phone: string;
+        };
+        Returns: undefined;
+      };
+      school_update_profile: {
+        Args: {
+          p_about: string;
+          p_brand_ink: string;
+          p_brand_paint: string;
+          p_email: string;
+          p_phone: string;
+          p_school_id: string;
+          p_socials: Json;
+          p_tagline: string;
+          p_website_url: string;
+          p_whatsapp: string;
+        };
+        Returns: undefined;
+      };
     };
     Enums: {
       app_role: "driverush_su" | "driverush_admin" | "user";
       invite_status: "pending" | "accepted" | "cancelled";
       link_end_reason: "expired" | "switched" | "released";
+      livery_status: "draft" | "live" | "retired";
       payment_status: "pending" | "succeeded" | "failed" | "refunded";
       plan_audience: "learner" | "school";
       school_role: "owner" | "admin";
@@ -832,6 +1063,7 @@ export const Constants = {
       app_role: ["driverush_su", "driverush_admin", "user"],
       invite_status: ["pending", "accepted", "cancelled"],
       link_end_reason: ["expired", "switched", "released"],
+      livery_status: ["draft", "live", "retired"],
       payment_status: ["pending", "succeeded", "failed", "refunded"],
       plan_audience: ["learner", "school"],
       school_role: ["owner", "admin"],

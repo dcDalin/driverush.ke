@@ -7,7 +7,7 @@
 import { BoardStartCard } from "~/components/board/board-start-card";
 import { GuideLayout } from "~/components/brand/guide-layout";
 import { MDX } from "~/components/brand/mdx-components";
-import { sponsorById } from "~/lib/board/sponsors";
+import { sponsorById, useCatalog } from "~/lib/board/school-catalog";
 import {
   DRIVING_SCHOOL_PAGES,
   DRIVING_SCHOOLS_PATH,
@@ -108,7 +108,12 @@ function readableDate(iso: string): string {
 
 export default function DrivingSchool({ loaderData }: Route.ComponentProps) {
   const school = drivingSchoolBySlug(loaderData.slug)!;
-  const sponsor = school.sponsorId ? sponsorById(school.sponsorId) : null;
+  const schools = useCatalog();
+  // Named as a sponsor only while it sponsors the board.
+  const board = school.schoolSlug
+    ? sponsorById(school.schoolSlug, schools)
+    : null;
+  const sponsor = board?.live ? board : null;
   const others = DRIVING_SCHOOL_PAGES.filter((s) => s.slug !== school.slug);
   const checked = readableDate(school.checked);
   const sources = [

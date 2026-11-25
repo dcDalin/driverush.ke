@@ -16,7 +16,7 @@
  *
  * Run:  node scripts/build-board-cars.mjs <pack.obj> <palette.jpg>
  * Then: node scripts/build-car-wrap.mjs   (the saloon's wrap template, for
- *       driving schools' paint; see app/lib/board/sponsors.ts)
+ *       driving schools' paint; see app/lib/board/school-catalog.ts)
  */
 import { mkdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";

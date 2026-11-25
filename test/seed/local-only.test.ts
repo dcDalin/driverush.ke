@@ -58,7 +58,17 @@ describe("seeds stay local", () => {
   });
 
   it("the TypeScript seed knows only loopback addresses", () => {
-    const urls = SEED_FILES.filter((f) => f.endsWith(".ts")).flatMap(
+    // The code that connects. `src/data/` is content (the schools' public
+    // sites), and `livery-publish.ts` reaches a hosted project only with
+    // --hosted, from env values, after you type the slug.
+    const seedCode = SEED_FILES.filter(
+      (f) =>
+        f.endsWith(".ts") &&
+        !f.endsWith("livery-publish.ts") &&
+        !f.includes(join("seed", "fixtures")) &&
+        !f.includes(join("seed", "src", "data")),
+    );
+    const urls = seedCode.flatMap(
       (f) =>
         readFileSync(f, "utf8").match(
           /\b(?:https?|postgres(?:ql)?):\/\/[^\s"'`]+/g,
@@ -73,7 +83,8 @@ describe("seeds stay local", () => {
   });
 
   it("no committed seed carries a real email address", () => {
-    const outside = SEED_FILES.flatMap((f) =>
+    const text = SEED_FILES.filter((f) => /\.(ts|sql|json|md)$/.test(f));
+    const outside = text.flatMap((f) =>
       (
         readFileSync(f, "utf8").match(/[\w.+-]+@(?:[\w-]+\.)+[a-z]{2,}\b/gi) ??
         []

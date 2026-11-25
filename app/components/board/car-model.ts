@@ -302,7 +302,7 @@ export type CarModel = THREE.Group & {
     roof?: { y: number; z: number };
     /**
      * The bodywork's material, on a downloaded model whose bodywork can take
-     * a school's paint (see `~/lib/board/sponsors`).
+     * a school's paint (see `~/lib/board/school-catalog`).
      */
     paintwork?: THREE.MeshStandardMaterial;
   };

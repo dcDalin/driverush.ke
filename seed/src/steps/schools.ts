@@ -26,7 +26,6 @@ async function seedSchool(spec: SchoolSpec): Promise<SeededSchool> {
     await su.rpc("admin_create_school", {
       p_name: spec.name,
       p_slug: spec.slug,
-      p_sponsor_id: spec.sponsorId,
       p_owner_email: spec.owner.email,
     }),
   );

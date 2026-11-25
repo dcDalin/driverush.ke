@@ -156,12 +156,16 @@ export const BOARD_CARS = [
 
 /**
  * A vehicle's menu picture in a driving school's paint and roof board, as it
- * is driven while that school is on the board; the plain one with no school.
+ * is driven while that school is on the board (from its livery, in
+ * Supabase Storage); the plain one with no school or no picture.
  */
-export function carThumb(car: BoardCarId, school: string | null): string {
-  return school
-    ? `/assets/board/cars/thumbs/${school}/${car}.webp?v=${THUMB_V}`
-    : `/assets/board/cars/thumbs/${car}.webp?v=${THUMB_V}`;
+export function carThumb(
+  car: BoardCarId,
+  school: { thumbs: Partial<Record<BoardCarId, string>> } | null,
+): string {
+  return (
+    school?.thumbs[car] ?? `/assets/board/cars/thumbs/${car}.webp?v=${THUMB_V}`
+  );
 }
 
 /** The size every `thumb` is saved at: scripts/build-car-thumbs.mjs. */

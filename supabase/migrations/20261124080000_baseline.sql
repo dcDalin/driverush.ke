@@ -1,5 +1,6 @@
 -- Baseline: every file in supabase/schemas, in config.toml schema_paths order.
--- Generated once from the schemas; later changes get their own migrations.
+-- Rebuilt by `npm run db:baseline` while no hosted database exists; after
+-- the first hosted push, never edit it: every change gets its own migration.
 
 -- ── supabase/schemas/_private/extensions.sql
 -- ===================================================
@@ -122,6 +123,178 @@ grant execute on function private.set_updated_at() to service_role;
 comment on function private.set_updated_at() is
   'Trigger: stamps updated_at with now() on update.';
 
+-- ── supabase/schemas/_private/media_checks.sql
+-- ===================================================
+-- FUNCTIONS: CHECKs for school media and branch hours
+-- ===================================================
+-- Files in the school-media bucket are named by content:
+--   <school_id>/<kind>/<sha256, 16 hex>.<webp|png|jpg>
+-- so a path never changes meaning, can be cached for a year, and only ever
+-- points into its own school's folder. A reference to one is
+-- { "path": ..., "width": n, "height": n }.
+
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: CHECK on school_profiles, school_liveries; private.valid_media_ref
+create or replace function private.valid_media_path(p_path text, p_school_id uuid)
+returns boolean
+language sql
+immutable
+set search_path = ''
+as $$
+  select p_path is not null
+     and p_path ~ '^[0-9a-f-]{36}/(logo|livery)/[0-9a-f]{16}\.(webp|png|jpg)$'
+     and split_part(p_path, '/', 1) = p_school_id::text;
+$$;
+
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: CHECK on school_profiles, school_liveries
+create or replace function private.valid_media_ref(p_ref jsonb, p_school_id uuid)
+returns boolean
+language sql
+immutable
+set search_path = ''
+as $$
+  select jsonb_typeof(p_ref) = 'object'
+     and private.valid_media_path(p_ref ->> 'path', p_school_id)
+     and jsonb_typeof(p_ref -> 'width') = 'number'
+     and jsonb_typeof(p_ref -> 'height') = 'number'
+     and (p_ref ->> 'width')::numeric between 1 and 8192
+     and (p_ref ->> 'height')::numeric between 1 and 8192;
+$$;
+
+-- Every value of an object is a media path of this school (paint, banner,
+-- posters, thumbs, stills: { "<name>": "<path>" } or { "<name>": { "hi": path, "lo": path } }).
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: CHECK on school_liveries
+create or replace function private.valid_media_paths(p_value jsonb, p_school_id uuid)
+returns boolean
+language sql
+immutable
+set search_path = ''
+as $$
+  select case jsonb_typeof(p_value)
+    when 'string' then private.valid_media_path(p_value #>> '{}', p_school_id)
+    when 'object' then not exists (
+      select 1 from jsonb_each(p_value) as e
+       where e.key !~ '^[a-z0-9_]{1,24}$'
+          or not private.valid_media_paths(e.value, p_school_id)
+    )
+    else false
+  end;
+$$;
+
+-- { "mon".."sun": {"open": "HH:MM", "close": "HH:MM"} or null }, open before close.
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: CHECK on school_branches
+create or replace function private.valid_branch_hours(p_hours jsonb)
+returns boolean
+language sql
+immutable
+set search_path = ''
+as $$
+  select jsonb_typeof(p_hours) = 'object'
+     and not exists (
+       select 1 from jsonb_each(p_hours) as d
+        where d.key not in ('mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun')
+           or not (
+             jsonb_typeof(d.value) = 'null'
+             or (jsonb_typeof(d.value) = 'object'
+                 and coalesce(d.value ->> 'open', '') ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+                 and coalesce(d.value ->> 'close', '') ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+                 and d.value ->> 'open' < d.value ->> 'close')
+           )
+     );
+$$;
+
+-- A colour as the app writes it: #rrggbb.
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: CHECK on school_profiles, school_liveries
+create or replace function private.valid_hex_colour(p_value text)
+returns boolean
+language sql
+immutable
+set search_path = ''
+as $$
+  select p_value ~ '^#[0-9a-f]{6}$';
+$$;
+
+-- { "<car>": { "hi": path, "lo": path } } for at least one car.
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: CHECK on school_liveries
+create or replace function private.valid_paint(p_paint jsonb, p_school_id uuid)
+returns boolean
+language sql
+immutable
+set search_path = ''
+as $$
+  select private.valid_media_paths(p_paint, p_school_id)
+     and exists (select 1 from jsonb_each(p_paint))
+     and not exists (
+       select 1 from jsonb_each(p_paint) as p
+        where jsonb_typeof(p.value) <> 'object' or not (p.value ? 'hi' and p.value ? 'lo')
+     );
+$$;
+
+-- { "facebook" | "instagram" | "tiktok" | "x" | "youtube": "https://..." }
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: CHECK on school_profiles
+create or replace function private.valid_socials(p_socials jsonb)
+returns boolean
+language sql
+immutable
+set search_path = ''
+as $$
+  select jsonb_typeof(p_socials) = 'object'
+     and not exists (
+       select 1 from jsonb_each(p_socials) as s
+        where s.key not in ('facebook', 'instagram', 'tiktok', 'x', 'youtube')
+           or jsonb_typeof(s.value) <> 'string'
+           or s.value #>> '{}' !~ '^https://[^\s/?#]+\.[^\s]+$'
+     );
+$$;
+
+revoke all on function private.valid_media_path(text, uuid) from public;
+revoke all on function private.valid_media_ref(jsonb, uuid) from public;
+revoke all on function private.valid_media_paths(jsonb, uuid) from public;
+revoke all on function private.valid_branch_hours(jsonb) from public;
+revoke all on function private.valid_hex_colour(text) from public;
+revoke all on function private.valid_paint(jsonb, uuid) from public;
+revoke all on function private.valid_socials(jsonb) from public;
+grant execute on function private.valid_media_path(text, uuid) to service_role;
+grant execute on function private.valid_media_ref(jsonb, uuid) to service_role;
+grant execute on function private.valid_media_paths(jsonb, uuid) to service_role;
+grant execute on function private.valid_branch_hours(jsonb) to service_role;
+grant execute on function private.valid_hex_colour(text) to service_role;
+grant execute on function private.valid_paint(jsonb, uuid) to service_role;
+grant execute on function private.valid_socials(jsonb) to service_role;
+
+comment on function private.valid_media_path(text, uuid) is
+  'CHECK: a school-media path <school_id>/<logo|livery>/<16 hex>.<webp|png|jpg> in this school''s folder.';
+comment on function private.valid_media_ref(jsonb, uuid) is
+  'CHECK: { path, width, height } pointing at this school''s media.';
+comment on function private.valid_media_paths(jsonb, uuid) is
+  'CHECK: a path, or an object whose values are paths (nested), all in this school''s folder.';
+comment on function private.valid_branch_hours(jsonb) is
+  'CHECK: opening hours per weekday, HH:MM open before close, or null for closed.';
+comment on function private.valid_hex_colour(text) is
+  'CHECK: a #rrggbb colour (lower case).';
+comment on function private.valid_paint(jsonb, uuid) is
+  'CHECK: car wraps { <car>: { hi, lo } } in this school''s media, at least one car.';
+comment on function private.valid_socials(jsonb) is
+  'CHECK: social links by network (facebook, instagram, tiktok, x, youtube), https only.';
+
 -- ── supabase/schemas/profiles/enums/app_role.sql
 -- ===================================================
 -- ENUM: public.app_role
@@ -192,25 +365,34 @@ create type public.invite_status as enum ('pending', 'accepted', 'cancelled');
 comment on type public.invite_status is
   'A school member invite waiting for its email to sign up, taken up, or withdrawn.';
 
+-- A livery's life: staff upload a draft (livery:publish), preview it, publish
+-- it (the school's one live livery), and retire it when a new one goes live.
+create type public.livery_status as enum ('draft', 'live', 'retired');
+
+comment on type public.livery_status is
+  'draft (staff preview only), live (the school''s one shown livery) or retired.';
+
 -- ── supabase/schemas/schools/tables/schools.sql
 -- ===================================================
 -- TABLE: public.schools
 -- ===================================================
 -- A driving school, the paying customer. Only DriveRush staff create one
--- (admin_create_school). sponsor_id names the school's livery art in the app
--- (app/lib/board/sponsors.ts Sponsor.id); a school without one links learners
--- but shows plain cars.
+-- (admin_create_school). Its slug is its id everywhere outside the database
+-- (?school=, PostHog, the driving-school pages). Its look lives in
+-- school_profiles (owner) and school_liveries (staff), its files in the
+-- school-media bucket.
 create table public.schools (
   id uuid primary key default gen_random_uuid(),
   slug text not null unique
     check (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$' and char_length(slug) between 2 and 60),
   name text not null check (char_length(name) between 2 and 120),
   status public.school_status not null default 'active',
-  sponsor_id text unique check (sponsor_id is null or sponsor_id ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
   created_by uuid references auth.users (id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+create index schools_created_by_idx on public.schools (created_by);
 
 comment on table public.schools is
   'A driving school (the paying customer). Created by DriveRush staff only.';
@@ -229,10 +411,18 @@ create table public.school_branches (
   name text not null check (char_length(name) between 2 and 120),
   town text check (town is null or char_length(town) between 2 and 80),
   is_active boolean not null default true,
+  -- Details learners see on the school's page (school_update_branch_details).
+  address text check (address is null or char_length(address) between 3 and 200),
+  lat double precision check (lat is null or lat between -5 and 5.5),
+  lng double precision check (lng is null or lng between 33.5 and 42.5),
+  phone text check (phone is null or phone ~ '^\+?[0-9 ]{7,20}$'),
+  -- { "mon": {"open": "08:00", "close": "17:00"} | null, ... } (null: closed)
+  hours jsonb check (hours is null or private.valid_branch_hours(hours)),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (school_id, name),
-  unique (id, school_id)
+  unique (id, school_id),
+  check ((lat is null) = (lng is null))
 );
 
 comment on table public.school_branches is
@@ -261,6 +451,7 @@ create unique index school_members_one_owner_idx
   on public.school_members (school_id) where role = 'owner';
 
 create index school_members_user_idx on public.school_members (user_id);
+create index school_members_added_by_idx on public.school_members (added_by);
 
 comment on table public.school_members is
   'A school''s owner (one) and admins (at most 50). Admin branch scope is in school_member_branches.';
@@ -282,7 +473,9 @@ create table public.school_member_branches (
     references public.school_branches (id, school_id) on delete cascade
 );
 
-create index school_member_branches_branch_idx on public.school_member_branches (branch_id);
+-- Cover both composite foreign keys (member and branch, each with school_id).
+create index school_member_branches_member_idx on public.school_member_branches (member_id, school_id);
+create index school_member_branches_branch_idx on public.school_member_branches (branch_id, school_id);
 
 comment on table public.school_member_branches is
   'Which branches a school admin works in (always branches of their own school).';
@@ -313,8 +506,123 @@ create unique index school_member_invites_open_idx
 create index school_member_invites_email_idx
   on public.school_member_invites (email) where status = 'pending';
 
+create index school_member_invites_invited_by_idx on public.school_member_invites (invited_by);
+
 comment on table public.school_member_invites is
   'An owner or admin added by an email with no confirmed account yet; taken up on confirmation.';
+
+-- ── supabase/schemas/schools/tables/school_profiles.sql
+-- ===================================================
+-- TABLE: public.school_profiles
+-- ===================================================
+-- What a school says about itself, edited by its owner (or DriveRush staff):
+-- the logo, brand colours, contacts, about text and social links. Learners
+-- and guests read it through board_schools(), never this table. One row per
+-- school, made on its first edit.
+create table public.school_profiles (
+  school_id uuid primary key references public.schools (id) on delete cascade,
+  tagline text check (tagline is null or char_length(tagline) between 2 and 80),
+  about text check (about is null or char_length(about) between 2 and 1200),
+  phone text check (phone is null or phone ~ '^\+?[0-9 ]{7,20}$'),
+  whatsapp text check (whatsapp is null or whatsapp ~ '^\+?[0-9 ]{7,20}$'),
+  email extensions.citext check (email is null or email::text ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
+  website_url text check (website_url is null or website_url ~ '^https://[^\s/?#]+\.[^\s]+$'),
+  -- { "facebook" | "instagram" | "tiktok" | "x" | "youtube": "https://..." }
+  socials jsonb not null default '{}'::jsonb check (private.valid_socials(socials)),
+  brand_paint text check (brand_paint is null or private.valid_hex_colour(brand_paint)),
+  brand_ink text check (brand_ink is null or private.valid_hex_colour(brand_ink)),
+  -- { path, width, height } in school-media (school_set_logo only).
+  logo jsonb check (logo is null or private.valid_media_ref(logo, school_id)),
+  logo_mono jsonb check (logo_mono is null or private.valid_media_ref(logo_mono, school_id)),
+  updated_by uuid references auth.users (id) on delete set null,
+  updated_at timestamptz not null default now()
+);
+
+create index school_profiles_updated_by_idx on public.school_profiles (updated_by);
+
+comment on table public.school_profiles is
+  'A school''s own profile: logo, brand colours, contacts, about and socials. Edited by its owner.';
+
+-- ── supabase/schemas/schools/tables/school_liveries.sql
+-- ===================================================
+-- TABLE: public.school_liveries
+-- ===================================================
+-- A school's look on the board, made by DriveRush with the art pipeline
+-- (scripts/sponsor-art, `npm run livery:publish`): car wraps per car model,
+-- roof board, classroom banner and posters, the traced marks for the brass
+-- plates, car menu thumbnails and the site's board stills. Every value is a
+-- path in the school-media bucket. A draft is staff-only; at most one is
+-- live per school; board_schools() hands the live one to the app.
+create table public.school_liveries (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools (id) on delete cascade,
+  status public.livery_status not null default 'draft',
+  label text not null check (char_length(label) between 1 and 80),
+  -- Body colour where no wrap is drawn, and the classroom's stripe rail.
+  base_color text not null check (private.valid_hex_colour(base_color)),
+  rail jsonb not null check (
+    jsonb_typeof(rail) = 'object'
+    and private.valid_hex_colour(rail ->> 'gold')
+    and private.valid_hex_colour(rail ->> 'red')
+  ),
+  -- { "<car>": { "hi": path, "lo": path } }
+  paint jsonb not null check (private.valid_paint(paint, school_id)),
+  -- { path, width, height } of the picture, plus the board's size in metres,
+  -- its corner cut and edge colour.
+  top_board jsonb check (
+    top_board is null or (
+      private.valid_media_ref(top_board, school_id)
+      and jsonb_typeof(top_board -> 'metres') = 'object'
+      and (top_board #>> '{metres,width}')::numeric between 0.2 and 3
+      and (top_board #>> '{metres,height}')::numeric between 0.1 and 1.5
+      and (top_board ->> 'cut')::numeric between 0 and 0.5
+      and private.valid_hex_colour(top_board ->> 'edge')
+    )
+  ),
+  banner jsonb check (banner is null or (private.valid_media_paths(banner, school_id) and banner ? 'hi' and banner ? 'lo')),
+  posters jsonb check (posters is null or private.valid_media_paths(posters, school_id)),
+  -- The marks drawn on the board: { "full": path, "mono": path }.
+  marks jsonb not null check (private.valid_media_paths(marks, school_id) and marks ? 'full' and marks ? 'mono'),
+  thumbs jsonb not null default '{}'::jsonb check (thumbs = '{}'::jsonb or private.valid_media_paths(thumbs, school_id)),
+  stills jsonb not null default '{}'::jsonb check (stills = '{}'::jsonb or private.valid_media_paths(stills, school_id)),
+  created_by uuid references auth.users (id) on delete set null,
+  created_at timestamptz not null default now(),
+  published_at timestamptz,
+  check ((status = 'draft') = (published_at is null))
+);
+
+create unique index school_liveries_one_live_idx
+  on public.school_liveries (school_id) where status = 'live';
+create index school_liveries_school_idx on public.school_liveries (school_id, created_at desc);
+create index school_liveries_created_by_idx on public.school_liveries (created_by);
+
+comment on table public.school_liveries is
+  'A school''s board livery (car wraps, roof board, banner, posters, marks, thumbs, stills) as school-media paths. Staff only.';
+
+-- ── supabase/schemas/schools/tables/school_sponsorships.sql
+-- ===================================================
+-- TABLE: public.school_sponsorships
+-- ===================================================
+-- The paid time a school sponsors the board: while one is current and the
+-- school has a live livery, its cars take turns for guests and free
+-- learners. Dates are Kenyan calendar days; ends_on null runs until ended.
+-- Set by DriveRush staff (admin_set_sponsorship, admin_end_sponsorship).
+create table public.school_sponsorships (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools (id) on delete cascade,
+  starts_on date not null,
+  ends_on date,
+  note text check (note is null or char_length(note) <= 200),
+  created_by uuid references auth.users (id) on delete set null,
+  created_at timestamptz not null default now(),
+  check (ends_on is null or ends_on >= starts_on)
+);
+
+create index school_sponsorships_school_idx on public.school_sponsorships (school_id, starts_on);
+create index school_sponsorships_created_by_idx on public.school_sponsorships (created_by);
+
+comment on table public.school_sponsorships is
+  'When a school sponsors the board (its cars rotate for guests and free learners). Staff only.';
 
 -- ── supabase/schemas/billing/enums/billing_enums.sql
 -- ===================================================
@@ -380,6 +688,7 @@ create table public.learner_subscriptions (
 );
 
 create index learner_subscriptions_user_idx on public.learner_subscriptions (user_id, ends_at);
+create index learner_subscriptions_plan_idx on public.learner_subscriptions (plan_id);
 
 comment on table public.learner_subscriptions is
   'A learner''s own paid time. Pauses (dates move forward) while a school link is current.';
@@ -403,6 +712,7 @@ create table public.school_subscriptions (
 );
 
 create index school_subscriptions_school_idx on public.school_subscriptions (school_id, ends_at);
+create index school_subscriptions_plan_idx on public.school_subscriptions (plan_id);
 
 comment on table public.school_subscriptions is
   'A school''s flat plan for a period.';
@@ -432,6 +742,7 @@ create table public.payments (
 
 create index payments_payer_idx on public.payments (payer_user_id);
 create index payments_school_idx on public.payments (school_id);
+create index payments_plan_idx on public.payments (plan_id);
 
 comment on table public.payments is
   'Payment attempts, provider-neutral. Service role writes only.';
@@ -505,8 +816,11 @@ create unique index school_student_links_open_idx
 
 create index school_student_links_email_idx
   on public.school_student_links (email) where status = 'pending';
+-- Covers the (branch_id, school_id) foreign key and a branch's list by status.
 create index school_student_links_branch_idx
-  on public.school_student_links (branch_id, status);
+  on public.school_student_links (branch_id, school_id, status);
+create index school_student_links_added_by_idx
+  on public.school_student_links (added_by);
 
 comment on table public.school_student_links is
   'A school''s one-month link to a learner, added by email to a branch. History is kept.';
@@ -1504,7 +1818,6 @@ $$;
 create or replace function private.admin_create_school(
   p_name text,
   p_slug text,
-  p_sponsor_id text,
   p_owner_email text
 )
 returns uuid
@@ -1519,8 +1832,8 @@ begin
     raise exception 'forbidden' using errcode = '42501';
   end if;
 
-  insert into public.schools (name, slug, sponsor_id, created_by)
-  values (btrim(p_name), lower(btrim(p_slug)), nullif(lower(btrim(p_sponsor_id)), ''), auth.uid())
+  insert into public.schools (name, slug, created_by)
+  values (btrim(p_name), lower(btrim(p_slug)), auth.uid())
   returning id into v_school_id;
 
   perform private.set_school_owner(v_school_id, lower(btrim(p_owner_email))::extensions.citext, auth.uid());
@@ -1576,7 +1889,6 @@ $$;
 create or replace function public.admin_create_school(
   p_name text,
   p_slug text,
-  p_sponsor_id text,
   p_owner_email text
 )
 returns uuid
@@ -1584,7 +1896,7 @@ language sql
 security invoker
 set search_path = ''
 as $$
-  select private.admin_create_school(p_name, p_slug, p_sponsor_id, p_owner_email);
+  select private.admin_create_school(p_name, p_slug, p_owner_email);
 $$;
 
 -- Access:  authenticated (DriveRush su or admin)
@@ -1612,29 +1924,29 @@ as $$
 $$;
 
 revoke all on function private.set_school_owner(uuid, extensions.citext, uuid) from public;
-revoke all on function private.admin_create_school(text, text, text, text) from public;
+revoke all on function private.admin_create_school(text, text, text) from public;
 revoke all on function private.admin_set_school_status(uuid, public.school_status) from public;
 revoke all on function private.admin_transfer_school_owner(uuid, text) from public;
-revoke all on function public.admin_create_school(text, text, text, text) from public;
+revoke all on function public.admin_create_school(text, text, text) from public;
 revoke all on function public.admin_set_school_status(uuid, public.school_status) from public;
 revoke all on function public.admin_transfer_school_owner(uuid, text) from public;
 grant execute on function private.set_school_owner(uuid, extensions.citext, uuid) to service_role;
-grant execute on function private.admin_create_school(text, text, text, text) to service_role;
+grant execute on function private.admin_create_school(text, text, text) to service_role;
 grant execute on function private.admin_set_school_status(uuid, public.school_status) to service_role;
 grant execute on function private.admin_transfer_school_owner(uuid, text) to service_role;
-grant execute on function public.admin_create_school(text, text, text, text) to service_role;
+grant execute on function public.admin_create_school(text, text, text) to service_role;
 grant execute on function public.admin_set_school_status(uuid, public.school_status) to service_role;
 grant execute on function public.admin_transfer_school_owner(uuid, text) to service_role;
 
 comment on function private.set_school_owner(uuid, extensions.citext, uuid) is
   'Makes an email the school owner now (confirmed account) or by invite; replaces the current owner.';
-comment on function private.admin_create_school(text, text, text, text) is
+comment on function private.admin_create_school(text, text, text) is
   'DriveRush staff: creates a school and sets its owner by email.';
 comment on function private.admin_set_school_status(uuid, public.school_status) is
   'DriveRush staff: sets a school active, suspended or archived.';
 comment on function private.admin_transfer_school_owner(uuid, text) is
   'DriveRush staff: makes another email the school owner. Returns added or invited.';
-comment on function public.admin_create_school(text, text, text, text) is
+comment on function public.admin_create_school(text, text, text) is
   'DriveRush staff: creates a school and sets its owner by email.';
 comment on function public.admin_set_school_status(uuid, public.school_status) is
   'DriveRush staff: sets a school active, suspended or archived.';
@@ -1993,6 +2305,666 @@ comment on function public.school_remove_admin(uuid) is
 comment on function public.school_cancel_member_invite(uuid) is
   'School owner or staff: withdraws a pending admin invite (owner invites: staff only).';
 
+-- ── supabase/schemas/schools/functions/school_members_list.sql
+-- ===================================================
+-- FUNCTION: school_members_list
+-- ===================================================
+-- A school's team for its dashboard: the owner and every admin, with their
+-- email, name and branches. School members read school_members directly,
+-- but not other accounts' profiles, so names and emails come from here.
+--
+-- Access:  authenticated (school owner, school admin or DriveRush staff)
+-- Guard:   school (private.is_school_member or is_staff)
+-- Callers: school dashboard (session)
+create or replace function private.school_members_list(p_school_id uuid)
+returns table (
+  member_id uuid,
+  user_id uuid,
+  email extensions.citext,
+  full_name text,
+  role public.school_role,
+  branch_ids uuid[],
+  created_at timestamptz
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if not private.is_staff() and not private.is_school_member(p_school_id) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+
+  return query
+  select m.id, m.user_id, p.email, p.full_name, m.role,
+         coalesce((select array_agg(mb.branch_id order by mb.branch_id)
+                     from public.school_member_branches as mb where mb.member_id = m.id), '{}'),
+         m.created_at
+    from public.school_members as m
+    left join public.profiles as p on p.id = m.user_id
+   where m.school_id = p_school_id
+   order by m.role, p.email;
+end;
+$$;
+
+-- Access:  authenticated (school owner, school admin or DriveRush staff)
+-- Guard:   school (the private body checks membership)
+-- Callers: school dashboard (session)
+create or replace function public.school_members_list(p_school_id uuid)
+returns table (
+  member_id uuid,
+  user_id uuid,
+  email extensions.citext,
+  full_name text,
+  role public.school_role,
+  branch_ids uuid[],
+  created_at timestamptz
+)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select * from private.school_members_list(p_school_id);
+$$;
+
+revoke all on function private.school_members_list(uuid) from public;
+revoke all on function public.school_members_list(uuid) from public;
+grant execute on function private.school_members_list(uuid) to service_role;
+grant execute on function public.school_members_list(uuid) to service_role;
+
+comment on function private.school_members_list(uuid) is
+  'School owner, admin or staff: the school''s owner and admins with email, name and branches.';
+comment on function public.school_members_list(uuid) is
+  'School owner, admin or staff: the school''s owner and admins with email, name and branches.';
+
+-- ── supabase/schemas/schools/functions/school_profiles.sql
+-- ===================================================
+-- FUNCTIONS: a school's profile and branch details
+-- ===================================================
+-- The owner (or DriveRush staff) edits the words, colours and contacts. The
+-- logo files are made and uploaded by the server (sharp, then the
+-- school-media bucket with the service role), which then records them with
+-- school_set_logo: no client ever writes a media path.
+
+-- Access:  authenticated (school owner or DriveRush staff)
+-- Guard:   school (private.can_manage_school: owner or staff)
+-- Callers: school dashboard profile tab, DriveRush console (session)
+create or replace function private.school_update_profile(
+  p_school_id uuid,
+  p_tagline text,
+  p_about text,
+  p_phone text,
+  p_whatsapp text,
+  p_email text,
+  p_website_url text,
+  p_socials jsonb,
+  p_brand_paint text,
+  p_brand_ink text
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not private.can_manage_school(p_school_id) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  insert into public.school_profiles as p (
+    school_id, tagline, about, phone, whatsapp, email, website_url, socials,
+    brand_paint, brand_ink, updated_by
+  ) values (
+    p_school_id,
+    nullif(btrim(p_tagline), ''),
+    nullif(btrim(p_about), ''),
+    nullif(btrim(p_phone), ''),
+    nullif(btrim(p_whatsapp), ''),
+    nullif(lower(btrim(p_email)), '')::extensions.citext,
+    nullif(btrim(p_website_url), ''),
+    coalesce(p_socials, '{}'::jsonb),
+    nullif(lower(btrim(p_brand_paint)), ''),
+    nullif(lower(btrim(p_brand_ink)), ''),
+    auth.uid()
+  )
+  on conflict (school_id) do update
+    set tagline = excluded.tagline,
+        about = excluded.about,
+        phone = excluded.phone,
+        whatsapp = excluded.whatsapp,
+        email = excluded.email,
+        website_url = excluded.website_url,
+        socials = excluded.socials,
+        brand_paint = excluded.brand_paint,
+        brand_ink = excluded.brand_ink,
+        updated_by = excluded.updated_by;
+end;
+$$;
+
+-- Records a logo the server has just uploaded and returns the path it
+-- replaces (null if none), for the server to delete from the bucket.
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate; the server checks the owner first)
+-- Callers: school dashboard logo upload (server, service role); the seed
+create or replace function private.school_set_logo(
+  p_school_id uuid,
+  p_kind text,
+  p_ref jsonb,
+  p_actor uuid
+)
+returns text
+language plpgsql
+set search_path = ''
+as $$
+declare
+  v_old jsonb;
+begin
+  if p_kind not in ('logo', 'logo_mono') then
+    raise exception 'invalid_kind' using errcode = 'P0001';
+  end if;
+  insert into public.school_profiles (school_id, updated_by) values (p_school_id, p_actor)
+  on conflict (school_id) do nothing;
+  if p_kind = 'logo' then
+    select logo into v_old from public.school_profiles where school_id = p_school_id for update;
+    update public.school_profiles set logo = p_ref, updated_by = p_actor where school_id = p_school_id;
+  else
+    select logo_mono into v_old from public.school_profiles where school_id = p_school_id for update;
+    update public.school_profiles set logo_mono = p_ref, updated_by = p_actor where school_id = p_school_id;
+  end if;
+  if v_old ->> 'path' is distinct from p_ref ->> 'path' then
+    return v_old ->> 'path';
+  end if;
+  return null;
+end;
+$$;
+
+-- Access:  authenticated (school owner or DriveRush staff)
+-- Guard:   school (private.can_manage_school: owner or staff)
+-- Callers: school dashboard branches (session)
+create or replace function private.school_update_branch_details(
+  p_branch_id uuid,
+  p_address text,
+  p_lat double precision,
+  p_lng double precision,
+  p_phone text,
+  p_hours jsonb
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_school_id uuid;
+begin
+  select school_id into v_school_id from public.school_branches where id = p_branch_id;
+  if v_school_id is null or not private.can_manage_school(v_school_id) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  update public.school_branches
+     set address = nullif(btrim(p_address), ''),
+         lat = p_lat,
+         lng = p_lng,
+         phone = nullif(btrim(p_phone), ''),
+         hours = p_hours
+   where id = p_branch_id;
+end;
+$$;
+
+-- Access:  authenticated (school owner or DriveRush staff)
+-- Guard:   school (the private body checks private.can_manage_school)
+-- Callers: school dashboard profile tab, DriveRush console (session)
+create or replace function public.school_update_profile(
+  p_school_id uuid,
+  p_tagline text,
+  p_about text,
+  p_phone text,
+  p_whatsapp text,
+  p_email text,
+  p_website_url text,
+  p_socials jsonb,
+  p_brand_paint text,
+  p_brand_ink text
+)
+returns void
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.school_update_profile(
+    p_school_id, p_tagline, p_about, p_phone, p_whatsapp, p_email,
+    p_website_url, p_socials, p_brand_paint, p_brand_ink
+  );
+$$;
+
+-- Access:  service_role
+-- Guard:   none (the grant is the gate; the server checks the owner first)
+-- Callers: school dashboard logo upload (server, service role); the seed
+create or replace function public.school_set_logo(
+  p_school_id uuid,
+  p_kind text,
+  p_ref jsonb,
+  p_actor uuid
+)
+returns text
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.school_set_logo(p_school_id, p_kind, p_ref, p_actor);
+$$;
+
+-- Access:  authenticated (school owner or DriveRush staff)
+-- Guard:   school (the private body checks private.can_manage_school)
+-- Callers: school dashboard branches (session)
+create or replace function public.school_update_branch_details(
+  p_branch_id uuid,
+  p_address text,
+  p_lat double precision,
+  p_lng double precision,
+  p_phone text,
+  p_hours jsonb
+)
+returns void
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.school_update_branch_details(p_branch_id, p_address, p_lat, p_lng, p_phone, p_hours);
+$$;
+
+revoke all on function private.school_update_profile(uuid, text, text, text, text, text, text, jsonb, text, text) from public;
+revoke all on function private.school_set_logo(uuid, text, jsonb, uuid) from public;
+revoke all on function private.school_update_branch_details(uuid, text, double precision, double precision, text, jsonb) from public;
+revoke all on function public.school_update_profile(uuid, text, text, text, text, text, text, jsonb, text, text) from public;
+revoke all on function public.school_set_logo(uuid, text, jsonb, uuid) from public;
+revoke all on function public.school_update_branch_details(uuid, text, double precision, double precision, text, jsonb) from public;
+grant execute on function private.school_update_profile(uuid, text, text, text, text, text, text, jsonb, text, text) to service_role;
+grant execute on function private.school_set_logo(uuid, text, jsonb, uuid) to service_role;
+grant execute on function private.school_update_branch_details(uuid, text, double precision, double precision, text, jsonb) to service_role;
+grant execute on function public.school_update_profile(uuid, text, text, text, text, text, text, jsonb, text, text) to service_role;
+grant execute on function public.school_set_logo(uuid, text, jsonb, uuid) to service_role;
+grant execute on function public.school_update_branch_details(uuid, text, double precision, double precision, text, jsonb) to service_role;
+
+comment on function private.school_update_profile(uuid, text, text, text, text, text, text, jsonb, text, text) is
+  'School owner or staff: sets the profile''s words, contacts, socials and brand colours.';
+comment on function private.school_set_logo(uuid, text, jsonb, uuid) is
+  'Server only: records an uploaded logo (logo or logo_mono) and returns the path it replaces.';
+comment on function private.school_update_branch_details(uuid, text, double precision, double precision, text, jsonb) is
+  'School owner or staff: sets a branch''s address, map pin, phone and opening hours.';
+comment on function public.school_update_profile(uuid, text, text, text, text, text, text, jsonb, text, text) is
+  'School owner or staff: sets the profile''s words, contacts, socials and brand colours.';
+comment on function public.school_set_logo(uuid, text, jsonb, uuid) is
+  'Server only: records an uploaded logo (logo or logo_mono) and returns the path it replaces.';
+comment on function public.school_update_branch_details(uuid, text, double precision, double precision, text, jsonb) is
+  'School owner or staff: sets a branch''s address, map pin, phone and opening hours.';
+
+-- ── supabase/schemas/schools/functions/school_liveries.sql
+-- ===================================================
+-- FUNCTIONS: the board's schools, liveries and sponsorships
+-- ===================================================
+-- board_schools() is the one thing the app reads to show schools: every
+-- active school with a profile or a live livery, as one JSON array of words,
+-- numbers and school-media paths (a few KB). The app caches it on the
+-- server and the CDN; the files it names are cached by their own URLs.
+-- Drafts, who made what, and inactive schools never appear in it.
+
+-- Today in Kenya, the calendar sponsorships are written in.
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: private.board_school_json, admin_end_sponsorship
+create or replace function private.kenya_today()
+returns date
+language sql
+stable
+set search_path = ''
+as $$
+  select (now() at time zone 'Africa/Nairobi')::date;
+$$;
+
+-- One school as the app sees it, with the given livery (live or a draft
+-- being previewed) or none.
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: board_schools, admin_livery_draft_get
+create or replace function private.board_school_json(p_school public.schools, p_livery public.school_liveries)
+returns jsonb
+language sql
+stable
+set search_path = ''
+as $$
+  select jsonb_build_object(
+    'slug', p_school.slug,
+    'name', p_school.name,
+    'sponsoring', exists (
+      select 1 from public.school_sponsorships as sp
+       where sp.school_id = p_school.id
+         and sp.starts_on <= private.kenya_today()
+         and (sp.ends_on is null or sp.ends_on >= private.kenya_today())
+    ),
+    'profile', (
+      select jsonb_build_object(
+        'tagline', p.tagline, 'about', p.about, 'phone', p.phone,
+        'whatsapp', p.whatsapp, 'email', p.email, 'website_url', p.website_url,
+        'socials', p.socials, 'brand_paint', p.brand_paint, 'brand_ink', p.brand_ink,
+        'logo', p.logo, 'logo_mono', p.logo_mono
+      )
+        from public.school_profiles as p where p.school_id = p_school.id
+    ),
+    'branches', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'name', b.name, 'town', b.town, 'address', b.address, 'lat', b.lat,
+        'lng', b.lng, 'phone', b.phone, 'hours', b.hours
+      ) order by b.name)
+        from public.school_branches as b
+       where b.school_id = p_school.id and b.is_active
+    ), '[]'::jsonb),
+    'livery', case when p_livery.id is null then null else jsonb_build_object(
+      'id', p_livery.id, 'status', p_livery.status, 'base_color', p_livery.base_color,
+      'rail', p_livery.rail, 'paint', p_livery.paint, 'top_board', p_livery.top_board,
+      'banner', p_livery.banner, 'posters', p_livery.posters, 'marks', p_livery.marks,
+      'thumbs', p_livery.thumbs, 'stills', p_livery.stills
+    ) end
+  );
+$$;
+
+-- Access:  anon (anyone, guests included)
+-- Guard:   public (only active schools' public profile and live livery)
+-- Callers: web root loader and /api/board-schools (server, cached)
+create or replace function private.board_schools()
+returns jsonb
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select coalesce(jsonb_agg(private.board_school_json(s, l) order by s.name), '[]'::jsonb)
+    from public.schools as s
+    left join public.school_liveries as l on l.school_id = s.id and l.status = 'live'
+   where s.status = 'active'
+     and (l.id is not null or exists (select 1 from public.school_profiles as p where p.school_id = s.id));
+$$;
+
+-- A draft (or any livery) shaped like a board_schools() entry, for staff to
+-- preview on the board before it goes live.
+--
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (private.is_staff)
+-- Callers: board ?livery= preview (staff session)
+create or replace function private.admin_livery_draft_get(p_livery_id uuid)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_livery public.school_liveries;
+  v_school public.schools;
+begin
+  if not private.is_staff() then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  select * into v_livery from public.school_liveries where id = p_livery_id;
+  if v_livery.id is null then
+    raise exception 'not_found' using errcode = 'P0002';
+  end if;
+  select * into v_school from public.schools where id = v_livery.school_id;
+  return private.board_school_json(v_school, v_livery);
+end;
+$$;
+
+-- Makes a draft or retired livery the school's live one; the one live
+-- before is retired.
+--
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (private.is_staff)
+-- Callers: DriveRush console (session); livery:publish --live (service role)
+create or replace function private.admin_publish_livery(p_livery_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_school_id uuid;
+begin
+  if not (private.is_staff() or (select auth.role()) = 'service_role') then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  select school_id into v_school_id from public.school_liveries where id = p_livery_id for update;
+  if v_school_id is null then
+    raise exception 'not_found' using errcode = 'P0002';
+  end if;
+  update public.school_liveries
+     set status = 'retired'
+   where school_id = v_school_id and status = 'live' and id <> p_livery_id;
+  update public.school_liveries
+     set status = 'live', published_at = coalesce(published_at, now())
+   where id = p_livery_id;
+end;
+$$;
+
+-- Takes a live livery off the board (the school shows plain cars until
+-- another is published).
+--
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (private.is_staff)
+-- Callers: DriveRush console (session)
+create or replace function private.admin_retire_livery(p_livery_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not private.is_staff() then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  update public.school_liveries
+     set status = 'retired', published_at = coalesce(published_at, now())
+   where id = p_livery_id and status in ('live', 'draft');
+  if not found then
+    raise exception 'not_found' using errcode = 'P0002';
+  end if;
+end;
+$$;
+
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (private.is_staff)
+-- Callers: DriveRush console (session)
+create or replace function private.admin_set_sponsorship(
+  p_school_id uuid,
+  p_starts_on date,
+  p_ends_on date,
+  p_note text
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_id uuid;
+begin
+  if not private.is_staff() then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  if not exists (select 1 from public.schools where id = p_school_id) then
+    raise exception 'not_found' using errcode = 'P0002';
+  end if;
+  insert into public.school_sponsorships (school_id, starts_on, ends_on, note, created_by)
+  values (p_school_id, p_starts_on, p_ends_on, nullif(btrim(p_note), ''), auth.uid())
+  returning id into v_id;
+  return v_id;
+end;
+$$;
+
+-- Ends a sponsorship today (Kenyan date), or on an earlier set end.
+--
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (private.is_staff)
+-- Callers: DriveRush console (session)
+create or replace function private.admin_end_sponsorship(p_sponsorship_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if not private.is_staff() then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  update public.school_sponsorships
+     set ends_on = greatest(starts_on, least(coalesce(ends_on, private.kenya_today()), private.kenya_today()))
+   where id = p_sponsorship_id;
+  if not found then
+    raise exception 'not_found' using errcode = 'P0002';
+  end if;
+end;
+$$;
+
+-- Access:  anon (anyone, guests included)
+-- Guard:   public (the private body returns only public data)
+-- Callers: web root loader and /api/board-schools (server, cached)
+create or replace function public.board_schools()
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select private.board_schools();
+$$;
+
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (the private body checks private.is_staff)
+-- Callers: board ?livery= preview (staff session)
+create or replace function public.admin_livery_draft_get(p_livery_id uuid)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select private.admin_livery_draft_get(p_livery_id);
+$$;
+
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (the private body checks private.is_staff)
+-- Callers: DriveRush console (session); livery:publish --live (service role)
+create or replace function public.admin_publish_livery(p_livery_id uuid)
+returns void
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.admin_publish_livery(p_livery_id);
+$$;
+
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (the private body checks private.is_staff)
+-- Callers: DriveRush console (session)
+create or replace function public.admin_retire_livery(p_livery_id uuid)
+returns void
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.admin_retire_livery(p_livery_id);
+$$;
+
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (the private body checks private.is_staff)
+-- Callers: DriveRush console (session)
+create or replace function public.admin_set_sponsorship(
+  p_school_id uuid,
+  p_starts_on date,
+  p_ends_on date,
+  p_note text
+)
+returns uuid
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.admin_set_sponsorship(p_school_id, p_starts_on, p_ends_on, p_note);
+$$;
+
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (the private body checks private.is_staff)
+-- Callers: DriveRush console (session)
+create or replace function public.admin_end_sponsorship(p_sponsorship_id uuid)
+returns void
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.admin_end_sponsorship(p_sponsorship_id);
+$$;
+
+revoke all on function private.kenya_today() from public;
+revoke all on function private.board_school_json(public.schools, public.school_liveries) from public;
+revoke all on function private.board_schools() from public;
+revoke all on function private.admin_livery_draft_get(uuid) from public;
+revoke all on function private.admin_publish_livery(uuid) from public;
+revoke all on function private.admin_retire_livery(uuid) from public;
+revoke all on function private.admin_set_sponsorship(uuid, date, date, text) from public;
+revoke all on function private.admin_end_sponsorship(uuid) from public;
+revoke all on function public.board_schools() from public;
+revoke all on function public.admin_livery_draft_get(uuid) from public;
+revoke all on function public.admin_publish_livery(uuid) from public;
+revoke all on function public.admin_retire_livery(uuid) from public;
+revoke all on function public.admin_set_sponsorship(uuid, date, date, text) from public;
+revoke all on function public.admin_end_sponsorship(uuid) from public;
+grant execute on function private.kenya_today() to service_role;
+grant execute on function private.board_school_json(public.schools, public.school_liveries) to service_role;
+grant execute on function private.board_schools() to service_role;
+grant execute on function private.admin_livery_draft_get(uuid) to service_role;
+grant execute on function private.admin_publish_livery(uuid) to service_role;
+grant execute on function private.admin_retire_livery(uuid) to service_role;
+grant execute on function private.admin_set_sponsorship(uuid, date, date, text) to service_role;
+grant execute on function private.admin_end_sponsorship(uuid) to service_role;
+grant execute on function public.board_schools() to service_role;
+grant execute on function public.admin_livery_draft_get(uuid) to service_role;
+grant execute on function public.admin_publish_livery(uuid) to service_role;
+grant execute on function public.admin_retire_livery(uuid) to service_role;
+grant execute on function public.admin_set_sponsorship(uuid, date, date, text) to service_role;
+grant execute on function public.admin_end_sponsorship(uuid) to service_role;
+
+comment on function private.kenya_today() is
+  'Today''s date in Kenya (Africa/Nairobi).';
+comment on function private.board_school_json(public.schools, public.school_liveries) is
+  'One school as the app sees it: slug, name, sponsoring, profile, branches and the given livery.';
+comment on function private.board_schools() is
+  'Every active school with a profile or live livery, public fields only: the app''s school manifest.';
+comment on function private.admin_livery_draft_get(uuid) is
+  'DriveRush staff: a livery (draft included) shaped like a board_schools() entry, for preview.';
+comment on function private.admin_publish_livery(uuid) is
+  'DriveRush staff: makes a livery the school''s live one and retires the one before.';
+comment on function private.admin_retire_livery(uuid) is
+  'DriveRush staff: takes a livery off the board.';
+comment on function private.admin_set_sponsorship(uuid, date, date, text) is
+  'DriveRush staff: records a sponsorship period (Kenyan dates; no end runs until ended).';
+comment on function private.admin_end_sponsorship(uuid) is
+  'DriveRush staff: ends a sponsorship today (Kenyan date).';
+comment on function public.board_schools() is
+  'Every active school with a profile or live livery, public fields only: the app''s school manifest.';
+comment on function public.admin_livery_draft_get(uuid) is
+  'DriveRush staff: a livery (draft included) shaped like a board_schools() entry, for preview.';
+comment on function public.admin_publish_livery(uuid) is
+  'DriveRush staff: makes a livery the school''s live one and retires the one before.';
+comment on function public.admin_retire_livery(uuid) is
+  'DriveRush staff: takes a livery off the board.';
+comment on function public.admin_set_sponsorship(uuid, date, date, text) is
+  'DriveRush staff: records a sponsorship period (Kenyan dates; no end runs until ended).';
+comment on function public.admin_end_sponsorship(uuid) is
+  'DriveRush staff: ends a sponsorship today (Kenyan date).';
+
 -- ── supabase/schemas/students/functions/school_students.sql
 -- ===================================================
 -- FUNCTIONS: a school adds and releases students
@@ -2341,7 +3313,7 @@ comment on function public.learner_decline_school_link(uuid) is
 -- What the signed-in learner gets right now, for the app to decide content
 -- and livery:
 --   school  a current link with an active school: full access, that school's
---           livery (sponsor_id), until ends_at
+--           livery (school_slug, looked up in board_schools()), until ends_at
 --   paid    their own subscription is running: full access, plain cars
 --   free    a free account: progress saved, sponsor schools take turns
 -- A school link beats paid time (which is paused meanwhile).
@@ -2355,7 +3327,7 @@ returns table (
   tier text,
   school_id uuid,
   school_name text,
-  sponsor_id text,
+  school_slug text,
   branch_id uuid,
   ends_at timestamptz,
   pending_invites integer
@@ -2388,7 +3360,7 @@ begin
   end if;
 
   if v_school.id is not null then
-    return query select 'school'::text, v_school.id, v_school.name, v_school.sponsor_id,
+    return query select 'school'::text, v_school.id, v_school.name, v_school.slug,
                         v_link.branch_id, v_link.ends_at, v_pending;
     return;
   end if;
@@ -2415,7 +3387,7 @@ returns table (
   tier text,
   school_id uuid,
   school_name text,
-  sponsor_id text,
+  school_slug text,
   branch_id uuid,
   ends_at timestamptz,
   pending_invites integer
@@ -2559,6 +3531,10 @@ create or replace trigger school_member_invites_admin_limit
   before insert or update of role, status on public.school_member_invites
   for each row execute function private.enforce_invite_admin_limit();
 
+create or replace trigger school_profiles_set_updated_at
+  before update on public.school_profiles
+  for each row execute function private.set_updated_at();
+
 -- ── supabase/schemas/billing/triggers/billing_triggers.sql
 -- ===================================================
 -- TRIGGERS: billing
@@ -2686,6 +3662,46 @@ create policy "school_member_invites: staff and owner read"
   on public.school_member_invites for select to authenticated
   using ((select private.is_staff()) or private.is_school_owner(school_id));
 
+-- ===================================================
+-- ACCESS: public.school_profiles
+-- ===================================================
+-- Reads:  DriveRush staff; the school's owner and admins. Everyone else
+--         (guests included) reads the public fields through board_schools().
+-- Writes: No client: school_update_profile (owner, staff); school_set_logo
+--         (the server, after uploading the file).
+-- Grants: anon: none; authenticated: SELECT
+alter table public.school_profiles enable row level security;
+
+create policy "school_profiles: staff and members read"
+  on public.school_profiles for select to authenticated
+  using ((select private.is_staff()) or private.is_school_member(school_id));
+
+-- ===================================================
+-- ACCESS: public.school_liveries
+-- ===================================================
+-- Reads:  DriveRush staff (drafts included). The live livery reaches
+--         everyone through board_schools().
+-- Writes: No client: livery:publish (service role) inserts drafts;
+--         admin_publish_livery and admin_retire_livery (staff).
+-- Grants: anon: none; authenticated: SELECT
+alter table public.school_liveries enable row level security;
+
+create policy "school_liveries: staff read"
+  on public.school_liveries for select to authenticated
+  using ((select private.is_staff()));
+
+-- ===================================================
+-- ACCESS: public.school_sponsorships
+-- ===================================================
+-- Reads:  DriveRush staff. board_schools() says only whether one is current.
+-- Writes: No client: admin_set_sponsorship and admin_end_sponsorship (staff).
+-- Grants: anon: none; authenticated: SELECT
+alter table public.school_sponsorships enable row level security;
+
+create policy "school_sponsorships: staff read"
+  on public.school_sponsorships for select to authenticated
+  using ((select private.is_staff()));
+
 -- ── supabase/schemas/billing/rls/billing_rls.sql
 -- ===================================================
 -- ACCESS: public.plans
@@ -2695,13 +3711,16 @@ create policy "school_member_invites: staff and owner read"
 -- Grants: anon: SELECT; authenticated: SELECT
 alter table public.plans enable row level security;
 
-create policy "plans: anyone reads active"
-  on public.plans for select to anon, authenticated
+-- One policy per role and command, so Postgres never evaluates two
+-- permissive policies for the same read (advisor: multiple_permissive_policies).
+-- anon gets its own: it cannot call private.is_staff().
+create policy "plans: guests read active"
+  on public.plans for select to anon
   using (is_active);
 
-create policy "plans: staff read all"
+create policy "plans: signed-in read active, staff read all"
   on public.plans for select to authenticated
-  using ((select private.is_staff()));
+  using (is_active or (select private.is_staff()));
 
 -- ===================================================
 -- ACCESS: public.learner_subscriptions
@@ -2751,6 +3770,12 @@ create policy "payments: payer, school owner or staff read"
 -- Writes: No client: private.pause_subscription, resume_subscriptions_for_link.
 -- Grants: anon: none; authenticated: none
 alter table public.subscription_pauses enable row level security;
+
+-- Said out loud rather than left to "no policy" (advisor: rls_enabled_no_policy).
+create policy "subscription_pauses: clients no access"
+  on public.subscription_pauses for all to anon, authenticated
+  using (false)
+  with check (false);
 
 -- ── supabase/schemas/students/rls/school_student_links_rls.sql
 -- ===================================================
@@ -2838,7 +3863,7 @@ grant execute on all functions in schema private to service_role;
 -- wrapper or a policy; USAGE lets those calls reach the schema. The Data API
 -- does not expose private, so USAGE alone reaches nothing.
 revoke all on schema private from public;
-grant usage on schema private to authenticated, service_role;
+grant usage on schema private to anon, authenticated, service_role;
 
 -- ── 3. Row level security helpers (policies run as the caller) ──────────
 grant execute on function private.is_staff() to authenticated;
@@ -2847,6 +3872,10 @@ grant execute on function private.is_school_owner(uuid) to authenticated;
 grant execute on function private.is_school_member(uuid) to authenticated;
 grant execute on function private.can_see_branch(uuid) to authenticated;
 grant execute on function private.has_school_link(uuid) to authenticated;
+
+-- ── 3b. Anyone, guests included (public data only) ──────────────────────
+grant execute on function public.board_schools() to anon, authenticated;
+grant execute on function private.board_schools() to anon, authenticated;
 
 -- ── 4. Learners, with their own session ─────────────────────────────────
 grant execute on function public.my_entitlement() to authenticated;
@@ -2861,6 +3890,10 @@ grant execute on function public.school_create_branch(uuid, text, text) to authe
 grant execute on function private.school_create_branch(uuid, text, text) to authenticated;
 grant execute on function public.school_update_branch(uuid, text, text, boolean) to authenticated;
 grant execute on function private.school_update_branch(uuid, text, text, boolean) to authenticated;
+grant execute on function public.school_update_branch_details(uuid, text, double precision, double precision, text, jsonb) to authenticated;
+grant execute on function private.school_update_branch_details(uuid, text, double precision, double precision, text, jsonb) to authenticated;
+grant execute on function public.school_update_profile(uuid, text, text, text, text, text, text, jsonb, text, text) to authenticated;
+grant execute on function private.school_update_profile(uuid, text, text, text, text, text, text, jsonb, text, text) to authenticated;
 grant execute on function public.school_add_admin(uuid, text, uuid[]) to authenticated;
 grant execute on function private.school_add_admin(uuid, text, uuid[]) to authenticated;
 grant execute on function public.school_set_admin_branches(uuid, uuid[]) to authenticated;
@@ -2877,16 +3910,28 @@ grant execute on function public.school_cancel_student_invite(uuid) to authentic
 grant execute on function private.school_cancel_student_invite(uuid) to authenticated;
 grant execute on function public.school_move_student_branch(uuid, uuid) to authenticated;
 grant execute on function private.school_move_student_branch(uuid, uuid) to authenticated;
+grant execute on function public.school_members_list(uuid) to authenticated;
+grant execute on function private.school_members_list(uuid) to authenticated;
 grant execute on function public.school_student_progress(uuid, uuid) to authenticated;
 grant execute on function private.school_student_progress(uuid, uuid) to authenticated;
 
 -- ── 6. DriveRush console (each checks is_staff or is_su) ────────────────
-grant execute on function public.admin_create_school(text, text, text, text) to authenticated;
-grant execute on function private.admin_create_school(text, text, text, text) to authenticated;
+grant execute on function public.admin_create_school(text, text, text) to authenticated;
+grant execute on function private.admin_create_school(text, text, text) to authenticated;
 grant execute on function public.admin_set_school_status(uuid, public.school_status) to authenticated;
 grant execute on function private.admin_set_school_status(uuid, public.school_status) to authenticated;
 grant execute on function public.admin_transfer_school_owner(uuid, text) to authenticated;
 grant execute on function private.admin_transfer_school_owner(uuid, text) to authenticated;
+grant execute on function public.admin_livery_draft_get(uuid) to authenticated;
+grant execute on function private.admin_livery_draft_get(uuid) to authenticated;
+grant execute on function public.admin_publish_livery(uuid) to authenticated;
+grant execute on function private.admin_publish_livery(uuid) to authenticated;
+grant execute on function public.admin_retire_livery(uuid) to authenticated;
+grant execute on function private.admin_retire_livery(uuid) to authenticated;
+grant execute on function public.admin_set_sponsorship(uuid, date, date, text) to authenticated;
+grant execute on function private.admin_set_sponsorship(uuid, date, date, text) to authenticated;
+grant execute on function public.admin_end_sponsorship(uuid) to authenticated;
+grant execute on function private.admin_end_sponsorship(uuid) to authenticated;
 grant execute on function public.grant_platform_role(uuid, public.app_role) to authenticated;
 grant execute on function private.grant_platform_role(uuid, public.app_role) to authenticated;
 grant execute on function public.revoke_platform_role(uuid, public.app_role) to authenticated;
@@ -2930,9 +3975,12 @@ grant select on public.payments to authenticated;
 grant select on public.plans to authenticated;
 grant select on public.profiles to authenticated;
 grant select on public.school_branches to authenticated;
+grant select on public.school_liveries to authenticated;
 grant select on public.school_member_branches to authenticated;
 grant select on public.school_member_invites to authenticated;
 grant select on public.school_members to authenticated;
+grant select on public.school_profiles to authenticated;
+grant select on public.school_sponsorships to authenticated;
 grant select on public.school_student_links to authenticated;
 grant select on public.school_subscriptions to authenticated;
 grant select on public.schools to authenticated;
@@ -2947,3 +3995,26 @@ grant update (full_name, avatar_url) on public.profiles to authenticated;
 grant insert (user_id, store, data, version) on public.learner_progress to authenticated;
 grant update (user_id, store, data, version) on public.learner_progress to authenticated;
 grant delete on public.learner_progress to authenticated;
+
+-- ── supabase/schemas/storage/school_media_bucket.sql
+-- ===================================================
+-- STORAGE: the school-media bucket
+-- ===================================================
+-- School logos and liveries. Public: phones load them by plain URL from
+-- Supabase's CDN, cached for a year (every path is named by its content, so
+-- a file never changes). Raster images only: SVG can carry script.
+--
+-- No storage.objects policy exists for it on purpose: a public bucket serves
+-- its files without one, and a SELECT policy would let anyone list the
+-- bucket (Supabase lint 0025). Only the service role writes: the server's
+-- logo upload and `npm run livery:publish`.
+--
+-- `supabase db diff` does not read the storage schema, so this row is an
+-- idempotent insert here (it lands in the baseline) and config.toml declares
+-- the same bucket for local stacks.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('school-media', 'school-media', true, 5242880, array['image/webp', 'image/png', 'image/jpeg'])
+on conflict (id) do update
+  set public = excluded.public,
+      file_size_limit = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;

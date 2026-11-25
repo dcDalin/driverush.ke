@@ -45,6 +45,7 @@ schema_paths = [
   './schemas/_private/local_stack.sql',
   './schemas/_private/signed_in_with_password.sql',
   './schemas/_private/set_updated_at.sql',
+  './schemas/_private/media_checks.sql',
 
   # profiles: platform roles and the learner's profile
   './schemas/profiles/enums/app_role.sql',
@@ -58,6 +59,9 @@ schema_paths = [
   './schemas/schools/tables/school_members.sql',
   './schemas/schools/tables/school_member_branches.sql',
   './schemas/schools/tables/school_member_invites.sql',
+  './schemas/schools/tables/school_profiles.sql',
+  './schemas/schools/tables/school_liveries.sql',
+  './schemas/schools/tables/school_sponsorships.sql',
 
   # billing: plans and subscriptions (provider-neutral; no money moves yet)
   './schemas/billing/enums/billing_enums.sql',
@@ -88,6 +92,8 @@ schema_paths = [
   './schemas/schools/functions/school_branches.sql',
   './schemas/schools/functions/school_admins.sql',
   './schemas/schools/functions/school_members_list.sql',
+  './schemas/schools/functions/school_profiles.sql',
+  './schemas/schools/functions/school_liveries.sql',
   './schemas/students/functions/school_students.sql',
   './schemas/students/functions/learner_links.sql',
   './schemas/billing/functions/my_entitlement.sql',
@@ -110,6 +116,10 @@ schema_paths = [
   # the only client grants, last
   './schemas/_grants/function_privileges.sql',
   './schemas/_grants/table_privileges.sql',
+
+  # storage: the school-media bucket (db diff does not read the storage
+  # schema; the insert is idempotent and lands in the baseline)
+  './schemas/storage/school_media_bucket.sql',
 ]
 
 [db.seed]
@@ -138,8 +148,21 @@ enabled = true
 port = 54724
 
 [storage]
-enabled = false
+enabled = true
 file_size_limit = "50MiB"
+
+# School logos and liveries (supabase/schemas/storage/school_media_bucket.sql
+# creates the same bucket everywhere else). Public, content-named files, no
+# client policies: only the service role writes. No SVG (it can carry script).
+[storage.buckets.school-media]
+public = true
+file_size_limit = "5MiB"
+allowed_mime_types = ["image/webp", "image/png", "image/jpeg"]
+
+# Supabase image transformation is billed per request: every size the app
+# needs is made before upload instead.
+[storage.image_transformation]
+enabled = false
 
 [auth]
 enabled = true

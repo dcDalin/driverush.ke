@@ -18,6 +18,7 @@ import { LoadingPanel } from "~/components/brand/traffic-loader";
 import { Button } from "~/components/ui/button";
 import { analytics } from "~/lib/analytics";
 import { challengeById } from "~/lib/board/challenges";
+import { useLiveryPreview } from "~/lib/board/livery-preview";
 import {
   enterPlay,
   schoolHeld,
@@ -88,6 +89,8 @@ export default function BoardPlay() {
   // Before the effect that starts the game, so a school asked for in the
   // address is on the board for the first task.
   useSchoolInAddress();
+  // Staff: `?livery=<id>` puts a draft livery on the board for this tab.
+  useLiveryPreview();
   // The board runs to the top edge: the status bar takes its dark.
   useThemeColor(SITE.themeColors.game);
   const learn = params.get("learn") === "1";

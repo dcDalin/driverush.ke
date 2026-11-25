@@ -12,12 +12,13 @@
 import * as React from "react";
 
 import { Button } from "~/components/ui/button";
-import { sponsorLinkClicked, sponsorShown } from "~/lib/board/sponsor-visit";
 import {
+  liveSchools,
   type Sponsor,
   type SponsorPlace,
-  SPONSORS,
-} from "~/lib/board/sponsors";
+  useCatalog,
+} from "~/lib/board/school-catalog";
+import { sponsorLinkClicked, sponsorShown } from "~/lib/board/sponsor-visit";
 import { cn } from "~/lib/utils";
 
 function useSeen(sponsor: Sponsor | null, place: SponsorPlace) {
@@ -120,7 +121,7 @@ export function SponsorReadyCard({
 /** The live schools' names as one English list ("A, B and C"). */
 export function boardSchoolNames(): string {
   return new Intl.ListFormat("en", { type: "conjunction" }).format(
-    SPONSORS.filter((s) => s.live).map((s) => s.school),
+    liveSchools().map((s) => s.school),
   );
 }
 
@@ -142,7 +143,7 @@ export function BoardSchools({
   onInk?: boolean;
   className?: string;
 }) {
-  const schools = SPONSORS.filter((s) => s.live);
+  const schools = liveSchools(useCatalog()).filter((s) => s.logo.full);
   if (schools.length === 0) return null;
   // The school's logo is a 1024 x 401 lockup: tiles keep its shape, and the
   // edge keeps a white tile visible in either theme.

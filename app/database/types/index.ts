@@ -40,12 +40,13 @@ export type Tier = "school" | "paid" | "free";
  */
 export type Entitlement = Omit<
   FunctionReturns<"my_entitlement">[number],
-  "tier" | "school_id" | "school_name" | "sponsor_id" | "branch_id" | "ends_at"
+  "tier" | "school_id" | "school_name" | "school_slug" | "branch_id" | "ends_at"
 > & {
   tier: Tier;
   school_id: string | null;
   school_name: string | null;
-  sponsor_id: string | null;
+  /** The school's slug: its livery in the board's school list. */
+  school_slug: string | null;
   branch_id: string | null;
   ends_at: string | null;
 };

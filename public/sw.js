@@ -15,10 +15,15 @@
  *    very next visit. A page never opened shows `/offline.html`.
  *  - Other files of ours (the board's cars, pictures, sounds) are served from
  *    the cache and refreshed in the background.
+ *  - Driving schools' logos and liveries come from Supabase Storage
+ *    (school-media). Their paths are named by content and never change, so
+ *    once fetched they are served from the cache; a phone keeps every school
+ *    it has seen for offline. The school list (`/api/board-schools`) is
+ *    served from the cache and refreshed behind.
  *
  * To throw every cache away after a bad release, bump VERSION.
  */
-const VERSION = "v2";
+const VERSION = "v3";
 const FILES = `dr-files-${VERSION}`;
 const PAGES = `dr-pages-${VERSION}`;
 const KEEP = [FILES, PAGES];
@@ -27,6 +32,17 @@ const KEEP = [FILES, PAGES];
 const HASHED = /^\/assets\/[^/]+-[A-Za-z0-9_-]{8,}\.(?:js|css|woff2?)$/;
 const STATIC =
   /\.(?:glb|gltf|png|jpe?g|webp|avif|svg|ico|mp3|ogg|wav|woff2?|json|webmanifest)$/;
+
+/**
+ * Where school media lives: `<supabase>/storage/v1/object/public/school-media/`.
+ * The page registers this worker as `/sw.js?media=<supabase origin>`.
+ */
+const MEDIA_ORIGIN = new URL(self.location.href).searchParams.get("media");
+const MEDIA_PREFIX = MEDIA_ORIGIN
+  ? `${MEDIA_ORIGIN.replace(/\/$/, "")}/storage/v1/object/public/school-media/`
+  : null;
+/** The board's school list: public, the same for everyone. */
+const SCHOOL_LIST = "/api/board-schools";
 
 /** The pages saved on install. The first is where the app opens. */
 const PAGES_TO_SAVE = ["/model-town-board", "/model-town-board/play"];
@@ -204,7 +220,10 @@ self.addEventListener("activate", (event) => {
 });
 
 async function put(cacheName, request, response) {
-  if (!response || response.status !== 200 || response.type !== "basic") return;
+  // Our own files, or school media fetched with CORS (the board's loaders
+  // ask with crossOrigin "anonymous"); never an opaque answer.
+  if (!response || response.status !== 200) return;
+  if (response.type !== "basic" && response.type !== "cors") return;
   const cache = await caches.open(cacheName);
   await cache.put(request, response.clone());
 }
@@ -282,8 +301,17 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
   const url = new URL(request.url);
+  // A school's logo or livery: never changes at that address.
+  if (MEDIA_PREFIX && request.url.startsWith(MEDIA_PREFIX)) {
+    event.respondWith(cacheFirst(request));
+    return;
+  }
   // Analytics and anything else not ours is left alone.
   if (url.origin !== self.location.origin) return;
+  if (url.pathname === SCHOOL_LIST) {
+    event.respondWith(refreshBehind(request));
+    return;
+  }
   if (url.pathname === "/sw.js") return;
   // Signed-in dashboards and sign-in hold people's details: never kept
   // offline, so the next person on the phone cannot open a saved copy.

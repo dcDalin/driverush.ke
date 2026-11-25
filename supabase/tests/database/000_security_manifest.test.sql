@@ -41,12 +41,22 @@ create table tests.function_access (
 
 insert into tests.function_access (fn, access, guard, guard_detail, callers) values
   -- DriveRush console
-  ('admin_create_school(text, text, text, text)', 'authenticated', 'admin', 'private.is_staff', 'DriveRush console (session)'),
-  ('private.admin_create_school(text, text, text, text)', 'authenticated', 'admin', 'private.is_staff', 'DriveRush console (session)'),
+  ('admin_create_school(text, text, text)', 'authenticated', 'admin', 'private.is_staff', 'DriveRush console (session)'),
+  ('private.admin_create_school(text, text, text)', 'authenticated', 'admin', 'private.is_staff', 'DriveRush console (session)'),
   ('admin_set_school_status(uuid, school_status)', 'authenticated', 'admin', 'private.is_staff', 'DriveRush console (session)'),
   ('private.admin_set_school_status(uuid, school_status)', 'authenticated', 'admin', 'private.is_staff', 'DriveRush console (session)'),
   ('admin_transfer_school_owner(uuid, text)', 'authenticated', 'admin', 'private.is_staff', 'DriveRush console (session)'),
   ('private.admin_transfer_school_owner(uuid, text)', 'authenticated', 'admin', 'private.is_staff', 'DriveRush console (session)'),
+  ('admin_livery_draft_get(uuid)', 'authenticated', 'admin', 'private.is_staff', 'board ?livery= preview (staff session)'),
+  ('private.admin_livery_draft_get(uuid)', 'authenticated', 'admin', 'private.is_staff', 'board ?livery= preview (staff session)'),
+  ('admin_publish_livery(uuid)', 'authenticated', 'admin', 'private.is_staff (or the service role)', 'DriveRush console (session); livery:publish --live'),
+  ('private.admin_publish_livery(uuid)', 'authenticated', 'admin', 'private.is_staff (or the service role)', 'DriveRush console (session); livery:publish --live'),
+  ('admin_retire_livery(uuid)', 'authenticated', 'admin', 'private.is_staff', 'DriveRush console (session)'),
+  ('private.admin_retire_livery(uuid)', 'authenticated', 'admin', 'private.is_staff', 'DriveRush console (session)'),
+  ('admin_set_sponsorship(uuid, date, date, text)', 'authenticated', 'admin', 'private.is_staff', 'DriveRush console (session)'),
+  ('private.admin_set_sponsorship(uuid, date, date, text)', 'authenticated', 'admin', 'private.is_staff', 'DriveRush console (session)'),
+  ('admin_end_sponsorship(uuid)', 'authenticated', 'admin', 'private.is_staff', 'DriveRush console (session)'),
+  ('private.admin_end_sponsorship(uuid)', 'authenticated', 'admin', 'private.is_staff', 'DriveRush console (session)'),
   ('grant_platform_role(uuid, app_role)', 'authenticated', 'su', 'private.is_su', 'DriveRush console (session)'),
   ('private.grant_platform_role(uuid, app_role)', 'authenticated', 'su', 'private.is_su', 'DriveRush console (session)'),
   ('revoke_platform_role(uuid, app_role)', 'authenticated', 'su', 'private.is_su', 'DriveRush console (session)'),
@@ -56,6 +66,10 @@ insert into tests.function_access (fn, access, guard, guard_detail, callers) val
   ('private.school_create_branch(uuid, text, text)', 'authenticated', 'school', 'private.can_manage_school (owner or staff)', 'school dashboard (session)'),
   ('school_update_branch(uuid, text, text, boolean)', 'authenticated', 'school', 'private.can_manage_school (owner or staff)', 'school dashboard (session)'),
   ('private.school_update_branch(uuid, text, text, boolean)', 'authenticated', 'school', 'private.can_manage_school (owner or staff)', 'school dashboard (session)'),
+  ('school_update_branch_details(uuid, text, double precision, double precision, text, jsonb)', 'authenticated', 'school', 'private.can_manage_school (owner or staff)', 'school dashboard (session)'),
+  ('private.school_update_branch_details(uuid, text, double precision, double precision, text, jsonb)', 'authenticated', 'school', 'private.can_manage_school (owner or staff)', 'school dashboard (session)'),
+  ('school_update_profile(uuid, text, text, text, text, text, text, jsonb, text, text)', 'authenticated', 'school', 'private.can_manage_school (owner or staff)', 'school dashboard, DriveRush console (session)'),
+  ('private.school_update_profile(uuid, text, text, text, text, text, text, jsonb, text, text)', 'authenticated', 'school', 'private.can_manage_school (owner or staff)', 'school dashboard, DriveRush console (session)'),
   ('school_add_admin(uuid, text, uuid[])', 'authenticated', 'school', 'private.can_manage_school (owner or staff)', 'school dashboard (session)'),
   ('private.school_add_admin(uuid, text, uuid[])', 'authenticated', 'school', 'private.can_manage_school (owner or staff)', 'school dashboard (session)'),
   ('school_set_admin_branches(uuid, uuid[])', 'authenticated', 'school', 'private.can_manage_school (owner or staff)', 'school dashboard (session)'),
@@ -84,6 +98,9 @@ insert into tests.function_access (fn, access, guard, guard_detail, callers) val
   ('private.learner_decline_school_link(uuid)', 'authenticated', 'self', 'link.user_id = auth.uid()', 'web (learner session)'),
   ('my_entitlement()', 'authenticated', 'self', 'answers for auth.uid() only', 'web (learner session)'),
   ('private.my_entitlement()', 'authenticated', 'self', 'answers for auth.uid() only', 'web (learner session)'),
+  -- Anyone, guests included
+  ('board_schools()', 'anon', 'public', 'active schools'' public profile and live livery only', 'web root loader, /api/board-schools (server)'),
+  ('private.board_schools()', 'anon', 'public', 'active schools'' public profile and live livery only', 'web root loader, /api/board-schools (server)'),
   -- Row level security helpers (answer for the caller)
   ('private.is_staff()', 'authenticated', 'public', 'answers for the caller', 'RLS policies; admin_* functions'),
   ('private.is_su()', 'authenticated', 'public', 'answers for the caller', 'RLS policies; grant_platform_role, revoke_platform_role'),
@@ -111,13 +128,24 @@ insert into tests.function_access (fn, access, guard, guard_detail, callers) val
   ('private.resume_subscriptions_for_link(uuid, timestamp with time zone)', 'service_role', 'none', '', 'called by end_link'),
   ('private.set_school_owner(uuid, citext, uuid)', 'service_role', 'none', '', 'called by admin_create_school, admin_transfer_school_owner'),
   ('private.signed_in_with_password()', 'service_role', 'none', '', 'called by has_platform_role'),
+  ('school_set_logo(uuid, text, jsonb, uuid)', 'service_role', 'none', '', 'logo upload (server, after the owner gate); the seed'),
+  ('private.school_set_logo(uuid, text, jsonb, uuid)', 'service_role', 'none', '', 'called by school_set_logo'),
+  ('private.board_school_json(schools, school_liveries)', 'service_role', 'none', '', 'called by board_schools, admin_livery_draft_get'),
+  ('private.kenya_today()', 'service_role', 'none', '', 'called by board_school_json, admin_end_sponsorship'),
+  ('private.valid_branch_hours(jsonb)', 'service_role', 'none', '', 'CHECK on school_branches'),
+  ('private.valid_hex_colour(text)', 'service_role', 'none', '', 'CHECK on school_profiles, school_liveries'),
+  ('private.valid_media_path(text, uuid)', 'service_role', 'none', '', 'CHECK on school_profiles, school_liveries'),
+  ('private.valid_media_paths(jsonb, uuid)', 'service_role', 'none', '', 'CHECK on school_liveries'),
+  ('private.valid_media_ref(jsonb, uuid)', 'service_role', 'none', '', 'CHECK on school_profiles, school_liveries'),
+  ('private.valid_paint(jsonb, uuid)', 'service_role', 'none', '', 'CHECK on school_liveries'),
+  ('private.valid_socials(jsonb)', 'service_role', 'none', '', 'CHECK on school_profiles'),
   -- Triggers
   ('private.enforce_invite_admin_limit()', 'trigger', 'none', '', 'trigger on school_member_invites'),
   ('private.enforce_member_admin_limit()', 'trigger', 'none', '', 'trigger on school_members'),
   ('private.handle_auth_user_updated()', 'trigger', 'none', '', 'trigger on auth.users'),
   ('private.handle_new_user()', 'trigger', 'none', '', 'trigger on auth.users'),
   ('private.pause_new_subscription()', 'trigger', 'none', '', 'trigger on learner_subscriptions'),
-  ('private.set_updated_at()', 'trigger', 'none', '', 'triggers on profiles, schools, school_branches, subscriptions, learner_progress');
+  ('private.set_updated_at()', 'trigger', 'none', '', 'triggers on profiles, schools, school_branches, school_profiles, subscriptions, learner_progress');
 
 -- ── Tables ─────────────────────────────────────────────────────────────
 -- anon / authenticated: the privileges the role holds, as 'SELECT' or
@@ -138,10 +166,13 @@ insert into tests.table_access (tbl, anon, authenticated, reads, writes) values
   ('payments', '', 'SELECT', 'payer; school owner; staff', 'service role'),
   ('plans', 'SELECT', 'SELECT', 'anyone (active); staff (all)', 'migrations'),
   ('profiles', '', 'SELECT, UPDATE(avatar_url, full_name)', 'own; staff', 'own name and avatar; handle_new_user'),
-  ('school_branches', '', 'SELECT', 'staff; school members; linked learners', 'school_create_branch, school_update_branch'),
+  ('school_branches', '', 'SELECT', 'staff; school members; linked learners', 'school_create_branch, school_update_branch, school_update_branch_details'),
   ('school_member_branches', '', 'SELECT', 'staff; school members', 'school_add_admin, school_set_admin_branches'),
   ('school_member_invites', '', 'SELECT', 'staff; school owner', 'school_add_admin, admin_* functions, match_pending_invites'),
+  ('school_liveries', '', 'SELECT', 'staff (live one: board_schools)', 'livery:publish (service role); admin_publish_livery, admin_retire_livery'),
   ('school_members', '', 'SELECT', 'staff; school members', 'admin_* functions, school_add_admin, school_remove_admin'),
+  ('school_profiles', '', 'SELECT', 'staff; school members (public fields: board_schools)', 'school_update_profile; school_set_logo (server)'),
+  ('school_sponsorships', '', 'SELECT', 'staff', 'admin_set_sponsorship, admin_end_sponsorship'),
   ('school_student_links', '', 'SELECT', 'own links; owner; branch admins; staff', 'school_* and learner_* link functions'),
   ('school_subscriptions', '', 'SELECT', 'school owner; staff', 'service role'),
   ('schools', '', 'SELECT', 'staff; members; linked learners', 'admin_create_school, admin_set_school_status'),
@@ -171,7 +202,10 @@ insert into tests.policy_access (tbl, policy, cmd, roles) values
   ('school_branches', 'school_branches: staff, members and linked learners read', 'SELECT', 'authenticated'),
   ('school_member_branches', 'school_member_branches: staff and members read', 'SELECT', 'authenticated'),
   ('school_member_invites', 'school_member_invites: staff and owner read', 'SELECT', 'authenticated'),
+  ('school_liveries', 'school_liveries: staff read', 'SELECT', 'authenticated'),
   ('school_members', 'school_members: staff and members read', 'SELECT', 'authenticated'),
+  ('school_profiles', 'school_profiles: staff and members read', 'SELECT', 'authenticated'),
+  ('school_sponsorships', 'school_sponsorships: staff read', 'SELECT', 'authenticated'),
   ('school_student_links', 'school_student_links: learner, branch staff or staff read', 'SELECT', 'authenticated'),
   ('school_subscriptions', 'school_subscriptions: owner or staff read', 'SELECT', 'authenticated'),
   ('schools', 'schools: staff, members and linked learners read', 'SELECT', 'authenticated'),
@@ -352,8 +386,8 @@ begin
   w := w || jsonb_build_object('su', tests.make_persona('su', 'driverush_su'));
   w := w || jsonb_build_object('staff', tests.make_persona('staff', 'driverush_admin'));
 
-  insert into public.schools (slug, name, sponsor_id)
-  values ('test-a-' || nextval('tests.persona_seq'), 'Test School A', 'test-a-' || currval('tests.persona_seq'))
+  insert into public.schools (slug, name)
+  values ('test-a-' || nextval('tests.persona_seq'), 'Test School A')
   returning id into v;
   w := w || jsonb_build_object('school_a', v);
   insert into public.schools (slug, name)

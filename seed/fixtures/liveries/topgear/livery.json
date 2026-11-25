@@ -1,0 +1,19 @@
+{
+  "label": "Fitted per vehicle (2026-11-22)",
+  "base": "#c2201c",
+  "rail": {
+    "gold": "#c2201c",
+    "red": "#1b34c8"
+  },
+  "topBoard": {
+    "width": 1.35,
+    "height": 0.45,
+    "cut": 0.13,
+    "edge": "#d81f1c"
+  },
+  "brand": {
+    "paint": "#c2201c",
+    "ink": "#1b34c8"
+  },
+  "note": "Their own red car, copied from photos of it."
+}

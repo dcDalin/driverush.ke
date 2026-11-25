@@ -32,7 +32,7 @@ grant execute on all functions in schema private to service_role;
 -- wrapper or a policy; USAGE lets those calls reach the schema. The Data API
 -- does not expose private, so USAGE alone reaches nothing.
 revoke all on schema private from public;
-grant usage on schema private to authenticated, service_role;
+grant usage on schema private to anon, authenticated, service_role;
 
 -- ── 3. Row level security helpers (policies run as the caller) ──────────
 grant execute on function private.is_staff() to authenticated;
@@ -41,6 +41,10 @@ grant execute on function private.is_school_owner(uuid) to authenticated;
 grant execute on function private.is_school_member(uuid) to authenticated;
 grant execute on function private.can_see_branch(uuid) to authenticated;
 grant execute on function private.has_school_link(uuid) to authenticated;
+
+-- ── 3b. Anyone, guests included (public data only) ──────────────────────
+grant execute on function public.board_schools() to anon, authenticated;
+grant execute on function private.board_schools() to anon, authenticated;
 
 -- ── 4. Learners, with their own session ─────────────────────────────────
 grant execute on function public.my_entitlement() to authenticated;
@@ -55,6 +59,10 @@ grant execute on function public.school_create_branch(uuid, text, text) to authe
 grant execute on function private.school_create_branch(uuid, text, text) to authenticated;
 grant execute on function public.school_update_branch(uuid, text, text, boolean) to authenticated;
 grant execute on function private.school_update_branch(uuid, text, text, boolean) to authenticated;
+grant execute on function public.school_update_branch_details(uuid, text, double precision, double precision, text, jsonb) to authenticated;
+grant execute on function private.school_update_branch_details(uuid, text, double precision, double precision, text, jsonb) to authenticated;
+grant execute on function public.school_update_profile(uuid, text, text, text, text, text, text, jsonb, text, text) to authenticated;
+grant execute on function private.school_update_profile(uuid, text, text, text, text, text, text, jsonb, text, text) to authenticated;
 grant execute on function public.school_add_admin(uuid, text, uuid[]) to authenticated;
 grant execute on function private.school_add_admin(uuid, text, uuid[]) to authenticated;
 grant execute on function public.school_set_admin_branches(uuid, uuid[]) to authenticated;
@@ -77,12 +85,22 @@ grant execute on function public.school_student_progress(uuid, uuid) to authenti
 grant execute on function private.school_student_progress(uuid, uuid) to authenticated;
 
 -- ── 6. DriveRush console (each checks is_staff or is_su) ────────────────
-grant execute on function public.admin_create_school(text, text, text, text) to authenticated;
-grant execute on function private.admin_create_school(text, text, text, text) to authenticated;
+grant execute on function public.admin_create_school(text, text, text) to authenticated;
+grant execute on function private.admin_create_school(text, text, text) to authenticated;
 grant execute on function public.admin_set_school_status(uuid, public.school_status) to authenticated;
 grant execute on function private.admin_set_school_status(uuid, public.school_status) to authenticated;
 grant execute on function public.admin_transfer_school_owner(uuid, text) to authenticated;
 grant execute on function private.admin_transfer_school_owner(uuid, text) to authenticated;
+grant execute on function public.admin_livery_draft_get(uuid) to authenticated;
+grant execute on function private.admin_livery_draft_get(uuid) to authenticated;
+grant execute on function public.admin_publish_livery(uuid) to authenticated;
+grant execute on function private.admin_publish_livery(uuid) to authenticated;
+grant execute on function public.admin_retire_livery(uuid) to authenticated;
+grant execute on function private.admin_retire_livery(uuid) to authenticated;
+grant execute on function public.admin_set_sponsorship(uuid, date, date, text) to authenticated;
+grant execute on function private.admin_set_sponsorship(uuid, date, date, text) to authenticated;
+grant execute on function public.admin_end_sponsorship(uuid) to authenticated;
+grant execute on function private.admin_end_sponsorship(uuid) to authenticated;
 grant execute on function public.grant_platform_role(uuid, public.app_role) to authenticated;
 grant execute on function private.grant_platform_role(uuid, public.app_role) to authenticated;
 grant execute on function public.revoke_platform_role(uuid, public.app_role) to authenticated;

@@ -7,21 +7,27 @@ thinkrush-monorepo pattern. Every `.sql` file here is listed, in load order, in
 
 ## The workflow
 
-1. Edit the files here (never the database by hand, never only a migration).
-2. `npm run db:diff <name>` writes a migration for tables and columns. It
-   misses function bodies, grants, comments and CHECK changes: copy those
-   statements verbatim from the schema file into the migration, under a
-   `-- ── supabase/schemas/<path>` header.
-3. `npm run db:reset`, then `npm run db:gen-types`.
+Until a hosted database exists (owner, 2026-11-25), there is no migration
+history to keep:
+
+1. Edit the files here (never the database by hand).
+2. `npm run db:baseline` rebuilds `migrations/20261124080000_baseline.sql`
+   from these files in `schema_paths` order.
+3. `npm run db:reset`, `npm run db:gen-types`, `npm run db:sync` (the seed).
 4. `npm run test:db` (pgTAP, then the Vitest database suite) and
    `npm run db:diff:check` (must report no changes).
+
+From the first hosted push on, step 2 becomes `npm run db:diff <name>`: a
+new migration for tables and columns, with any function bodies, grants,
+comments and CHECK changes it misses copied in verbatim under a
+`-- ── supabase/schemas/<path>` header.
 
 CI (`.github/workflows/db.yml`) runs the same checks and fails on a schema
 change without a migration or with stale types.
 
 The baseline migration (`20261124080000_baseline.sql`) is every file here
-concatenated in `schema_paths` order. Once a hosted database exists, never edit
-it: every change is a new migration.
+concatenated in `schema_paths` order (`npm run db:baseline`). Once a hosted
+database exists, never rebuild it: every change is a new migration.
 
 ## Layout
 
@@ -29,7 +35,9 @@ it: every change is a new migration.
   `progress/`), each with `enums/ tables/ functions/ triggers/ rls/` as needed.
 - `_private/` creates schema `private` and the helpers everything else uses.
   Listed first.
-- `_grants/` holds the only client grants. Listed last.
+- `_grants/` holds the only client grants. Listed last, followed only by
+  `storage/` (bucket rows: `db diff` does not read the storage schema, so
+  they are idempotent inserts here and land in the baseline).
 - Order in `schema_paths`: extensions and `private`, every enum and table, then
   functions, triggers and policies, then grants. A `language sql` function is
   checked against the tables it reads when it is created, so tables come first.

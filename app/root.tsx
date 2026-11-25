@@ -36,6 +36,12 @@ import {
   useGaPage,
   usePageviews,
 } from "~/lib/analytics";
+import {
+  primeCatalog,
+  type Sponsor,
+  useCatalogRefresh,
+} from "~/lib/board/school-catalog";
+import { loadBoardSchools } from "~/lib/board/school-catalog.server";
 import { shouldMeasure } from "~/lib/bot-traffic";
 import { honeypot } from "~/lib/forms/honeypot.server";
 import { getToast } from "~/lib/forms/toast.server";
@@ -70,9 +76,15 @@ export async function loader({ request }: Route.LoaderArgs) {
   // A one-time message an action left (remix-toast), and the bot trap's
   // fields for every server form (remix-utils honeypot).
   const { toast: flash, headers } = await getToast(request);
+  // The board's schools (public, cached a few minutes on the server), primed
+  // here too so `meta` functions drawn on the server see them.
+  const schools = await loadBoardSchools();
+  primeCatalog(schools);
   return data(
     {
       measure: shouldMeasure(request),
+      schools,
+      schoolsAt: Date.now(),
       flash: flash ?? null,
       honeypotInputProps: await honeypot.getInputProps(),
     },
@@ -171,7 +183,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     let checked = Date.now();
     const register = () => {
       navigator.serviceWorker
-        .register("/sw.js")
+        .register(swUrl())
         .then((r) => {
           registration = r;
           // After a deploy: the worker saves the new game files if the build
@@ -249,6 +261,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
+const NO_SCHOOLS: readonly Sponsor[] = [];
+
+/**
+ * The worker's address tells it where school media lives (Supabase Storage),
+ * so it can keep schools a phone has seen for offline.
+ */
+function swUrl() {
+  const supabase = import.meta.env.VITE_SUPABASE_URL;
+  if (!supabase) return "/sw.js";
+  return `/sw.js?media=${encodeURIComponent(new URL(supabase).origin)}`;
+}
+
 export default function App() {
   const location = useLocation();
   const firstPath = React.useRef(location.pathname);
@@ -259,6 +283,10 @@ export default function App() {
   // `entry.client.tsx`, before hydration.
   useLearnerAnalytics();
   const loaderData = useRouteLoaderData<typeof loader>("root");
+  // The board's schools, set before any child renders (server and browser
+  // alike), then kept fresh in a page the installed app has kept for long.
+  primeCatalog((loaderData?.schools ?? NO_SCHOOLS) as readonly Sponsor[]);
+  useCatalogRefresh(loaderData?.schoolsAt ?? null);
   // Show the message an action left (remix-toast) with the house toaster.
   const flash = loaderData?.flash;
   React.useEffect(() => {

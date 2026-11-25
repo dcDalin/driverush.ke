@@ -8,7 +8,7 @@ const base: Entitlement = {
   tier: "free",
   school_id: null,
   school_name: null,
-  sponsor_id: null,
+  school_slug: null,
   branch_id: null,
   ends_at: null,
   pending_invites: 0,
@@ -21,11 +21,11 @@ describe("liveryRule", () => {
   });
   it("dresses a school's learner in that school's livery", () => {
     expect(
-      liveryRule({ ...base, tier: "school", sponsor_id: "heltz" }),
+      liveryRule({ ...base, tier: "school", school_slug: "heltz" }),
     ).toEqual({ kind: "school", sponsorId: "heltz" });
   });
   it("gives a school without livery art plain cars", () => {
-    expect(liveryRule({ ...base, tier: "school", sponsor_id: null })).toEqual({
+    expect(liveryRule({ ...base, tier: "school", school_slug: null })).toEqual({
       kind: "plain",
     });
   });

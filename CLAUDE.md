@@ -56,11 +56,12 @@ remix-hook-form, shadcn everywhere. Guides: `docs/forms-and-data.md`,
 - The database is defined in `supabase/schemas/` (source of truth) and loaded
   in the order of `supabase/config.toml` `schema_paths`. House rules:
   `supabase/schemas/README.md`.
-- A schema change: edit `supabase/schemas/`, `npm run db:diff <name>`, copy
-  any function bodies, grants or CHECKs the diff missed into the migration,
-  `npm run db:reset`, `npm run db:gen-types`, `npm run db:sync` (the seed's
-  view of the schema), `npm run test:db`, and `npm run db:diff:check` must
-  pass.
+- No hosted database yet (owner, 2026-11-25): a schema change edits
+  `supabase/schemas/` only, then `npm run db:baseline` (rebuilds the one
+  baseline migration from the schemas), `npm run db:reset`,
+  `npm run db:gen-types`, `npm run db:sync` (the seed's view of the schema),
+  `npm run test:db`, and `npm run db:diff:check` must pass. From the first
+  hosted push on, every change is a new migration (`npm run db:diff <name>`).
 - Every new function or table gets a row in
   `supabase/tests/database/000_security_manifest.test.sql`, and client grants
   only in `supabase/schemas/_grants/`.
@@ -83,5 +84,13 @@ remix-hook-form, shadcn everywhere. Guides: `docs/forms-and-data.md`,
   service worker and robots.txt leave `/school`, `/console`, `/auth`, `/api`
   alone.
 - Payments: not built. Provider undecided; tables are provider-neutral.
+- School profiles and liveries are data, not code (`docs/school-media.md`):
+  owners edit their profile and logos on the dashboard; DriveRush makes
+  liveries (`scripts/sponsor-art`, `seed/fixtures/liveries/<slug>/`,
+  `npm run livery:publish <slug>`) and publishes them from the console.
+  The app reads `board_schools()` once per few minutes
+  (`app/lib/board/school-catalog.ts`); files live in the public
+  `school-media` bucket, named by content, cached a year. Never put a
+  school's art back in `public/`.
 - Env: `SESSION_SECRET` (flash toasts) and `HONEYPOT_SECRET` (form trap) are
   needed in Vercel once accounts are on.

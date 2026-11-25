@@ -88,8 +88,8 @@ export type LiveryRule =
 
 export function liveryRule(entitlement: Entitlement | null): LiveryRule {
   if (entitlement?.tier === "school") {
-    return entitlement.sponsor_id
-      ? { kind: "school", sponsorId: entitlement.sponsor_id }
+    return entitlement.school_slug
+      ? { kind: "school", sponsorId: entitlement.school_slug }
       : { kind: "plain" };
   }
   if (entitlement?.tier === "paid") return { kind: "plain" };

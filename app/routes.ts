@@ -77,6 +77,7 @@ export default [
   route("school/:schoolId", "routes/school-dashboard.tsx"),
   // Resource routes for fetchers (no page of their own).
   route("api/me/school-invites", "routes/api/me.school-invites.ts"),
+  route("api/board-schools", "routes/api/board-schools.ts"),
   // DriveRush staff: schools, owners and staff roles. Signed in only.
   route("console", "routes/console.tsx"),
 

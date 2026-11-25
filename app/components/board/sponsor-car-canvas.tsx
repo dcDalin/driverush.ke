@@ -19,7 +19,7 @@ import { carFromGltf } from "~/components/board/car-glb";
 import type { CarModel } from "~/components/board/car-model";
 import { wearTopBoard } from "~/components/board/top-board";
 import { BOARD_CARS, type BoardCarId } from "~/lib/board/cars";
-import type { TopBoard } from "~/lib/board/sponsors";
+import type { TopBoard } from "~/lib/board/school-catalog";
 
 export type CarView = { heading: number; tilt: number; dist: number };
 

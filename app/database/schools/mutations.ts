@@ -4,7 +4,7 @@
  * Result whose error is a sentence for a toast.
  */
 import { toResult } from "../result";
-import type { TypedSupabaseClient } from "../types";
+import type { Json, TypedSupabaseClient } from "../types";
 
 type Client = TypedSupabaseClient;
 
@@ -115,6 +115,63 @@ export async function updateBranch(
       p_name: branch.name,
       p_town: branch.town,
       p_is_active: branch.isActive,
+    }),
+  );
+}
+
+/** The profile's words, contacts, socials and colours (owner or staff). */
+export async function updateProfile(
+  supabase: Client,
+  schoolId: string,
+  profile: {
+    tagline: string;
+    about: string;
+    phone: string;
+    whatsapp: string;
+    email: string;
+    websiteUrl: string;
+    socials: Record<string, string>;
+    brandPaint: string;
+    brandInk: string;
+  },
+) {
+  return toResult(
+    await supabase.rpc("school_update_profile", {
+      p_school_id: schoolId,
+      p_tagline: profile.tagline,
+      p_about: profile.about,
+      p_phone: profile.phone,
+      p_whatsapp: profile.whatsapp,
+      p_email: profile.email,
+      p_website_url: profile.websiteUrl,
+      p_socials: profile.socials,
+      p_brand_paint: profile.brandPaint,
+      p_brand_ink: profile.brandInk,
+    }),
+  );
+}
+
+/** A branch's address, map pin, phone and opening hours (owner or staff). */
+export async function updateBranchDetails(
+  supabase: Client,
+  branch: {
+    id: string;
+    address: string;
+    lat: number | null;
+    lng: number | null;
+    phone: string;
+    hours: Json;
+  },
+) {
+  return toResult(
+    await supabase.rpc("school_update_branch_details", {
+      p_branch_id: branch.id,
+      p_address: branch.address,
+      // No pin: the function takes nulls (generated types say number).
+      p_lat: branch.lat as number,
+      p_lng: branch.lng as number,
+      p_phone: branch.phone,
+      p_hours: branch.hours,
     }),
   );
 }

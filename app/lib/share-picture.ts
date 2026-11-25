@@ -53,13 +53,18 @@ const UNIT_TITLES = UNITS.filter((u) => u.id !== "mock").map((u) => u.title);
  */
 const ART: Record<ScoredPayload["kind"], SharePictureSpec["art"]> = {
   board: {
-    // today's school's still, the one the board's pages show
-    src: posterPath(posterSchool()),
+    // today's school's still, the one the board's pages show (read when the
+    // picture is made: the school list arrives with the page)
+    get src() {
+      return posterPath(posterSchool());
+    },
     tiles: [{ x: 0, y: 0, w: 1200, h: 630 }],
     framed: true,
   },
   milestone: {
-    src: posterPath(posterSchool()),
+    get src() {
+      return posterPath(posterSchool());
+    },
     tiles: [{ x: 0, y: 0, w: 1200, h: 630 }],
     framed: true,
   },
@@ -184,6 +189,9 @@ const INNER = SHARE_PICTURE_WIDTH - PAD * 2;
 function loadImage(src: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
     const img = new Image();
+    // A school's still is in Supabase Storage: without CORS the canvas
+    // could not be saved as a picture.
+    img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
     // No artwork is a plainer picture, not a failed share.
     img.onerror = () => resolve(null);

@@ -17,6 +17,7 @@ import { summary } from "./src/ledger";
 import { sql } from "./src/local";
 import { seedFixture } from "./src/steps/fixture";
 import { seedLearners } from "./src/steps/learners";
+import { seedMedia } from "./src/steps/media";
 import { seedOwnerSu } from "./src/steps/owner-su";
 import { seedProgress } from "./src/steps/progress";
 import { resetDatabase } from "./src/steps/reset";
@@ -72,10 +73,15 @@ async function main() {
   const schools = await step("schools, branches, admins", () => seedSchools());
   const learners = await step("learners", () => seedLearners(schools));
   const rows = await step("progress", () => seedProgress(learners));
+  const media = await step("profiles, liveries, sponsorships", () =>
+    seedMedia(ROOT),
+  );
 
   console.table(summary);
   console.log(
-    `${summary.length} people, ${schools.size + 2} schools, ${rows} progress rows. ` +
+    `${summary.length} people, ${schools.size + 2} schools, ${rows} progress rows, ` +
+      `${media.uploaded} files uploaded (${media.kept} already in Storage, ` +
+      `${media.pruned ?? 0} old ones removed). ` +
       "Every demo account's password: driverush-local-1.",
   );
   if (!su)

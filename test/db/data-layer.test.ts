@@ -74,11 +74,11 @@ describe("entitlement", () => {
     const amina = await getMyEntitlement(
       await signInWithPassword("amina@learner.test"),
     );
-    expect(amina).toMatchObject({ tier: "school", sponsor_id: "heltz" });
+    expect(amina).toMatchObject({ tier: "school", school_slug: "heltz" });
     const dan = await getMyEntitlement(
       await signInWithPassword("dan@learner.test"),
     );
-    expect(dan).toMatchObject({ tier: "paid", sponsor_id: null });
+    expect(dan).toMatchObject({ tier: "paid", school_slug: null });
     const esther = await getMyEntitlement(
       await signInWithPassword("esther@learner.test"),
     );
@@ -253,7 +253,6 @@ describe("console", () => {
     const school = {
       name: "Data Layer School",
       slug,
-      sponsorId: null,
       ownerEmail: `${slug}@vitest.test`,
     };
     const learner = await consoleDb.createSchool(

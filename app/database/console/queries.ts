@@ -4,18 +4,41 @@
  * Reads throw.
  */
 import { orThrow } from "../result";
-import type { AppRole, SchoolStatus, TypedSupabaseClient } from "../types";
+import type {
+  AppRole,
+  Enums,
+  SchoolStatus,
+  TypedSupabaseClient,
+} from "../types";
 
 export type ConsoleSchool = {
   id: string;
   name: string;
   slug: string;
   status: SchoolStatus;
-  sponsor_id: string | null;
   ownerEmail: string | null;
+  /** Newest first: drafts to preview and publish, the live one, retired ones. */
+  liveries: ConsoleLivery[];
+  /** Newest first. */
+  sponsorships: ConsoleSponsorship[];
   admins: number;
   branches: number;
   students: number;
+};
+
+export type ConsoleLivery = {
+  id: string;
+  status: Enums<"livery_status">;
+  label: string;
+  created_at: string;
+  published_at: string | null;
+};
+
+export type ConsoleSponsorship = {
+  id: string;
+  starts_on: string;
+  ends_on: string | null;
+  note: string | null;
 };
 
 export type StaffMember = {
@@ -28,30 +51,41 @@ export async function getConsoleOverview(
   supabase: TypedSupabaseClient,
   { su, now = Date.now() }: { su: boolean; now?: number },
 ): Promise<{ schools: ConsoleSchool[]; staff: StaffMember[] }> {
-  const [schools, members, branches, links, roles] = await Promise.all([
-    supabase
-      .from("schools")
-      .select("id, name, slug, status, sponsor_id")
-      .order("name")
-      .then(orThrow),
-    supabase
-      .from("school_members")
-      .select("school_id, user_id, role")
-      .then(orThrow),
-    supabase.from("school_branches").select("school_id").then(orThrow),
-    supabase
-      .from("school_student_links")
-      .select("school_id, ends_at")
-      .eq("status", "active")
-      .then(orThrow),
-    su
-      ? supabase
-          .from("user_roles")
-          .select("user_id, role")
-          .neq("role", "user")
-          .then(orThrow)
-      : Promise.resolve([] as { user_id: string; role: AppRole }[]),
-  ]);
+  const [schools, members, branches, links, roles, liveries, sponsorships] =
+    await Promise.all([
+      supabase
+        .from("schools")
+        .select("id, name, slug, status")
+        .order("name")
+        .then(orThrow),
+      supabase
+        .from("school_members")
+        .select("school_id, user_id, role")
+        .then(orThrow),
+      supabase.from("school_branches").select("school_id").then(orThrow),
+      supabase
+        .from("school_student_links")
+        .select("school_id, ends_at")
+        .eq("status", "active")
+        .then(orThrow),
+      su
+        ? supabase
+            .from("user_roles")
+            .select("user_id, role")
+            .neq("role", "user")
+            .then(orThrow)
+        : Promise.resolve([] as { user_id: string; role: AppRole }[]),
+      supabase
+        .from("school_liveries")
+        .select("id, school_id, status, label, created_at, published_at")
+        .order("created_at", { ascending: false })
+        .then(orThrow),
+      supabase
+        .from("school_sponsorships")
+        .select("id, school_id, starts_on, ends_on, note")
+        .order("starts_on", { ascending: false })
+        .then(orThrow),
+    ]);
 
   const owners = members.filter((m) => m.role === "owner");
   const ids = [
@@ -71,6 +105,12 @@ export async function getConsoleOverview(
       return {
         ...s,
         ownerEmail: owner ? (emailOf.get(owner.user_id) ?? null) : null,
+        liveries: liveries
+          .filter((l) => l.school_id === s.id)
+          .map(({ school_id: _, ...l }) => l),
+        sponsorships: sponsorships
+          .filter((p) => p.school_id === s.id)
+          .map(({ school_id: _, ...p }) => p),
         admins: members.filter(
           (m) => m.school_id === s.id && m.role === "admin",
         ).length,
