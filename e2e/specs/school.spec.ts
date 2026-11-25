@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import {
+  accountButton,
   freshEmail,
   signInWithCode,
   signInWithPassword,
@@ -45,7 +46,7 @@ test("a learner added by a school wears its livery once they sign up", async ({
   await signOut(page);
 
   await signInWithCode(page, email);
-  await page.getByRole("button", { name: "Your account" }).click();
+  await accountButton(page, "Your account").click();
   await expect(page.getByText(/With Heltz Driving School until/)).toBeVisible();
 
   await page.goto("/model-town-board/play");
