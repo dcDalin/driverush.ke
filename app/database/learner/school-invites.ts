@@ -17,6 +17,8 @@ export async function listMySchoolInvites(
       .select("id, schools(name), school_branches(name)")
       .eq("user_id", userId)
       .eq("status", "pending")
+      // A lapsed invite is not offered (the school can send it again).
+      .gt("expires_at", new Date().toISOString())
       .order("added_at"),
   );
   return rows.map((row) => ({

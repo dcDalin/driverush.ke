@@ -3,7 +3,7 @@
  * person (its guard decides: owner, branch admin or staff). Each returns a
  * Result whose error is a sentence for a toast.
  */
-import { toResult } from "../result";
+import { fail, ok, reasonFor, toResult } from "../result";
 import type { Json, TypedSupabaseClient } from "../types";
 
 type Client = TypedSupabaseClient;
@@ -174,4 +174,24 @@ export async function updateBranchDetails(
       p_hours: branch.hours,
     }),
   );
+}
+
+/** Sends a waiting student invite again (renewed 30 days, within the limits). */
+export async function resendStudentInvite(supabase: Client, linkId: string) {
+  const { data, error } = await supabase.rpc("school_resend_student_invite", {
+    p_link_id: linkId,
+  });
+  if (error) return fail(reasonFor(error));
+  const row = data[0];
+  return row ? ok(row) : fail(reasonFor({ message: "not_found" }));
+}
+
+/** Sends a waiting owner or admin invite again (renewed 30 days, within the limits). */
+export async function resendMemberInvite(supabase: Client, inviteId: string) {
+  const { data, error } = await supabase.rpc("school_resend_member_invite", {
+    p_invite_id: inviteId,
+  });
+  if (error) return fail(reasonFor(error));
+  const row = data[0];
+  return row ? ok(row) : fail(reasonFor({ message: "not_found" }));
 }

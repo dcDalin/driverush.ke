@@ -16,6 +16,7 @@ import {
 import type { SchoolDashboard } from "~/database/schools/dashboard";
 import { useInlineAction } from "~/lib/forms/use-inline-action";
 import { useServerForm } from "~/lib/forms/use-server-form";
+import { MAX_SENDS } from "~/lib/school/student-filters";
 import { AddAdminSchema, SetAdminBranchesSchema } from "~/schemas/school";
 
 type Branch = { id: string; name: string };
@@ -235,9 +236,12 @@ function InviteItem({
     <li className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <p className="font-semibold">{invite.email}</p>
-        <p className="text-[13px] text-ink-3">
-          Invited {invite.role} {SINCE.format(new Date(invite.created_at))}, not
-          signed up yet
+        <p className="flex flex-wrap items-center gap-x-2 text-[13px] text-ink-3">
+          {invite.expired ? (
+            <Badge variant="outline">Invite expired</Badge>
+          ) : null}
+          Invited {invite.role}, not signed up yet. Sent {invite.sent_count} of{" "}
+          {MAX_SENDS} times, last {SINCE.format(new Date(invite.last_sent_at))}
           {branchNames ? ` · ${branchNames}` : ""}
         </p>
       </div>
@@ -245,14 +249,19 @@ function InviteItem({
         <Button
           type="button"
           size="sm"
-          variant="paper"
-          disabled={busy}
+          variant={invite.expired ? "rush" : "paper"}
+          disabled={busy || invite.sent_count >= MAX_SENDS}
           isLoading={pending === "resend-invite"}
+          title={
+            invite.sent_count >= MAX_SENDS
+              ? "Sent 5 times: withdraw it, then add them again"
+              : undefined
+          }
           onClick={() =>
             submit({ intent: "resend-invite", inviteId: invite.id })
           }
         >
-          Email again
+          {invite.expired ? "Send again" : "Email again"}
         </Button>
         <Button
           type="button"

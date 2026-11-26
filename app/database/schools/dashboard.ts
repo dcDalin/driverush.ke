@@ -24,6 +24,11 @@ export type StudentRow = {
   status: "pending" | "active" | "ended";
   endsAt: string | null;
   addedAt: string | null;
+  /** A waiting invite past its 30 days: send it again to renew it. */
+  inviteExpired: boolean;
+  /** How many times the invite has been sent (at most 5), and when last. */
+  sentCount: number;
+  lastSentAt: string;
   summary: ProgressSummary | null;
   /** The learner's pass running now or next (null: none). */
   passEndsAt: string | null;
@@ -57,9 +62,12 @@ export async function getSchoolDashboard(
   if (!me && !staff) return null;
   const myRole: DashboardRole = me?.role ?? "staff";
   const canManage = myRole === "owner" || staff;
-  const invites = canManage
-    ? await listPendingMemberInvites(supabase, schoolId)
-    : [];
+  const invites = (
+    canManage ? await listPendingMemberInvites(supabase, schoolId) : []
+  ).map((invite) => ({
+    ...invite,
+    expired: Date.parse(invite.expires_at) <= now,
+  }));
 
   const byLink = new Map(progress.map((row) => [row.link_id, row]));
   const students: StudentRow[] = links.map((link) => {
@@ -77,6 +85,10 @@ export async function getSchoolDashboard(
         link.status === "pending" ? "pending" : current ? "active" : "ended",
       endsAt: link.ends_at,
       addedAt: link.added_at,
+      inviteExpired:
+        link.status === "pending" && Date.parse(link.expires_at) <= now,
+      sentCount: link.sent_count,
+      lastSentAt: link.last_sent_at,
       summary: row ? summarizeProgress(row.progress) : null,
       passEndsAt: row?.pass_ends_at ?? null,
       passThroughSchool: row?.pass_through_school ?? false,

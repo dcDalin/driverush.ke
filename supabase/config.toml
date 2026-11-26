@@ -94,6 +94,7 @@ schema_paths = [
   './schemas/schools/functions/school_profiles.sql',
   './schemas/schools/functions/school_liveries.sql',
   './schemas/students/functions/school_students.sql',
+  './schemas/students/functions/invite_resend.sql',
   './schemas/students/functions/learner_links.sql',
   './schemas/billing/functions/my_entitlement.sql',
   './schemas/billing/functions/passes.sql',

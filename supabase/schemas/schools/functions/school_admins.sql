@@ -28,8 +28,10 @@ end;
 $$;
 
 -- Adds an admin by email, tied to these branches. Returns 'added' when a
--- confirmed account has the email, 'invited' when it waits for sign-up.
--- Adding an existing admin again replaces their branches.
+-- confirmed account has the email, 'invited' when it waits for sign-up,
+-- 'updated' when they were an admin already (their branches are replaced;
+-- nothing to email). Asking again for a waiting invite sends it again
+-- (private.invite_resend limits) and renews it.
 --
 -- Access:  authenticated (school owner or DriveRush staff)
 -- Guard:   admin (private.can_manage_school: owner or staff)
@@ -44,6 +46,8 @@ declare
   v_email extensions.citext := lower(btrim(p_email))::extensions.citext;
   v_user_id uuid;
   v_member public.school_members;
+  v_invite public.school_member_invites;
+  v_existed boolean;
 begin
   if not private.can_manage_school(p_school_id) then
     raise exception 'forbidden' using errcode = '42501';
@@ -53,14 +57,28 @@ begin
   v_user_id := private.confirmed_user_id(v_email);
 
   if v_user_id is null then
-    insert into public.school_member_invites (school_id, email, role, branch_ids, invited_by)
-    values (p_school_id, v_email, 'admin', p_branch_ids, auth.uid())
-    on conflict (school_id, email) where status = 'pending'
-    do update set branch_ids = excluded.branch_ids
-    where public.school_member_invites.role = 'admin';
-    if not found then
+    select * into v_invite from public.school_member_invites
+     where school_id = p_school_id and email = v_email and status = 'pending'
+     for update;
+    if v_invite.role = 'owner' then
       raise exception 'already_owner' using errcode = 'P0001';
     end if;
+    if v_invite.id is not null then
+      -- Asked again: new branches, sent again within the limits, renewed.
+      perform private.invite_resend(v_invite.last_sent_at, v_invite.sent_count);
+      if v_invite.expires_at <= now() then
+        perform private.assert_admin_room(p_school_id);
+      end if;
+      update public.school_member_invites
+         set branch_ids = p_branch_ids,
+             expires_at = now() + interval '30 days',
+             sent_count = sent_count + 1,
+             last_sent_at = now()
+       where id = v_invite.id;
+      return 'invited';
+    end if;
+    insert into public.school_member_invites (school_id, email, role, branch_ids, invited_by)
+    values (p_school_id, v_email, 'admin', p_branch_ids, auth.uid());
     return 'invited';
   end if;
 
@@ -71,7 +89,8 @@ begin
     raise exception 'already_owner' using errcode = 'P0001';
   end if;
 
-  if v_member.id is null then
+  v_existed := v_member.id is not null;
+  if not v_existed then
     insert into public.school_members (school_id, user_id, role, added_by)
     values (p_school_id, v_user_id, 'admin', auth.uid())
     returning * into v_member;
@@ -81,7 +100,7 @@ begin
   insert into public.school_member_branches (member_id, branch_id, school_id)
   select v_member.id, x.id, p_school_id from unnest(p_branch_ids) as x(id)
   on conflict do nothing;
-  return 'added';
+  return case when v_existed then 'updated' else 'added' end;
 end;
 $$;
 

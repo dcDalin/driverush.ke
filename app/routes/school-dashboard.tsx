@@ -54,7 +54,6 @@ import { getSchoolDashboard } from "~/database/schools/dashboard";
 import { uploadSchoolLogo } from "~/database/schools/logo.server";
 import * as schools from "~/database/schools/mutations";
 import {
-  getMemberInvite,
   getMySchoolRole,
   getSchool,
   getSchoolProfile,
@@ -166,8 +165,8 @@ const DONE = {
   "set-pass-price": "Price saved. New payments use it.",
   "request-bank":
     "Bank sent to DriveRush. We check it with you, then your learners can pay.",
-  "resend-student": "Email sent again.",
-  "resend-invite": "Email sent again.",
+  "resend-student": "Sent again. The invite lasts another 30 days.",
+  "resend-invite": "Sent again. The invite lasts another 30 days.",
 } as const;
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -221,7 +220,8 @@ export async function action({ request, params }: Route.ActionArgs) {
             v.email,
             v.branchIds,
           );
-          if (added.data) {
+          // "updated": an admin already, branches changed; nothing to send.
+          if (added.data === "added" || added.data === "invited") {
             const branches = await listBranches(supabase, schoolId);
             await tellAdmin(v.email, {
               school: await schoolName(),
@@ -390,13 +390,18 @@ export async function action({ request, params }: Route.ActionArgs) {
       );
     }
     if (v.intent === "resend-student") {
-      const sent = await emailStudent(v.linkId);
-      return sent
-        ? reply({ data: true, error: null }, DONE[v.intent])
-        : reply(
-            { data: null, error: "That student is no longer waiting." },
-            "",
-          );
+      // The database checks the branch, the 10 minutes and the 5 sends, and
+      // renews the invite for 30 days; then the email goes.
+      const sent = await schools.resendStudentInvite(supabase, v.linkId);
+      if (sent.data) {
+        await tellStudent(sent.data.email, {
+          school: sent.data.school_name,
+          branch: sent.data.branch_name,
+          started: false,
+          origin,
+        });
+      }
+      return reply(sent, DONE[v.intent]);
     }
     return reply(
       await schools.moveStudent(supabase, v.linkId, v.branchId),
@@ -413,32 +418,28 @@ export async function action({ request, params }: Route.ActionArgs) {
       );
     }
     if (v.intent === "resend-invite") {
-      const invite = await getMemberInvite(supabase, v.inviteId);
-      if (
-        !invite ||
-        invite.status !== "pending" ||
-        invite.school_id !== schoolId
-      ) {
-        return reply(
-          { data: null, error: "That invite is no longer waiting." },
-          "",
-        );
+      const sent = await schools.resendMemberInvite(supabase, v.inviteId);
+      if (sent.data) {
+        const { email, role, branch_ids, school_name } = sent.data;
+        if (role === "owner") {
+          await tellOwner(email, {
+            school: school_name,
+            result: "invited",
+            origin,
+          });
+        } else {
+          const branches = await listBranches(supabase, schoolId);
+          await tellAdmin(email, {
+            school: school_name,
+            branches: branches
+              .filter((b) => branch_ids.includes(b.id))
+              .map((b) => b.name),
+            result: "invited",
+            origin,
+          });
+        }
       }
-      const school = await schoolName();
-      if (invite.role === "owner") {
-        await tellOwner(invite.email, { school, result: "invited", origin });
-      } else {
-        const branches = await listBranches(supabase, schoolId);
-        await tellAdmin(invite.email, {
-          school,
-          branches: branches
-            .filter((b) => invite.branch_ids.includes(b.id))
-            .map((b) => b.name),
-          result: "invited",
-          origin,
-        });
-      }
-      return reply({ data: true, error: null }, DONE[v.intent]);
+      return reply(sent, DONE[v.intent]);
     }
     return reply(
       await schools.cancelMemberInvite(supabase, v.inviteId),

@@ -49,7 +49,9 @@ test("a learner added by a school wears its livery once they sign up", async ({
 
   await signInWithCode(page, email);
   await accountButton(page, "Your account").click();
-  await expect(page.getByText(/With Heltz Driving Academy until/)).toBeVisible();
+  await expect(
+    page.getByText(/With Heltz Driving Academy until/),
+  ).toBeVisible();
 
   await page.goto("/model-town-board/play");
   await expect(page.getByText(/Board by Heltz/)).toBeVisible();

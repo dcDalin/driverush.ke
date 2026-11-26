@@ -82,7 +82,9 @@ export async function listPendingMemberInvites(
   return orThrow(
     await supabase
       .from("school_member_invites")
-      .select("id, email, role, branch_ids, created_at")
+      .select(
+        "id, email, role, branch_ids, created_at, expires_at, sent_count, last_sent_at",
+      )
       .eq("school_id", schoolId)
       .eq("status", "pending")
       .order("created_at"),
@@ -125,7 +127,9 @@ export async function listOpenStudentLinks(
   return orThrow(
     await supabase
       .from("school_student_links")
-      .select("id, email, status, branch_id, starts_at, ends_at, added_at")
+      .select(
+        "id, email, status, branch_id, starts_at, ends_at, added_at, expires_at, sent_count, last_sent_at",
+      )
       .eq("school_id", schoolId)
       .in("status", ["pending", "active"])
       .order("added_at", { ascending: false })

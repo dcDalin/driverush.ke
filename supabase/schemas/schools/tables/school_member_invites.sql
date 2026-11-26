@@ -15,6 +15,12 @@ create table public.school_member_invites (
   keep_previous_owner boolean not null default false check (not keep_previous_owner or role = 'owner'),
   status public.invite_status not null default 'pending',
   invited_by uuid references auth.users (id) on delete set null,
+  -- Lapses 30 days after it was last sent; sent at most 5 times, at least
+  -- 10 minutes apart (private.invite_resend). A lapsed invite stays pending
+  -- but is never taken up or counted until it is sent again.
+  expires_at timestamptz not null default (now() + interval '30 days'),
+  sent_count smallint not null default 1 check (sent_count between 1 and 5),
+  last_sent_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
   closed_at timestamptz,
   check ((status = 'pending') = (closed_at is null))

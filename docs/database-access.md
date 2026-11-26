@@ -42,6 +42,16 @@ keeps the learner linked to that school while it runs. The functions are
 
 ## School links (`school_student_links`)
 
+Invites lapse and are sent within limits (owner, 2026-11-26;
+`students/functions/invite_resend.sql`). A waiting student link and an owner
+or admin invite lapse 30 days after they were last sent: they stay
+`pending`, but nothing takes them up at sign-up, offers them to the learner,
+lets them be joined or counts them in the 50 admins. Sending one again
+(`school_resend_student_invite`, `school_resend_member_invite`, or adding
+the same email again) renews it for 30 days, at most 5 times and at least 10
+minutes apart (`resend_too_soon`, `resend_limit`). Adding a student whose
+month is already running is refused (`already_linked`).
+
 - A school adds an email to a branch (`school_add_student`).
 - The month starts when that email belongs to a confirmed account: at once if
   it already does, otherwise when the learner confirms their sign-up.

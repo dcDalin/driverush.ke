@@ -26,6 +26,9 @@ begin
   if v_link.status <> 'pending' then
     raise exception 'not_pending' using errcode = 'P0001';
   end if;
+  if v_link.expires_at <= now() then
+    raise exception 'invite_expired' using errcode = 'P0001';
+  end if;
   if not exists (select 1 from public.schools where id = v_link.school_id and status = 'active') then
     raise exception 'school_inactive' using errcode = 'P0001';
   end if;

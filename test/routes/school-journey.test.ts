@@ -26,6 +26,7 @@ import {
 
 import { serviceClient } from "../db/helpers";
 import {
+  flashOf,
   getRequest,
   makeAccount,
   postRequest,
@@ -209,7 +210,7 @@ describe("a school end to end", () => {
     );
   });
 
-  it("the admin adds a student, who is emailed; an email can go again", async () => {
+  it("the admin adds a student, who is emailed; it goes again, but not too soon", async () => {
     const adminCookie = await signInCookies(admin.email);
     const student = `journey-student-${crypto.randomUUID().slice(0, 6)}@routes.test`;
     const added = await asSchool(adminCookie, {
@@ -221,19 +222,42 @@ describe("a school end to end", () => {
     expect(sent(student)).toHaveLength(1);
     const linkId = (await loadSchool(adminCookie)).data.students[0].id;
     // An inline action: plain values, as useInlineAction posts them.
-    const again = await run(() =>
-      dashboardAction({
-        request: postRequest(
-          `/school/${schoolId}`,
-          { intent: "resend-student", linkId },
-          adminCookie,
-        ),
-        params: { schoolId },
-        context: {},
-      } as never),
+    const resend = () =>
+      run(() =>
+        dashboardAction({
+          request: postRequest(
+            `/school/${schoolId}`,
+            { intent: "resend-student", linkId },
+            adminCookie,
+          ),
+          params: { schoolId },
+          context: {},
+        } as never),
+      );
+
+    // At once: refused, and nothing is sent.
+    const tooSoon = await resend();
+    expect(tooSoon.data.ok).toBe(false);
+    expect(await flashOf(tooSoon.headers)).toMatch(/Wait 10 minutes/);
+    expect(sent(student)).toHaveLength(1);
+
+    // Ten minutes later (and lapsed): sent, renewed for 30 days.
+    await serviceClient()
+      .from("school_student_links")
+      .update({
+        last_sent_at: new Date(Date.now() - 11 * 60_000).toISOString(),
+        expires_at: new Date(Date.now() - 1000).toISOString(),
+      })
+      .eq("id", linkId);
+    expect((await loadSchool(adminCookie)).data.students[0].inviteExpired).toBe(
+      true,
     );
+    const again = await resend();
     expect(again.data.ok).toBe(true);
     expect(sent(student)).toHaveLength(2);
+    const row = (await loadSchool(adminCookie)).data.students[0];
+    expect(row.inviteExpired).toBe(false);
+    expect(row.sentCount).toBe(2);
   });
 
   it("an admin may not send the school's bank", async () => {

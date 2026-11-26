@@ -6,8 +6,9 @@
 -- Adds a learner's email to a branch and returns the link id. The month
 -- starts now if a confirmed account has the email, it has no current school
 -- link and no other school is waiting for it; otherwise the link is pending.
--- Adding an email that already has an open link with this school returns
--- that link unchanged.
+-- Adding an email whose month with this school is running is refused
+-- (already_linked); one still waiting is sent again (private.invite_resend
+-- limits) and renewed for 30 days.
 --
 -- Access:  authenticated (school owner, branch admin or DriveRush staff)
 -- Guard:   admin (private.can_manage_branch: owner, admin of the branch, or staff)
@@ -22,6 +23,7 @@ declare
   v_email extensions.citext := lower(btrim(p_email))::extensions.citext;
   v_branch public.school_branches;
   v_link_id uuid;
+  v_open public.school_student_links;
   v_user_id uuid;
 begin
   if not private.can_manage_branch(p_branch_id) then
@@ -41,10 +43,22 @@ begin
 
   perform private.close_expired_links(null, v_email);
 
-  select id into v_link_id from public.school_student_links
-   where school_id = v_branch.school_id and email = v_email and status in ('pending', 'active');
-  if v_link_id is not null then
-    return v_link_id;
+  -- Already open with this school: a running link is refused (nothing to
+  -- send); a waiting one is sent again, within the limits, and renewed.
+  select * into v_open from public.school_student_links
+   where school_id = v_branch.school_id and email = v_email and status in ('pending', 'active')
+   for update;
+  if v_open.status = 'active' then
+    raise exception 'already_linked' using errcode = 'P0001';
+  end if;
+  if v_open.id is not null then
+    perform private.invite_resend(v_open.last_sent_at, v_open.sent_count);
+    update public.school_student_links
+       set expires_at = now() + interval '30 days',
+           sent_count = sent_count + 1,
+           last_sent_at = now()
+     where id = v_open.id;
+    return v_open.id;
   end if;
 
   v_user_id := private.confirmed_user_id(v_email);
@@ -59,6 +73,7 @@ begin
        and not exists (
          select 1 from public.school_student_links
           where user_id = v_user_id and status = 'pending' and id <> v_link_id
+            and expires_at > now()
        ) then
       perform private.activate_link(v_link_id, v_user_id);
     end if;

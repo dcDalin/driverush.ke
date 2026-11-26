@@ -38,6 +38,13 @@ const REASONS: Record<string, string> = {
   payments_not_set_up:
     "Add your bank first: your price is saved with your payment details.",
   nothing_to_review: "There is no bank waiting for review.",
+  // Invites (students/functions/invite_resend.sql).
+  resend_too_soon:
+    "It was sent a few minutes ago. Wait 10 minutes before sending it again.",
+  resend_limit:
+    "It has been sent 5 times. Withdraw it, then add them again if you still need to.",
+  already_linked: "That student is already with you this month.",
+  invite_expired: "That invite has expired. Ask the school to send it again.",
 };
 
 export function reasonFor(error: DbError): string {

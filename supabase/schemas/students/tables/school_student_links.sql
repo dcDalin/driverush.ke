@@ -6,8 +6,9 @@
 -- until then it is pending. A learner has at most one active link; another
 -- school's add waits as pending until the learner chooses it
 -- (learner_accept_school_link). Rows are history: re-adding after a month
--- ends inserts a new row. Writes go through the functions in
--- students/functions only.
+-- ends inserts a new row. A pending link lapses at expires_at (it stays
+-- pending, but nothing matches, joins or counts it) until the school sends
+-- it again. Writes go through the functions in students/functions only.
 create table public.school_student_links (
   id uuid primary key default gen_random_uuid(),
   school_id uuid not null references public.schools (id) on delete cascade,
@@ -21,6 +22,12 @@ create table public.school_student_links (
   ends_at timestamptz,
   ended_at timestamptz,
   end_reason public.link_end_reason,
+  -- While pending (owner, 2026-11-26): the invite lapses 30 days after it was
+  -- last sent, and is sent at most 5 times, at least 10 minutes apart
+  -- (private.invite_resend). Re-sending renews it. Meaningless once started.
+  expires_at timestamptz not null default (now() + interval '30 days'),
+  sent_count smallint not null default 1 check (sent_count between 1 and 5),
+  last_sent_at timestamptz not null default now(),
   foreign key (branch_id, school_id)
     references public.school_branches (id, school_id),
   -- The dates each status carries.

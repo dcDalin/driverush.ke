@@ -33,6 +33,7 @@ import { useServerForm } from "~/lib/forms/use-server-form";
 import {
   ALL,
   filterStudents,
+  MAX_SENDS,
   STUDENT_STATUSES as STATUSES,
   STUDENTS_PAGE_SIZE,
 } from "~/lib/school/student-filters";
@@ -234,9 +235,17 @@ function StudentItem({
               With you until {DATE.format(new Date(student.endsAt))}
             </Badge>
           )}
-          {student.status === "pending" && (
+          {student.status === "pending" && student.inviteExpired ? (
+            <Badge variant="outline">Invite expired</Badge>
+          ) : student.status === "pending" ? (
             <Badge variant="amber">Waiting for them</Badge>
-          )}
+          ) : null}
+          {student.status === "pending" ? (
+            <span className="text-ink-3">
+              Sent {student.sentCount} of {MAX_SENDS} times, last{" "}
+              {DATE.format(new Date(student.lastSentAt))}
+            </span>
+          ) : null}
           {student.status === "ended" && (
             <Badge variant="outline">Month over</Badge>
           )}
@@ -317,14 +326,19 @@ function StudentItem({
           <Button
             type="button"
             size="sm"
-            variant="paper"
-            disabled={busy}
+            variant={student.inviteExpired ? "rush" : "paper"}
+            disabled={busy || student.sentCount >= MAX_SENDS}
             isLoading={pending === "resend-student"}
+            title={
+              student.sentCount >= MAX_SENDS
+                ? "Sent 5 times: withdraw it, then add them again"
+                : undefined
+            }
             onClick={() =>
               submit({ intent: "resend-student", linkId: student.id })
             }
           >
-            Email again
+            {student.inviteExpired ? "Send again" : "Email again"}
           </Button>
         )}
         {student.status === "pending" && (

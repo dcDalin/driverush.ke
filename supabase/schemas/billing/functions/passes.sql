@@ -88,7 +88,7 @@ begin
         on ps.school_id = s.id and ps.is_active and ps.paystack_subaccount_code is not null
       join public.school_branches as b on b.id = l.branch_id
      where l.user_id = v_uid
-       and (l.status = 'pending' or (l.status = 'active' and l.ends_at > now()))
+       and ((l.status = 'pending' and l.expires_at > now()) or (l.status = 'active' and l.ends_at > now()))
      order by l.status = 'active' desc, s.name;
 end;
 $$;

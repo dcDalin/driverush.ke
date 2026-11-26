@@ -265,6 +265,7 @@ begin
         where m.school_id = s.id and m.role = 'owner' limit 1) as owner_email,
       (select i.email::text from public.school_member_invites as i
         where i.school_id = s.id and i.role = 'owner' and i.status = 'pending'
+          and i.expires_at > now()
         order by i.created_at desc limit 1) as invited_owner_email,
       (select count(*)::integer from public.school_members as m
         where m.school_id = s.id and m.role = 'admin') as admins,

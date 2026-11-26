@@ -49,8 +49,8 @@ select is((pg_temp.link('otieno@example.test', 'school_a')).status, 'active', 'c
 create temp table kamau as select tests.make_persona('kamau', null, true, 'kamau@example.test') as id;
 select isnt(pg_temp.add('admin_a1', 'a1', 'kamau@example.test'), null, 'adding a confirmed learner');
 select is((pg_temp.link('kamau@example.test', 'school_a')).status, 'active', 'starts the month at once');
-select is(pg_temp.add('owner_a', 'a1', 'kamau@example.test'), (pg_temp.link('kamau@example.test', 'school_a')).id::text,
-  'adding the same email again returns the same link');
+select is(tests.sqlstate_as(pg_temp.w('owner_a'), format($$select public.school_add_student(%L, 'kamau@example.test')$$, pg_temp.w('a1'))),
+  'P0001', 'adding a student whose month is running is refused (already_linked): nothing to send');
 
 -- ── Two schools before sign-up: the learner chooses ────────────────────
 select isnt(pg_temp.add('owner_a', 'a1', 'njeri@example.test'), null, 'school A adds an email');

@@ -35,7 +35,7 @@ begin
   -- School owners and admins.
   for v_invite in
     select * from public.school_member_invites
-     where email = v_email and status = 'pending'
+     where email = v_email and status = 'pending' and expires_at > now()
      order by created_at
      for update
   loop
@@ -74,7 +74,7 @@ begin
     select array_agg(l.id) into v_pending_ids
       from public.school_student_links as l
       join public.schools as s on s.id = l.school_id and s.status = 'active'
-     where l.user_id = p_user_id and l.status = 'pending';
+     where l.user_id = p_user_id and l.status = 'pending' and l.expires_at > now();
 
     if coalesce(array_length(v_pending_ids, 1), 0) = 1 then
       perform private.activate_link(v_pending_ids[1], p_user_id);

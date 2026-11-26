@@ -500,6 +500,12 @@ create table public.school_member_invites (
   keep_previous_owner boolean not null default false check (not keep_previous_owner or role = 'owner'),
   status public.invite_status not null default 'pending',
   invited_by uuid references auth.users (id) on delete set null,
+  -- Lapses 30 days after it was last sent; sent at most 5 times, at least
+  -- 10 minutes apart (private.invite_resend). A lapsed invite stays pending
+  -- but is never taken up or counted until it is sent again.
+  expires_at timestamptz not null default (now() + interval '30 days'),
+  sent_count smallint not null default 1 check (sent_count between 1 and 5),
+  last_sent_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
   closed_at timestamptz,
   check ((status = 'pending') = (closed_at is null))
@@ -866,8 +872,9 @@ comment on type public.link_end_reason is
 -- until then it is pending. A learner has at most one active link; another
 -- school's add waits as pending until the learner chooses it
 -- (learner_accept_school_link). Rows are history: re-adding after a month
--- ends inserts a new row. Writes go through the functions in
--- students/functions only.
+-- ends inserts a new row. A pending link lapses at expires_at (it stays
+-- pending, but nothing matches, joins or counts it) until the school sends
+-- it again. Writes go through the functions in students/functions only.
 create table public.school_student_links (
   id uuid primary key default gen_random_uuid(),
   school_id uuid not null references public.schools (id) on delete cascade,
@@ -881,6 +888,12 @@ create table public.school_student_links (
   ends_at timestamptz,
   ended_at timestamptz,
   end_reason public.link_end_reason,
+  -- While pending (owner, 2026-11-26): the invite lapses 30 days after it was
+  -- last sent, and is sent at most 5 times, at least 10 minutes apart
+  -- (private.invite_resend). Re-sending renews it. Meaningless once started.
+  expires_at timestamptz not null default (now() + interval '30 days'),
+  sent_count smallint not null default 1 check (sent_count between 1 and 5),
+  last_sent_at timestamptz not null default now(),
   foreign key (branch_id, school_id)
     references public.school_branches (id, school_id),
   -- The dates each status carries.
@@ -1248,7 +1261,8 @@ begin
   select (select count(*) from public.school_members
            where school_id = p_school_id and role = 'admin')
        + (select count(*) from public.school_member_invites
-           where school_id = p_school_id and role = 'admin' and status = 'pending')
+           where school_id = p_school_id and role = 'admin' and status = 'pending'
+             and expires_at > now())
     into v_count;
 
   if v_count >= 50 then
@@ -1479,7 +1493,7 @@ begin
   -- School owners and admins.
   for v_invite in
     select * from public.school_member_invites
-     where email = v_email and status = 'pending'
+     where email = v_email and status = 'pending' and expires_at > now()
      order by created_at
      for update
   loop
@@ -1518,7 +1532,7 @@ begin
     select array_agg(l.id) into v_pending_ids
       from public.school_student_links as l
       join public.schools as s on s.id = l.school_id and s.status = 'active'
-     where l.user_id = p_user_id and l.status = 'pending';
+     where l.user_id = p_user_id and l.status = 'pending' and l.expires_at > now();
 
     if coalesce(array_length(v_pending_ids, 1), 0) = 1 then
       perform private.activate_link(v_pending_ids[1], p_user_id);
@@ -1964,6 +1978,7 @@ begin
         where m.school_id = s.id and m.role = 'owner' limit 1) as owner_email,
       (select i.email::text from public.school_member_invites as i
         where i.school_id = s.id and i.role = 'owner' and i.status = 'pending'
+          and i.expires_at > now()
         order by i.created_at desc limit 1) as invited_owner_email,
       (select count(*)::integer from public.school_members as m
         where m.school_id = s.id and m.role = 'admin') as admins,
@@ -2283,8 +2298,10 @@ end;
 $$;
 
 -- Adds an admin by email, tied to these branches. Returns 'added' when a
--- confirmed account has the email, 'invited' when it waits for sign-up.
--- Adding an existing admin again replaces their branches.
+-- confirmed account has the email, 'invited' when it waits for sign-up,
+-- 'updated' when they were an admin already (their branches are replaced;
+-- nothing to email). Asking again for a waiting invite sends it again
+-- (private.invite_resend limits) and renews it.
 --
 -- Access:  authenticated (school owner or DriveRush staff)
 -- Guard:   admin (private.can_manage_school: owner or staff)
@@ -2299,6 +2316,8 @@ declare
   v_email extensions.citext := lower(btrim(p_email))::extensions.citext;
   v_user_id uuid;
   v_member public.school_members;
+  v_invite public.school_member_invites;
+  v_existed boolean;
 begin
   if not private.can_manage_school(p_school_id) then
     raise exception 'forbidden' using errcode = '42501';
@@ -2308,14 +2327,28 @@ begin
   v_user_id := private.confirmed_user_id(v_email);
 
   if v_user_id is null then
-    insert into public.school_member_invites (school_id, email, role, branch_ids, invited_by)
-    values (p_school_id, v_email, 'admin', p_branch_ids, auth.uid())
-    on conflict (school_id, email) where status = 'pending'
-    do update set branch_ids = excluded.branch_ids
-    where public.school_member_invites.role = 'admin';
-    if not found then
+    select * into v_invite from public.school_member_invites
+     where school_id = p_school_id and email = v_email and status = 'pending'
+     for update;
+    if v_invite.role = 'owner' then
       raise exception 'already_owner' using errcode = 'P0001';
     end if;
+    if v_invite.id is not null then
+      -- Asked again: new branches, sent again within the limits, renewed.
+      perform private.invite_resend(v_invite.last_sent_at, v_invite.sent_count);
+      if v_invite.expires_at <= now() then
+        perform private.assert_admin_room(p_school_id);
+      end if;
+      update public.school_member_invites
+         set branch_ids = p_branch_ids,
+             expires_at = now() + interval '30 days',
+             sent_count = sent_count + 1,
+             last_sent_at = now()
+       where id = v_invite.id;
+      return 'invited';
+    end if;
+    insert into public.school_member_invites (school_id, email, role, branch_ids, invited_by)
+    values (p_school_id, v_email, 'admin', p_branch_ids, auth.uid());
     return 'invited';
   end if;
 
@@ -2326,7 +2359,8 @@ begin
     raise exception 'already_owner' using errcode = 'P0001';
   end if;
 
-  if v_member.id is null then
+  v_existed := v_member.id is not null;
+  if not v_existed then
     insert into public.school_members (school_id, user_id, role, added_by)
     values (p_school_id, v_user_id, 'admin', auth.uid())
     returning * into v_member;
@@ -2336,7 +2370,7 @@ begin
   insert into public.school_member_branches (member_id, branch_id, school_id)
   select v_member.id, x.id, p_school_id from unnest(p_branch_ids) as x(id)
   on conflict do nothing;
-  return 'added';
+  return case when v_existed then 'updated' else 'added' end;
 end;
 $$;
 
@@ -3172,8 +3206,9 @@ comment on function public.admin_end_sponsorship(uuid) is
 -- Adds a learner's email to a branch and returns the link id. The month
 -- starts now if a confirmed account has the email, it has no current school
 -- link and no other school is waiting for it; otherwise the link is pending.
--- Adding an email that already has an open link with this school returns
--- that link unchanged.
+-- Adding an email whose month with this school is running is refused
+-- (already_linked); one still waiting is sent again (private.invite_resend
+-- limits) and renewed for 30 days.
 --
 -- Access:  authenticated (school owner, branch admin or DriveRush staff)
 -- Guard:   admin (private.can_manage_branch: owner, admin of the branch, or staff)
@@ -3188,6 +3223,7 @@ declare
   v_email extensions.citext := lower(btrim(p_email))::extensions.citext;
   v_branch public.school_branches;
   v_link_id uuid;
+  v_open public.school_student_links;
   v_user_id uuid;
 begin
   if not private.can_manage_branch(p_branch_id) then
@@ -3207,10 +3243,22 @@ begin
 
   perform private.close_expired_links(null, v_email);
 
-  select id into v_link_id from public.school_student_links
-   where school_id = v_branch.school_id and email = v_email and status in ('pending', 'active');
-  if v_link_id is not null then
-    return v_link_id;
+  -- Already open with this school: a running link is refused (nothing to
+  -- send); a waiting one is sent again, within the limits, and renewed.
+  select * into v_open from public.school_student_links
+   where school_id = v_branch.school_id and email = v_email and status in ('pending', 'active')
+   for update;
+  if v_open.status = 'active' then
+    raise exception 'already_linked' using errcode = 'P0001';
+  end if;
+  if v_open.id is not null then
+    perform private.invite_resend(v_open.last_sent_at, v_open.sent_count);
+    update public.school_student_links
+       set expires_at = now() + interval '30 days',
+           sent_count = sent_count + 1,
+           last_sent_at = now()
+     where id = v_open.id;
+    return v_open.id;
   end if;
 
   v_user_id := private.confirmed_user_id(v_email);
@@ -3225,6 +3273,7 @@ begin
        and not exists (
          select 1 from public.school_student_links
           where user_id = v_user_id and status = 'pending' and id <> v_link_id
+            and expires_at > now()
        ) then
       perform private.activate_link(v_link_id, v_user_id);
     end if;
@@ -3399,6 +3448,163 @@ comment on function public.school_cancel_student_invite(uuid) is
 comment on function public.school_move_student_branch(uuid, uuid) is
   'School owner, admin of both branches, or staff: moves an open link to another branch.';
 
+-- ── supabase/schemas/students/functions/invite_resend.sql
+-- ===================================================
+-- FUNCTIONS: invites lapse, and are sent again within limits
+-- ===================================================
+-- Owner, 2026-11-26. A student's pending link and an owner or admin invite
+-- lapse 30 days after they were last sent: they stay pending, but nothing
+-- matches, joins or counts them (match_pending_invites, the learner's choice,
+-- the 50-admin count, the console). Sending one again renews it for 30 days.
+-- Each is sent at most 5 times, at least 10 minutes apart, so a school cannot
+-- flood an inbox; after 5, withdraw it and add the person again.
+
+-- Refuses a send that comes too soon or one too many; otherwise nothing.
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: school_add_student, school_add_admin, school_resend_student_invite,
+--          school_resend_member_invite
+create or replace function private.invite_resend(p_last_sent_at timestamptz, p_sent_count integer)
+returns void
+language plpgsql
+stable
+set search_path = ''
+as $$
+begin
+  if p_last_sent_at > now() - interval '10 minutes' then
+    raise exception 'resend_too_soon' using errcode = 'P0001';
+  end if;
+  if p_sent_count >= 5 then
+    raise exception 'resend_limit' using errcode = 'P0001';
+  end if;
+end;
+$$;
+
+-- Sends a student's invite again: renews it for 30 days and returns what the
+-- email needs. Only a link still waiting.
+--
+-- Access:  authenticated (school owner, admin of the link's branch, or DriveRush staff)
+-- Guard:   admin (private.can_manage_branch on the link's branch)
+-- Callers: school dashboard (session)
+create or replace function private.school_resend_student_invite(p_link_id uuid)
+returns table (email text, branch_name text, school_name text)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_link public.school_student_links;
+begin
+  select * into v_link from public.school_student_links where id = p_link_id for update;
+  if v_link.id is null or not private.can_manage_branch(v_link.branch_id) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  if v_link.status <> 'pending' then
+    raise exception 'not_pending' using errcode = 'P0001';
+  end if;
+  perform private.invite_resend(v_link.last_sent_at, v_link.sent_count);
+  update public.school_student_links
+     set expires_at = now() + interval '30 days',
+         sent_count = sent_count + 1,
+         last_sent_at = now()
+   where id = p_link_id;
+  return query
+    select v_link.email::text, b.name, s.name
+      from public.school_branches as b
+      join public.schools as s on s.id = b.school_id
+     where b.id = v_link.branch_id;
+end;
+$$;
+
+-- Sends an owner or admin invite again: renews it for 30 days and returns
+-- what the email needs. A school's owner may re-send admin invites; an owner
+-- invite (a hand-over) is DriveRush staff's.
+--
+-- Access:  authenticated (school owner for admin invites, or DriveRush staff)
+-- Guard:   admin (private.can_manage_school; owner invites private.is_staff)
+-- Callers: school dashboard (session), console (session)
+create or replace function private.school_resend_member_invite(p_invite_id uuid)
+returns table (email text, role public.school_role, branch_ids uuid[], school_name text)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_invite public.school_member_invites;
+begin
+  select * into v_invite from public.school_member_invites where id = p_invite_id for update;
+  if v_invite.id is null
+     or not private.can_manage_school(v_invite.school_id)
+     or (v_invite.role = 'owner' and not private.is_staff()) then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  if v_invite.status <> 'pending' then
+    raise exception 'not_pending' using errcode = 'P0001';
+  end if;
+  perform private.invite_resend(v_invite.last_sent_at, v_invite.sent_count);
+  -- A lapsed admin invite is not counted in the 50; renewing it must fit.
+  if v_invite.role = 'admin' and v_invite.expires_at <= now() then
+    perform private.assert_admin_room(v_invite.school_id);
+  end if;
+  update public.school_member_invites
+     set expires_at = now() + interval '30 days',
+         sent_count = sent_count + 1,
+         last_sent_at = now()
+   where id = p_invite_id;
+  return query
+    select v_invite.email::text, v_invite.role, v_invite.branch_ids, s.name
+      from public.schools as s
+     where s.id = v_invite.school_id;
+end;
+$$;
+
+-- Access:  authenticated (school owner, admin of the link's branch, or DriveRush staff)
+-- Guard:   admin (the private body checks private.can_manage_branch)
+-- Callers: school dashboard (session)
+create or replace function public.school_resend_student_invite(p_link_id uuid)
+returns table (email text, branch_name text, school_name text)
+language sql
+security invoker
+set search_path = ''
+as $$
+  select * from private.school_resend_student_invite(p_link_id);
+$$;
+
+-- Access:  authenticated (school owner for admin invites, or DriveRush staff)
+-- Guard:   admin (the private body checks private.can_manage_school)
+-- Callers: school dashboard (session), console (session)
+create or replace function public.school_resend_member_invite(p_invite_id uuid)
+returns table (email text, role public.school_role, branch_ids uuid[], school_name text)
+language sql
+security invoker
+set search_path = ''
+as $$
+  select * from private.school_resend_member_invite(p_invite_id);
+$$;
+
+revoke all on function private.invite_resend(timestamptz, integer) from public;
+revoke all on function private.school_resend_student_invite(uuid) from public;
+revoke all on function public.school_resend_student_invite(uuid) from public;
+revoke all on function private.school_resend_member_invite(uuid) from public;
+revoke all on function public.school_resend_member_invite(uuid) from public;
+grant execute on function private.invite_resend(timestamptz, integer) to service_role;
+grant execute on function private.school_resend_student_invite(uuid) to service_role;
+grant execute on function public.school_resend_student_invite(uuid) to service_role;
+grant execute on function private.school_resend_member_invite(uuid) to service_role;
+grant execute on function public.school_resend_member_invite(uuid) to service_role;
+
+comment on function private.invite_resend(timestamptz, integer) is
+  'Refuses an invite send under 10 minutes after the last one (resend_too_soon) or past 5 (resend_limit).';
+comment on function private.school_resend_student_invite(uuid) is
+  'School team: sends a waiting student invite again (renewed 30 days), within the limits.';
+comment on function public.school_resend_student_invite(uuid) is
+  'School team: sends a waiting student invite again (renewed 30 days), within the limits.';
+comment on function private.school_resend_member_invite(uuid) is
+  'Owner (admin invites) or staff: sends a waiting member invite again (renewed 30 days), within the limits.';
+comment on function public.school_resend_member_invite(uuid) is
+  'Owner (admin invites) or staff: sends a waiting member invite again (renewed 30 days), within the limits.';
+
 -- ── supabase/schemas/students/functions/learner_links.sql
 -- ===================================================
 -- FUNCTIONS: a learner chooses among schools that added them
@@ -3427,6 +3633,9 @@ begin
   end if;
   if v_link.status <> 'pending' then
     raise exception 'not_pending' using errcode = 'P0001';
+  end if;
+  if v_link.expires_at <= now() then
+    raise exception 'invite_expired' using errcode = 'P0001';
   end if;
   if not exists (select 1 from public.schools where id = v_link.school_id and status = 'active') then
     raise exception 'school_inactive' using errcode = 'P0001';
@@ -3555,7 +3764,7 @@ begin
   select count(*)::integer into v_pending
     from public.school_student_links as l
     join public.schools as s on s.id = l.school_id and s.status = 'active'
-   where l.user_id = v_uid and l.status = 'pending';
+   where l.user_id = v_uid and l.status = 'pending' and l.expires_at > now();
 
   select max(s.ends_at) into v_paid_until
     from public.learner_subscriptions as s
@@ -3714,7 +3923,7 @@ begin
         on ps.school_id = s.id and ps.is_active and ps.paystack_subaccount_code is not null
       join public.school_branches as b on b.id = l.branch_id
      where l.user_id = v_uid
-       and (l.status = 'pending' or (l.status = 'active' and l.ends_at > now()))
+       and ((l.status = 'pending' and l.expires_at > now()) or (l.status = 'active' and l.ends_at > now()))
      order by l.status = 'active' desc, s.name;
 end;
 $$;
@@ -5623,6 +5832,10 @@ grant execute on function private.school_pass_info(uuid) to authenticated;
 grant execute on function public.school_set_pass_price(uuid, integer) to authenticated;
 grant execute on function private.school_set_pass_price(uuid, integer) to authenticated;
 grant execute on function public.school_earnings(uuid, uuid) to authenticated;
+grant execute on function public.school_resend_student_invite(uuid) to authenticated;
+grant execute on function private.school_resend_student_invite(uuid) to authenticated;
+grant execute on function public.school_resend_member_invite(uuid) to authenticated;
+grant execute on function private.school_resend_member_invite(uuid) to authenticated;
 grant execute on function private.school_earnings(uuid, uuid) to authenticated;
 
 -- ── 6. DriveRush console (each checks is_staff or is_su) ────────────────

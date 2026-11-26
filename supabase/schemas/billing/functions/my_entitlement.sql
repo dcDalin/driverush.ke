@@ -48,7 +48,7 @@ begin
   select count(*)::integer into v_pending
     from public.school_student_links as l
     join public.schools as s on s.id = l.school_id and s.status = 'active'
-   where l.user_id = v_uid and l.status = 'pending';
+   where l.user_id = v_uid and l.status = 'pending' and l.expires_at > now();
 
   select max(s.ends_at) into v_paid_until
     from public.learner_subscriptions as s

@@ -22,7 +22,8 @@ begin
   select (select count(*) from public.school_members
            where school_id = p_school_id and role = 'admin')
        + (select count(*) from public.school_member_invites
-           where school_id = p_school_id and role = 'admin' and status = 'pending')
+           where school_id = p_school_id and role = 'admin' and status = 'pending'
+             and expires_at > now())
     into v_count;
 
   if v_count >= 50 then

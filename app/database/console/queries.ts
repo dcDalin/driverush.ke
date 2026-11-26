@@ -100,7 +100,7 @@ export async function getConsoleSchool(
         .then(orThrow),
       supabase
         .from("school_member_invites")
-        .select("email")
+        .select("email, expires_at")
         .eq("school_id", schoolId)
         .eq("role", "owner")
         .eq("status", "pending")
@@ -150,7 +150,15 @@ export async function getConsoleSchool(
   return {
     school,
     ownerEmail,
-    invitedOwnerEmail: invite?.email ?? null,
+    // A lapsed owner invite is no owner: staff hand the school over again.
+    invitedOwnerEmail:
+      invite && Date.parse(invite.expires_at) > Date.now()
+        ? invite.email
+        : null,
+    expiredOwnerInvite:
+      invite && Date.parse(invite.expires_at) <= Date.now()
+        ? { email: invite.email, expiredAt: invite.expires_at }
+        : null,
     liveries: liveries as ConsoleLivery[],
     sponsorships: sponsorships as ConsoleSponsorship[],
     payments,

@@ -106,6 +106,10 @@ grant execute on function private.school_pass_info(uuid) to authenticated;
 grant execute on function public.school_set_pass_price(uuid, integer) to authenticated;
 grant execute on function private.school_set_pass_price(uuid, integer) to authenticated;
 grant execute on function public.school_earnings(uuid, uuid) to authenticated;
+grant execute on function public.school_resend_student_invite(uuid) to authenticated;
+grant execute on function private.school_resend_student_invite(uuid) to authenticated;
+grant execute on function public.school_resend_member_invite(uuid) to authenticated;
+grant execute on function private.school_resend_member_invite(uuid) to authenticated;
 grant execute on function private.school_earnings(uuid, uuid) to authenticated;
 
 -- ── 6. DriveRush console (each checks is_staff or is_su) ────────────────

@@ -391,11 +391,14 @@ export type Database = {
           closed_at: string | null;
           created_at: string;
           email: string;
+          expires_at: string;
           id: string;
           invited_by: string | null;
           keep_previous_owner: boolean;
+          last_sent_at: string;
           role: Database["public"]["Enums"]["school_role"];
           school_id: string;
+          sent_count: number;
           status: Database["public"]["Enums"]["invite_status"];
         };
         ComputedFields: never;
@@ -404,11 +407,14 @@ export type Database = {
           closed_at?: string | null;
           created_at?: string;
           email: string;
+          expires_at?: string;
           id?: string;
           invited_by?: string | null;
           keep_previous_owner?: boolean;
+          last_sent_at?: string;
           role: Database["public"]["Enums"]["school_role"];
           school_id: string;
+          sent_count?: number;
           status?: Database["public"]["Enums"]["invite_status"];
         };
         Update: {
@@ -416,11 +422,14 @@ export type Database = {
           closed_at?: string | null;
           created_at?: string;
           email?: string;
+          expires_at?: string;
           id?: string;
           invited_by?: string | null;
           keep_previous_owner?: boolean;
+          last_sent_at?: string;
           role?: Database["public"]["Enums"]["school_role"];
           school_id?: string;
+          sent_count?: number;
           status?: Database["public"]["Enums"]["invite_status"];
         };
         Relationships: [
@@ -649,8 +658,11 @@ export type Database = {
           end_reason: Database["public"]["Enums"]["link_end_reason"] | null;
           ended_at: string | null;
           ends_at: string | null;
+          expires_at: string;
           id: string;
+          last_sent_at: string;
           school_id: string;
+          sent_count: number;
           starts_at: string | null;
           status: Database["public"]["Enums"]["student_link_status"];
           user_id: string | null;
@@ -664,8 +676,11 @@ export type Database = {
           end_reason?: Database["public"]["Enums"]["link_end_reason"] | null;
           ended_at?: string | null;
           ends_at?: string | null;
+          expires_at?: string;
           id?: string;
+          last_sent_at?: string;
           school_id: string;
+          sent_count?: number;
           starts_at?: string | null;
           status?: Database["public"]["Enums"]["student_link_status"];
           user_id?: string | null;
@@ -678,8 +693,11 @@ export type Database = {
           end_reason?: Database["public"]["Enums"]["link_end_reason"] | null;
           ended_at?: string | null;
           ends_at?: string | null;
+          expires_at?: string;
           id?: string;
+          last_sent_at?: string;
           school_id?: string;
+          sent_count?: number;
           starts_at?: string | null;
           status?: Database["public"]["Enums"]["student_link_status"];
           user_id?: string | null;
@@ -1091,6 +1109,23 @@ export type Database = {
           p_subaccount_code: string;
         };
         Returns: string;
+      };
+      school_resend_member_invite: {
+        Args: { p_invite_id: string };
+        Returns: {
+          branch_ids: string[];
+          email: string;
+          role: Database["public"]["Enums"]["school_role"];
+          school_name: string;
+        }[];
+      };
+      school_resend_student_invite: {
+        Args: { p_link_id: string };
+        Returns: {
+          branch_name: string;
+          email: string;
+          school_name: string;
+        }[];
       };
       school_set_admin_branches: {
         Args: { p_branch_ids: string[]; p_member_id: string };

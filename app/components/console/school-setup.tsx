@@ -43,6 +43,12 @@ import { HandOverSchema } from "~/schemas/console";
 
 import { STATUS_LABEL } from "./school-status";
 
+const EXPIRED = new Intl.DateTimeFormat("en-KE", {
+  timeZone: "Africa/Nairobi",
+  day: "numeric",
+  month: "short",
+});
+
 function Step({
   done,
   label,
@@ -137,7 +143,9 @@ export function SetupChecklist({ school }: { school: ConsoleSchool }) {
                 ? `${school.ownerEmail} owns it.`
                 : school.invitedOwnerEmail
                   ? `${school.invitedOwnerEmail} is invited: they own it once they sign up.`
-                  : "Not handed over yet."
+                  : school.expiredOwnerInvite
+                    ? `The invite to ${school.expiredOwnerInvite.email} expired on ${EXPIRED.format(new Date(school.expiredOwnerInvite.expiredAt))}: hand it over again.`
+                    : "Not handed over yet."
             }
           />
         </ul>

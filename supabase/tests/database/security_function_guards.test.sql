@@ -9,7 +9,7 @@
 -- ===================================================
 begin;
 
-select plan(74);
+select plan(76);
 
 create temp table w as select tests.make_world() as j;
 create function pg_temp.w(k text) returns text language sql as $$ select j ->> k from w $$;
@@ -30,7 +30,8 @@ insert into probed values
   ('start_pass_checkout'), ('school_pass_info'), ('school_set_pass_price'), ('school_earnings'),
   ('admin_set_school_payments'), ('my_pass_offers'),
   ('admin_hand_over_school'), ('admin_list_schools'),
-  ('admin_review_bank'), ('admin_list_bank_requests'), ('admin_list_payments'), ('admin_payment_totals');
+  ('admin_review_bank'), ('admin_list_bank_requests'), ('admin_list_payments'), ('admin_payment_totals'),
+  ('school_resend_student_invite'), ('school_resend_member_invite');
 
 -- ── anon can call nothing ──────────────────────────────────────────────
 select is(tests.sqlstate_as('anon', 'select public.my_entitlement()'), '42501',
@@ -192,6 +193,10 @@ select is(tests.sqlstate_as(pg_temp.w('owner_a'), $$select count(*) from public.
   'a school owner cannot list every payment');
 select is(tests.sqlstate_as(pg_temp.w('learner_a1'), 'select count(*) from public.admin_payment_totals()'), '42501',
   'a learner cannot read DriveRush''s totals');
+select is(tests.sqlstate_as(pg_temp.w('learner_a1'), format('select * from public.school_resend_student_invite(%L)', gen_random_uuid())), '42501',
+  'a learner cannot send a school''s invite');
+select is(tests.sqlstate_as(pg_temp.w('learner_a1'), format('select * from public.school_resend_member_invite(%L)', gen_random_uuid())), '42501',
+  'a learner cannot send a member invite');
 select is(tests.sqlstate_as(pg_temp.w('owner_a'), format($$select public.school_request_bank(%L, %L, 'ACCT_y', 'Bank ••2', 'X')$$, pg_temp.w('school_a'), pg_temp.w('owner_a'))), '42501',
   'a school owner cannot record a bank request themselves (the server does, after its own checks)');
 
