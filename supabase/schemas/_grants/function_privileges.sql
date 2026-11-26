@@ -115,6 +115,10 @@ grant execute on function public.admin_set_school_status(uuid, public.school_sta
 grant execute on function private.admin_set_school_status(uuid, public.school_status) to authenticated;
 grant execute on function public.admin_transfer_school_owner(uuid, text) to authenticated;
 grant execute on function private.admin_transfer_school_owner(uuid, text) to authenticated;
+grant execute on function public.admin_hand_over_school(uuid, text) to authenticated;
+grant execute on function private.admin_hand_over_school(uuid, text) to authenticated;
+grant execute on function public.admin_list_schools(text, text, text, text, integer, integer) to authenticated;
+grant execute on function private.admin_list_schools(text, text, text, text, integer, integer) to authenticated;
 grant execute on function public.admin_livery_draft_get(uuid) to authenticated;
 grant execute on function private.admin_livery_draft_get(uuid) to authenticated;
 grant execute on function public.admin_publish_livery(uuid) to authenticated;

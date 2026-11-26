@@ -28,7 +28,8 @@ insert into probed values
   ('admin_livery_draft_get'), ('admin_publish_livery'), ('admin_retire_livery'),
   ('admin_set_sponsorship'), ('admin_end_sponsorship'),
   ('start_pass_checkout'), ('school_pass_info'), ('school_set_pass_price'), ('school_earnings'),
-  ('admin_set_school_payments'), ('my_pass_offers');
+  ('admin_set_school_payments'), ('my_pass_offers'),
+  ('admin_hand_over_school'), ('admin_list_schools');
 
 -- ── anon can call nothing ──────────────────────────────────────────────
 select is(tests.sqlstate_as('anon', 'select public.my_entitlement()'), '42501',

@@ -1,60 +1,34 @@
 /**
  * `/console`: DriveRush staff (su and admin, on a password session).
  *
- *   Schools  every school with its owner, status, branches and students this
- *            month; create a school for an owner's email; suspend, archive or
- *            reactivate; hand a school to another owner; open its dashboard
- *            (where staff can edit its profile too).
- *            Its liveries: preview a draft on the board, publish it, retire
- *            it (drafts come from `npm run livery:publish`). Its
- *            sponsorships: when its cars take turns for everyone.
- *            Its passes: turn on payments with its code and bank (a
- *            Paystack subaccount), and see its price.
+ *   Schools  every school, a page at a time: search by name, short name or
+ *            owner's email; filter by status, livery and sponsorship (all in
+ *            the address). "New school" creates one for an owner's email,
+ *            or with none to set it up privately first. Each row opens the
+ *            school's page (`/console/schools/:schoolId`): set-up, hand-over,
+ *            liveries, sponsorship, payments.
  *   Staff    (su only) who holds a staff role; grant or revoke by email.
  *
- * The loader reads `getConsoleOverview`; the action validates each intent
- * and calls the matching `~/database/console` function. The database checks
- * every call again (private.is_staff, private.is_su).
+ * Changes go through `consoleAction` (shared with the school's page); the
+ * database checks every call again (private.is_staff, private.is_su).
  */
-import { data, Link } from "react-router";
+import { data, useSearchParams } from "react-router";
 
 import { SiteNav } from "~/components/brand/site-nav";
+import { StaffPanel } from "~/components/console/console-panels";
+import { CreateSchoolDialog } from "~/components/console/create-school-dialog";
 import {
-  CreateSchool,
-  SchoolRow,
-  StaffPanel,
-} from "~/components/console/console-panels";
-import { SchoolPaymentsBlock } from "~/components/console/school-payments";
+  SchoolFilters,
+  SchoolList,
+  SchoolPager,
+} from "~/components/console/school-list";
 import { NeedsSignIn, NothingHere } from "~/components/school/signed-out";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { isStaffRole, isSuRole } from "~/database/auth/roles";
-import {
-  listSchoolPaymentSettings,
-  setSchoolPayments,
-} from "~/database/billing/school";
-import * as consoleDb from "~/database/console/mutations";
-import {
-  findAccountIdByEmail,
-  getConsoleOverview,
-} from "~/database/console/queries";
-import type { Result } from "~/database/result";
+import { listConsoleSchools, listStaff } from "~/database/console/queries";
 import { getRequestClient, requireStaff } from "~/lib/auth/require.server";
-import { formFields, readFormIntent } from "~/lib/forms/form-intent";
-import { dataWithError, dataWithSuccess } from "~/lib/forms/toast.server";
-import { validateForm } from "~/lib/forms/validate-form.server";
-import { bankLabel, kenyanBanks } from "~/lib/payments/banks.server";
-import { getPaystackEnv, paymentsEnabled } from "~/lib/payments/env.server";
-import {
-  createSubaccount,
-  PaystackError,
-} from "~/lib/payments/paystack.server";
-import { SetUpPaymentsSchema } from "~/schemas/billing";
-import {
-  ConsoleActionSchema,
-  CreateSchoolSchema,
-  GrantRoleSchema,
-  SetSponsorshipSchema,
-  TransferOwnerSchema,
-} from "~/schemas/console";
+import { consoleAction } from "~/lib/console/action.server";
+import { SchoolFiltersSchema } from "~/schemas/console";
 
 import type { Route } from "./+types/console";
 
@@ -72,195 +46,39 @@ export async function loader({ request }: Route.LoaderArgs) {
   if (!isStaffRole(caller.role))
     return data({ state: "not-staff" as const }, { headers });
   const su = isSuRole(caller.role);
-  const [overview, settings, banks] = await Promise.all([
-    getConsoleOverview(supabase, { su }),
-    listSchoolPaymentSettings(supabase),
-    kenyanBanks(),
+  const params = Object.fromEntries(new URL(request.url).searchParams);
+  const filters = SchoolFiltersSchema.parse(params);
+  const [list, staff] = await Promise.all([
+    listConsoleSchools(supabase, {
+      search: filters.q,
+      status: filters.status,
+      livery: filters.livery,
+      sponsoring: filters.sponsoring,
+      page: filters.page,
+    }),
+    su ? listStaff(supabase) : Promise.resolve([]),
   ]);
   return data(
     {
       state: "ok" as const,
       su,
       me: caller.userId,
-      ...overview,
-      payments: Object.fromEntries(settings),
-      banks,
-      paymentsOn: paymentsEnabled(),
+      page: Math.min(filters.page, list.pages),
+      ...list,
+      staff,
     },
     { headers },
   );
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { supabase, headers } = await requireStaff(request);
-  const formData = await request.formData();
-  const intent = readFormIntent(formData);
-
-  const reply = (result: Result<unknown>, message: string) =>
-    result.error
-      ? dataWithError({ ok: false as const }, result.error, { headers })
-      : dataWithSuccess({ ok: true as const }, message, { headers });
-  const invalid = (errors: unknown) =>
-    dataWithError(
-      { ok: false as const, errors },
-      "Check the highlighted fields.",
-      { headers },
-    );
-  const noAccount = () =>
-    dataWithError(
-      { ok: false as const },
-      "No account has that email. They sign up first.",
-      {
-        headers,
-      },
-    );
-
-  if (intent === "create-school") {
-    const { errors, data: v } = await validateForm(
-      formData,
-      CreateSchoolSchema,
-    );
-    if (errors || !v) return invalid(errors);
-    return reply(
-      await consoleDb.createSchool(supabase, {
-        name: v.name,
-        slug: v.slug,
-        ownerEmail: v.ownerEmail,
-      }),
-      "School created.",
-    );
-  }
-
-  if (intent === "transfer-owner") {
-    const { errors, data: v } = await validateForm(
-      formData,
-      TransferOwnerSchema,
-    );
-    if (errors || !v) return invalid(errors);
-    const result = await consoleDb.transferSchoolOwner(
-      supabase,
-      v.schoolId,
-      v.email,
-    );
-    return reply(
-      result,
-      result.data === "invited"
-        ? "Invited: they become owner when they sign up."
-        : "New owner set.",
-    );
-  }
-
-  if (intent === "set-sponsorship") {
-    const { errors, data: v } = await validateForm(
-      formData,
-      SetSponsorshipSchema,
-    );
-    if (errors || !v) return invalid(errors);
-    return reply(
-      await consoleDb.setSponsorship(supabase, v),
-      "Sponsorship saved.",
-    );
-  }
-
-  if (intent === "set-up-payments") {
-    const { errors, data: v } = await validateForm(
-      formData,
-      SetUpPaymentsSchema,
-    );
-    if (errors || !v) return invalid(errors);
-    if (!paymentsEnabled()) {
-      return dataWithError(
-        { ok: false as const },
-        "Payments are off on this server.",
-        { headers },
-      );
-    }
-    let subaccount: string;
-    try {
-      subaccount = (
-        await createSubaccount(getPaystackEnv().secretKey, {
-          businessName: v.businessName,
-          bankCode: v.bankCode,
-          accountNumber: v.accountNumber,
-        })
-      ).subaccount_code;
-    } catch (error) {
-      return dataWithError(
-        { ok: false as const },
-        error instanceof PaystackError
-          ? `Paystack said: ${error.message}`
-          : "Paystack did not answer. Try again.",
-        { headers },
-      );
-    }
-    return reply(
-      await setSchoolPayments(supabase, {
-        schoolId: v.schoolId,
-        code: v.code,
-        subaccountCode: subaccount,
-        bankLabel: bankLabel(await kenyanBanks(), v.bankCode, v.accountNumber),
-      }),
-      "Payments on. The school's learners can pay through it now.",
-    );
-  }
-
-  if (intent === "grant-role") {
-    const { errors, data: v } = await validateForm(formData, GrantRoleSchema);
-    if (errors || !v) return invalid(errors);
-    const userId = await findAccountIdByEmail(supabase, v.email);
-    if (!userId) return noAccount();
-    return reply(
-      await consoleDb.grantPlatformRole(supabase, userId, v.role),
-      "Role granted.",
-    );
-  }
-
-  // Inline actions from keyed fetchers.
-  const parsed = ConsoleActionSchema.safeParse(formFields(formData));
-  if (!parsed.success) {
-    return dataWithError(
-      { ok: false as const },
-      "Something is missing. Reload and try again.",
-      {
-        status: 400,
-        headers,
-      },
-    );
-  }
-  const v = parsed.data;
-  if (v.intent === "set-status") {
-    return reply(
-      await consoleDb.setSchoolStatus(supabase, v.schoolId, v.status),
-      "Status saved.",
-    );
-  }
-  if (v.intent === "publish-livery") {
-    return reply(
-      await consoleDb.publishLivery(supabase, v.liveryId),
-      "Livery published. Phones see it within a few minutes.",
-    );
-  }
-  if (v.intent === "retire-livery") {
-    return reply(
-      await consoleDb.retireLivery(supabase, v.liveryId),
-      "Livery taken off the board.",
-    );
-  }
-  if (v.intent === "end-sponsorship") {
-    return reply(
-      await consoleDb.endSponsorship(supabase, v.sponsorshipId),
-      "Sponsorship ended today.",
-    );
-  }
-  const userId = await findAccountIdByEmail(supabase, v.email);
-  if (!userId) return noAccount();
-  return reply(
-    await consoleDb.revokePlatformRole(supabase, userId, v.role),
-    "Role revoked.",
-  );
+  const staff = await requireStaff(request);
+  return consoleAction(staff, await request.formData());
 }
 
 export default function Console({ loaderData }: Route.ComponentProps) {
+  const [params, setParams] = useSearchParams();
+  const tab = params.get("tab") === "staff" ? "staff" : "schools";
   return (
     <>
       <SiteNav />
@@ -276,48 +94,42 @@ export default function Console({ loaderData }: Route.ComponentProps) {
             body="This account has no DriveRush staff role, or signed in with a code. Staff sign in with a password."
           />
         ) : (
-          <div className="flex flex-col gap-10 py-10">
-            <h1 className="font-display text-[28px] font-bold tracking-tight">
-              Console
-            </h1>
-            <section className="flex flex-col gap-4">
-              <h2 className="font-display text-[20px] font-bold">Schools</h2>
-              <CreateSchool />
-              {loaderData.schools.length === 0 ? (
-                <p className="text-[14px] text-ink-3">No schools yet.</p>
-              ) : (
-                <ul className="flex flex-col divide-y divide-line rounded-lg border border-line bg-surface">
-                  {loaderData.schools.map((school) => (
-                    <SchoolRow
-                      key={`${school.id}:${school.status}`}
-                      school={school}
-                    >
-                      <SchoolPaymentsBlock
-                        schoolId={school.id}
-                        schoolName={school.name}
-                        suggestedCode={school.slug
-                          .toUpperCase()
-                          .replace(/[^A-Z0-9]/g, "")
-                          .slice(0, 12)}
-                        payments={loaderData.payments[school.id] ?? null}
-                        banks={loaderData.banks}
-                        paymentsOn={loaderData.paymentsOn}
-                      />
-                    </SchoolRow>
-                  ))}
-                </ul>
-              )}
-            </section>
-            {loaderData.su && (
-              <StaffPanel staff={loaderData.staff} me={loaderData.me} />
-            )}
-            <p className="text-[13px] text-ink-3">
-              A school's dashboard is at{" "}
-              <Link to="/school" className="underline">
-                /school
-              </Link>{" "}
-              for its owner and admins; staff open it from the list above.
-            </p>
+          <div className="flex flex-col gap-6 py-10">
+            <header className="flex flex-wrap items-center justify-between gap-3">
+              <h1 className="font-display text-[28px] font-bold tracking-tight">
+                Console
+              </h1>
+              <CreateSchoolDialog />
+            </header>
+            <Tabs
+              value={tab}
+              onValueChange={(value) =>
+                setParams(
+                  value === "staff" ? { tab: "staff" } : new URLSearchParams(),
+                  { replace: true },
+                )
+              }
+            >
+              <TabsList>
+                <TabsTrigger value="schools">Schools</TabsTrigger>
+                {loaderData.su ? (
+                  <TabsTrigger value="staff">Staff</TabsTrigger>
+                ) : null}
+              </TabsList>
+              <TabsContent value="schools" className="flex flex-col gap-4 pt-4">
+                <SchoolFilters />
+                <SchoolList
+                  schools={loaderData.schools}
+                  total={loaderData.total}
+                />
+                <SchoolPager page={loaderData.page} pages={loaderData.pages} />
+              </TabsContent>
+              {loaderData.su ? (
+                <TabsContent value="staff" className="pt-4">
+                  <StaffPanel staff={loaderData.staff} me={loaderData.me} />
+                </TabsContent>
+              ) : null}
+            </Tabs>
           </div>
         )}
       </main>

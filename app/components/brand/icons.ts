@@ -88,6 +88,16 @@ export const ShareIcon: IconDef = {
 export const DownloadIcon: IconDef = {
   s: "M12 3.5V15M7 10.5l5 5 5-5M4.5 20h15",
 };
+export const UploadIcon: IconDef = {
+  s: "M12 15.5V4M7 8.5l5-5 5 5M4.5 20h15",
+};
+export const SearchIcon: IconDef = {
+  s: `${circle(10.5, 10.5, 6)}M15 15l5 5`,
+};
+export const FolderIcon: IconDef = {
+  s: "M3.5 6.5h6l2 2.5h9v9.5h-17z",
+  b: "M3.5 6.5h6l2 2.5h9v9.5h-17z",
+};
 export const SaveIcon: IconDef = {
   s: "M4.5 4.5h12l3 3v12h-15zM8 4.5v4.5h7V4.5M7.5 19.5V14h9v5.5",
   b: "M4.5 4.5h12l3 3v12h-15z",

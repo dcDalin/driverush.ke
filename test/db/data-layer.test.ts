@@ -8,7 +8,11 @@
 import { describe, expect, it } from "vitest";
 
 import * as consoleDb from "~/database/console/mutations";
-import { getConsoleOverview } from "~/database/console/queries";
+import {
+  getConsoleSchool,
+  listConsoleSchools,
+  listStaff,
+} from "~/database/console/queries";
 import { getMyEntitlement } from "~/database/entitlement/get-my-entitlement";
 import {
   acceptSchoolInvite,
@@ -247,23 +251,64 @@ describe("school changes", () => {
 });
 
 describe("console", () => {
-  it("shows a su the staff list and an admin none", async () => {
-    const su = await getConsoleOverview(
+  const allSchools = {
+    search: "",
+    status: "any",
+    livery: "any",
+    sponsoring: "any",
+    page: 1,
+  } as const;
+
+  it("shows a su the staff list and an admin only their own role", async () => {
+    const staff = await listStaff(
       await signInWithPassword("su@driverush.test"),
-      { su: true },
     );
     // Other tests grant roles to fresh accounts, so check the seeded staff are there.
-    expect(su.staff.map((s) => s.email)).toEqual(
+    expect(staff.map((s) => s.email)).toEqual(
       expect.arrayContaining(["admin@driverush.test", "su@driverush.test"]),
     );
-    expect(su.schools.find((s) => s.slug === "heltz")?.ownerEmail).toBe(
-      "owner@heltz.test",
-    );
-    const admin = await getConsoleOverview(
+    // A staff admin reads only their own role (row level security).
+    const own = await listStaff(
       await signInWithPassword("admin@driverush.test"),
-      { su: false },
     );
-    expect(admin.staff).toEqual([]);
+    expect(own.map((s) => s.email)).toEqual(["admin@driverush.test"]);
+  });
+
+  it("pages and searches schools for staff", async () => {
+    const admin = await signInWithPassword("admin@driverush.test");
+    const found = await listConsoleSchools(admin, {
+      ...allSchools,
+      search: "heltz",
+    });
+    expect(found.schools.map((s) => s.slug)).toEqual(["heltz"]);
+    expect(found.schools[0]?.owner_email).toBe("owner@heltz.test");
+    expect(found.total).toBe(1);
+    const all = await listConsoleSchools(admin, allSchools);
+    expect(all.total).toBeGreaterThanOrEqual(2);
+    expect(all.pages).toBe(Math.max(1, Math.ceil(all.total / 20)));
+  });
+
+  it("sets a school up without an owner, then hands it over", async () => {
+    const admin = await signInWithPassword("admin@driverush.test");
+    const slug = `setup-${crypto.randomUUID().slice(0, 6)}`;
+    const made = await consoleDb.createSchool(admin, {
+      name: "Set Up First",
+      slug,
+      ownerEmail: "",
+    });
+    expect(made.error).toBeNull();
+    const before = await getConsoleSchool(admin, made.data!);
+    expect(before?.school.status).toBe("setup");
+    expect(before?.ownerEmail).toBeNull();
+    const handed = await consoleDb.handOverSchool(
+      admin,
+      made.data!,
+      `${slug}@vitest.test`,
+    );
+    expect(handed.data).toBe("invited");
+    const after = await getConsoleSchool(admin, made.data!);
+    expect(after?.school.status).toBe("active");
+    expect(after?.invitedOwnerEmail).toBe(`${slug}@vitest.test`);
   });
 
   it("lets staff create a school and refuses a learner", async () => {

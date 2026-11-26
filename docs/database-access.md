@@ -61,6 +61,7 @@ refund) and `school_passes.sql` (code, price, earnings, staff setup).
 | `admin_create_school`, `admin_set_school_status`, `admin_transfer_school_owner`                                                                       | DriveRush su or admin             |
 | `school_update_profile`, `school_update_branch_details`                                                                                               | owner, staff                      |
 | `admin_publish_livery`, `admin_retire_livery`, `admin_livery_draft_get`, `admin_set_sponsorship`, `admin_end_sponsorship`                             | DriveRush su or admin             |
+| `admin_list_schools` (one page, searched and filtered), `admin_hand_over_school` (owner by email; a school in `setup` goes live)                      | DriveRush su or admin             |
 | `board_schools()`                                                                                                                                     | anyone, guests included           |
 | `grant_platform_role`, `revoke_platform_role`                                                                                                         | DriveRush su                      |
 

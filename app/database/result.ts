@@ -21,6 +21,7 @@ const REASONS: Record<string, string> = {
   not_active: "That student's month is already over.",
   not_open: "That link is no longer open.",
   not_found: "We could not find that.",
+  invalid_status: "A live school cannot go back to being set up.",
   not_admin: "That person is not an admin of this school.",
   cannot_revoke_user: "Everyone keeps the user role.",
   cannot_revoke_own_su: "You cannot remove your own su role.",

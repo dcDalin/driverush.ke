@@ -86,6 +86,7 @@ export default [
   route("api/webhooks/paystack", "routes/api/webhooks.paystack.ts"),
   // DriveRush staff: schools, owners and staff roles. Signed in only.
   route("console", "routes/console.tsx"),
+  route("console/schools/:schoolId", "routes/console-school.tsx"),
 
   // Where shared achievement links land (`/s?k=quiz&…`). Deliberately short:
   // the URL travels through WhatsApp forwards. Renders a useful page for any

@@ -3,7 +3,8 @@
 -- ===================================================
 -- Reads:  DriveRush staff; the school's owner and admins; a learner the
 --         school has added (any link, so a pending invite shows its name).
--- Writes: No client: admin_create_school and admin_set_school_status (staff).
+-- Writes: No client: admin_create_school, admin_set_school_status and
+--         admin_hand_over_school (staff).
 -- Grants: anon: none; authenticated: SELECT
 alter table public.schools enable row level security;
 

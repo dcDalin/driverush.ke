@@ -81,6 +81,26 @@ and JPEG only. SVG is refused because it can carry script.
    `crossOrigin = "anonymous"`: WebGL and the plate canvas need it, and the
    worker only keeps CORS answers.
 
+## Setting up a new school
+
+1. **Console > New school.** Give its name and short name. Leave the owner's
+   email empty to set it up first: the school is created in **set-up**,
+   hidden from learners, the board and the site, and takes no students.
+2. **On the school's page** (`/console/schools/<id>`), the checklist shows
+   what is missing:
+   - profile and logo, and branches, through "Edit profile and branches"
+     (the school's own dashboard, which staff can open);
+   - the livery: upload its folder on the Livery tab (below), preview,
+     publish;
+   - sponsorship and payments on their tabs.
+3. **Hand over.** Type the owner's email and "Hand over and go live". The
+   email becomes the owner (added, or invited until they sign up with it)
+   and the school goes live. Later, the same card changes the owner.
+
+The console's list pages 20 schools at a time and searches name, short name
+and owner's email; it filters by status, livery and sponsorship. All of it
+lives in the address, so a filtered page can be shared.
+
 ## Making or changing a school's livery
 
 1. **Make the art.** The design source is `scripts/sponsor-art/<slug>/`
@@ -98,7 +118,17 @@ and JPEG only. SVG is refused because it can carry script.
    - Publish again. Only the new pictures upload.
 3. **Check it.** `/tools/sponsor?id=<slug>` shows every part; the board with
    `?sponsor=<slug>`.
-4. **Hosted.**
+4. **Upload it (hosted or local): the console.** On the school's page,
+   Livery tab, choose the livery folder (or all its files). The browser:
+   - checks it is a whole livery and reads `livery.json` into the form
+     (name, colours, roof board), which staff can change;
+   - names every file by its content and uploads only those the bucket lacks
+     (a second upload of the same folder sends nothing), with the staff
+     session;
+   - saves a **draft**. Preview opens it on the board; **Publish** asks first,
+     then makes it the school's livery (the old one is retired). Drafts and
+     retired liveries can be deleted; their files stay.
+5. **Or from a terminal.**
    - `npm run livery:publish <slug> -- --hosted` needs
      `LIVERY_SUPABASE_URL` and `LIVERY_SUPABASE_PUBLISHABLE_KEY` (both public)
      in `.env.local`. It signs you in as DriveRush staff: your email (or
@@ -111,8 +141,8 @@ and JPEG only. SVG is refused because it can carry script.
      with a password.
    - Then **Publish** in the console (Schools > Liveries). The board switches
      within the manifest's 5 minutes.
-5. **Sponsorship.** In the console, add a period (from, until). With no end
-   it runs until ended.
+6. **Sponsorship.** On the school's page, Sponsorship tab, add a period
+   (from, until). With no end it runs until ended.
 
 ## A school leaves
 

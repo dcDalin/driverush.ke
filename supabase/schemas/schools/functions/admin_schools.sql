@@ -50,6 +50,11 @@ begin
 end;
 $$;
 
+-- With an owner's email the school is active at once (the owner is added,
+-- or invited until they sign up). Without one it is created in `setup`:
+-- hidden from learners, the board and the site while staff prepare its
+-- profile, branches and livery, until admin_hand_over_school.
+--
 -- Access:  authenticated (DriveRush su or admin)
 -- Guard:   admin (private.is_staff)
 -- Callers: DriveRush console (session)
@@ -70,11 +75,19 @@ begin
     raise exception 'forbidden' using errcode = '42501';
   end if;
 
-  insert into public.schools (name, slug, created_by)
-  values (btrim(p_name), lower(btrim(p_slug)), auth.uid())
+  insert into public.schools (name, slug, created_by, status)
+  values (
+    btrim(p_name),
+    lower(btrim(p_slug)),
+    auth.uid(),
+    case when nullif(btrim(coalesce(p_owner_email, '')), '') is null
+         then 'setup'::public.school_status else 'active'::public.school_status end
+  )
   returning id into v_school_id;
 
-  perform private.set_school_owner(v_school_id, lower(btrim(p_owner_email))::extensions.citext, auth.uid());
+  if nullif(btrim(coalesce(p_owner_email, '')), '') is not null then
+    perform private.set_school_owner(v_school_id, lower(btrim(p_owner_email))::extensions.citext, auth.uid());
+  end if;
   return v_school_id;
 end;
 $$;
@@ -91,6 +104,10 @@ as $$
 begin
   if not private.is_staff() then
     raise exception 'forbidden' using errcode = '42501';
+  end if;
+  -- `setup` is only where a school starts; a live school never goes back.
+  if p_status = 'setup' then
+    raise exception 'invalid_status' using errcode = 'P0001';
   end if;
   update public.schools set status = p_status where id = p_school_id;
   if not found then
@@ -118,6 +135,138 @@ begin
     raise exception 'not_found' using errcode = 'P0002';
   end if;
   return private.set_school_owner(p_school_id, lower(btrim(p_email))::extensions.citext, auth.uid());
+end;
+$$;
+
+-- Staff hand a school they have set up to its owner: the email becomes the
+-- owner (added, or invited until they sign up) and a `setup` school goes
+-- live. Returns 'added' or 'invited'. For an active school it is a plain
+-- change of owner.
+--
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (private.is_staff)
+-- Callers: DriveRush console (session)
+create or replace function private.admin_hand_over_school(p_school_id uuid, p_owner_email text)
+returns text
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_status public.school_status;
+  v_result text;
+begin
+  if not private.is_staff() then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  select status into v_status from public.schools where id = p_school_id for update;
+  if v_status is null then
+    raise exception 'not_found' using errcode = 'P0002';
+  end if;
+  if v_status = 'archived' then
+    raise exception 'school_inactive' using errcode = 'P0001';
+  end if;
+  v_result := private.set_school_owner(p_school_id, lower(btrim(p_owner_email))::extensions.citext, auth.uid());
+  if v_status = 'setup' then
+    update public.schools set status = 'active' where id = p_school_id;
+  end if;
+  return v_result;
+end;
+$$;
+
+-- One page of schools for the console: search by name, slug or owner email,
+-- filter by status, livery and sponsorship, newest first. `total` is the
+-- count of every match, on every row, for the pager.
+--
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (private.is_staff)
+-- Callers: DriveRush console (session)
+create or replace function private.admin_list_schools(
+  p_search text,
+  p_status text,
+  p_livery text,
+  p_sponsoring text,
+  p_limit integer,
+  p_offset integer
+)
+returns table (
+  id uuid,
+  name text,
+  slug text,
+  status public.school_status,
+  created_at timestamptz,
+  owner_email text,
+  invited_owner_email text,
+  admins integer,
+  branches integer,
+  students integer,
+  livery text,
+  drafts integer,
+  sponsoring boolean,
+  total bigint
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_search text := nullif(btrim(coalesce(p_search, '')), '');
+begin
+  if not private.is_staff() then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  return query
+  with base as (
+    select
+      s.id, s.name, s.slug, s.status, s.created_at,
+      (select u.email::text from public.school_members as m
+         join auth.users as u on u.id = m.user_id
+        where m.school_id = s.id and m.role = 'owner' limit 1) as owner_email,
+      (select i.email::text from public.school_member_invites as i
+        where i.school_id = s.id and i.role = 'owner' and i.status = 'pending'
+        order by i.created_at desc limit 1) as invited_owner_email,
+      (select count(*)::integer from public.school_members as m
+        where m.school_id = s.id and m.role = 'admin') as admins,
+      (select count(*)::integer from public.school_branches as b
+        where b.school_id = s.id) as branches,
+      (select count(*)::integer from public.school_student_links as l
+        where l.school_id = s.id and l.status = 'active' and l.ends_at > now()) as students,
+      case
+        when exists (select 1 from public.school_liveries as v where v.school_id = s.id and v.status = 'live') then 'live'
+        when exists (select 1 from public.school_liveries as v where v.school_id = s.id and v.status = 'draft') then 'draft'
+        else 'none'
+      end as livery,
+      (select count(*)::integer from public.school_liveries as v
+        where v.school_id = s.id and v.status = 'draft') as drafts,
+      exists (
+        select 1 from public.school_sponsorships as sp
+         where sp.school_id = s.id
+           and sp.starts_on <= private.kenya_today()
+           and (sp.ends_on is null or sp.ends_on >= private.kenya_today())
+      ) as sponsoring
+    from public.schools as s
+  ),
+  matched as (
+    select * from base as b
+     where (v_search is null
+            or b.name ilike '%' || v_search || '%'
+            or b.slug ilike '%' || v_search || '%'
+            or coalesce(b.owner_email, '') ilike '%' || v_search || '%'
+            or coalesce(b.invited_owner_email, '') ilike '%' || v_search || '%')
+       and (coalesce(p_status, 'any') = 'any' or b.status::text = p_status)
+       and (coalesce(p_livery, 'any') = 'any' or b.livery = p_livery)
+       and (coalesce(p_sponsoring, 'any') = 'any'
+            or (p_sponsoring = 'yes' and b.sponsoring)
+            or (p_sponsoring = 'no' and not b.sponsoring))
+  )
+  select m.id, m.name, m.slug, m.status, m.created_at, m.owner_email, m.invited_owner_email,
+         m.admins, m.branches, m.students, m.livery, m.drafts, m.sponsoring,
+         count(*) over () as total
+    from matched as m
+   order by m.created_at desc, m.name
+   limit greatest(1, least(coalesce(p_limit, 20), 100))
+  offset greatest(0, coalesce(p_offset, 0));
 end;
 $$;
 
@@ -160,6 +309,70 @@ set search_path = ''
 as $$
   select private.admin_transfer_school_owner(p_school_id, p_email);
 $$;
+
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (the private body checks private.is_staff)
+-- Callers: DriveRush console (session)
+create or replace function public.admin_hand_over_school(p_school_id uuid, p_owner_email text)
+returns text
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.admin_hand_over_school(p_school_id, p_owner_email);
+$$;
+
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (the private body checks private.is_staff)
+-- Callers: DriveRush console (session)
+create or replace function public.admin_list_schools(
+  p_search text,
+  p_status text,
+  p_livery text,
+  p_sponsoring text,
+  p_limit integer,
+  p_offset integer
+)
+returns table (
+  id uuid,
+  name text,
+  slug text,
+  status public.school_status,
+  created_at timestamptz,
+  owner_email text,
+  invited_owner_email text,
+  admins integer,
+  branches integer,
+  students integer,
+  livery text,
+  drafts integer,
+  sponsoring boolean,
+  total bigint
+)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select * from private.admin_list_schools(p_search, p_status, p_livery, p_sponsoring, p_limit, p_offset);
+$$;
+
+revoke all on function private.admin_hand_over_school(uuid, text) from public;
+revoke all on function private.admin_list_schools(text, text, text, text, integer, integer) from public;
+revoke all on function public.admin_hand_over_school(uuid, text) from public;
+revoke all on function public.admin_list_schools(text, text, text, text, integer, integer) from public;
+grant execute on function private.admin_hand_over_school(uuid, text) to service_role;
+grant execute on function private.admin_list_schools(text, text, text, text, integer, integer) to service_role;
+grant execute on function public.admin_hand_over_school(uuid, text) to service_role;
+grant execute on function public.admin_list_schools(text, text, text, text, integer, integer) to service_role;
+comment on function private.admin_hand_over_school(uuid, text) is
+  'DriveRush staff: makes an email the school owner (added or invited) and puts a setup school live.';
+comment on function public.admin_hand_over_school(uuid, text) is
+  'DriveRush staff: makes an email the school owner (added or invited) and puts a setup school live.';
+comment on function private.admin_list_schools(text, text, text, text, integer, integer) is
+  'DriveRush staff: one page of schools (search, status, livery and sponsorship filters) with the total count.';
+comment on function public.admin_list_schools(text, text, text, text, integer, integer) is
+  'DriveRush staff: one page of schools (search, status, livery and sponsorship filters) with the total count.';
 
 revoke all on function private.set_school_owner(uuid, extensions.citext, uuid) from public;
 revoke all on function private.admin_create_school(text, text, text) from public;

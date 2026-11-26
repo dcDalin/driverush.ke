@@ -1,10 +1,12 @@
 -- ===================================================
 -- ENUMS: schools
 -- ===================================================
-create type public.school_status as enum ('active', 'suspended', 'archived');
+-- setup: DriveRush staff are still preparing it (no owner yet, hidden from
+-- learners, the board and the site) until they hand it over.
+create type public.school_status as enum ('setup', 'active', 'suspended', 'archived');
 
 comment on type public.school_status is
-  'active: links learners and shows its livery. suspended or archived: neither.';
+  'setup: staff preparing it, hidden until handed over. active: links learners and shows its livery. suspended or archived: neither.';
 
 -- owner: the school's su, one per school, set by DriveRush staff. admin: added
 -- by the owner and tied to one or more branches (at most 50 per school).

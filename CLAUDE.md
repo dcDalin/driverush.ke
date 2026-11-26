@@ -83,7 +83,11 @@ remix-hook-form, shadcn everywhere. Guides: `docs/forms-and-data.md`,
   `app/lib/board/paywall.ts` says what is locked (past level 16, a second
   mock test) and `use-paywall.ts` asks it in the game and the level lists,
   only when the build has `VITE_PASSES=on` (the owner's launch switch).
-- `/school/:schoolId` (owners, branch admins) and `/console` (staff). The
+- `/school/:schoolId` (owners, branch admins), `/console` (staff: schools
+  searched, filtered and paged; "New school") and `/console/schools/:id`
+  (set-up checklist, hand-over, livery folder upload, sponsorship,
+  payments). A school created with no owner is `setup` (hidden everywhere)
+  until handed over. The
   service worker and robots.txt leave `/school`, `/console`, `/auth`, `/api`
   alone.
 - Payments (owner, 2026-11-25): learners buy 60-day passes through Paystack

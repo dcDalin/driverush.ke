@@ -783,6 +783,36 @@ export type Database = {
         Args: { p_sponsorship_id: string };
         Returns: undefined;
       };
+      admin_hand_over_school: {
+        Args: { p_owner_email: string; p_school_id: string };
+        Returns: string;
+      };
+      admin_list_schools: {
+        Args: {
+          p_limit: number;
+          p_livery: string;
+          p_offset: number;
+          p_search: string;
+          p_sponsoring: string;
+          p_status: string;
+        };
+        Returns: {
+          admins: number;
+          branches: number;
+          created_at: string;
+          drafts: number;
+          id: string;
+          invited_owner_email: string;
+          livery: string;
+          name: string;
+          owner_email: string;
+          slug: string;
+          sponsoring: boolean;
+          status: Database["public"]["Enums"]["school_status"];
+          students: number;
+          total: number;
+        }[];
+      };
       admin_livery_draft_get: { Args: { p_livery_id: string }; Returns: Json };
       admin_publish_livery: {
         Args: { p_livery_id: string };
@@ -1056,7 +1086,7 @@ export type Database = {
       payment_status: "pending" | "succeeded" | "failed" | "refunded";
       plan_audience: "learner" | "school";
       school_role: "owner" | "admin";
-      school_status: "active" | "suspended" | "archived";
+      school_status: "setup" | "active" | "suspended" | "archived";
       student_link_status:
         "pending" | "active" | "ended" | "declined" | "cancelled";
       subscription_status: "active" | "cancelled";
@@ -1194,7 +1224,7 @@ export const Constants = {
       payment_status: ["pending", "succeeded", "failed", "refunded"],
       plan_audience: ["learner", "school"],
       school_role: ["owner", "admin"],
-      school_status: ["active", "suspended", "archived"],
+      school_status: ["setup", "active", "suspended", "archived"],
       student_link_status: [
         "pending",
         "active",

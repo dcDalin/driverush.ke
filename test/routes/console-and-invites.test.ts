@@ -70,13 +70,91 @@ describe("console", () => {
         ),
       ),
     );
-    expect(created.data.ok).toBe(true);
-    const { data } = await run(() =>
-      consoleLoader(args(getRequest("/console", cookie))),
+    // Straight to the new school's page.
+    expect(created.status).toBe(302);
+    expect(created.headers.get("location")).toMatch(
+      /^\/console\/schools\/[0-9a-f-]{36}$/,
     );
-    expect(
-      data.schools.find((s: { slug: string }) => s.slug === slug)?.ownerEmail,
-    ).toBeNull();
+    const { data } = await run(() =>
+      consoleLoader(args(getRequest(`/console?q=${slug}`, cookie))),
+    );
+    const row = data.schools.find((s: { slug: string }) => s.slug === slug);
+    expect(row?.status).toBe("active");
+    expect(row?.owner_email).toBeNull();
+    expect(row?.invited_owner_email).toBe(`${slug}@routes.test`);
+  });
+
+  it("creates a school in set-up without an owner, and hands it over", async () => {
+    const cookie = await signInCookies("admin@driverush.test");
+    const slug = `route-setup-${crypto.randomUUID().slice(0, 6)}`;
+    const created = await run(() =>
+      consoleAction(
+        args(
+          postRequest(
+            "/console",
+            remixFields({
+              intent: "create-school",
+              name: "Route Setup",
+              slug,
+              ownerEmail: "",
+            }),
+            cookie,
+          ),
+        ),
+      ),
+    );
+    const schoolId = created.headers.get("location")!.split("/").pop()!;
+    const { loader: schoolLoader, action: schoolAction } =
+      await import("~/routes/console-school");
+    const load = () =>
+      run(() =>
+        schoolLoader({
+          request: getRequest(`/console/schools/${schoolId}`, cookie),
+          params: { schoolId },
+          context: {},
+        } as never),
+      );
+    expect((await load()).data.school.school.status).toBe("setup");
+    const handed = await run(() =>
+      schoolAction({
+        request: postRequest(
+          `/console/schools/${schoolId}`,
+          remixFields({
+            intent: "hand-over",
+            schoolId,
+            email: `${slug}@routes.test`,
+          }),
+          cookie,
+        ),
+        params: { schoolId },
+        context: {},
+      } as never),
+    );
+    expect(handed.data.ok).toBe(true);
+    const after = (await load()).data.school;
+    expect(after.school.status).toBe("active");
+    expect(after.invitedOwnerEmail).toBe(`${slug}@routes.test`);
+  });
+
+  it("refuses the school page's changes to a school owner", async () => {
+    const cookie = await signInCookies("owner@heltz.test");
+    const { action: schoolAction } = await import("~/routes/console-school");
+    const refused = await run(() =>
+      schoolAction({
+        request: postRequest(
+          "/console/schools/x",
+          remixFields({
+            intent: "hand-over",
+            schoolId: crypto.randomUUID(),
+            email: "x@routes.test",
+          }),
+          cookie,
+        ),
+        params: { schoolId: "x" },
+        context: {},
+      } as never),
+    );
+    expect(refused.status).toBe(403);
   });
 });
 

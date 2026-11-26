@@ -4,10 +4,19 @@
  * Result whose error is a sentence for a toast.
  */
 import { toResult } from "../result";
-import type { AppRole, SchoolStatus, TypedSupabaseClient } from "../types";
+import type {
+  AppRole,
+  Database,
+  SchoolStatus,
+  TypedSupabaseClient,
+} from "../types";
 
 type Client = TypedSupabaseClient;
 
+/**
+ * A school. With an owner's email it is live at once (owner added or
+ * invited); with none it starts in `setup`, hidden until handed over.
+ */
 export async function createSchool(
   supabase: Client,
   school: {
@@ -120,4 +129,66 @@ export async function endSponsorship(supabase: Client, sponsorshipId: string) {
       p_sponsorship_id: sponsorshipId,
     }),
   );
+}
+
+/**
+ * Hands a school to its owner: `added` (the account exists and owns it
+ * now) or `invited` (they own it on sign-up). A school in `setup` goes live.
+ */
+export async function handOverSchool(
+  supabase: Client,
+  schoolId: string,
+  email: string,
+) {
+  return toResult(
+    await supabase.rpc("admin_hand_over_school", {
+      p_school_id: schoolId,
+      p_owner_email: email,
+    }),
+  );
+}
+
+export type LiveryDraftInsert = Pick<
+  Database["public"]["Tables"]["school_liveries"]["Insert"],
+  | "school_id"
+  | "label"
+  | "base_color"
+  | "rail"
+  | "paint"
+  | "top_board"
+  | "banner"
+  | "posters"
+  | "marks"
+  | "thumbs"
+  | "stills"
+>;
+
+/**
+ * A draft livery whose files are already in school-media. Staff only: row
+ * level security refuses anyone else, and the row is always a draft.
+ */
+export async function createLiveryDraft(
+  supabase: Client,
+  draft: LiveryDraftInsert,
+) {
+  return toResult(
+    await supabase.from("school_liveries").insert(draft).select("id").single(),
+  );
+}
+
+/** Deletes a livery that is not live (staff only). Its files stay. */
+export async function deleteLivery(supabase: Client, liveryId: string) {
+  const result = await supabase
+    .from("school_liveries")
+    .delete()
+    .eq("id", liveryId)
+    .neq("status", "live")
+    .select("id");
+  if (result.error) return toResult(result);
+  return result.data.length === 1
+    ? toResult({ data: liveryId, error: null })
+    : toResult({
+        data: null,
+        error: { message: "not_found", code: "P0002" },
+      });
 }
