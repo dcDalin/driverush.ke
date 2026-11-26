@@ -7,7 +7,7 @@
  */
 import { DEMO_SCHOOLS, type SchoolSpec } from "../data/schools";
 import { account, note } from "../ledger";
-import { must, mustValue, signInAs } from "../local";
+import { must, mustValue, serviceClient, signInAs } from "../local";
 
 export type SeededSchool = {
   spec: SchoolSpec;
@@ -109,6 +109,7 @@ async function seedSchool(spec: SchoolSpec): Promise<SeededSchool> {
       p_code: passCode,
       p_subaccount_code: `ACCT_demo_${spec.slug}`,
       p_bank_label: "Demo Bank ••0000",
+      p_account_name: spec.name,
       p_is_active: true,
     }),
   );
@@ -120,5 +121,39 @@ export async function seedSchools() {
   const schools = new Map<string, SeededSchool>();
   for (const spec of DEMO_SCHOOLS)
     schools.set(spec.slug, await seedSchool(spec));
+  await seedBankWaiting(schools);
   return schools;
+}
+
+/**
+ * One school's owner has sent a new bank, waiting for DriveRush: the console
+ * shows "1 bank waiting for a check" and the owner's dashboard says so. Its
+ * old bank keeps being paid. Recorded the way the server records it (service
+ * role, after its owner check; a made-up subaccount, Paystack is not called).
+ */
+async function seedBankWaiting(schools: Map<string, SeededSchool>) {
+  const school = schools.get("petanns");
+  if (!school) return;
+  const { data: owner } = await serviceClient()
+    .from("profiles")
+    .select("id")
+    .eq("email", school.spec.owner.email)
+    .maybeSingle();
+  if (!owner) return;
+  must(
+    "school_request_bank petanns",
+    await serviceClient().rpc("school_request_bank", {
+      p_school_id: school.id,
+      p_actor: owner.id,
+      p_subaccount_code: "ACCT_demo_petanns_new",
+      p_bank_label: "KCB Bank ••5521",
+      p_account_name: school.spec.name,
+    }),
+  );
+  note({
+    email: school.spec.owner.email,
+    who: "school owner",
+    where: "petanns",
+    state: "sent a new bank (KCB ••5521): waiting for staff",
+  });
 }

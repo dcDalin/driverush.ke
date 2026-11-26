@@ -11,7 +11,7 @@
 -- ===================================================
 begin;
 
-select plan(46);
+select plan(48);
 
 create temp table w as select tests.make_world() as j;
 create function pg_temp.w(k text) returns text language sql as $$ select j ->> k from w $$;
@@ -140,8 +140,12 @@ select is(tests.value_as(pg_temp.w('learner_free'), 'select count(*) from public
   '0', 'a learner with no school is offered none');
 
 -- ── The owner's price ──────────────────────────────────────────────────
-select is(tests.sqlstate_as(pg_temp.w('owner_a'), format('select public.school_set_pass_price(%L, 450)', pg_temp.w('school_a'))),
-  'P0001', 'a price below KES 500 is refused (price_out_of_range)');
+select is(tests.sqlstate_as(pg_temp.w('owner_a'), format('select public.school_set_pass_price(%L, 349)', pg_temp.w('school_a'))),
+  'P0001', 'a price below DriveRush''s share plus the school''s minimum (KES 350) is refused (price_out_of_range)');
+select is(tests.sqlstate_as(pg_temp.w('owner_a'), format('select public.school_set_pass_price(%L, 350)', pg_temp.w('school_a'))),
+  'ok', 'the minimum itself is allowed');
+select is(tests.sqlstate_as(pg_temp.w('owner_a'), format('select public.school_set_pass_price(%L, 2500)', pg_temp.w('school_a'))),
+  'ok', 'there is no ceiling (KES 2,500 is fine)');
 select tests.run_as(pg_temp.w('owner_a'), format('select public.school_set_pass_price(%L, 800)', pg_temp.w('school_a')));
 select is(tests.value_as(pg_temp.w('learner_free'), $$select price_kes from public.pass_school_by_code('PASSA')$$),
   '800', 'the owner sets their learners'' price');

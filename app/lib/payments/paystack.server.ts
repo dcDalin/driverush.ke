@@ -5,8 +5,9 @@
  * card). A school pass carries the school's subaccount and a flat
  * `transaction_charge` (DriveRush's KES 300), so Paystack splits the payment
  * at source and settles the school's share to the school's bank itself.
- * `bearer: "account"` means DriveRush pays Paystack's fee, so the school's
- * share stays a clean number. DriveRush never holds a school's money.
+ * `bearer: "subaccount"` (owner, 2026-11-26): the school's share pays
+ * Paystack's fee, so DriveRush always receives its whole share, whatever price
+ * the school sets. DriveRush never holds a school's money.
  *
  * Amounts: callers speak whole shillings; Paystack speaks subunits (KES x 100).
  * Access is granted only after `verifyTransaction` says "success" for the
@@ -57,7 +58,7 @@ async function call<T extends z.ZodType>(
   secretKey: string,
   path: string,
   schema: T,
-  init: { method?: "GET" | "POST"; body?: unknown; fetch?: Fetch } = {},
+  init: { method?: "GET" | "POST" | "PUT"; body?: unknown; fetch?: Fetch } = {},
 ): Promise<z.infer<T>> {
   const res = await (init.fetch ?? fetch)(`${API}${path}`, {
     method: init.method ?? "GET",
@@ -127,7 +128,7 @@ export function initializeTransaction(
         ? {
             subaccount: input.split.subaccount,
             transaction_charge: toSubunits(input.split.driverushShareKes),
-            bearer: "account",
+            bearer: "subaccount",
           }
         : {}),
     },
@@ -235,6 +236,23 @@ export function createSubaccount(
       percentage_charge: 0,
     },
   });
+}
+
+/**
+ * Switches a school's old subaccount off, so a replaced or turned-down bank
+ * can never be paid by mistake. Paystack keeps it for its records.
+ */
+export function deactivateSubaccount(
+  secretKey: string,
+  subaccountCode: string,
+  fetchFn?: Fetch,
+) {
+  return call(
+    secretKey,
+    `/subaccount/${encodeURIComponent(subaccountCode)}`,
+    z.unknown(),
+    { method: "PUT", fetch: fetchFn, body: { active: false } },
+  );
 }
 
 function sameHex(expected: string, given: string): boolean {

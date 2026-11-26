@@ -44,8 +44,7 @@ begin
      where id = v_invite.id;
 
     if v_invite.role = 'owner' then
-      delete from public.school_members
-       where school_id = v_invite.school_id and role = 'owner' and user_id <> p_user_id;
+      perform private.step_down_owner(v_invite.school_id, p_user_id, v_invite.keep_previous_owner);
     end if;
 
     insert into public.school_members (school_id, user_id, role, added_by)

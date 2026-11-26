@@ -4,18 +4,14 @@
  * and reloaded, and the database does the searching (`admin_list_schools`).
  * Each row opens the school's own page.
  */
-import * as React from "react";
-import { Link, useNavigation, useSearchParams } from "react-router";
+import { Link, useNavigation } from "react-router";
 
 import { Icon } from "~/components/brand/icon";
-import {
-  ChevronRightIcon,
-  CloseIcon,
-  SearchIcon,
-} from "~/components/brand/icons";
+import { ChevronRightIcon } from "~/components/brand/icons";
+import { FilterBar } from "~/components/list/filter-bar";
+import { FilterSelect } from "~/components/list/filter-select";
+import { SearchInput } from "~/components/list/search-input";
 import { Badge } from "~/components/ui/badge";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
 import {
   Item,
   ItemActions,
@@ -24,159 +20,50 @@ import {
   ItemGroup,
   ItemTitle,
 } from "~/components/ui/item";
-import { Label } from "~/components/ui/label";
-import {
-  pageWindow,
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "~/components/ui/pagination";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
 import type { ConsoleSchoolRow } from "~/database/console/queries";
 
 import { STATUS_BADGE, STATUS_LABEL } from "./school-status";
 
-const FILTERS = {
-  status: {
-    label: "Status",
-    options: [
-      ["any", "Any status"],
-      ["setup", "Setting up"],
-      ["active", "Active"],
-      ["suspended", "Suspended"],
-      ["archived", "Archived"],
-    ],
-  },
-  livery: {
-    label: "Livery",
-    options: [
-      ["any", "Any livery"],
-      ["live", "Livery live"],
-      ["draft", "Draft only"],
-      ["none", "No livery"],
-    ],
-  },
-  sponsoring: {
-    label: "Sponsoring",
-    options: [
-      ["any", "Sponsoring or not"],
-      ["yes", "Sponsoring now"],
-      ["no", "Not sponsoring"],
-    ],
-  },
-} as const;
+const STATUS_OPTIONS = [
+  { value: "all", label: "Any status" },
+  { value: "setup", label: "Setting up" },
+  { value: "active", label: "Active" },
+  { value: "suspended", label: "Suspended" },
+  { value: "archived", label: "Archived" },
+] as const;
+const LIVERY_OPTIONS = [
+  { value: "all", label: "Any livery" },
+  { value: "live", label: "Livery live" },
+  { value: "draft", label: "Draft only" },
+  { value: "none", label: "No livery" },
+] as const;
+const SPONSORING_OPTIONS = [
+  { value: "all", label: "Sponsoring or not" },
+  { value: "yes", label: "Sponsoring now" },
+  { value: "no", label: "Not sponsoring" },
+] as const;
 
-type FilterName = keyof typeof FILTERS;
-
-/** Search box and filters. Changing one goes back to page 1. */
-export function SchoolFilters() {
-  const [params, setParams] = useSearchParams();
-  const [query, setQuery] = React.useState(params.get("q") ?? "");
-  const set = React.useCallback(
-    (changes: Record<string, string>) =>
-      setParams(
-        (before) => {
-          const next = new URLSearchParams(before);
-          for (const [key, value] of Object.entries(changes)) {
-            if (!value || value === "any") next.delete(key);
-            else next.set(key, value);
-          }
-          next.delete("page");
-          return next;
-        },
-        { replace: true, preventScrollReset: true },
-      ),
-    [setParams],
-  );
-  // Search as they type, once they pause.
-  React.useEffect(() => {
-    if ((params.get("q") ?? "") === query.trim()) return;
-    const timer = window.setTimeout(() => set({ q: query.trim() }), 300);
-    return () => window.clearTimeout(timer);
-  }, [query, params, set]);
-
-  const filtered =
-    params.has("q") ||
-    params.has("status") ||
-    params.has("livery") ||
-    params.has("sponsoring");
-
+/** Search box and filters; the count and "Clear filters" under them. */
+export function SchoolFilters({ total }: { total: number }) {
   return (
-    <div className="flex flex-col gap-3">
-      <div className="relative">
-        <Label htmlFor="school-search" className="sr-only">
-          Search schools
-        </Label>
-        <Icon
-          icon={SearchIcon}
-          size={18}
-          className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-ink-3"
-        />
-        <Input
-          id="school-search"
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
+    <FilterBar
+      params={["q", "status", "livery", "sponsoring"]}
+      search={
+        <SearchInput
+          label="Search schools"
           placeholder="Search by name, short name or owner's email"
-          className="pl-10"
-          autoComplete="off"
         />
-      </div>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_1fr_auto]">
-        {(Object.keys(FILTERS) as FilterName[]).map((name) => {
-          const value = params.get(name) ?? "any";
-          const options = FILTERS[name].options as readonly (readonly [
-            string,
-            string,
-          ])[];
-          // The label is given, not looked up: Radix only knows an option's
-          // text once the menu has opened, so a fresh page showed nothing.
-          const label =
-            options.find(([v]) => v === value)?.[1] ?? options[0]![1];
-          return (
-            <Select
-              key={name}
-              value={value}
-              onValueChange={(next) => set({ [name]: next })}
-            >
-              <SelectTrigger aria-label={FILTERS[name].label}>
-                <SelectValue>{label}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {options.map(([v, text]) => (
-                  <SelectItem key={v} value={v}>
-                    {text}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          );
-        })}
-        {filtered ? (
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => {
-              setQuery("");
-              setParams(new URLSearchParams(), { replace: true });
-            }}
-          >
-            <Icon icon={CloseIcon} size={16} />
-            Clear
-          </Button>
-        ) : null}
-      </div>
-    </div>
+      }
+      summary={`${total} ${total === 1 ? "school" : "schools"}`}
+    >
+      <FilterSelect param="status" label="Status" options={STATUS_OPTIONS} />
+      <FilterSelect param="livery" label="Livery" options={LIVERY_OPTIONS} />
+      <FilterSelect
+        param="sponsoring"
+        label="Sponsoring"
+        options={SPONSORING_OPTIONS}
+      />
+    </FilterBar>
   );
 }
 
@@ -191,13 +78,7 @@ function count(n: number, one: string, many = `${one}s`) {
   return `${n} ${n === 1 ? one : many}`;
 }
 
-export function SchoolList({
-  schools,
-  total,
-}: {
-  schools: ConsoleSchoolRow[];
-  total: number;
-}) {
+export function SchoolList({ schools }: { schools: ConsoleSchoolRow[] }) {
   const navigation = useNavigation();
   const loading =
     navigation.state === "loading" &&
@@ -211,7 +92,6 @@ export function SchoolList({
   }
   return (
     <div className="flex flex-col gap-2" aria-busy={loading}>
-      <p className="m-0 text-[13px] text-ink-3">{count(total, "school")}</p>
       <ItemGroup
         className={
           loading
@@ -262,43 +142,5 @@ export function SchoolList({
         ))}
       </ItemGroup>
     </div>
-  );
-}
-
-/** Page links that keep the search and filters. */
-export function SchoolPager({ page, pages }: { page: number; pages: number }) {
-  const [params] = useSearchParams();
-  if (pages <= 1) return null;
-  const to = (p: number) => {
-    const next = new URLSearchParams(params);
-    if (p === 1) next.delete("page");
-    else next.set("page", String(p));
-    const query = next.toString();
-    return query ? `?${query}` : "?";
-  };
-  return (
-    <Pagination>
-      <PaginationContent>
-        <PaginationItem>
-          <PaginationPrevious to={to(page - 1)} disabled={page <= 1} />
-        </PaginationItem>
-        {pageWindow(page, pages).map((p, i) =>
-          p === "gap" ? (
-            <PaginationItem key={`gap-${i}`}>
-              <PaginationEllipsis />
-            </PaginationItem>
-          ) : (
-            <PaginationItem key={p}>
-              <PaginationLink to={to(p)} isActive={p === page}>
-                {p}
-              </PaginationLink>
-            </PaginationItem>
-          ),
-        )}
-        <PaginationItem>
-          <PaginationNext to={to(page + 1)} disabled={page >= pages} />
-        </PaginationItem>
-      </PaginationContent>
-    </Pagination>
   );
 }

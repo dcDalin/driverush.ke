@@ -1,7 +1,8 @@
 /**
  * The owner's view of the school's team: the owner, up to 50 admins (each tied
  * to one or more branches), and admins invited by an email that has not
- * signed up yet (they count toward the 50).
+ * signed up yet (they count toward the 50; their email can be sent again).
+ * Everyone added is emailed a link to the dashboard.
  */
 import { HoneypotInputs } from "remix-utils/honeypot/react";
 
@@ -22,6 +23,11 @@ type Member = SchoolDashboard["team"][number];
 type Invite = SchoolDashboard["invites"][number];
 
 export const MAX_ADMINS = 50;
+
+const SINCE = new Intl.DateTimeFormat("en-KE", {
+  day: "numeric",
+  month: "short",
+});
 
 export function TeamPanel({
   team,
@@ -230,20 +236,37 @@ function InviteItem({
       <div>
         <p className="font-semibold">{invite.email}</p>
         <p className="text-[13px] text-ink-3">
-          Invited {invite.role}, not signed up yet
+          Invited {invite.role} {SINCE.format(new Date(invite.created_at))}, not
+          signed up yet
           {branchNames ? ` · ${branchNames}` : ""}
         </p>
       </div>
-      <Button
-        type="button"
-        size="sm"
-        variant="ghost"
-        disabled={busy}
-        isLoading={pending === "cancel-invite"}
-        onClick={() => submit({ intent: "cancel-invite", inviteId: invite.id })}
-      >
-        Withdraw
-      </Button>
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          size="sm"
+          variant="paper"
+          disabled={busy}
+          isLoading={pending === "resend-invite"}
+          onClick={() =>
+            submit({ intent: "resend-invite", inviteId: invite.id })
+          }
+        >
+          Email again
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          disabled={busy}
+          isLoading={pending === "cancel-invite"}
+          onClick={() =>
+            submit({ intent: "cancel-invite", inviteId: invite.id })
+          }
+        >
+          Withdraw
+        </Button>
+      </div>
     </li>
   );
 }

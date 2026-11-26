@@ -67,7 +67,8 @@ create policy "payments: payer, school owner or staff read"
 -- Reads:  The school's owner; DriveRush staff. Branch admins get the code and
 --         price through school_pass_info; learners resolve a code through
 --         pass_school_by_code.
--- Writes: No client: admin_set_school_payments (staff), school_set_pass_price
+-- Writes: No client: admin_set_school_payments, admin_review_bank (staff),
+--         school_request_bank (the server, after its owner check), school_set_pass_price
 --         (owner).
 -- Grants: anon: none; authenticated: SELECT
 alter table public.school_payment_settings enable row level security;

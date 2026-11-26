@@ -19,7 +19,9 @@ returns table (
   starts_at timestamptz,
   ends_at timestamptz,
   progress jsonb,
-  progress_updated_at timestamptz
+  progress_updated_at timestamptz,
+  pass_ends_at timestamptz,
+  pass_through_school boolean
 )
 language plpgsql
 stable
@@ -37,8 +39,19 @@ begin
   select l.id, l.branch_id, l.user_id, l.email, p.full_name, l.starts_at, l.ends_at,
          coalesce((select jsonb_object_agg(lp.store, lp.data)
                      from public.learner_progress as lp where lp.user_id = l.user_id), '{}'::jsonb),
-         (select max(lp.updated_at) from public.learner_progress as lp where lp.user_id = l.user_id)
+         (select max(lp.updated_at) from public.learner_progress as lp where lp.user_id = l.user_id),
+         pass.ends_at,
+         coalesce(pass.through_school, false)
     from public.school_student_links as l
+    -- The learner's pass running now or next (passes are back to back), and
+    -- whether one of them was bought through this school.
+    left join lateral (
+      select max(ls.ends_at) as ends_at,
+             bool_or(pay.school_id = p_school_id) as through_school
+        from public.learner_subscriptions as ls
+        left join public.payments as pay on pay.id = ls.payment_id
+       where ls.user_id = l.user_id and ls.status = 'active' and ls.ends_at > now()
+    ) as pass on true
     left join public.profiles as p on p.id = l.user_id
    where l.school_id = p_school_id
      and l.status = 'active' and l.ends_at > now()
@@ -61,7 +74,9 @@ returns table (
   starts_at timestamptz,
   ends_at timestamptz,
   progress jsonb,
-  progress_updated_at timestamptz
+  progress_updated_at timestamptz,
+  pass_ends_at timestamptz,
+  pass_through_school boolean
 )
 language sql
 stable
@@ -77,6 +92,6 @@ grant execute on function private.school_student_progress(uuid, uuid) to service
 grant execute on function public.school_student_progress(uuid, uuid) to service_role;
 
 comment on function private.school_student_progress(uuid, uuid) is
-  'School owner, admin (own branches) or staff: currently linked learners with their saved progress.';
+  'School owner, admin (own branches) or staff: currently linked learners with their saved progress and pass.';
 comment on function public.school_student_progress(uuid, uuid) is
-  'School owner, admin (own branches) or staff: currently linked learners with their saved progress.';
+  'School owner, admin (own branches) or staff: currently linked learners with their saved progress and pass.';

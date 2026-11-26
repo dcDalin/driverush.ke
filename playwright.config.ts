@@ -11,6 +11,8 @@ const PORT = 5730;
 
 export default defineConfig({
   testDir: "./e2e/specs",
+  // The specs' own schools and accounts are removed after the run.
+  globalTeardown: "./e2e/support/global-teardown.ts",
   fullyParallel: false,
   workers: 1,
   retries: CI ? 1 : 0,

@@ -30,10 +30,15 @@ sees, and `full_access` says whether a pass is running.
 A school link is free for the school and opens nothing by itself. A pass
 (`learner_subscriptions`, 60 days, or a 30-day extension) opens the course
 past the free levels: bought alone (KES 1,000) or through the school at the
-school's price (KES 500 to 1,000, DriveRush keeps KES 300). Passes run back
-to back; a school pass keeps the learner linked to that school while it runs.
-The functions are `billing/functions/passes.sql` (checkout, settle, fail,
-refund) and `school_passes.sql` (code, price, earnings, staff setup).
+school's own price (no ceiling; at least DriveRush's KES 300 plus KES 50 for
+the school, `private.school_min_price()`). DriveRush keeps KES 300 whole: the
+school's share pays Paystack's fee. Passes run back to back; a school pass
+keeps the learner linked to that school while it runs. The functions are
+`billing/functions/passes.sql` (checkout, settle, fail, refund) and
+`school_passes.sql` (code, price, earnings, the bank: the owner asks with
+`school_request_bank` through the server, staff approve with
+`admin_review_bank`; staff money views). The whole flow and its set-up:
+`docs/payments.md`.
 
 ## School links (`school_student_links`)
 
@@ -51,19 +56,23 @@ refund) and `school_passes.sql` (code, price, earnings, staff setup).
 
 ## Functions a client can call
 
-| Function                                                                                                                                              | Who                               |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
-| `my_entitlement()`                                                                                                                                    | the learner                       |
-| `learner_accept_school_link`, `learner_decline_school_link`                                                                                           | the learner the link is for       |
-| `school_add_student`, `school_release_student`, `school_cancel_student_invite`, `school_move_student_branch`, `school_student_progress`               | owner, admin of the branch, staff |
-| `school_members_list`                                                                                                                                 | owner, admins, staff              |
-| `school_create_branch`, `school_update_branch`, `school_add_admin`, `school_set_admin_branches`, `school_remove_admin`, `school_cancel_member_invite` | owner, staff                      |
-| `admin_create_school`, `admin_set_school_status`, `admin_transfer_school_owner`                                                                       | DriveRush su or admin             |
-| `school_update_profile`, `school_update_branch_details`                                                                                               | owner, staff                      |
-| `admin_publish_livery`, `admin_retire_livery`, `admin_livery_draft_get`, `admin_set_sponsorship`, `admin_end_sponsorship`                             | DriveRush su or admin             |
-| `admin_list_schools` (one page, searched and filtered), `admin_hand_over_school` (owner by email; a school in `setup` goes live)                      | DriveRush su or admin             |
-| `board_schools()`                                                                                                                                     | anyone, guests included           |
-| `grant_platform_role`, `revoke_platform_role`                                                                                                         | DriveRush su                      |
+| Function                                                                                                                                                                       | Who                                     |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- |
+| `my_entitlement()`                                                                                                                                                             | the learner                             |
+| `learner_accept_school_link`, `learner_decline_school_link`                                                                                                                    | the learner the link is for             |
+| `school_add_student`, `school_release_student`, `school_cancel_student_invite`, `school_move_student_branch`, `school_student_progress`                                        | owner, admin of the branch, staff       |
+| `school_members_list`                                                                                                                                                          | owner, admins, staff                    |
+| `school_create_branch`, `school_update_branch`, `school_add_admin`, `school_set_admin_branches`, `school_remove_admin`, `school_cancel_member_invite`                          | owner, staff                            |
+| `admin_create_school`, `admin_set_school_status`, `admin_transfer_school_owner`                                                                                                | DriveRush su or admin                   |
+| `school_update_profile`, `school_update_branch_details`                                                                                                                        | owner, staff                            |
+| `admin_publish_livery`, `admin_retire_livery`, `admin_livery_draft_get`, `admin_set_sponsorship`, `admin_end_sponsorship`                                                      | DriveRush su or admin                   |
+| `admin_list_schools` (one page, searched and filtered), `admin_hand_over_school` (owner by email, optionally keeping the old owner as an admin; a school in `setup` goes live) | DriveRush su or admin                   |
+| `school_pass_info`, `school_earnings`                                                                                                                                          | owner, admins (their branches), staff   |
+| `school_set_pass_price`                                                                                                                                                        | owner, staff                            |
+| `school_request_bank`                                                                                                                                                          | the server only (after its owner check) |
+| `admin_set_school_payments`, `admin_review_bank`, `admin_list_bank_requests`, `admin_list_payments`, `admin_payment_totals`                                                    | DriveRush su or admin                   |
+| `board_schools()`                                                                                                                                                              | anyone, guests included                 |
+| `grant_platform_role`, `revoke_platform_role`                                                                                                                                  | DriveRush su                            |
 
 ## Tables a client can read
 

@@ -1,21 +1,18 @@
 /**
  * A school's side of the passes, as the signed-in team member: its code and
  * price, setting the price (owner), and what it earned (by branch for
- * admins). Staff set up a school's payments (`setSchoolPayments`). Reads
- * throw, writes return a `Result`.
+ * admins). Staff set up a school's payments (`setSchoolPayments`), review the
+ * bank an owner asked for (`reviewBank`) and see every payment. The owner's
+ * bank request goes through the server (`bank.server.ts`). Reads throw,
+ * writes return a `Result`.
  */
 import { orThrow, toResult } from "../result";
-import type { TypedSupabaseClient } from "../types";
+import type { Database, TypedSupabaseClient } from "../types";
 
-export type SchoolPassInfo = {
-  code: string;
-  price_kes: number;
-  driverush_share_kes: number;
-  /** Paystack subaccount in place and switched on. */
-  ready: boolean;
-  /** Owner and staff only ("Equity ••4321"). */
-  bank_label: string | null;
-};
+type Fn<N extends keyof Database["public"]["Functions"]> =
+  Database["public"]["Functions"][N]["Returns"];
+
+export type SchoolPassInfo = Fn<"school_pass_info">[number];
 
 export async function getSchoolPassInfo(
   supabase: TypedSupabaseClient,
@@ -60,25 +57,85 @@ export async function setPassPrice(
   );
 }
 
-/** Staff: the school's code and the Paystack subaccount made for it. */
+/**
+ * Staff: the school's code and (when given) a bank already checked with the
+ * school, live at once. Returns the subaccount it replaced, to switch off.
+ */
 export async function setSchoolPayments(
   supabase: TypedSupabaseClient,
   input: {
     schoolId: string;
     code: string;
-    subaccountCode: string;
-    bankLabel: string;
+    subaccountCode: string | null;
+    bankLabel: string | null;
+    accountName: string | null;
   },
 ) {
   return toResult(
     await supabase.rpc("admin_set_school_payments", {
       p_school_id: input.schoolId,
       p_code: input.code,
-      p_subaccount_code: input.subaccountCode,
-      p_bank_label: input.bankLabel,
+      p_subaccount_code: input.subaccountCode ?? "",
+      p_bank_label: input.bankLabel ?? "",
+      p_account_name: input.accountName ?? "",
       p_is_active: true,
     }),
   );
+}
+
+/**
+ * Staff: approve or turn down the bank an owner asked for. Returns the
+ * subaccount to switch off on Paystack (the old live one, or the refused one).
+ */
+export async function reviewBank(
+  supabase: TypedSupabaseClient,
+  input: { schoolId: string; approve: boolean; note: string | null },
+) {
+  return toResult(
+    await supabase.rpc("admin_review_bank", {
+      p_school_id: input.schoolId,
+      p_approve: input.approve,
+      p_note: input.note ?? "",
+    }),
+  );
+}
+
+export type BankRequest = Fn<"admin_list_bank_requests">[number];
+
+/** Staff: banks owners asked for, oldest first. */
+export async function listBankRequests(
+  supabase: TypedSupabaseClient,
+): Promise<BankRequest[]> {
+  return orThrow(await supabase.rpc("admin_list_bank_requests"));
+}
+
+export const PAYMENTS_PAGE_SIZE = 25;
+
+export type PaymentRow = Fn<"admin_list_payments">[number];
+
+/** Staff: one page of every payment. */
+export async function listPayments(
+  supabase: TypedSupabaseClient,
+  filters: { q: string; status: string; page: number },
+): Promise<{ rows: PaymentRow[]; total: number }> {
+  const rows = orThrow(
+    await supabase.rpc("admin_list_payments", {
+      p_search: filters.q,
+      p_status: filters.status === "any" ? "" : filters.status,
+      p_limit: PAYMENTS_PAGE_SIZE,
+      p_offset: (filters.page - 1) * PAYMENTS_PAGE_SIZE,
+    }),
+  );
+  return { rows, total: Number(rows[0]?.total ?? 0) };
+}
+
+export type PaymentTotals = Fn<"admin_payment_totals">[number];
+
+/** Staff: this month's and last month's money. */
+export async function getPaymentTotals(
+  supabase: TypedSupabaseClient,
+): Promise<PaymentTotals[]> {
+  return orThrow(await supabase.rpc("admin_payment_totals"));
 }
 
 /** Staff: every school's payment settings, by school id. */

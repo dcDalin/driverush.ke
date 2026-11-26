@@ -90,14 +90,28 @@ remix-hook-form, shadcn everywhere. Guides: `docs/forms-and-data.md`,
   until handed over. The
   service worker and robots.txt leave `/school`, `/console`, `/auth`, `/api`
   alone.
-- Payments (owner, 2026-11-25): learners buy 60-day passes through Paystack
-  (`app/lib/payments/`); schools pay nothing and earn through a Paystack
-  subaccount split. A school link is free; a pass unlocks. The database side
-  is `supabase/schemas/billing/` (`docs/database-access.md`). `/pass` and
-  `/pass/done` (learners), `/api/webhooks/paystack` (signature-gated), the
-  dashboard's Passes and Earnings panels and the console's payment setup.
-  Env: `PAYSTACK_SECRET_KEY`, `PAYSTACK_WEBHOOK_SECRET`, `VITE_PASSES`.
+- Payments (owner, 2026-11-25/26; `docs/payments.md`): learners buy 60-day
+  passes through Paystack (`app/lib/payments/`); schools pay nothing and earn
+  through a Paystack subaccount split. A school sets any price at or above
+  `private.school_min_price()` (DriveRush's KES 300 + KES 50), no ceiling; the
+  school's share pays Paystack's fee (`bearer: "subaccount"`). The owner sends
+  the bank, staff approve it (`school_request_bank`, `admin_review_bank`). A
+  school link is free; a pass unlocks. `/pass`, `/pass/done`,
+  `/api/webhooks/paystack` (signature-gated), the dashboard's Passes tab, the
+  console's Payments tabs (every payment, month totals, banks to check). Env:
+  `PAYSTACK_SECRET_KEY`, `PAYSTACK_WEBHOOK_SECRET`, `VITE_PASSES`.
   `.claude/launch.json` `dev-passes` runs it locally with passes on.
+- Emails DriveRush sends itself (invites, hand-overs, "you've been added",
+  bank decisions): `app/lib/email/`, Resend with `RESEND_API_KEY` and
+  `EMAIL_FROM`, else the local Mailpit (`MAILPIT_URL`). `STAFF_ALERT_EMAIL`
+  hears about banks to check.
+- Dashboards: tabs and lists keep their state in the address
+  (`useTabParam`, `useListParams` and `app/components/list/`, as thinkrush's
+  admin); the school dashboard and console update live through private
+  realtime topics (`school:<id>`, `console`; `use-live-revalidate.ts`).
+  The account menu links to the pass, the person's schools and the console.
+  Test suites remove the schools and accounts they made
+  (`test/support/leftovers.ts`).
 - School profiles and liveries are data, not code (`docs/school-media.md`):
   owners edit their profile and logos on the dashboard; DriveRush makes
   liveries (`scripts/sponsor-art`, `seed/fixtures/liveries/<slug>/`,

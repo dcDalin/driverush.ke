@@ -135,15 +135,22 @@ export async function endSponsorship(supabase: Client, sponsorshipId: string) {
  * Hands a school to its owner: `added` (the account exists and owns it
  * now) or `invited` (they own it on sign-up). A school in `setup` goes live.
  */
+/**
+ * Staff: makes the email the school's owner ('added' or 'invited') and puts a
+ * school in set-up live. `keepPrevious` keeps the owner it replaces on as an
+ * admin of every open branch.
+ */
 export async function handOverSchool(
   supabase: Client,
   schoolId: string,
   email: string,
+  keepPrevious = false,
 ) {
   return toResult(
     await supabase.rpc("admin_hand_over_school", {
       p_school_id: schoolId,
       p_owner_email: email,
+      p_keep_previous_owner: keepPrevious,
     }),
   );
 }

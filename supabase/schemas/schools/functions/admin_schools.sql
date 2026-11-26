@@ -2,6 +2,40 @@
 -- FUNCTIONS: DriveRush staff create and run schools
 -- ===================================================
 
+-- The school's owner, other than p_new_owner, steps down: kept as an admin of
+-- every open branch when p_keep is true (and the school has one), otherwise
+-- removed.
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: private.set_school_owner, private.match_pending_invites
+create or replace function private.step_down_owner(p_school_id uuid, p_new_owner uuid, p_keep boolean)
+returns void
+language plpgsql
+set search_path = ''
+as $$
+declare
+  v_member_id uuid;
+begin
+  select m.id into v_member_id from public.school_members as m
+   where m.school_id = p_school_id and m.role = 'owner' and m.user_id <> p_new_owner;
+  if v_member_id is null then
+    return;
+  end if;
+  if p_keep and exists (select 1 from public.school_branches as b
+                         where b.school_id = p_school_id and b.is_active) then
+    update public.school_members set role = 'admin' where id = v_member_id;
+    insert into public.school_member_branches (member_id, branch_id, school_id)
+    select v_member_id, b.id, b.school_id
+      from public.school_branches as b
+     where b.school_id = p_school_id and b.is_active
+    on conflict do nothing;
+  else
+    delete from public.school_members where id = v_member_id;
+  end if;
+end;
+$$;
+
 -- Makes the account with this email the school's owner (replacing the
 -- current one), or, if no confirmed account has it yet, leaves an owner
 -- invite that match_pending_invites takes up on confirmation.
@@ -12,7 +46,8 @@
 create or replace function private.set_school_owner(
   p_school_id uuid,
   p_email extensions.citext,
-  p_actor uuid
+  p_actor uuid,
+  p_keep_previous boolean default false
 )
 returns text
 language plpgsql
@@ -30,13 +65,12 @@ begin
     update public.school_member_invites
        set status = 'cancelled', closed_at = now()
      where school_id = p_school_id and email = p_email and status = 'pending';
-    insert into public.school_member_invites (school_id, email, role, invited_by)
-    values (p_school_id, p_email, 'owner', p_actor);
+    insert into public.school_member_invites (school_id, email, role, invited_by, keep_previous_owner)
+    values (p_school_id, p_email, 'owner', p_actor, coalesce(p_keep_previous, false));
     return 'invited';
   end if;
 
-  delete from public.school_members
-   where school_id = p_school_id and role = 'owner' and user_id <> v_user_id;
+  perform private.step_down_owner(p_school_id, v_user_id, coalesce(p_keep_previous, false));
 
   insert into public.school_members (school_id, user_id, role, added_by)
   values (p_school_id, v_user_id, 'owner', p_actor)
@@ -146,7 +180,11 @@ $$;
 -- Access:  authenticated (DriveRush su or admin)
 -- Guard:   admin (private.is_staff)
 -- Callers: DriveRush console (session)
-create or replace function private.admin_hand_over_school(p_school_id uuid, p_owner_email text)
+create or replace function private.admin_hand_over_school(
+  p_school_id uuid,
+  p_owner_email text,
+  p_keep_previous_owner boolean default false
+)
 returns text
 language plpgsql
 security definer
@@ -166,7 +204,9 @@ begin
   if v_status = 'archived' then
     raise exception 'school_inactive' using errcode = 'P0001';
   end if;
-  v_result := private.set_school_owner(p_school_id, lower(btrim(p_owner_email))::extensions.citext, auth.uid());
+  v_result := private.set_school_owner(
+    p_school_id, lower(btrim(p_owner_email))::extensions.citext, auth.uid(), p_keep_previous_owner
+  );
   if v_status = 'setup' then
     update public.schools set status = 'active' where id = p_school_id;
   end if;
@@ -313,13 +353,17 @@ $$;
 -- Access:  authenticated (DriveRush su or admin)
 -- Guard:   admin (the private body checks private.is_staff)
 -- Callers: DriveRush console (session)
-create or replace function public.admin_hand_over_school(p_school_id uuid, p_owner_email text)
+create or replace function public.admin_hand_over_school(
+  p_school_id uuid,
+  p_owner_email text,
+  p_keep_previous_owner boolean default false
+)
 returns text
 language sql
 security invoker
 set search_path = ''
 as $$
-  select private.admin_hand_over_school(p_school_id, p_owner_email);
+  select private.admin_hand_over_school(p_school_id, p_owner_email, p_keep_previous_owner);
 $$;
 
 -- Access:  authenticated (DriveRush su or admin)
@@ -357,31 +401,33 @@ as $$
   select * from private.admin_list_schools(p_search, p_status, p_livery, p_sponsoring, p_limit, p_offset);
 $$;
 
-revoke all on function private.admin_hand_over_school(uuid, text) from public;
+revoke all on function private.admin_hand_over_school(uuid, text, boolean) from public;
 revoke all on function private.admin_list_schools(text, text, text, text, integer, integer) from public;
-revoke all on function public.admin_hand_over_school(uuid, text) from public;
+revoke all on function public.admin_hand_over_school(uuid, text, boolean) from public;
 revoke all on function public.admin_list_schools(text, text, text, text, integer, integer) from public;
-grant execute on function private.admin_hand_over_school(uuid, text) to service_role;
+grant execute on function private.admin_hand_over_school(uuid, text, boolean) to service_role;
 grant execute on function private.admin_list_schools(text, text, text, text, integer, integer) to service_role;
-grant execute on function public.admin_hand_over_school(uuid, text) to service_role;
+grant execute on function public.admin_hand_over_school(uuid, text, boolean) to service_role;
 grant execute on function public.admin_list_schools(text, text, text, text, integer, integer) to service_role;
-comment on function private.admin_hand_over_school(uuid, text) is
-  'DriveRush staff: makes an email the school owner (added or invited) and puts a setup school live.';
-comment on function public.admin_hand_over_school(uuid, text) is
-  'DriveRush staff: makes an email the school owner (added or invited) and puts a setup school live.';
+comment on function private.admin_hand_over_school(uuid, text, boolean) is
+  'DriveRush staff: makes an email the school owner (added or invited), keeping the old owner as an admin if asked, and puts a setup school live.';
+comment on function public.admin_hand_over_school(uuid, text, boolean) is
+  'DriveRush staff: makes an email the school owner (added or invited), keeping the old owner as an admin if asked, and puts a setup school live.';
 comment on function private.admin_list_schools(text, text, text, text, integer, integer) is
   'DriveRush staff: one page of schools (search, status, livery and sponsorship filters) with the total count.';
 comment on function public.admin_list_schools(text, text, text, text, integer, integer) is
   'DriveRush staff: one page of schools (search, status, livery and sponsorship filters) with the total count.';
 
-revoke all on function private.set_school_owner(uuid, extensions.citext, uuid) from public;
+revoke all on function private.step_down_owner(uuid, uuid, boolean) from public;
+revoke all on function private.set_school_owner(uuid, extensions.citext, uuid, boolean) from public;
 revoke all on function private.admin_create_school(text, text, text) from public;
 revoke all on function private.admin_set_school_status(uuid, public.school_status) from public;
 revoke all on function private.admin_transfer_school_owner(uuid, text) from public;
 revoke all on function public.admin_create_school(text, text, text) from public;
 revoke all on function public.admin_set_school_status(uuid, public.school_status) from public;
 revoke all on function public.admin_transfer_school_owner(uuid, text) from public;
-grant execute on function private.set_school_owner(uuid, extensions.citext, uuid) to service_role;
+grant execute on function private.step_down_owner(uuid, uuid, boolean) to service_role;
+grant execute on function private.set_school_owner(uuid, extensions.citext, uuid, boolean) to service_role;
 grant execute on function private.admin_create_school(text, text, text) to service_role;
 grant execute on function private.admin_set_school_status(uuid, public.school_status) to service_role;
 grant execute on function private.admin_transfer_school_owner(uuid, text) to service_role;
@@ -389,7 +435,9 @@ grant execute on function public.admin_create_school(text, text, text) to servic
 grant execute on function public.admin_set_school_status(uuid, public.school_status) to service_role;
 grant execute on function public.admin_transfer_school_owner(uuid, text) to service_role;
 
-comment on function private.set_school_owner(uuid, extensions.citext, uuid) is
+comment on function private.step_down_owner(uuid, uuid, boolean) is
+  'The school''s old owner steps down: kept as an admin of every open branch, or removed.';
+comment on function private.set_school_owner(uuid, extensions.citext, uuid, boolean) is
   'Makes an email the school owner now (confirmed account) or by invite; replaces the current owner.';
 comment on function private.admin_create_school(text, text, text) is
   'DriveRush staff: creates a school and sets its owner by email.';

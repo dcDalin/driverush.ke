@@ -35,6 +35,8 @@ export const HandOverSchema = z.object({
   intent: z.literal("hand-over"),
   schoolId: IdSchema,
   email: EmailSchema,
+  /** Changing the owner: the old one stays on as an admin of every branch. */
+  keepPrevious: z.boolean().default(false),
 });
 export type HandOverSchemaTypes = z.infer<typeof HandOverSchema>;
 

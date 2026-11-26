@@ -9,7 +9,7 @@
 -- ===================================================
 begin;
 
-select plan(69);
+select plan(74);
 
 create temp table w as select tests.make_world() as j;
 create function pg_temp.w(k text) returns text language sql as $$ select j ->> k from w $$;
@@ -29,7 +29,8 @@ insert into probed values
   ('admin_set_sponsorship'), ('admin_end_sponsorship'),
   ('start_pass_checkout'), ('school_pass_info'), ('school_set_pass_price'), ('school_earnings'),
   ('admin_set_school_payments'), ('my_pass_offers'),
-  ('admin_hand_over_school'), ('admin_list_schools');
+  ('admin_hand_over_school'), ('admin_list_schools'),
+  ('admin_review_bank'), ('admin_list_bank_requests'), ('admin_list_payments'), ('admin_payment_totals');
 
 -- ── anon can call nothing ──────────────────────────────────────────────
 select is(tests.sqlstate_as('anon', 'select public.my_entitlement()'), '42501',
@@ -179,10 +180,20 @@ select is(tests.sqlstate_as(pg_temp.w('learner_a1'), format('select count(*) fro
   'a learner cannot read a school''s earnings');
 select is(tests.sqlstate_as(pg_temp.w('owner_b'), format('select count(*) from public.school_earnings(%L)', pg_temp.w('school_a'))), '42501',
   'another school''s owner cannot read them');
-select is(tests.sqlstate_as(pg_temp.w('owner_a'), format($$select public.admin_set_school_payments(%L, 'TESTA', 'ACCT_x', null, true)$$, pg_temp.w('school_a'))), '42501',
+select is(tests.sqlstate_as(pg_temp.w('owner_a'), format($$select public.admin_set_school_payments(%L, 'TESTA', 'ACCT_x', null, null, true)$$, pg_temp.w('school_a'))), '42501',
   'a school owner cannot set up their own payments (bank details are staff-only)');
-select is(tests.sqlstate_as(pg_temp.w('staff'), format($$select public.admin_set_school_payments(%L, 'TESTA', 'ACCT_x', 'Bank ••1', true)$$, pg_temp.w('school_a'))), 'ok',
+select is(tests.sqlstate_as(pg_temp.w('staff'), format($$select public.admin_set_school_payments(%L, 'TESTA', 'ACCT_x', 'Bank ••1', 'Test School', true)$$, pg_temp.w('school_a'))), 'ok',
   'staff set up a school''s payments');
+select is(tests.sqlstate_as(pg_temp.w('owner_a'), format('select public.admin_review_bank(%L, true, null)', pg_temp.w('school_a'))), '42501',
+  'a school owner cannot approve their own bank');
+select is(tests.sqlstate_as(pg_temp.w('owner_a'), 'select count(*) from public.admin_list_bank_requests()'), '42501',
+  'a school owner cannot list bank requests');
+select is(tests.sqlstate_as(pg_temp.w('owner_a'), $$select count(*) from public.admin_list_payments(null, null, 20, 0)$$), '42501',
+  'a school owner cannot list every payment');
+select is(tests.sqlstate_as(pg_temp.w('learner_a1'), 'select count(*) from public.admin_payment_totals()'), '42501',
+  'a learner cannot read DriveRush''s totals');
+select is(tests.sqlstate_as(pg_temp.w('owner_a'), format($$select public.school_request_bank(%L, %L, 'ACCT_y', 'Bank ••2', 'X')$$, pg_temp.w('school_a'), pg_temp.w('owner_a'))), '42501',
+  'a school owner cannot record a bank request themselves (the server does, after its own checks)');
 
 -- ── Coverage ───────────────────────────────────────────────────────────
 select is_empty(

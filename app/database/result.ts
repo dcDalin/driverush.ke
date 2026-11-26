@@ -33,9 +33,11 @@ const REASONS: Record<string, string> = {
     "That school code does not take payments. Check it with your school.",
   branch_required: "Pick your branch.",
   price_below_share:
-    "This school's price is not set up right. Tell your school.",
-  price_out_of_range: "Set a price from KES 500 to KES 1,000.",
-  payments_not_set_up: "Payments are not set up for this school yet.",
+    "This school's price is below DriveRush's minimum. Tell your school.",
+  price_out_of_range: "That price is below the minimum shown under the box.",
+  payments_not_set_up:
+    "Add your bank first: your price is saved with your payment details.",
+  nothing_to_review: "There is no bank waiting for review.",
 };
 
 export function reasonFor(error: DbError): string {

@@ -393,6 +393,7 @@ export type Database = {
           email: string;
           id: string;
           invited_by: string | null;
+          keep_previous_owner: boolean;
           role: Database["public"]["Enums"]["school_role"];
           school_id: string;
           status: Database["public"]["Enums"]["invite_status"];
@@ -405,6 +406,7 @@ export type Database = {
           email: string;
           id?: string;
           invited_by?: string | null;
+          keep_previous_owner?: boolean;
           role: Database["public"]["Enums"]["school_role"];
           school_id: string;
           status?: Database["public"]["Enums"]["invite_status"];
@@ -416,6 +418,7 @@ export type Database = {
           email?: string;
           id?: string;
           invited_by?: string | null;
+          keep_previous_owner?: boolean;
           role?: Database["public"]["Enums"]["school_role"];
           school_id?: string;
           status?: Database["public"]["Enums"]["invite_status"];
@@ -468,35 +471,62 @@ export type Database = {
       };
       school_payment_settings: {
         Row: {
+          account_name: string | null;
           bank_label: string | null;
           code: string;
           created_at: string;
           is_active: boolean;
           paystack_subaccount_code: string | null;
+          pending_account_name: string | null;
+          pending_bank_label: string | null;
+          pending_subaccount_code: string | null;
           price_kes: number;
+          requested_at: string | null;
+          requested_by: string | null;
+          review_note: string | null;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
           school_id: string;
           updated_at: string;
           updated_by: string | null;
         };
         ComputedFields: never;
         Insert: {
+          account_name?: string | null;
           bank_label?: string | null;
           code: string;
           created_at?: string;
           is_active?: boolean;
           paystack_subaccount_code?: string | null;
+          pending_account_name?: string | null;
+          pending_bank_label?: string | null;
+          pending_subaccount_code?: string | null;
           price_kes?: number;
+          requested_at?: string | null;
+          requested_by?: string | null;
+          review_note?: string | null;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
           school_id: string;
           updated_at?: string;
           updated_by?: string | null;
         };
         Update: {
+          account_name?: string | null;
           bank_label?: string | null;
           code?: string;
           created_at?: string;
           is_active?: boolean;
           paystack_subaccount_code?: string | null;
+          pending_account_name?: string | null;
+          pending_bank_label?: string | null;
+          pending_subaccount_code?: string | null;
           price_kes?: number;
+          requested_at?: string | null;
+          requested_by?: string | null;
+          review_note?: string | null;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
           school_id?: string;
           updated_at?: string;
           updated_by?: string | null;
@@ -784,8 +814,49 @@ export type Database = {
         Returns: undefined;
       };
       admin_hand_over_school: {
-        Args: { p_owner_email: string; p_school_id: string };
+        Args: {
+          p_keep_previous_owner?: boolean;
+          p_owner_email: string;
+          p_school_id: string;
+        };
         Returns: string;
+      };
+      admin_list_bank_requests: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          live_bank_label: string;
+          pending_account_name: string;
+          pending_bank_label: string;
+          requested_at: string;
+          requested_by_email: string;
+          school_id: string;
+          school_name: string;
+        }[];
+      };
+      admin_list_payments: {
+        Args: {
+          p_limit: number;
+          p_offset: number;
+          p_school_id?: string;
+          p_search: string;
+          p_status: string;
+        };
+        Returns: {
+          amount_kes: number;
+          created_at: string;
+          driverush_share_kes: number;
+          fee_kes: number;
+          id: string;
+          payer_email: string;
+          plan_code: string;
+          provider_ref: string;
+          school_id: string;
+          school_name: string;
+          school_share_kes: number;
+          settled_at: string;
+          status: Database["public"]["Enums"]["payment_status"];
+          total: number;
+        }[];
       };
       admin_list_schools: {
         Args: {
@@ -814,6 +885,18 @@ export type Database = {
         }[];
       };
       admin_livery_draft_get: { Args: { p_livery_id: string }; Returns: Json };
+      admin_payment_totals: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          driverush_kes: number;
+          fees_kes: number;
+          month: string;
+          paid_kes: number;
+          payments: number;
+          refunded: number;
+          schools_kes: number;
+        }[];
+      };
       admin_publish_livery: {
         Args: { p_livery_id: string };
         Returns: undefined;
@@ -822,15 +905,20 @@ export type Database = {
         Args: { p_livery_id: string };
         Returns: undefined;
       };
+      admin_review_bank: {
+        Args: { p_approve: boolean; p_note: string; p_school_id: string };
+        Returns: string;
+      };
       admin_set_school_payments: {
         Args: {
+          p_account_name: string;
           p_bank_label: string;
           p_code: string;
           p_is_active: boolean;
           p_school_id: string;
           p_subaccount_code: string;
         };
-        Returns: undefined;
+        Returns: string;
       };
       admin_set_school_status: {
         Args: {
@@ -972,11 +1060,18 @@ export type Database = {
       school_pass_info: {
         Args: { p_school_id: string };
         Returns: {
+          account_name: string;
           bank_label: string;
           code: string;
           driverush_share_kes: number;
+          min_price_kes: number;
+          pending_account_name: string;
+          pending_bank_label: string;
           price_kes: number;
           ready: boolean;
+          requested_at: string;
+          review_note: string;
+          reviewed_at: string;
         }[];
       };
       school_release_student: {
@@ -986,6 +1081,16 @@ export type Database = {
       school_remove_admin: {
         Args: { p_member_id: string };
         Returns: undefined;
+      };
+      school_request_bank: {
+        Args: {
+          p_account_name: string;
+          p_actor: string;
+          p_bank_label: string;
+          p_school_id: string;
+          p_subaccount_code: string;
+        };
+        Returns: string;
       };
       school_set_admin_branches: {
         Args: { p_branch_ids: string[]; p_member_id: string };
@@ -1012,6 +1117,8 @@ export type Database = {
           ends_at: string;
           full_name: string;
           link_id: string;
+          pass_ends_at: string;
+          pass_through_school: boolean;
           progress: Json;
           progress_updated_at: string;
           starts_at: string;

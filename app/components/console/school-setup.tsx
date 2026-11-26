@@ -23,7 +23,11 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
-import { InputField, ServerFormProvider } from "~/components/ui/forms/server";
+import {
+  CheckboxField,
+  InputField,
+  ServerFormProvider,
+} from "~/components/ui/forms/server";
 import {
   Select,
   SelectContent,
@@ -115,6 +119,17 @@ export function SetupChecklist({ school }: { school: ConsoleSchool }) {
             }
           />
           <Step
+            done={setup.payments === "live"}
+            label="Payments"
+            detail={
+              setup.payments === "live"
+                ? "Taking payments."
+                : setup.payments === "waiting"
+                  ? "Its owner sent a bank: check it on the Payments tab."
+                  : "No bank yet: its owner sends one from their dashboard (or set it on the Payments tab)."
+            }
+          />
+          <Step
             done={owned}
             label="Owner"
             detail={
@@ -127,7 +142,7 @@ export function SetupChecklist({ school }: { school: ConsoleSchool }) {
           />
         </ul>
         <Button variant="paper" asChild className="self-start">
-          <Link to={`/school/${school.school.id}#profile`}>
+          <Link to={`/school/${school.school.id}?tab=profile`}>
             Edit profile and branches
             <Icon icon={ArrowOutIcon} size={16} />
           </Link>
@@ -148,8 +163,10 @@ export function HandOver({ school }: { school: ConsoleSchool }) {
       intent: "hand-over",
       schoolId: school.school.id,
       email: "",
+      keepPrevious: false,
     },
   });
+  const hasOwner = Boolean(school.ownerEmail);
   return (
     <Card>
       <CardHeader>
@@ -157,7 +174,7 @@ export function HandOver({ school }: { school: ConsoleSchool }) {
         <CardDescription>
           {inSetup
             ? "The owner gets the school's dashboard and the school goes live. Without an account yet, they are invited and own it once they sign up with this email."
-            : "The new email becomes the owner; the old owner loses the school. Without an account yet, they are invited."}
+            : "The new email becomes the owner. The old owner leaves the school unless you keep them as an admin. Without an account yet, they are invited."}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -167,28 +184,40 @@ export function HandOver({ school }: { school: ConsoleSchool }) {
             method="post"
             onSubmit={form.methods.handleSubmit}
             noValidate
-            className="flex flex-col gap-3 sm:flex-row sm:items-start"
+            className="flex flex-col gap-3"
           >
             <HoneypotInputs />
-            <InputField
-              name="email"
-              label="Owner's email"
-              className="flex-1"
-              disabled={form.busy}
-              inputProps={{
-                type: "email",
-                inputMode: "email",
-                placeholder: "owner@school.co.ke",
-              }}
-            />
-            <Button
-              type="submit"
-              variant={inSetup ? "rush" : "paper"}
-              className="sm:mt-6"
-              isLoading={form.busy}
-            >
-              {inSetup ? "Hand over and go live" : "Change owner"}
-            </Button>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+              <InputField
+                name="email"
+                label="Owner's email"
+                className="flex-1"
+                disabled={form.busy}
+                inputProps={{
+                  type: "email",
+                  inputMode: "email",
+                  placeholder: "owner@school.co.ke",
+                }}
+              />
+              <Button
+                type="submit"
+                variant={inSetup ? "rush" : "paper"}
+                className="sm:mt-6"
+                isLoading={form.busy}
+              >
+                {inSetup ? "Hand over and go live" : "Change owner"}
+              </Button>
+            </div>
+            {hasOwner ? (
+              <CheckboxField
+                name="keepPrevious"
+                label={`Keep ${school.ownerEmail} on as an admin of every branch`}
+                disabled={form.busy}
+              />
+            ) : null}
+            <p className="m-0 text-[13px] text-ink-3">
+              We email them a link to their school.
+            </p>
           </form.fetcher.Form>
         </ServerFormProvider>
       </CardContent>

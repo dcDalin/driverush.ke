@@ -6,11 +6,19 @@
  * the database checks the caller again (private.is_staff, private.is_su,
  * row level security).
  */
-import { setSchoolPayments } from "~/database/billing/school";
+import { reviewBank, setSchoolPayments } from "~/database/billing/school";
 import * as consoleDb from "~/database/console/mutations";
-import { findAccountIdByEmail } from "~/database/console/queries";
+import {
+  findAccountIdByEmail,
+  getConsoleSchool,
+} from "~/database/console/queries";
 import type { Result } from "~/database/result";
 import type { SignedIn } from "~/lib/auth/require.server";
+import {
+  originOf,
+  tellBankDecision,
+  tellOwner,
+} from "~/lib/email/notify.server";
 import { formFields, readFormIntent } from "~/lib/forms/form-intent";
 import {
   dataWithError,
@@ -18,13 +26,15 @@ import {
   redirectWithSuccess,
 } from "~/lib/forms/toast.server";
 import { validateForm } from "~/lib/forms/validate-form.server";
-import { bankLabel, kenyanBanks } from "~/lib/payments/banks.server";
-import { getPaystackEnv, paymentsEnabled } from "~/lib/payments/env.server";
 import {
-  createSubaccount,
-  PaystackError,
-} from "~/lib/payments/paystack.server";
-import { SetUpPaymentsSchema } from "~/schemas/billing";
+  makeSubaccount,
+  switchOffSubaccount,
+} from "~/lib/payments/subaccounts.server";
+import {
+  ReviewBankSchema,
+  SetPassCodeSchema,
+  SetUpPaymentsSchema,
+} from "~/schemas/billing";
 import {
   ConsoleActionSchema,
   CreateSchoolSchema,
@@ -34,9 +44,14 @@ import {
   SetSponsorshipSchema,
 } from "~/schemas/console";
 
-export async function consoleAction(staff: SignedIn, formData: FormData) {
+export async function consoleAction(
+  staff: SignedIn,
+  formData: FormData,
+  request: Request,
+) {
   const { supabase, headers } = staff;
   const intent = readFormIntent(formData);
+  const origin = originOf(request);
 
   const reply = (result: Result<unknown>, message: string) =>
     result.error
@@ -69,6 +84,14 @@ export async function consoleAction(staff: SignedIn, formData: FormData) {
     if (result.error) {
       return dataWithError({ ok: false as const }, result.error, { headers });
     }
+    if (v.ownerEmail && result.data) {
+      const school = await getConsoleSchool(supabase, result.data);
+      await tellOwner(v.ownerEmail, {
+        school: v.name,
+        result: school?.ownerEmail ? "added" : "invited",
+        origin,
+      });
+    }
     // Straight to the new school, to set it up or check it.
     return redirectWithSuccess(
       `/console/schools/${result.data}`,
@@ -86,7 +109,16 @@ export async function consoleAction(staff: SignedIn, formData: FormData) {
       supabase,
       v.schoolId,
       v.email,
+      v.keepPrevious,
     );
+    if (result.data) {
+      const school = await getConsoleSchool(supabase, v.schoolId);
+      await tellOwner(v.email, {
+        school: school?.school.name ?? "your driving school",
+        result: result.data === "invited" ? "invited" : "added",
+        origin,
+      });
+    }
     return reply(
       result,
       result.data === "invited"
@@ -131,39 +163,67 @@ export async function consoleAction(staff: SignedIn, formData: FormData) {
       SetUpPaymentsSchema,
     );
     if (errors || !v) return invalid(errors);
-    if (!paymentsEnabled()) {
-      return dataWithError(
-        { ok: false as const },
-        "Payments are off on this server.",
-        { headers },
-      );
+    const made = await makeSubaccount(v);
+    if (!made.ok) {
+      return dataWithError({ ok: false as const }, made.message, { headers });
     }
-    let subaccount: string;
-    try {
-      subaccount = (
-        await createSubaccount(getPaystackEnv().secretKey, {
-          businessName: v.businessName,
-          bankCode: v.bankCode,
-          accountNumber: v.accountNumber,
-        })
-      ).subaccount_code;
-    } catch (error) {
-      return dataWithError(
-        { ok: false as const },
-        error instanceof PaystackError
-          ? `Paystack said: ${error.message}`
-          : "Paystack did not answer. Try again.",
-        { headers },
-      );
-    }
+    const result = await setSchoolPayments(supabase, {
+      schoolId: v.schoolId,
+      code: v.code,
+      subaccountCode: made.code,
+      bankLabel: made.label,
+      accountName: v.accountName,
+    });
+    await switchOffSubaccount(result.error ? made.code : result.data);
+    return reply(
+      result,
+      "Bank live. The school's learners can pay through it now.",
+    );
+  }
+
+  if (intent === "set-pass-code") {
+    const { errors, data: v } = await validateForm(formData, SetPassCodeSchema);
+    if (errors || !v) return invalid(errors);
     return reply(
       await setSchoolPayments(supabase, {
         schoolId: v.schoolId,
         code: v.code,
-        subaccountCode: subaccount,
-        bankLabel: bankLabel(await kenyanBanks(), v.bankCode, v.accountNumber),
+        subaccountCode: null,
+        bankLabel: null,
+        accountName: null,
       }),
-      "Payments on. The school's learners can pay through it now.",
+      "Code saved. Links with the old code stop working.",
+    );
+  }
+
+  if (intent === "review-bank") {
+    const { errors, data: v } = await validateForm(formData, ReviewBankSchema);
+    if (errors || !v) return invalid(errors);
+    const approve = v.decision === "approve";
+    const before = await getConsoleSchool(supabase, v.schoolId);
+    const result = await reviewBank(supabase, {
+      schoolId: v.schoolId,
+      approve,
+      note: v.note || null,
+    });
+    if (!result.error) {
+      await switchOffSubaccount(result.data);
+      const to = before?.ownerEmail;
+      if (to && before.payments?.pending_bank_label) {
+        await tellBankDecision(to, {
+          school: before.school.name,
+          approved: approve,
+          bank: before.payments.pending_bank_label,
+          note: v.note || null,
+          origin,
+        });
+      }
+    }
+    return reply(
+      result,
+      approve
+        ? "Bank approved. The school takes payments now."
+        : "Bank turned down. The owner sees why.",
     );
   }
 

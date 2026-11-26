@@ -495,6 +495,9 @@ create table public.school_member_invites (
   email extensions.citext not null check (email::text ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
   role public.school_role not null,
   branch_ids uuid[] not null default '{}',
+  -- An owner invite: whether the owner it replaces stays on as an admin of
+  -- every branch (owner, 2026-11-26) when the new owner signs up.
+  keep_previous_owner boolean not null default false check (not keep_previous_owner or role = 'owner'),
   status public.invite_status not null default 'pending',
   invited_by uuid references auth.users (id) on delete set null,
   created_at timestamptz not null default now(),
@@ -779,34 +782,61 @@ comment on table public.school_subscriptions is
 -- ===================================================
 -- TABLE: public.school_payment_settings
 -- ===================================================
--- How a school's learners pay through it (owner, 2026-11-25): the code the
--- school hands out (HELTZ), the price it sets (KES 500 to 1,000; DriveRush
--- keeps a fixed share, the plan's limits.driverush_share_kes), and the
--- Paystack subaccount its share settles to. Kept apart from schools because
--- it holds payment details.
+-- How a school's learners pay through it: the code the school hands out
+-- (HELTZ), the price it sets, and the Paystack subaccount its share settles
+-- to. Kept apart from schools because it holds payment details.
 --
--- DriveRush staff set it up (admin_set_school_payments, after creating the
--- subaccount with the school's bank details, which never land here: only a
--- label like "Equity ••4321"). The owner sets the price
--- (school_set_pass_price).
+-- Price (owner, 2026-11-26): no ceiling; at least DriveRush's fixed share
+-- plus a small amount for the school (private.school_min_price(), from the
+-- school_pass plan). A CHECK cannot read the plan, so the functions hold the
+-- minimum and the table only keeps prices positive.
+--
+-- Bank (owner, 2026-11-26): the owner asks for a bank on the dashboard. The
+-- server makes a Paystack subaccount with it and stores it as pending
+-- (school_request_bank); DriveRush staff check it with the school and approve
+-- it (admin_review_bank), which makes it the live one. Until then the live
+-- subaccount, if any, keeps being paid. Staff may also set a bank directly
+-- (admin_set_school_payments). Bank details stay in Paystack: here only a
+-- label like "Equity ••4321" and the account name.
 create table public.school_payment_settings (
   school_id uuid primary key references public.schools (id) on delete cascade,
   code extensions.citext not null unique check (code::text ~ '^[A-Z0-9]{3,12}$'),
-  price_kes integer not null default 700 check (price_kes between 500 and 1000),
+  price_kes integer not null default 700 check (price_kes > 0),
   paystack_subaccount_code text check (
     paystack_subaccount_code is null or paystack_subaccount_code ~ '^ACCT_[A-Za-z0-9_]+$'
   ),
   bank_label text check (bank_label is null or char_length(bank_label) between 2 and 80),
+  account_name text check (account_name is null or char_length(account_name) between 2 and 120),
+  -- A bank the owner asked for, waiting for staff.
+  pending_subaccount_code text check (
+    pending_subaccount_code is null or pending_subaccount_code ~ '^ACCT_[A-Za-z0-9_]+$'
+  ),
+  pending_bank_label text check (pending_bank_label is null or char_length(pending_bank_label) between 2 and 80),
+  pending_account_name text check (
+    pending_account_name is null or char_length(pending_account_name) between 2 and 120
+  ),
+  requested_by uuid references auth.users (id) on delete set null,
+  requested_at timestamptz,
+  -- The last review: who, when, and why a bank was turned down.
+  reviewed_by uuid references auth.users (id) on delete set null,
+  reviewed_at timestamptz,
+  review_note text check (review_note is null or char_length(review_note) between 1 and 300),
   is_active boolean not null default true,
   updated_by uuid references auth.users (id) on delete set null,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  check ((pending_subaccount_code is null) = (pending_bank_label is null)),
+  check ((pending_subaccount_code is null) = (requested_at is null))
 );
 
 create index school_payment_settings_updated_by_idx on public.school_payment_settings (updated_by);
+create index school_payment_settings_requested_by_idx on public.school_payment_settings (requested_by);
+create index school_payment_settings_reviewed_by_idx on public.school_payment_settings (reviewed_by);
+create index school_payment_settings_pending_idx
+  on public.school_payment_settings (requested_at) where pending_subaccount_code is not null;
 
 comment on table public.school_payment_settings is
-  'A school''s pass code, price (KES 500 to 1,000) and Paystack subaccount. Staff set it up; the owner sets the price.';
+  'A school''s pass code, price (no ceiling, at least school_min_price) and Paystack subaccount, with a bank change waiting for staff.';
 
 -- ── supabase/schemas/students/enums/student_enums.sql
 -- ===================================================
@@ -1458,8 +1488,7 @@ begin
      where id = v_invite.id;
 
     if v_invite.role = 'owner' then
-      delete from public.school_members
-       where school_id = v_invite.school_id and role = 'owner' and user_id <> p_user_id;
+      perform private.step_down_owner(v_invite.school_id, p_user_id, v_invite.keep_previous_owner);
     end if;
 
     insert into public.school_members (school_id, user_id, role, added_by)
@@ -1672,6 +1701,40 @@ comment on function public.revoke_platform_role(uuid, public.app_role) is
 -- FUNCTIONS: DriveRush staff create and run schools
 -- ===================================================
 
+-- The school's owner, other than p_new_owner, steps down: kept as an admin of
+-- every open branch when p_keep is true (and the school has one), otherwise
+-- removed.
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: private.set_school_owner, private.match_pending_invites
+create or replace function private.step_down_owner(p_school_id uuid, p_new_owner uuid, p_keep boolean)
+returns void
+language plpgsql
+set search_path = ''
+as $$
+declare
+  v_member_id uuid;
+begin
+  select m.id into v_member_id from public.school_members as m
+   where m.school_id = p_school_id and m.role = 'owner' and m.user_id <> p_new_owner;
+  if v_member_id is null then
+    return;
+  end if;
+  if p_keep and exists (select 1 from public.school_branches as b
+                         where b.school_id = p_school_id and b.is_active) then
+    update public.school_members set role = 'admin' where id = v_member_id;
+    insert into public.school_member_branches (member_id, branch_id, school_id)
+    select v_member_id, b.id, b.school_id
+      from public.school_branches as b
+     where b.school_id = p_school_id and b.is_active
+    on conflict do nothing;
+  else
+    delete from public.school_members where id = v_member_id;
+  end if;
+end;
+$$;
+
 -- Makes the account with this email the school's owner (replacing the
 -- current one), or, if no confirmed account has it yet, leaves an owner
 -- invite that match_pending_invites takes up on confirmation.
@@ -1682,7 +1745,8 @@ comment on function public.revoke_platform_role(uuid, public.app_role) is
 create or replace function private.set_school_owner(
   p_school_id uuid,
   p_email extensions.citext,
-  p_actor uuid
+  p_actor uuid,
+  p_keep_previous boolean default false
 )
 returns text
 language plpgsql
@@ -1700,13 +1764,12 @@ begin
     update public.school_member_invites
        set status = 'cancelled', closed_at = now()
      where school_id = p_school_id and email = p_email and status = 'pending';
-    insert into public.school_member_invites (school_id, email, role, invited_by)
-    values (p_school_id, p_email, 'owner', p_actor);
+    insert into public.school_member_invites (school_id, email, role, invited_by, keep_previous_owner)
+    values (p_school_id, p_email, 'owner', p_actor, coalesce(p_keep_previous, false));
     return 'invited';
   end if;
 
-  delete from public.school_members
-   where school_id = p_school_id and role = 'owner' and user_id <> v_user_id;
+  perform private.step_down_owner(p_school_id, v_user_id, coalesce(p_keep_previous, false));
 
   insert into public.school_members (school_id, user_id, role, added_by)
   values (p_school_id, v_user_id, 'owner', p_actor)
@@ -1816,7 +1879,11 @@ $$;
 -- Access:  authenticated (DriveRush su or admin)
 -- Guard:   admin (private.is_staff)
 -- Callers: DriveRush console (session)
-create or replace function private.admin_hand_over_school(p_school_id uuid, p_owner_email text)
+create or replace function private.admin_hand_over_school(
+  p_school_id uuid,
+  p_owner_email text,
+  p_keep_previous_owner boolean default false
+)
 returns text
 language plpgsql
 security definer
@@ -1836,7 +1903,9 @@ begin
   if v_status = 'archived' then
     raise exception 'school_inactive' using errcode = 'P0001';
   end if;
-  v_result := private.set_school_owner(p_school_id, lower(btrim(p_owner_email))::extensions.citext, auth.uid());
+  v_result := private.set_school_owner(
+    p_school_id, lower(btrim(p_owner_email))::extensions.citext, auth.uid(), p_keep_previous_owner
+  );
   if v_status = 'setup' then
     update public.schools set status = 'active' where id = p_school_id;
   end if;
@@ -1983,13 +2052,17 @@ $$;
 -- Access:  authenticated (DriveRush su or admin)
 -- Guard:   admin (the private body checks private.is_staff)
 -- Callers: DriveRush console (session)
-create or replace function public.admin_hand_over_school(p_school_id uuid, p_owner_email text)
+create or replace function public.admin_hand_over_school(
+  p_school_id uuid,
+  p_owner_email text,
+  p_keep_previous_owner boolean default false
+)
 returns text
 language sql
 security invoker
 set search_path = ''
 as $$
-  select private.admin_hand_over_school(p_school_id, p_owner_email);
+  select private.admin_hand_over_school(p_school_id, p_owner_email, p_keep_previous_owner);
 $$;
 
 -- Access:  authenticated (DriveRush su or admin)
@@ -2027,31 +2100,33 @@ as $$
   select * from private.admin_list_schools(p_search, p_status, p_livery, p_sponsoring, p_limit, p_offset);
 $$;
 
-revoke all on function private.admin_hand_over_school(uuid, text) from public;
+revoke all on function private.admin_hand_over_school(uuid, text, boolean) from public;
 revoke all on function private.admin_list_schools(text, text, text, text, integer, integer) from public;
-revoke all on function public.admin_hand_over_school(uuid, text) from public;
+revoke all on function public.admin_hand_over_school(uuid, text, boolean) from public;
 revoke all on function public.admin_list_schools(text, text, text, text, integer, integer) from public;
-grant execute on function private.admin_hand_over_school(uuid, text) to service_role;
+grant execute on function private.admin_hand_over_school(uuid, text, boolean) to service_role;
 grant execute on function private.admin_list_schools(text, text, text, text, integer, integer) to service_role;
-grant execute on function public.admin_hand_over_school(uuid, text) to service_role;
+grant execute on function public.admin_hand_over_school(uuid, text, boolean) to service_role;
 grant execute on function public.admin_list_schools(text, text, text, text, integer, integer) to service_role;
-comment on function private.admin_hand_over_school(uuid, text) is
-  'DriveRush staff: makes an email the school owner (added or invited) and puts a setup school live.';
-comment on function public.admin_hand_over_school(uuid, text) is
-  'DriveRush staff: makes an email the school owner (added or invited) and puts a setup school live.';
+comment on function private.admin_hand_over_school(uuid, text, boolean) is
+  'DriveRush staff: makes an email the school owner (added or invited), keeping the old owner as an admin if asked, and puts a setup school live.';
+comment on function public.admin_hand_over_school(uuid, text, boolean) is
+  'DriveRush staff: makes an email the school owner (added or invited), keeping the old owner as an admin if asked, and puts a setup school live.';
 comment on function private.admin_list_schools(text, text, text, text, integer, integer) is
   'DriveRush staff: one page of schools (search, status, livery and sponsorship filters) with the total count.';
 comment on function public.admin_list_schools(text, text, text, text, integer, integer) is
   'DriveRush staff: one page of schools (search, status, livery and sponsorship filters) with the total count.';
 
-revoke all on function private.set_school_owner(uuid, extensions.citext, uuid) from public;
+revoke all on function private.step_down_owner(uuid, uuid, boolean) from public;
+revoke all on function private.set_school_owner(uuid, extensions.citext, uuid, boolean) from public;
 revoke all on function private.admin_create_school(text, text, text) from public;
 revoke all on function private.admin_set_school_status(uuid, public.school_status) from public;
 revoke all on function private.admin_transfer_school_owner(uuid, text) from public;
 revoke all on function public.admin_create_school(text, text, text) from public;
 revoke all on function public.admin_set_school_status(uuid, public.school_status) from public;
 revoke all on function public.admin_transfer_school_owner(uuid, text) from public;
-grant execute on function private.set_school_owner(uuid, extensions.citext, uuid) to service_role;
+grant execute on function private.step_down_owner(uuid, uuid, boolean) to service_role;
+grant execute on function private.set_school_owner(uuid, extensions.citext, uuid, boolean) to service_role;
 grant execute on function private.admin_create_school(text, text, text) to service_role;
 grant execute on function private.admin_set_school_status(uuid, public.school_status) to service_role;
 grant execute on function private.admin_transfer_school_owner(uuid, text) to service_role;
@@ -2059,7 +2134,9 @@ grant execute on function public.admin_create_school(text, text, text) to servic
 grant execute on function public.admin_set_school_status(uuid, public.school_status) to service_role;
 grant execute on function public.admin_transfer_school_owner(uuid, text) to service_role;
 
-comment on function private.set_school_owner(uuid, extensions.citext, uuid) is
+comment on function private.step_down_owner(uuid, uuid, boolean) is
+  'The school''s old owner steps down: kept as an admin of every open branch, or removed.';
+comment on function private.set_school_owner(uuid, extensions.citext, uuid, boolean) is
   'Makes an email the school owner now (confirmed account) or by invite; replaces the current owner.';
 comment on function private.admin_create_school(text, text, text) is
   'DriveRush staff: creates a school and sets its owner by email.';
@@ -3553,9 +3630,12 @@ comment on function public.my_entitlement() is
 -- Owner, 2026-11-25. Three plans (reference rows in
 -- migrations/*_reference_plans.sql):
 --   learner_pass       KES 1,000 for 60 days, all to DriveRush
---   school_pass        the school's price (KES 500 to 1,000) for 60 days;
---                      DriveRush keeps limits.driverush_share_kes (300), the
---                      rest settles to the school's bank (Paystack subaccount)
+--   school_pass        the school's own price for 60 days, no ceiling (owner,
+--                      2026-11-26); DriveRush keeps limits.driverush_share_kes
+--                      (300), the rest settles to the school's bank (Paystack
+--                      subaccount), which pays Paystack's fee. The price is at
+--                      least the share plus limits.min_school_share_kes (50),
+--                      private.school_min_price()
 --   learner_extension  KES 300 for 30 days, all to DriveRush, for a learner
 --                      who has had a pass
 --
@@ -3745,7 +3825,9 @@ begin
 
     v_amount := v_settings.price_kes;
     v_share := (v_plan.limits ->> 'driverush_share_kes')::integer;
-    if v_share is null or v_share <= 0 or v_share >= v_amount then
+    -- A school price set before the minimum went up is refused, not raised
+    -- behind the learner's back: the school sets a new price.
+    if v_share is null or v_share <= 0 or v_amount < private.school_min_price() then
       raise exception 'price_below_share' using errcode = 'P0001';
     end if;
   else
@@ -4091,26 +4173,86 @@ comment on function private.refund_payment(text, jsonb) is
 
 -- ── supabase/schemas/billing/functions/school_passes.sql
 -- ===================================================
--- FUNCTIONS: a school's pass code, price and earnings
+-- FUNCTIONS: a school's pass code, price, bank and earnings
 -- ===================================================
 -- Owner, 2026-11-25: schools pay nothing and earn from every learner who pays
 -- through them (price minus DriveRush's fixed share). Paystack settles the
 -- school's share to its bank itself, so there is no balance to withdraw:
 -- earnings are a read of the payments.
+--
+-- Owner, 2026-11-26: a school sets any price at or above
+-- private.school_min_price() (DriveRush's share plus a little for the school,
+-- which pays Paystack's fee from its share). The owner asks for the bank; staff
+-- approve it.
 
--- The school's code and price, for its team to hand out. The bank label is
--- shown to the owner and staff only.
+-- The lowest price a school may set: DriveRush's share plus the school's
+-- minimum, both from the school_pass plan.
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate; reads the public plans only)
+-- Callers: school_pass_info, school_set_pass_price, school_request_bank, start_pass_checkout
+create or replace function private.school_min_price()
+returns integer
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select coalesce((p.limits ->> 'driverush_share_kes')::integer, 0)
+       + coalesce((p.limits ->> 'min_school_share_kes')::integer, 0)
+    from public.plans as p
+   where p.code = 'school_pass';
+$$;
+
+-- A free pass code from a school's short name: HELTZ, then HELTZ2, HELTZ3.
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: school_request_bank
+create or replace function private.new_pass_code(p_slug text)
+returns extensions.citext
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_base text := left(upper(regexp_replace(coalesce(p_slug, ''), '[^A-Za-z0-9]', '', 'g')), 10);
+  v_try text;
+  v_n integer := 1;
+begin
+  if char_length(v_base) < 3 then
+    v_base := rpad(v_base || 'DR', 3, 'X');
+  end if;
+  v_try := v_base;
+  while exists (select 1 from public.school_payment_settings as ps where ps.code = v_try::extensions.citext) loop
+    v_n := v_n + 1;
+    v_try := v_base || v_n::text;
+  end loop;
+  return v_try::extensions.citext;
+end;
+$$;
+
+-- The school's code and price, for its team to hand out, and (owner and
+-- staff only) its bank and any bank waiting for DriveRush.
 --
 -- Access:  authenticated (school owner, branch admin or DriveRush staff)
 -- Guard:   school (is_school_member or is_staff)
--- Callers: school dashboard (session)
+-- Callers: school dashboard (session), console (session)
 create or replace function private.school_pass_info(p_school_id uuid)
 returns table (
   code text,
   price_kes integer,
   driverush_share_kes integer,
+  min_price_kes integer,
   ready boolean,
-  bank_label text
+  bank_label text,
+  account_name text,
+  pending_bank_label text,
+  pending_account_name text,
+  requested_at timestamptz,
+  reviewed_at timestamptz,
+  review_note text
 )
 language plpgsql
 stable
@@ -4124,20 +4266,26 @@ begin
     raise exception 'forbidden' using errcode = '42501';
   end if;
   v_owner_view := private.is_school_owner(p_school_id) or private.is_staff();
-
   return query
     select ps.code::text,
            ps.price_kes,
            (select (p.limits ->> 'driverush_share_kes')::integer from public.plans as p where p.code = 'school_pass'),
+           private.school_min_price(),
            ps.is_active and ps.paystack_subaccount_code is not null,
-           case when v_owner_view then ps.bank_label end
+           case when v_owner_view then ps.bank_label end,
+           case when v_owner_view then ps.account_name end,
+           case when v_owner_view then ps.pending_bank_label end,
+           case when v_owner_view then ps.pending_account_name end,
+           case when v_owner_view then ps.requested_at end,
+           case when v_owner_view then ps.reviewed_at end,
+           case when v_owner_view then ps.review_note end
       from public.school_payment_settings as ps
      where ps.school_id = p_school_id;
 end;
 $$;
 
--- The owner sets what their learners pay through the school (KES 500 to
--- 1,000). Payments already started keep the price they started with.
+-- The owner sets what their learners pay through the school: any price at or
+-- above school_min_price(). Payments already started keep their price.
 --
 -- Access:  authenticated (school owner or DriveRush staff)
 -- Guard:   school (private.can_manage_school: owner or staff)
@@ -4152,7 +4300,7 @@ begin
   if not private.can_manage_school(p_school_id) then
     raise exception 'forbidden' using errcode = '42501';
   end if;
-  if p_price_kes is null or p_price_kes not between 500 and 1000 then
+  if p_price_kes is null or p_price_kes < private.school_min_price() or p_price_kes > 1000000 then
     raise exception 'price_out_of_range' using errcode = 'P0001';
   end if;
   update public.school_payment_settings
@@ -4169,7 +4317,7 @@ $$;
 --
 -- Access:  authenticated (school owner, branch admin or DriveRush staff)
 -- Guard:   school (is_school_member or is_staff; rows by can_see_branch)
--- Callers: school dashboard (session)
+-- Callers: school dashboard (session), console (session)
 create or replace function private.school_earnings(p_school_id uuid, p_branch_id uuid default null)
 returns table (
   payment_id uuid,
@@ -4193,7 +4341,6 @@ begin
     raise exception 'forbidden' using errcode = '42501';
   end if;
   v_all := private.is_school_owner(p_school_id) or private.is_staff();
-
   return query
     select p.id, p.settled_at, u.email::text, p.branch_id, b.name,
            p.amount_kes, p.school_share_kes, p.status
@@ -4209,26 +4356,134 @@ begin
 end;
 $$;
 
--- DriveRush staff turn a school's payments on: its code, the Paystack
--- subaccount made with its bank details (by the console, from the school's
--- own confirmation), and a label for the bank. The price stays (700 at
--- first; the owner sets it).
+-- Records the bank an owner asked for, after the server made its Paystack
+-- subaccount, as waiting for DriveRush. Makes the school's settings (code from
+-- its short name, the usual first price) if it has none. Returns the
+-- subaccount of an earlier request this one replaces (null if none), for the
+-- server to switch off on Paystack.
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate; the server checks the owner first)
+-- Callers: school dashboard bank form (server, service role)
+create or replace function private.school_request_bank(
+  p_school_id uuid,
+  p_actor uuid,
+  p_subaccount_code text,
+  p_bank_label text,
+  p_account_name text
+)
+returns text
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_slug text;
+  v_replaced text;
+begin
+  select s.slug into v_slug from public.schools as s
+   where s.id = p_school_id and s.status in ('setup', 'active');
+  if v_slug is null then
+    raise exception 'not_found' using errcode = 'P0002';
+  end if;
+  select ps.pending_subaccount_code into v_replaced
+    from public.school_payment_settings as ps where ps.school_id = p_school_id for update;
+  insert into public.school_payment_settings (
+    school_id, code, price_kes, pending_subaccount_code, pending_bank_label,
+    pending_account_name, requested_by, requested_at, updated_by
+  ) values (
+    p_school_id, private.new_pass_code(v_slug), greatest(700, private.school_min_price()),
+    btrim(p_subaccount_code), btrim(p_bank_label), nullif(btrim(p_account_name), ''),
+    p_actor, now(), p_actor
+  )
+  on conflict (school_id) do update
+    set pending_subaccount_code = excluded.pending_subaccount_code,
+        pending_bank_label = excluded.pending_bank_label,
+        pending_account_name = excluded.pending_account_name,
+        requested_by = excluded.requested_by,
+        requested_at = excluded.requested_at,
+        review_note = null,
+        updated_by = excluded.updated_by;
+  return v_replaced;
+end;
+$$;
+
+-- Staff approve or turn down the bank an owner asked for. Approving makes it
+-- the live one and returns the subaccount it replaces; turning down clears it
+-- (with a note the owner reads) and returns that one. Either way the returned
+-- subaccount is for the server to switch off on Paystack.
 --
 -- Access:  authenticated (DriveRush su or admin)
 -- Guard:   admin (private.is_staff)
 -- Callers: DriveRush console (session)
+create or replace function private.admin_review_bank(
+  p_school_id uuid,
+  p_approve boolean,
+  p_note text
+)
+returns text
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_settings public.school_payment_settings;
+begin
+  if not private.is_staff() then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  select * into v_settings from public.school_payment_settings as ps
+   where ps.school_id = p_school_id for update;
+  if v_settings.pending_subaccount_code is null then
+    raise exception 'nothing_to_review' using errcode = 'P0001';
+  end if;
+  if coalesce(p_approve, false) then
+    update public.school_payment_settings
+       set paystack_subaccount_code = v_settings.pending_subaccount_code,
+           bank_label = v_settings.pending_bank_label,
+           account_name = v_settings.pending_account_name,
+           pending_subaccount_code = null, pending_bank_label = null,
+           pending_account_name = null, requested_at = null,
+           reviewed_by = auth.uid(), reviewed_at = now(), review_note = null,
+           updated_by = auth.uid()
+     where school_id = p_school_id;
+    return v_settings.paystack_subaccount_code;
+  end if;
+  update public.school_payment_settings
+     set pending_subaccount_code = null, pending_bank_label = null,
+         pending_account_name = null, requested_at = null,
+         reviewed_by = auth.uid(), reviewed_at = now(),
+         review_note = coalesce(nullif(btrim(p_note), ''), 'Not approved. Call DriveRush.'),
+         updated_by = auth.uid()
+   where school_id = p_school_id;
+  return v_settings.pending_subaccount_code;
+end;
+$$;
+
+-- DriveRush staff set a school's passes directly: its code, and (when given)
+-- a bank already checked with the school, live at once. With no subaccount
+-- the bank stays as it is (a code or on/off change). Returns the subaccount
+-- the new one replaces, for the server to switch off on Paystack.
+--
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (private.is_staff)
+-- Callers: DriveRush console (session); the seed
 create or replace function private.admin_set_school_payments(
   p_school_id uuid,
   p_code text,
   p_subaccount_code text,
   p_bank_label text,
+  p_account_name text,
   p_is_active boolean
 )
-returns void
+returns text
 language plpgsql
 security definer
 set search_path = ''
 as $$
+declare
+  v_old text;
+  v_new text := nullif(btrim(coalesce(p_subaccount_code, '')), '');
 begin
   if not private.is_staff() then
     raise exception 'forbidden' using errcode = '42501';
@@ -4236,32 +4491,191 @@ begin
   if not exists (select 1 from public.schools where id = p_school_id) then
     raise exception 'not_found' using errcode = 'P0002';
   end if;
-
-  insert into public.school_payment_settings (
-    school_id, code, paystack_subaccount_code, bank_label, is_active, updated_by
+  select ps.paystack_subaccount_code into v_old
+    from public.school_payment_settings as ps where ps.school_id = p_school_id for update;
+  insert into public.school_payment_settings as ps (
+    school_id, code, price_kes, paystack_subaccount_code, bank_label, account_name,
+    is_active, updated_by, reviewed_by, reviewed_at
   ) values (
-    p_school_id, upper(btrim(p_code)), nullif(btrim(p_subaccount_code), ''),
-    nullif(btrim(p_bank_label), ''), coalesce(p_is_active, true), auth.uid()
+    p_school_id, upper(btrim(p_code)), greatest(700, private.school_min_price()), v_new,
+    nullif(btrim(p_bank_label), ''), nullif(btrim(coalesce(p_account_name, '')), ''),
+    coalesce(p_is_active, true), auth.uid(),
+    case when v_new is not null then auth.uid() end,
+    case when v_new is not null then now() end
   )
   on conflict (school_id) do update
     set code = excluded.code,
-        paystack_subaccount_code = excluded.paystack_subaccount_code,
-        bank_label = excluded.bank_label,
+        paystack_subaccount_code = coalesce(v_new, ps.paystack_subaccount_code),
+        bank_label = case when v_new is not null then excluded.bank_label
+                          else ps.bank_label end,
+        account_name = case when v_new is not null then excluded.account_name
+                            else ps.account_name end,
+        reviewed_by = coalesce(excluded.reviewed_by, ps.reviewed_by),
+        reviewed_at = coalesce(excluded.reviewed_at, ps.reviewed_at),
         is_active = excluded.is_active,
         updated_by = excluded.updated_by;
+  return case when v_new is not null and v_old is distinct from v_new then v_old end;
+end;
+$$;
+
+-- Banks owners asked for, waiting for DriveRush, oldest first.
+--
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (private.is_staff)
+-- Callers: DriveRush console (session)
+create or replace function private.admin_list_bank_requests()
+returns table (
+  school_id uuid,
+  school_name text,
+  pending_bank_label text,
+  pending_account_name text,
+  requested_at timestamptz,
+  requested_by_email text,
+  live_bank_label text
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if not private.is_staff() then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  return query
+    select ps.school_id, s.name, ps.pending_bank_label, ps.pending_account_name,
+           ps.requested_at, u.email::text, ps.bank_label
+      from public.school_payment_settings as ps
+      join public.schools as s on s.id = ps.school_id
+      left join auth.users as u on u.id = ps.requested_by
+     where ps.pending_subaccount_code is not null
+     order by ps.requested_at;
+end;
+$$;
+
+-- One page of every payment, for staff: newest first, searched by the payer's
+-- email, the school's name or the reference, filtered by status and school.
+-- `total` is the count of every match, on every row.
+--
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (private.is_staff)
+-- Callers: DriveRush console (session)
+create or replace function private.admin_list_payments(
+  p_search text,
+  p_status text,
+  p_limit integer,
+  p_offset integer,
+  p_school_id uuid default null
+)
+returns table (
+  id uuid,
+  created_at timestamptz,
+  settled_at timestamptz,
+  status public.payment_status,
+  payer_email text,
+  school_id uuid,
+  school_name text,
+  plan_code text,
+  amount_kes integer,
+  driverush_share_kes integer,
+  school_share_kes integer,
+  fee_kes numeric,
+  provider_ref text,
+  total bigint
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_q text := nullif(btrim(coalesce(p_search, '')), '');
+begin
+  if not private.is_staff() then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  return query
+    select p.id, p.created_at, p.settled_at, p.status, u.email::text, p.school_id,
+           s.name, pl.code, p.amount_kes, p.driverush_share_kes, p.school_share_kes,
+           p.fee_kes, p.provider_ref, count(*) over ()
+      from public.payments as p
+      left join auth.users as u on u.id = p.payer_user_id
+      left join public.schools as s on s.id = p.school_id
+      left join public.plans as pl on pl.id = p.plan_id
+     where (p_status is null or p_status = '' or p.status::text = p_status)
+       and (p_school_id is null or p.school_id = p_school_id)
+       and (v_q is null
+            or u.email::text ilike '%' || v_q || '%'
+            or s.name ilike '%' || v_q || '%'
+            or p.provider_ref ilike '%' || v_q || '%')
+     order by p.created_at desc
+     limit greatest(1, least(coalesce(p_limit, 20), 100))
+    offset greatest(0, coalesce(p_offset, 0));
+end;
+$$;
+
+-- Money this month and last month (Kenyan calendar), for staff: settled
+-- payments, what learners paid, DriveRush's and the schools' shares, and
+-- Paystack's fees.
+--
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (private.is_staff)
+-- Callers: DriveRush console (session)
+create or replace function private.admin_payment_totals()
+returns table (
+  month date,
+  payments bigint,
+  paid_kes bigint,
+  driverush_kes bigint,
+  schools_kes bigint,
+  fees_kes numeric,
+  refunded bigint
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_this date := date_trunc('month', (now() at time zone 'Africa/Nairobi'))::date;
+begin
+  if not private.is_staff() then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  return query
+    select m.month,
+           count(p.id) filter (where p.status = 'succeeded'),
+           coalesce(sum(p.amount_kes) filter (where p.status = 'succeeded'), 0)::bigint,
+           coalesce(sum(p.driverush_share_kes) filter (where p.status = 'succeeded'), 0)::bigint,
+           coalesce(sum(p.school_share_kes) filter (where p.status = 'succeeded'), 0)::bigint,
+           coalesce(sum(p.fee_kes) filter (where p.status = 'succeeded'), 0),
+           count(p.id) filter (where p.status = 'refunded')
+      from (values (v_this), ((v_this - interval '1 month')::date)) as m (month)
+      left join public.payments as p
+        on p.settled_at is not null
+       and date_trunc('month', (p.settled_at at time zone 'Africa/Nairobi'))::date = m.month
+     group by m.month
+     order by m.month desc;
 end;
 $$;
 
 -- Access:  authenticated (school owner, branch admin or DriveRush staff)
 -- Guard:   school (the private body checks is_school_member or is_staff)
--- Callers: school dashboard (session)
+-- Callers: school dashboard (session), console (session)
 create or replace function public.school_pass_info(p_school_id uuid)
 returns table (
   code text,
   price_kes integer,
   driverush_share_kes integer,
+  min_price_kes integer,
   ready boolean,
-  bank_label text
+  bank_label text,
+  account_name text,
+  pending_bank_label text,
+  pending_account_name text,
+  requested_at timestamptz,
+  reviewed_at timestamptz,
+  review_note text
 )
 language sql
 stable
@@ -4285,7 +4699,7 @@ $$;
 
 -- Access:  authenticated (school owner, branch admin or DriveRush staff)
 -- Guard:   school (the private body checks membership; rows by can_see_branch)
--- Callers: school dashboard (session)
+-- Callers: school dashboard (session), console (session)
 create or replace function public.school_earnings(p_school_id uuid, p_branch_id uuid default null)
 returns table (
   payment_id uuid,
@@ -4305,57 +4719,214 @@ as $$
   select * from private.school_earnings(p_school_id, p_branch_id);
 $$;
 
+-- Access:  service_role
+-- Guard:   none (the grant is the gate; the server checks the owner first)
+-- Callers: school dashboard bank form (server, service role)
+create or replace function public.school_request_bank(
+  p_school_id uuid,
+  p_actor uuid,
+  p_subaccount_code text,
+  p_bank_label text,
+  p_account_name text
+)
+returns text
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.school_request_bank(p_school_id, p_actor, p_subaccount_code, p_bank_label, p_account_name);
+$$;
+
 -- Access:  authenticated (DriveRush su or admin)
 -- Guard:   admin (the private body checks private.is_staff)
 -- Callers: DriveRush console (session)
+create or replace function public.admin_review_bank(p_school_id uuid, p_approve boolean, p_note text)
+returns text
+language sql
+security invoker
+set search_path = ''
+as $$
+  select private.admin_review_bank(p_school_id, p_approve, p_note);
+$$;
+
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (the private body checks private.is_staff)
+-- Callers: DriveRush console (session); the seed
 create or replace function public.admin_set_school_payments(
   p_school_id uuid,
   p_code text,
   p_subaccount_code text,
   p_bank_label text,
+  p_account_name text,
   p_is_active boolean
 )
-returns void
+returns text
 language sql
 security invoker
 set search_path = ''
 as $$
-  select private.admin_set_school_payments(p_school_id, p_code, p_subaccount_code, p_bank_label, p_is_active);
+  select private.admin_set_school_payments(
+    p_school_id, p_code, p_subaccount_code, p_bank_label, p_account_name, p_is_active
+  );
 $$;
 
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (the private body checks private.is_staff)
+-- Callers: DriveRush console (session)
+create or replace function public.admin_list_bank_requests()
+returns table (
+  school_id uuid,
+  school_name text,
+  pending_bank_label text,
+  pending_account_name text,
+  requested_at timestamptz,
+  requested_by_email text,
+  live_bank_label text
+)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select * from private.admin_list_bank_requests();
+$$;
+
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (the private body checks private.is_staff)
+-- Callers: DriveRush console (session)
+create or replace function public.admin_list_payments(
+  p_search text,
+  p_status text,
+  p_limit integer,
+  p_offset integer,
+  p_school_id uuid default null
+)
+returns table (
+  id uuid,
+  created_at timestamptz,
+  settled_at timestamptz,
+  status public.payment_status,
+  payer_email text,
+  school_id uuid,
+  school_name text,
+  plan_code text,
+  amount_kes integer,
+  driverush_share_kes integer,
+  school_share_kes integer,
+  fee_kes numeric,
+  provider_ref text,
+  total bigint
+)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select * from private.admin_list_payments(p_search, p_status, p_limit, p_offset, p_school_id);
+$$;
+
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (the private body checks private.is_staff)
+-- Callers: DriveRush console (session)
+create or replace function public.admin_payment_totals()
+returns table (
+  month date,
+  payments bigint,
+  paid_kes bigint,
+  driverush_kes bigint,
+  schools_kes bigint,
+  fees_kes numeric,
+  refunded bigint
+)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select * from private.admin_payment_totals();
+$$;
+
+revoke all on function private.school_min_price() from public;
+revoke all on function private.new_pass_code(text) from public;
 revoke all on function private.school_pass_info(uuid) from public;
 revoke all on function public.school_pass_info(uuid) from public;
 revoke all on function private.school_set_pass_price(uuid, integer) from public;
 revoke all on function public.school_set_pass_price(uuid, integer) from public;
 revoke all on function private.school_earnings(uuid, uuid) from public;
 revoke all on function public.school_earnings(uuid, uuid) from public;
-revoke all on function private.admin_set_school_payments(uuid, text, text, text, boolean) from public;
-revoke all on function public.admin_set_school_payments(uuid, text, text, text, boolean) from public;
+revoke all on function private.school_request_bank(uuid, uuid, text, text, text) from public;
+revoke all on function public.school_request_bank(uuid, uuid, text, text, text) from public;
+revoke all on function private.admin_review_bank(uuid, boolean, text) from public;
+revoke all on function public.admin_review_bank(uuid, boolean, text) from public;
+revoke all on function private.admin_set_school_payments(uuid, text, text, text, text, boolean) from public;
+revoke all on function public.admin_set_school_payments(uuid, text, text, text, text, boolean) from public;
+revoke all on function private.admin_list_bank_requests() from public;
+revoke all on function public.admin_list_bank_requests() from public;
+revoke all on function private.admin_list_payments(text, text, integer, integer, uuid) from public;
+revoke all on function public.admin_list_payments(text, text, integer, integer, uuid) from public;
+revoke all on function private.admin_payment_totals() from public;
+revoke all on function public.admin_payment_totals() from public;
+grant execute on function private.school_min_price() to service_role;
+grant execute on function private.new_pass_code(text) to service_role;
 grant execute on function private.school_pass_info(uuid) to service_role;
 grant execute on function public.school_pass_info(uuid) to service_role;
 grant execute on function private.school_set_pass_price(uuid, integer) to service_role;
 grant execute on function public.school_set_pass_price(uuid, integer) to service_role;
 grant execute on function private.school_earnings(uuid, uuid) to service_role;
 grant execute on function public.school_earnings(uuid, uuid) to service_role;
-grant execute on function private.admin_set_school_payments(uuid, text, text, text, boolean) to service_role;
-grant execute on function public.admin_set_school_payments(uuid, text, text, text, boolean) to service_role;
+grant execute on function private.school_request_bank(uuid, uuid, text, text, text) to service_role;
+grant execute on function public.school_request_bank(uuid, uuid, text, text, text) to service_role;
+grant execute on function private.admin_review_bank(uuid, boolean, text) to service_role;
+grant execute on function public.admin_review_bank(uuid, boolean, text) to service_role;
+grant execute on function private.admin_set_school_payments(uuid, text, text, text, text, boolean) to service_role;
+grant execute on function public.admin_set_school_payments(uuid, text, text, text, text, boolean) to service_role;
+grant execute on function private.admin_list_bank_requests() to service_role;
+grant execute on function public.admin_list_bank_requests() to service_role;
+grant execute on function private.admin_list_payments(text, text, integer, integer, uuid) to service_role;
+grant execute on function public.admin_list_payments(text, text, integer, integer, uuid) to service_role;
+grant execute on function private.admin_payment_totals() to service_role;
+grant execute on function public.admin_payment_totals() to service_role;
 
+comment on function private.school_min_price() is
+  'The lowest school pass price: DriveRush''s share plus the school''s minimum (school_pass plan).';
+comment on function private.new_pass_code(text) is
+  'A free pass code made from a school''s short name.';
 comment on function private.school_pass_info(uuid) is
-  'School team: the school''s pass code, price, DriveRush''s share and whether payments are ready.';
+  'School team: the school''s pass code, price, minimum and readiness; the bank (live and waiting) to owner and staff.';
 comment on function public.school_pass_info(uuid) is
-  'School team: the school''s pass code, price, DriveRush''s share and whether payments are ready.';
+  'School team: the school''s pass code, price, minimum and readiness; the bank (live and waiting) to owner and staff.';
 comment on function private.school_set_pass_price(uuid, integer) is
-  'School owner or staff: sets the school pass price (KES 500 to 1,000).';
+  'School owner or staff: sets the school pass price (at least school_min_price, no ceiling).';
 comment on function public.school_set_pass_price(uuid, integer) is
-  'School owner or staff: sets the school pass price (KES 500 to 1,000).';
+  'School owner or staff: sets the school pass price (at least school_min_price, no ceiling).';
 comment on function private.school_earnings(uuid, uuid) is
   'School team: settled payments through the school, by branch for admins.';
 comment on function public.school_earnings(uuid, uuid) is
   'School team: settled payments through the school, by branch for admins.';
-comment on function private.admin_set_school_payments(uuid, text, text, text, boolean) is
-  'Staff: a school''s pass code, Paystack subaccount and bank label.';
-comment on function public.admin_set_school_payments(uuid, text, text, text, boolean) is
-  'Staff: a school''s pass code, Paystack subaccount and bank label.';
+comment on function private.school_request_bank(uuid, uuid, text, text, text) is
+  'Server (after its owner check): the bank an owner asked for, waiting for staff. Returns the request it replaces.';
+comment on function public.school_request_bank(uuid, uuid, text, text, text) is
+  'Server (after its owner check): the bank an owner asked for, waiting for staff. Returns the request it replaces.';
+comment on function private.admin_review_bank(uuid, boolean, text) is
+  'Staff: approve or turn down a bank an owner asked for. Returns the subaccount to switch off.';
+comment on function public.admin_review_bank(uuid, boolean, text) is
+  'Staff: approve or turn down a bank an owner asked for. Returns the subaccount to switch off.';
+comment on function private.admin_set_school_payments(uuid, text, text, text, text, boolean) is
+  'Staff: a school''s pass code and (when given) its checked bank, live at once. Returns the subaccount replaced.';
+comment on function public.admin_set_school_payments(uuid, text, text, text, text, boolean) is
+  'Staff: a school''s pass code and (when given) its checked bank, live at once. Returns the subaccount replaced.';
+comment on function private.admin_list_bank_requests() is
+  'Staff: banks owners asked for, waiting for approval.';
+comment on function public.admin_list_bank_requests() is
+  'Staff: banks owners asked for, waiting for approval.';
+comment on function private.admin_list_payments(text, text, integer, integer, uuid) is
+  'Staff: one page of every payment, searched and filtered.';
+comment on function public.admin_list_payments(text, text, integer, integer, uuid) is
+  'Staff: one page of every payment, searched and filtered.';
+comment on function private.admin_payment_totals() is
+  'Staff: this month''s and last month''s money (Kenyan calendar).';
+comment on function public.admin_payment_totals() is
+  'Staff: this month''s and last month''s money (Kenyan calendar).';
 
 -- ── supabase/schemas/progress/functions/school_student_progress.sql
 -- ===================================================
@@ -4379,7 +4950,9 @@ returns table (
   starts_at timestamptz,
   ends_at timestamptz,
   progress jsonb,
-  progress_updated_at timestamptz
+  progress_updated_at timestamptz,
+  pass_ends_at timestamptz,
+  pass_through_school boolean
 )
 language plpgsql
 stable
@@ -4397,8 +4970,19 @@ begin
   select l.id, l.branch_id, l.user_id, l.email, p.full_name, l.starts_at, l.ends_at,
          coalesce((select jsonb_object_agg(lp.store, lp.data)
                      from public.learner_progress as lp where lp.user_id = l.user_id), '{}'::jsonb),
-         (select max(lp.updated_at) from public.learner_progress as lp where lp.user_id = l.user_id)
+         (select max(lp.updated_at) from public.learner_progress as lp where lp.user_id = l.user_id),
+         pass.ends_at,
+         coalesce(pass.through_school, false)
     from public.school_student_links as l
+    -- The learner's pass running now or next (passes are back to back), and
+    -- whether one of them was bought through this school.
+    left join lateral (
+      select max(ls.ends_at) as ends_at,
+             bool_or(pay.school_id = p_school_id) as through_school
+        from public.learner_subscriptions as ls
+        left join public.payments as pay on pay.id = ls.payment_id
+       where ls.user_id = l.user_id and ls.status = 'active' and ls.ends_at > now()
+    ) as pass on true
     left join public.profiles as p on p.id = l.user_id
    where l.school_id = p_school_id
      and l.status = 'active' and l.ends_at > now()
@@ -4421,7 +5005,9 @@ returns table (
   starts_at timestamptz,
   ends_at timestamptz,
   progress jsonb,
-  progress_updated_at timestamptz
+  progress_updated_at timestamptz,
+  pass_ends_at timestamptz,
+  pass_through_school boolean
 )
 language sql
 stable
@@ -4437,9 +5023,9 @@ grant execute on function private.school_student_progress(uuid, uuid) to service
 grant execute on function public.school_student_progress(uuid, uuid) to service_role;
 
 comment on function private.school_student_progress(uuid, uuid) is
-  'School owner, admin (own branches) or staff: currently linked learners with their saved progress.';
+  'School owner, admin (own branches) or staff: currently linked learners with their saved progress and pass.';
 comment on function public.school_student_progress(uuid, uuid) is
-  'School owner, admin (own branches) or staff: currently linked learners with their saved progress.';
+  'School owner, admin (own branches) or staff: currently linked learners with their saved progress and pass.';
 
 -- ── supabase/schemas/profiles/triggers/auth_users_triggers.sql
 -- ===================================================
@@ -4760,7 +5346,8 @@ create policy "payments: payer, school owner or staff read"
 -- Reads:  The school's owner; DriveRush staff. Branch admins get the code and
 --         price through school_pass_info; learners resolve a code through
 --         pass_school_by_code.
--- Writes: No client: admin_set_school_payments (staff), school_set_pass_price
+-- Writes: No client: admin_set_school_payments, admin_review_bank (staff),
+--         school_request_bank (the server, after its owner check), school_set_pass_price
 --         (owner).
 -- Grants: anon: none; authenticated: SELECT
 alter table public.school_payment_settings enable row level security;
@@ -4819,6 +5406,113 @@ create policy "learner_progress: update own"
 create policy "learner_progress: delete own"
   on public.learner_progress for delete to authenticated
   using (user_id = (select auth.uid()));
+
+-- ── supabase/schemas/realtime/school_broadcasts.sql
+-- ===================================================
+-- REALTIME: dashboards that update themselves (owner, 2026-11-26)
+-- ===================================================
+-- A school's dashboard and the DriveRush console listen on private broadcast
+-- topics and re-read their loaders when something changes, as thinkrush's
+-- admin console does:
+--
+--   school:<school_id>  a payment through the school settled or was refunded,
+--                       a student was added, joined, moved or left, an admin
+--                       or invite changed, its bank or price changed
+--   console             any payment, any bank waiting for a check
+--
+-- The message says only which table changed and how: never a name, an email
+-- or an amount. The page re-reads its own data through row level security.
+-- Broadcasting never fails the write that caused it.
+--
+-- Who may listen: the policy on realtime.messages below. Every channel is
+-- private; no client may broadcast (no INSERT policy): only the database does
+-- (realtime.send).
+
+-- Access:  trigger (never called directly; service_role only)
+-- Guard:   none (the grant is the gate)
+-- Callers: triggers on payments, school_student_links, school_members,
+--          school_member_invites, school_payment_settings
+create or replace function private.broadcast_school_change()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_school_id uuid := coalesce(
+    (to_jsonb(NEW) ->> 'school_id')::uuid,
+    (to_jsonb(OLD) ->> 'school_id')::uuid
+  );
+  v_payload jsonb := jsonb_build_object('table', TG_TABLE_NAME, 'op', TG_OP);
+  v_console boolean := TG_TABLE_NAME in ('payments', 'school_payment_settings');
+begin
+  begin
+    if v_school_id is not null then
+      execute 'select realtime.send($1, $2, $3, $4)'
+        using v_payload, lower(TG_OP), 'school:' || v_school_id::text, true;
+    end if;
+    if v_console then
+      execute 'select realtime.send($1, $2, $3, $4)'
+        using v_payload, lower(TG_OP), 'console', true;
+    end if;
+  exception
+    when others then
+      raise warning '[school-broadcast] % on %: % (sqlstate %)',
+        TG_OP, TG_TABLE_NAME, sqlerrm, sqlstate;
+  end;
+  return null;
+end;
+$$;
+
+revoke all on function private.broadcast_school_change() from public;
+grant execute on function private.broadcast_school_change() to service_role;
+
+comment on function private.broadcast_school_change() is
+  'Trigger: tells school:<id> (and console, for money) that a table changed; no row data.';
+
+-- A payment matters to a dashboard once it settles, fails or is refunded.
+create or replace trigger payments_broadcast
+  after update of status on public.payments
+  for each row
+  when (OLD.status is distinct from NEW.status)
+  execute function private.broadcast_school_change();
+
+create or replace trigger school_student_links_broadcast
+  after insert or update or delete on public.school_student_links
+  for each row execute function private.broadcast_school_change();
+
+create or replace trigger school_members_broadcast
+  after insert or update or delete on public.school_members
+  for each row execute function private.broadcast_school_change();
+
+create or replace trigger school_member_invites_broadcast
+  after insert or update or delete on public.school_member_invites
+  for each row execute function private.broadcast_school_change();
+
+create or replace trigger school_payment_settings_broadcast
+  after insert or update on public.school_payment_settings
+  for each row execute function private.broadcast_school_change();
+
+-- ===================================================
+-- ACCESS: realtime.messages (who hears which topic)
+-- ===================================================
+-- Reads:  school:<id>: that school's owner and admins, and DriveRush staff.
+--         console: DriveRush staff. Any other topic: nobody.
+-- Writes: No client (no INSERT policy): only realtime.send in the database.
+drop policy if exists "realtime.messages: topic-gated read" on realtime.messages;
+
+create policy "realtime.messages: topic-gated read"
+  on realtime.messages for select to authenticated
+  using (
+    extension = 'broadcast'
+    and case
+      when topic = 'console' then (select private.is_staff())
+      when topic ~ '^school:[0-9a-f-]{36}$' then
+        (select private.is_staff())
+        or private.is_school_member(substr(topic, 8)::uuid)
+      else false
+    end
+  );
 
 -- ── supabase/schemas/_grants/function_privileges.sql
 -- ===================================================
@@ -4938,8 +5632,8 @@ grant execute on function public.admin_set_school_status(uuid, public.school_sta
 grant execute on function private.admin_set_school_status(uuid, public.school_status) to authenticated;
 grant execute on function public.admin_transfer_school_owner(uuid, text) to authenticated;
 grant execute on function private.admin_transfer_school_owner(uuid, text) to authenticated;
-grant execute on function public.admin_hand_over_school(uuid, text) to authenticated;
-grant execute on function private.admin_hand_over_school(uuid, text) to authenticated;
+grant execute on function public.admin_hand_over_school(uuid, text, boolean) to authenticated;
+grant execute on function private.admin_hand_over_school(uuid, text, boolean) to authenticated;
 grant execute on function public.admin_list_schools(text, text, text, text, integer, integer) to authenticated;
 grant execute on function private.admin_list_schools(text, text, text, text, integer, integer) to authenticated;
 grant execute on function public.admin_livery_draft_get(uuid) to authenticated;
@@ -4952,8 +5646,16 @@ grant execute on function public.admin_set_sponsorship(uuid, date, date, text) t
 grant execute on function private.admin_set_sponsorship(uuid, date, date, text) to authenticated;
 grant execute on function public.admin_end_sponsorship(uuid) to authenticated;
 grant execute on function private.admin_end_sponsorship(uuid) to authenticated;
-grant execute on function public.admin_set_school_payments(uuid, text, text, text, boolean) to authenticated;
-grant execute on function private.admin_set_school_payments(uuid, text, text, text, boolean) to authenticated;
+grant execute on function public.admin_set_school_payments(uuid, text, text, text, text, boolean) to authenticated;
+grant execute on function private.admin_set_school_payments(uuid, text, text, text, text, boolean) to authenticated;
+grant execute on function public.admin_review_bank(uuid, boolean, text) to authenticated;
+grant execute on function private.admin_review_bank(uuid, boolean, text) to authenticated;
+grant execute on function public.admin_list_bank_requests() to authenticated;
+grant execute on function private.admin_list_bank_requests() to authenticated;
+grant execute on function public.admin_list_payments(text, text, integer, integer, uuid) to authenticated;
+grant execute on function private.admin_list_payments(text, text, integer, integer, uuid) to authenticated;
+grant execute on function public.admin_payment_totals() to authenticated;
+grant execute on function private.admin_payment_totals() to authenticated;
 grant execute on function public.grant_platform_role(uuid, public.app_role) to authenticated;
 grant execute on function private.grant_platform_role(uuid, public.app_role) to authenticated;
 grant execute on function public.revoke_platform_role(uuid, public.app_role) to authenticated;

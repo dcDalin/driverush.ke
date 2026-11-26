@@ -23,7 +23,12 @@ export type StudentRow = {
   branchId: string;
   status: "pending" | "active" | "ended";
   endsAt: string | null;
+  addedAt: string | null;
   summary: ProgressSummary | null;
+  /** The learner's pass running now or next (null: none). */
+  passEndsAt: string | null;
+  /** Whether a running pass was bought through this school. */
+  passThroughSchool: boolean;
 };
 
 export type DashboardRole = SchoolRole | "staff";
@@ -71,7 +76,10 @@ export async function getSchoolDashboard(
       status:
         link.status === "pending" ? "pending" : current ? "active" : "ended",
       endsAt: link.ends_at,
+      addedAt: link.added_at,
       summary: row ? summarizeProgress(row.progress) : null,
+      passEndsAt: row?.pass_ends_at ?? null,
+      passThroughSchool: row?.pass_through_school ?? false,
     };
   });
 

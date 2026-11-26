@@ -8,7 +8,10 @@
  *              they sign up); a school in set-up goes live.
  *   Livery     upload the school's livery folder as a draft, preview it on
  *              the board, publish, retire or delete.
- *   Sponsorship / Payments  when its cars take turns; its passes.
+ *   Payments   its code, the bank its owner sent (approve or turn down),
+ *              a checked bank set by staff, its earnings.
+ *   Sponsorship when its cars take turns.
+ *   The tab is kept in the address (`?tab=payments`).
  *
  * Changes go through `consoleAction`, as on `/console`.
  */
@@ -34,12 +37,14 @@ import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { isStaffRole } from "~/database/auth/roles";
-import { listSchoolPaymentSettings } from "~/database/billing/school";
+import { listSchoolEarnings } from "~/database/billing/school";
 import { getConsoleSchool } from "~/database/console/queries";
 import { getRequestClient, requireStaff } from "~/lib/auth/require.server";
 import { consoleAction } from "~/lib/console/action.server";
 import { kenyanBanks } from "~/lib/payments/banks.server";
 import { paymentsEnabled } from "~/lib/payments/env.server";
+import { useLiveRevalidate } from "~/lib/realtime/use-live-revalidate";
+import { useTabParam } from "~/lib/ui/use-tab-param";
 
 import type { Route } from "./+types/console-school";
 
@@ -60,9 +65,9 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     return data({ state: "signed-out" as const }, { headers });
   if (!isStaffRole(caller.role))
     return data({ state: "not-staff" as const }, { headers });
-  const [school, settings, banks] = await Promise.all([
+  const [school, earnings, banks] = await Promise.all([
     getConsoleSchool(supabase, params.schoolId),
-    listSchoolPaymentSettings(supabase),
+    listSchoolEarnings(supabase, params.schoolId).catch(() => []),
     kenyanBanks(),
   ]);
   if (!school)
@@ -71,7 +76,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     {
       state: "ok" as const,
       school,
-      payments: settings.get(params.schoolId) ?? null,
+      earnings,
       banks,
       paymentsOn: paymentsEnabled(),
     },
@@ -81,7 +86,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   const staff = await requireStaff(request);
-  return consoleAction(staff, await request.formData());
+  return consoleAction(staff, await request.formData(), request);
 }
 
 export default function ConsoleSchool({ loaderData }: Route.ComponentProps) {
@@ -112,13 +117,17 @@ export default function ConsoleSchool({ loaderData }: Route.ComponentProps) {
   );
 }
 
+const SCHOOL_TABS = ["livery", "payments", "sponsorship"] as const;
+
 function SchoolPage({
   school,
-  payments,
+  earnings,
   banks,
   paymentsOn,
 }: Extract<Route.ComponentProps["loaderData"], { state: "ok" }>) {
   const { id, name, slug, status } = school.school;
+  const [tab, setTab] = useTabParam(SCHOOL_TABS);
+  useLiveRevalidate([`school:${id}`]);
   return (
     <div className="flex flex-col gap-6 py-8">
       <Button variant="ghost" size="sm" asChild className="self-start">
@@ -150,11 +159,18 @@ function SchoolPage({
         <HandOver school={school} />
       </div>
 
-      <Tabs defaultValue="livery">
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="livery">Livery</TabsTrigger>
+          <TabsTrigger value="payments">
+            Payments
+            {school.payments?.pending_bank_label ? (
+              <Badge variant="amber" className="ml-1">
+                1
+              </Badge>
+            ) : null}
+          </TabsTrigger>
           <TabsTrigger value="sponsorship">Sponsorship</TabsTrigger>
-          <TabsTrigger value="payments">Payments</TabsTrigger>
         </TabsList>
         <TabsContent value="livery" className="flex flex-col gap-4 pt-4">
           <LiveryUploader schoolId={id} />
@@ -171,7 +187,8 @@ function SchoolPage({
               .toUpperCase()
               .replace(/[^A-Z0-9]/g, "")
               .slice(0, 12)}
-            payments={payments}
+            payments={school.payments}
+            earnings={earnings}
             banks={banks}
             paymentsOn={paymentsOn}
           />

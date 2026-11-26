@@ -23,18 +23,13 @@ import {
   UploadIcon,
   WarningIcon,
 } from "~/components/brand/icons";
-import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
+import { Confirm } from "~/components/console/confirm";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "~/components/ui/alert-dialog";
+  Alert,
+  AlertBody,
+  AlertDescription,
+  AlertTitle,
+} from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
@@ -200,24 +195,28 @@ export function LiveryUploader({ schoolId }: { schoolId: string }) {
         {folder && plan ? (
           plan.missing.length ? (
             <Alert variant="error" icon={WarningIcon}>
-              <AlertTitle>This folder is not a whole livery</AlertTitle>
-              <AlertDescription>
-                Missing: {plan.missing.join(", ")}.
-              </AlertDescription>
+              <AlertBody>
+                <AlertTitle>This folder is not a whole livery</AlertTitle>
+                <AlertDescription>
+                  Missing: {plan.missing.join(", ")}.
+                </AlertDescription>
+              </AlertBody>
             </Alert>
           ) : (
             <Alert variant="ok" icon={FolderIcon}>
-              <AlertTitle>{folder.name || "Folder"} is ready</AlertTitle>
-              <AlertDescription>
-                {plan.counts.cars} cars, roof board, banner, posters and marks
-                {plan.counts.thumbs
-                  ? `, ${plan.counts.thumbs} car pictures`
-                  : ""}
-                {plan.counts.stills ? `, ${plan.counts.stills} stills` : ""}.
-                {plan.hasMeta
-                  ? " Colours read from livery.json."
-                  : " No livery.json: check the colours below."}
-              </AlertDescription>
+              <AlertBody>
+                <AlertTitle>{folder.name || "Folder"} is ready</AlertTitle>
+                <AlertDescription>
+                  {plan.counts.cars} cars, roof board, banner, posters and marks
+                  {plan.counts.thumbs
+                    ? `, ${plan.counts.thumbs} car pictures`
+                    : ""}
+                  {plan.counts.stills ? `, ${plan.counts.stills} stills` : ""}.
+                  {plan.hasMeta
+                    ? " Colours read from livery.json."
+                    : " No livery.json: check the colours below."}
+                </AlertDescription>
+              </AlertBody>
             </Alert>
           )
         ) : null}
@@ -301,8 +300,10 @@ export function LiveryUploader({ schoolId }: { schoolId: string }) {
                   icon={WarningIcon}
                   className="sm:col-span-2"
                 >
-                  <AlertTitle>Not uploaded</AlertTitle>
-                  <AlertDescription>{stage.message}</AlertDescription>
+                  <AlertBody>
+                    <AlertTitle>Not uploaded</AlertTitle>
+                    <AlertDescription>{stage.message}</AlertDescription>
+                  </AlertBody>
                 </Alert>
               ) : null}
               <Button
@@ -325,36 +326,6 @@ export function LiveryUploader({ schoolId }: { schoolId: string }) {
         </fetcher.Form>
       </CardContent>
     </Card>
-  );
-}
-
-function Confirm({
-  trigger,
-  title,
-  body,
-  confirm,
-  onConfirm,
-}: {
-  trigger: React.ReactNode;
-  title: string;
-  body: string;
-  confirm: string;
-  onConfirm: () => void;
-}) {
-  return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{body}</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>{confirm}</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
   );
 }
 

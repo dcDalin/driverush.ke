@@ -6,6 +6,8 @@ import { execFileSync } from "node:child_process";
 
 import type { TestProject } from "vitest/node";
 
+import { removeTestLeftovers } from "../support/leftovers";
+
 export type LocalSupabase = {
   url: string;
   publishableKey: string;
@@ -46,4 +48,8 @@ export default function setup(project: TestProject) {
     serviceRoleKey: env.SERVICE_ROLE_KEY,
     jwtSecret: env.JWT_SECRET,
   });
+  // When the suite ends: take out what the tests made.
+  return async () => {
+    await removeTestLeftovers(env.API_URL!, env.SERVICE_ROLE_KEY!);
+  };
 }

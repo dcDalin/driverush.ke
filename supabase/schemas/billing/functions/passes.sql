@@ -4,9 +4,12 @@
 -- Owner, 2026-11-25. Three plans (reference rows in
 -- migrations/*_reference_plans.sql):
 --   learner_pass       KES 1,000 for 60 days, all to DriveRush
---   school_pass        the school's price (KES 500 to 1,000) for 60 days;
---                      DriveRush keeps limits.driverush_share_kes (300), the
---                      rest settles to the school's bank (Paystack subaccount)
+--   school_pass        the school's own price for 60 days, no ceiling (owner,
+--                      2026-11-26); DriveRush keeps limits.driverush_share_kes
+--                      (300), the rest settles to the school's bank (Paystack
+--                      subaccount), which pays Paystack's fee. The price is at
+--                      least the share plus limits.min_school_share_kes (50),
+--                      private.school_min_price()
 --   learner_extension  KES 300 for 30 days, all to DriveRush, for a learner
 --                      who has had a pass
 --
@@ -196,7 +199,9 @@ begin
 
     v_amount := v_settings.price_kes;
     v_share := (v_plan.limits ->> 'driverush_share_kes')::integer;
-    if v_share is null or v_share <= 0 or v_share >= v_amount then
+    -- A school price set before the minimum went up is refused, not raised
+    -- behind the learner's back: the school sets a new price.
+    if v_share is null or v_share <= 0 or v_amount < private.school_min_price() then
       raise exception 'price_below_share' using errcode = 'P0001';
     end if;
   else

@@ -1,6 +1,7 @@
 /**
  * The account entry in the top bar: "Sign in" for a guest, the learner's
- * initial once signed in (with their email and a sign-out in a small menu).
+ * initial once signed in. Its menu: schools waiting for them, their pass,
+ * the schools they run and the console (staff), their email and sign-out.
  * Nothing at all when this build has accounts off, and an empty slot of the
  * same size while the browser reads the session, so the bar never jumps.
  */
@@ -18,6 +19,7 @@ import {
 import { signOut, useSession } from "~/lib/auth/session";
 import { useSignInSheet } from "~/lib/auth/sign-in-sheet-store";
 
+import { MyPlaces } from "./my-places";
 import { MySchool } from "./my-school";
 
 export function AccountButton() {
@@ -64,6 +66,7 @@ export function AccountButton() {
       </PopoverTrigger>
       <PopoverContent align="end" className="w-72">
         <MySchool userId={user.id} />
+        <MyPlaces onGo={() => setMenuOpen(false)} />
         <p className="text-[12px] font-medium text-ink-3">Signed in as</p>
         <p className="mb-3 truncate text-[14px] font-semibold text-ink">
           {user.email}

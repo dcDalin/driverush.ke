@@ -21,6 +21,23 @@ export async function listMySchools(
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
+/** The caller's role in a school (owner or admin), or null. */
+export async function getMySchoolRole(
+  supabase: TypedSupabaseClient,
+  schoolId: string,
+  userId: string,
+) {
+  const row = orThrow(
+    await supabase
+      .from("school_members")
+      .select("role")
+      .eq("school_id", schoolId)
+      .eq("user_id", userId)
+      .maybeSingle(),
+  );
+  return row?.role ?? null;
+}
+
 export async function getSchool(
   supabase: TypedSupabaseClient,
   schoolId: string,
@@ -69,6 +86,34 @@ export async function listPendingMemberInvites(
       .eq("school_id", schoolId)
       .eq("status", "pending")
       .order("created_at"),
+  );
+}
+
+/** One pending admin or owner invite (owner and staff read them). */
+export async function getMemberInvite(
+  supabase: TypedSupabaseClient,
+  inviteId: string,
+) {
+  return orThrow(
+    await supabase
+      .from("school_member_invites")
+      .select("id, school_id, email, role, branch_ids, status")
+      .eq("id", inviteId)
+      .maybeSingle(),
+  );
+}
+
+/** One student link, if the caller's branches include it. */
+export async function getStudentLink(
+  supabase: TypedSupabaseClient,
+  linkId: string,
+) {
+  return orThrow(
+    await supabase
+      .from("school_student_links")
+      .select("id, school_id, email, status, branch_id, school_branches(name)")
+      .eq("id", linkId)
+      .maybeSingle(),
   );
 }
 

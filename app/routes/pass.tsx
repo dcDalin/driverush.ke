@@ -2,7 +2,7 @@
  * `/pass`: buy the full course (owner, 2026-11-25).
  *
  *   On your own        KES 1,000, 60 days
- *   Through a school   the school's price (KES 500 to 1,000), 60 days: the
+ *   Through a school   the school's own price (no ceiling), 60 days: the
  *                      learner's own school, a school waiting for them, or
  *                      the school whose code they typed (`?code=HELTZ`, the
  *                      link schools hand out)

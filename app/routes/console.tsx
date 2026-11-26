@@ -7,27 +7,45 @@
  *            or with none to set it up privately first. Each row opens the
  *            school's page (`/console/schools/:schoolId`): set-up, hand-over,
  *            liveries, sponsorship, payments.
+ *   Payments every payment (search, status, pages) and the month's totals.
  *   Staff    (su only) who holds a staff role; grant or revoke by email.
+ * Above the tabs: banks school owners sent, waiting for a check.
+ * The tab is kept in the address (`?tab=payments`).
  *
  * Changes go through `consoleAction` (shared with the school's page); the
  * database checks every call again (private.is_staff, private.is_su).
  */
-import { data, useSearchParams } from "react-router";
+import { data } from "react-router";
 
 import { SiteNav } from "~/components/brand/site-nav";
 import { StaffPanel } from "~/components/console/console-panels";
 import { CreateSchoolDialog } from "~/components/console/create-school-dialog";
 import {
-  SchoolFilters,
-  SchoolList,
-  SchoolPager,
-} from "~/components/console/school-list";
+  BankRequests,
+  PaymentList,
+  PaymentTotalsGrid,
+} from "~/components/console/payments-panel";
+import { SchoolFilters, SchoolList } from "~/components/console/school-list";
+import { PaginationBar } from "~/components/list/pagination-bar";
 import { NeedsSignIn, NothingHere } from "~/components/school/signed-out";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { isStaffRole, isSuRole } from "~/database/auth/roles";
-import { listConsoleSchools, listStaff } from "~/database/console/queries";
+import {
+  getPaymentTotals,
+  listBankRequests,
+  listPayments,
+  PAYMENTS_PAGE_SIZE,
+} from "~/database/billing/school";
+import {
+  CONSOLE_PAGE_SIZE,
+  listConsoleSchools,
+  listStaff,
+} from "~/database/console/queries";
 import { getRequestClient, requireStaff } from "~/lib/auth/require.server";
 import { consoleAction } from "~/lib/console/action.server";
+import { useLiveRevalidate } from "~/lib/realtime/use-live-revalidate";
+import { useTabParam } from "~/lib/ui/use-tab-param";
+import { PaymentFiltersSchema } from "~/schemas/billing";
 import { SchoolFiltersSchema } from "~/schemas/console";
 
 import type { Route } from "./+types/console";
@@ -46,9 +64,16 @@ export async function loader({ request }: Route.LoaderArgs) {
   if (!isStaffRole(caller.role))
     return data({ state: "not-staff" as const }, { headers });
   const su = isSuRole(caller.role);
-  const params = Object.fromEntries(new URL(request.url).searchParams);
+  const search = new URL(request.url).searchParams;
+  const params = Object.fromEntries(search);
   const filters = SchoolFiltersSchema.parse(params);
-  const [list, staff] = await Promise.all([
+  const payFilters = PaymentFiltersSchema.parse({
+    q: params.pq,
+    status: params.pstatus,
+    page: params.ppage,
+  });
+  const onPayments = search.get("tab") === "payments";
+  const [list, staff, bankRequests, totals, payments] = await Promise.all([
     listConsoleSchools(supabase, {
       search: filters.q,
       status: filters.status,
@@ -57,7 +82,16 @@ export async function loader({ request }: Route.LoaderArgs) {
       page: filters.page,
     }),
     su ? listStaff(supabase) : Promise.resolve([]),
+    listBankRequests(supabase),
+    onPayments ? getPaymentTotals(supabase) : Promise.resolve([]),
+    onPayments
+      ? listPayments(supabase, payFilters)
+      : Promise.resolve({ rows: [], total: 0 }),
   ]);
+  const paymentPages = Math.max(
+    1,
+    Math.ceil(payments.total / PAYMENTS_PAGE_SIZE),
+  );
   return data(
     {
       state: "ok" as const,
@@ -66,6 +100,13 @@ export async function loader({ request }: Route.LoaderArgs) {
       page: Math.min(filters.page, list.pages),
       ...list,
       staff,
+      bankRequests,
+      totals,
+      payments: {
+        ...payments,
+        page: Math.min(payFilters.page, paymentPages),
+        pages: paymentPages,
+      },
     },
     { headers },
   );
@@ -73,12 +114,14 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   const staff = await requireStaff(request);
-  return consoleAction(staff, await request.formData());
+  return consoleAction(staff, await request.formData(), request);
 }
 
+const CONSOLE_TABS = ["schools", "payments", "staff"] as const;
+
 export default function Console({ loaderData }: Route.ComponentProps) {
-  const [params, setParams] = useSearchParams();
-  const tab = params.get("tab") === "staff" ? "staff" : "schools";
+  const [tab, setTab] = useTabParam(CONSOLE_TABS);
+  useLiveRevalidate(loaderData.state === "ok" ? ["console"] : []);
   return (
     <>
       <SiteNav />
@@ -101,28 +144,35 @@ export default function Console({ loaderData }: Route.ComponentProps) {
               </h1>
               <CreateSchoolDialog />
             </header>
-            <Tabs
-              value={tab}
-              onValueChange={(value) =>
-                setParams(
-                  value === "staff" ? { tab: "staff" } : new URLSearchParams(),
-                  { replace: true },
-                )
-              }
-            >
+            <BankRequests requests={loaderData.bankRequests} />
+            <Tabs value={tab} onValueChange={setTab}>
               <TabsList>
                 <TabsTrigger value="schools">Schools</TabsTrigger>
+                <TabsTrigger value="payments">Payments</TabsTrigger>
                 {loaderData.su ? (
                   <TabsTrigger value="staff">Staff</TabsTrigger>
                 ) : null}
               </TabsList>
               <TabsContent value="schools" className="flex flex-col gap-4 pt-4">
-                <SchoolFilters />
-                <SchoolList
-                  schools={loaderData.schools}
-                  total={loaderData.total}
+                <SchoolFilters total={loaderData.total} />
+                <SchoolList schools={loaderData.schools} />
+                <PaginationBar
+                  page={loaderData.page}
+                  pageSize={CONSOLE_PAGE_SIZE}
+                  totalCount={loaderData.total}
+                  noun={["school", "schools"]}
                 />
-                <SchoolPager page={loaderData.page} pages={loaderData.pages} />
+              </TabsContent>
+              <TabsContent
+                value="payments"
+                className="flex flex-col gap-6 pt-4"
+              >
+                <PaymentTotalsGrid totals={loaderData.totals} />
+                <PaymentList
+                  rows={loaderData.payments.rows}
+                  total={loaderData.payments.total}
+                  page={loaderData.payments.page}
+                />
               </TabsContent>
               {loaderData.su ? (
                 <TabsContent value="staff" className="pt-4">

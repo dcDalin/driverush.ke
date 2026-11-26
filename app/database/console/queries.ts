@@ -89,7 +89,7 @@ export async function getConsoleSchool(
   );
   if (!school) return null;
 
-  const [owner, invite, liveries, sponsorships, branches, profile] =
+  const [owner, invite, liveries, sponsorships, branches, profile, payments] =
     await Promise.all([
       supabase
         .from("school_members")
@@ -131,6 +131,10 @@ export async function getConsoleSchool(
         .eq("school_id", schoolId)
         .maybeSingle()
         .then(orThrow),
+      supabase
+        .rpc("school_pass_info", { p_school_id: schoolId })
+        .then(orThrow)
+        .then((rows) => rows[0] ?? null),
     ]);
 
   const ownerEmail = owner
@@ -149,7 +153,13 @@ export async function getConsoleSchool(
     invitedOwnerEmail: invite?.email ?? null,
     liveries: liveries as ConsoleLivery[],
     sponsorships: sponsorships as ConsoleSponsorship[],
+    payments,
     setup: {
+      payments: payments?.ready
+        ? ("live" as const)
+        : payments?.pending_bank_label
+          ? ("waiting" as const)
+          : ("none" as const),
       profile: Boolean(profile?.tagline || profile?.about),
       logo: Boolean(profile?.logo),
       branches,

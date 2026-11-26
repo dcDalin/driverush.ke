@@ -10,6 +10,9 @@ create table public.school_member_invites (
   email extensions.citext not null check (email::text ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
   role public.school_role not null,
   branch_ids uuid[] not null default '{}',
+  -- An owner invite: whether the owner it replaces stays on as an admin of
+  -- every branch (owner, 2026-11-26) when the new owner signs up.
+  keep_previous_owner boolean not null default false check (not keep_previous_owner or role = 'owner'),
   status public.invite_status not null default 'pending',
   invited_by uuid references auth.users (id) on delete set null,
   created_at timestamptz not null default now(),

@@ -55,6 +55,7 @@ export type SetAdminBranchesSchemaTypes = z.infer<
 export const StudentActionSchema = z.discriminatedUnion("intent", [
   z.object({ intent: z.literal("release-student"), linkId: IdSchema }),
   z.object({ intent: z.literal("cancel-student"), linkId: IdSchema }),
+  z.object({ intent: z.literal("resend-student"), linkId: IdSchema }),
   z.object({
     intent: z.literal("move-student"),
     linkId: IdSchema,
@@ -65,6 +66,7 @@ export const StudentActionSchema = z.discriminatedUnion("intent", [
 export const MemberActionSchema = z.discriminatedUnion("intent", [
   z.object({ intent: z.literal("remove-admin"), memberId: IdSchema }),
   z.object({ intent: z.literal("cancel-invite"), inviteId: IdSchema }),
+  z.object({ intent: z.literal("resend-invite"), inviteId: IdSchema }),
 ]);
 
 const optional = (max: number, message = `At most ${max} characters.`) =>

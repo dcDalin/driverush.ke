@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { getPaystackEnv, paymentsEnabled } from "./env.server";
 import {
+  deactivateSubaccount,
   fromSubunits,
   initializeTransaction,
   listKenyanBanks,
@@ -146,7 +147,7 @@ describe("initializeTransaction", () => {
       currency: "KES",
       subaccount: "ACCT_heltz",
       transaction_charge: 30000,
-      bearer: "account",
+      bearer: "subaccount",
       channels: ["mobile_money", "card"],
     });
   });
@@ -260,5 +261,16 @@ describe("listKenyanBanks", () => {
       { name: "ABSA Bank Kenya", code: "03" },
       { name: "Equity Bank Kenya Ltd", code: "68" },
     ]);
+  });
+});
+
+describe("deactivateSubaccount", () => {
+  it("switches the subaccount off with a PUT", async () => {
+    const f = jsonFetch({ status: true, message: "Updated", data: {} });
+    await deactivateSubaccount(SECRET, "ACCT_old", f);
+    const [url, init] = f.mock.calls[0]!;
+    expect(url).toBe("https://api.paystack.co/subaccount/ACCT_old");
+    expect(init?.method).toBe("PUT");
+    expect(JSON.parse(String(init?.body))).toEqual({ active: false });
   });
 });

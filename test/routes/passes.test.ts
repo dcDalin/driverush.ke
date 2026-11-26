@@ -212,7 +212,7 @@ describe("paying, the webhook and the return page", () => {
       currency: "KES",
       subaccount: "ACCT_local_heltz",
       transaction_charge: 30000,
-      bearer: "account",
+      bearer: "subaccount",
       email: learner.email,
     });
     expect(await payment(schoolRef)).toMatchObject({
