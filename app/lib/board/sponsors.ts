@@ -77,6 +77,7 @@ const TOPGEAR_DIR = "/assets/board/sponsors/topgear";
 const BLIXEN_DIR = "/assets/board/sponsors/blixen";
 const AA_DIR = "/assets/board/sponsors/aa";
 const PETANNS_DIR = "/assets/board/sponsors/petanns";
+const STEGA_DIR = "/assets/board/sponsors/stega";
 const ALL_CARS: readonly BoardCarId[] = [
   "saloon",
   "hatchback",
@@ -280,6 +281,43 @@ export const SPONSORS: readonly Sponsor[] = [
     url: "https://petannsdrivingschool.co.ke",
     // Live since 2026-11-22: the owner approved its pictures.
     live: true,
+  },
+  {
+    id: "stega",
+    school: "Stega Driving School",
+    colors: { paint: "#e8212b", ink: "#1e69a7" },
+    logo: {
+      full: `${STEGA_DIR}/logo.png`,
+      mono: `${STEGA_DIR}/logo-mono.png`,
+    },
+    // Their real fleet, one Stega car per board vehicle (owner, 2026-11-26):
+    // the red Demio, the blue Fielder, the white and turquoise Axio and
+    // their white truck among them (scripts/sponsor-art/stega).
+    livery: { base: "#f7f7f4", cars: everyCar(STEGA_DIR) },
+    // Their own blue oval roof board, STEGA in yellow bulb letters.
+    topBoard: {
+      src: `${STEGA_DIR}/topboard.webp`,
+      width: 1.35,
+      height: 0.45,
+      cut: 0.05,
+      edge: "#2c63d8",
+    },
+    room: {
+      banner: {
+        hi: `${STEGA_DIR}/banner-hi.webp`,
+        lo: `${STEGA_DIR}/banner-lo.webp`,
+      },
+      posters: {
+        logo: `${STEGA_DIR}/poster-logo.webp`,
+        lessons: `${STEGA_DIR}/poster-lessons.webp`,
+      },
+    },
+    // Their own site; its number is the 0722 213 810 on their cars.
+    // Checked 2026-11-26.
+    url: "https://stegadrivingschool.com",
+    // Hidden (only with ?sponsor=stega) until the owner approves its
+    // pictures.
+    live: false,
   },
 ];
 

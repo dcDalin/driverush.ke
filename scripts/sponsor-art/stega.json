@@ -1,0 +1,13 @@
+{
+  "note": "Stega Driving School (Nairobi, est. 1995): their real fleet, one Stega car per board vehicle (red Demio, blue Fielder, white and turquoise Axio, white splash Axio, Team STEGA Mazda, white truck), copied from the photos (scripts/sponsor-art/stega/reference-*.jpg) and their logo. See stega/design.mjs.",
+  "design": "stega/design.mjs",
+  "fonts": [
+    "AlfaSlabOne-Regular.ttf",
+    "Anton-Regular.ttf",
+    "BlackOpsOne-Regular.ttf",
+    "Poppins-Medium.ttf",
+    "Poppins-Bold.ttf",
+    "Poppins-ExtraBold.ttf"
+  ],
+  "colors": { "base": "#f7f7f4" }
+}
