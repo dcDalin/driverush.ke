@@ -315,9 +315,8 @@ export const SPONSORS: readonly Sponsor[] = [
     // Their own site; its number is the 0722 213 810 on their cars.
     // Checked 2026-11-26.
     url: "https://stegadrivingschool.com",
-    // Hidden (only with ?sponsor=stega) until the owner approves its
-    // pictures.
-    live: false,
+    // Live since 2026-11-26: the owner approved its pictures.
+    live: true,
   },
 ];
 
