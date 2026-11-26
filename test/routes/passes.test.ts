@@ -178,7 +178,7 @@ describe("/pass", () => {
       } as never),
     );
     expect(out.data.codeOffer).toMatchObject({
-      school_name: "Heltz Driving School",
+      school_name: "Heltz Driving Academy",
       price_kes: 700,
     });
     expect(out.data.more).toBeUndefined();

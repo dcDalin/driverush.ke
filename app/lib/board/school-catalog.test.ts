@@ -29,7 +29,7 @@ const path = (kind: "logo" | "livery", n: number) =>
 
 const row: BoardSchool = {
   slug: "heltz",
-  name: "Heltz Driving School",
+  name: "Heltz Driving Academy",
   sponsoring: true,
   profile: {
     tagline: null,

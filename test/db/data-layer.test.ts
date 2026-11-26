@@ -140,7 +140,7 @@ describe("school invites", () => {
     const learner = await signInWithPassword(email);
     const invites = await listMySchoolInvites(learner, data.user!.id);
     expect(invites.map((i) => i.school).sort()).toEqual([
-      "Heltz Driving School",
+      "Heltz Driving Academy",
       "Top Gear Driving School",
     ]);
 
@@ -210,7 +210,7 @@ describe("school dashboard", () => {
       await userId("cbd.admin@heltz.test"),
     );
     expect(mine.map((s) => [s.name, s.role])).toEqual([
-      ["Heltz Driving School", "admin"],
+      ["Heltz Driving Academy", "admin"],
     ]);
   });
 });

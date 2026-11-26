@@ -15,7 +15,7 @@ test("the owner adds a student; a branch admin sees only their branch", async ({
   await signInWithPassword(page, "owner@heltz.test");
   await page.goto("/school");
   await expect(
-    page.getByRole("heading", { name: "Heltz Driving School" }),
+    page.getByRole("heading", { name: "Heltz Driving Academy" }),
   ).toBeVisible();
 
   const email = freshEmail("student");
@@ -49,7 +49,7 @@ test("a learner added by a school wears its livery once they sign up", async ({
 
   await signInWithCode(page, email);
   await accountButton(page, "Your account").click();
-  await expect(page.getByText(/With Heltz Driving School until/)).toBeVisible();
+  await expect(page.getByText(/With Heltz Driving Academy until/)).toBeVisible();
 
   await page.goto("/model-town-board/play");
   await expect(page.getByText(/Board by Heltz/)).toBeVisible();
@@ -63,10 +63,10 @@ test("an owner reaches their school from the account menu, finds a student and s
   await accountButton(page, "Your account").click();
   await page
     .getByRole("navigation", { name: "Your places" })
-    .getByRole("link", { name: /Heltz Driving School/ })
+    .getByRole("link", { name: /Heltz Driving Academy/ })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Heltz Driving School" }),
+    page.getByRole("heading", { name: "Heltz Driving Academy" }),
   ).toBeVisible();
 
   // Search, kept in the address.

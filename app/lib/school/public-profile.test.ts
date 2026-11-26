@@ -16,7 +16,7 @@ import {
 const ID = "3deecceb-12e3-4846-916e-bc757b7e7ab2";
 const row: BoardSchool = {
   slug: "heltz",
-  name: "Heltz Driving School",
+  name: "Heltz Driving Academy",
   sponsoring: true,
   livery: null,
   profile: {
@@ -143,7 +143,7 @@ describe("structured data", () => {
       "https://tiktok.com/@heltz",
     ]);
     expect(ld.department[0]).toMatchObject({
-      name: "Heltz Driving School, Nairobi CBD",
+      name: "Heltz Driving Academy, Nairobi CBD",
       address: { streetAddress: "Tom Mboya Street", addressCountry: "KE" },
       geo: { latitude: -1.283, longitude: 36.825 },
       openingHoursSpecification: [
@@ -152,7 +152,7 @@ describe("structured data", () => {
     });
     expect(ld.department[1]).toEqual({
       "@type": "DrivingSchool",
-      name: "Heltz Driving School, Thika",
+      name: "Heltz Driving Academy, Thika",
     });
   });
 });

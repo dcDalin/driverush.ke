@@ -61,7 +61,7 @@ begin
     return;
   end if;
 
-  insert into public.schools (slug, name) values ('heltz', 'Heltz Driving School')
+  insert into public.schools (slug, name) values ('heltz', 'Heltz Driving Academy')
   returning id into v_heltz;
   insert into public.schools (slug, name) values ('topgear', 'Top Gear Driving School')
   returning id into v_topgear;
