@@ -15,15 +15,17 @@
  *                      a red front with white stars and white-edged
  *                      triangles, STEGA in white on the rear door, a red
  *                      flame star with a checkered flag on the rear quarter
- *   saloon             their white and turquoise Axio (reference-axio.jpg):
- *                      turquoise bumpers and sills, a turquoise lattice with
- *                      orange and blue streaks over the rear door, STEGA in
- *                      red edged blue, DRIVING SCHOOL and the number in red,
- *                      small stars, red Ls; KEEP DISTANCE and CAUTION behind
+ *   saloon             their white and turquoise Axio (reference-axio*.jpg):
+ *                      turquoise bumpers and sills, a turquoise frame of
+ *                      striped pointed cells and streaks over the rear
+ *                      door, STEGA in red edged violet, DRIVING SCHOOL and
+ *                      the number in red, small stars, red Ls; KEEP
+ *                      DISTANCE and CAUTION INSTANT BRAKES behind
  *   suv                their white Axio with the blue front and the red
  *                      splash (reference-splash.jpg)
- *   crossover          their white "Team STEGA" Mazda (reference-team.jpg):
- *                      red arrows on the bonnet, blue STEGA over red shards,
+ *   crossover          their white "Team STEGA" Mazda (reference-team*.jpg):
+ *                      a red star with black and red streaks, a red shard
+ *                      splash, red arrows on the bonnet, blue STEGA,
  *                      red triangles, the Team STEGA plate
  *   van, lorry         their white truck (reference-truck.jpg): big blue
  *                      STEGA, the red L, blue tiles, their office and branch
@@ -58,7 +60,8 @@ export const COLORS = {
   fielder: "#1d3fa8",
   navy: "#16245e",
   sky: "#3d7fe0",
-  turquoise: "#2bb3dc",
+  turquoise: "#2cb8d4",
+  violet: "#2e2a86",
   orange: "#ef5a28",
   yellow: "#f7d21c",
   maroon: "#4a0a0e",
@@ -943,58 +946,89 @@ function axio(k, fonts) {
   const { far, zAt, yAt } = m;
   const r = L.wheels.front.r;
 
-  // Turquoise up the bumpers and along the sills.
+  // Turquoise over the bumpers, ending at the wheel arches, and a thin line
+  // along the sills between them (reference-axio-side.jpg).
   const lowEdge = [
-    [box.zmin - far, yAt(0.48)],
-    [zAt(1) - r * 1.1, yAt(0.52)],
-    [zAt(1) - r * 0.1, yAt(0.66)],
-    [zAt(1) + r * 1.3, yAt(0.9)],
-    [zAt(0) - r * 1.3, yAt(0.9)],
-    [zAt(0) + r * 0.4, yAt(0.6)],
-    [box.zmax + far, yAt(0.5)],
+    [box.zmin - far, yAt(0.5)],
+    [zAt(1) - r * 1.02, yAt(0.54)],
+    [zAt(1) - r * 0.98, yAt(0.92)],
+    [zAt(0) + r * 0.98, yAt(0.92)],
+    [zAt(0) + r * 1.02, yAt(0.52)],
+    [box.zmax + far, yAt(0.48)],
   ];
   const low = poly(
     [...lowEdge, [box.zmax + far, -far], [box.zmin - far, -far]],
     c.turquoise,
   );
 
-  // Their lattice over the rear door and quarter: a wedge pointing forward
-  // and down, turquoise diamonds with orange and blue lines in the white.
-  const wedge = [
-    [box.zmax + far, L.belt + 0.01],
-    [zAt(0.48), L.belt + 0.01],
-    [zAt(0.4), yAt(0.4)],
-    [zAt(0.5), yAt(0.93)],
-    [box.zmax + far, yAt(0.93)],
+  // Their pattern over the rear door and quarter: a turquoise frame with a
+  // jagged top, and in it two staggered rows of white pointed cells, each
+  // striped blue and red.
+  const zFront = zAt(0.34);
+  const zRear = Math.min(zAt(-0.15), box.zmax - 0.12);
+  const topY = yAt(0.1);
+  const tooth = 0.11;
+  const crown = [];
+  for (let z = zFront, i = 0; z < zRear; z += tooth / 2, i++) {
+    crown.push([z, i % 2 ? topY + 0.05 : topY]);
+  }
+  crown.push([zRear, topY]);
+  const frameShape = [
+    [zAt(0.39), yAt(1.02)],
+    [zFront, yAt(0.3)],
+    ...crown,
+    [zRear, yAt(0.55)],
+    [zRear, yAt(1.02)],
   ];
-  const q = 0.15;
-  const defs = `
-    <clipPath id="stega-wedge"><polygon points="${pts(wedge)}"/></clipPath>
-    <pattern id="stega-lattice" width="${q}" height="${q * 1.5}" patternUnits="userSpaceOnUse" patternTransform="translate(${n3(m.rear)} ${n3(L.belt)})">
-      <rect width="${q}" height="${q * 1.5}" fill="${c.white}"/>
-      <line x1="${q * 0.32}" y1="${q * 0.55}" x2="${q * 0.68}" y2="${q * 0.55}" stroke="${c.orange}" stroke-width="0.008"/>
-      <line x1="${q * 0.28}" y1="${q * 0.75}" x2="${q * 0.72}" y2="${q * 0.75}" stroke="${c.blue}" stroke-width="0.008"/>
-      <line x1="${q * 0.32}" y1="${q * 0.95}" x2="${q * 0.68}" y2="${q * 0.95}" stroke="${c.orange}" stroke-width="0.008"/>
-      <polyline points="0,0 ${q / 2},${q * 0.35} ${q},0" fill="none" stroke="${c.turquoise}" stroke-width="0.03"/>
-      <polyline points="0,${q * 1.5} ${q / 2},${q * 1.15} ${q},${q * 1.5}" fill="none" stroke="${c.turquoise}" stroke-width="0.03"/>
-      <line x1="0" y1="0" x2="0" y2="${q * 1.5}" stroke="${c.turquoise}" stroke-width="0.024"/>
-      <line x1="${q}" y1="0" x2="${q}" y2="${q * 1.5}" stroke="${c.turquoise}" stroke-width="0.024"/>
-    </pattern>`;
+  const cellH = m.band * 0.33;
+  const cellW = cellH * 0.66;
+  const step = cellW + 0.028;
+  const cell = (cz, base) => {
+    const x0 = cz - cellW / 2;
+    const x1 = cz + cellW / 2;
+    const stripes = [0.16, 0.3, 0.44, 0.58]
+      .map(
+        (f, i) =>
+          `<line x1="${n3(x0 + cellW * 0.16)}" y1="${n3(base + cellH * f)}" x2="${n3(x1 - cellW * 0.16)}" y2="${n3(base + cellH * f)}" stroke="${i % 2 ? c.red : c.blue}" stroke-width="0.007"/>`,
+      )
+      .join("");
+    return (
+      poly(
+        [
+          [x0, base],
+          [x1, base],
+          [x1, base + cellH * 0.64],
+          [cz, base + cellH],
+          [x0, base + cellH * 0.64],
+        ],
+        c.white,
+      ) + stripes
+    );
+  };
+  const cells = [];
+  for (let z = zFront + step * 0.7; z < zRear - cellW * 0.3; z += step) {
+    cells.push(cell(z, yAt(0.48)));
+    cells.push(cell(z + step / 2, yAt(0.9)));
+  }
+  const defs = `<clipPath id="stega-frame"><polygon points="${pts(frameShape)}"/></clipPath>`;
+  const pattern = `<g clip-path="url(#stega-frame)">${poly(frameShape, c.turquoise)}${cells.join("")}</g>`;
+  // Streaks from the pattern forward and down under the name: a turquoise
+  // wedge between thin red and blue lines.
   const streaks = [
-    [c.turquoise, 0.07, 0.0],
-    [c.orange, 0.025, 0.07],
-    [c.turquoise, 0.05, 0.13],
-    [c.orange, 0.02, 0.19],
-    [c.turquoise, 0.035, 0.24],
+    [c.red, 0.018, -0.07],
+    [c.turquoise, 0.075, 0.0],
+    [c.red, 0.02, 0.08],
+    [c.blue, 0.014, 0.13],
+    [c.red, 0.016, 0.18],
   ]
     .map(([col, w, off]) =>
       poly(
         ribbon(
           bez(
-            [zAt(0.3), yAt(0.15 + off)],
-            [zAt(0.42), yAt(0.3 + off)],
-            [zAt(0.55), yAt(0.55 + off * 0.6)],
-            [zAt(0.78), yAt(0.8 + off * 0.3)],
+            [zAt(0.16), yAt(0.14 + off)],
+            [zAt(0.3), yAt(0.3 + off)],
+            [zAt(0.48), yAt(0.55 + off * 0.5)],
+            [zAt(0.66), yAt(0.84 + off * 0.2)],
           ),
           taper(w),
         ),
@@ -1004,28 +1038,39 @@ function axio(k, fonts) {
     .join("");
   const side = [
     k.rect(-far, -far, far, far, c.white),
-    `<g clip-path="url(#stega-wedge)"><rect x="-9" y="-9" width="18" height="18" fill="url(#stega-lattice)"/></g>`,
+    pattern,
     streaks,
     low,
+    // Small stars: round the name, on the front wing, by the tail lamps.
     scatter(
       51,
       zAt(0.85),
-      zAt(0.45),
-      yAt(0.1),
-      yAt(0.8),
-      10,
-      [{ fill: c.blue }, { fill: c.white, edge: c.orange }, { fill: c.blue }],
-      [0.012, 0.022],
+      zAt(0.42),
+      yAt(0.05),
+      yAt(0.85),
+      12,
+      [{ fill: c.blue }, { fill: c.white, edge: c.red }, { fill: c.blue }],
+      [0.011, 0.02],
     ),
     scatter(
       53,
-      zAt(1.15),
-      zAt(0.82),
+      zAt(1.2),
+      zAt(0.85),
+      yAt(0.02),
+      yAt(0.4),
+      6,
+      [{ fill: c.blue }, { fill: c.white, edge: c.red }],
+      [0.013, 0.024],
+    ),
+    scatter(
+      59,
+      zRear + 0.02,
+      box.zmax - 0.1,
       yAt(0.05),
-      yAt(0.45),
+      yAt(0.4),
       4,
-      [{ fill: c.blue }, { fill: c.white, edge: c.orange }],
-      [0.015, 0.025],
+      [{ fill: c.blue }, { fill: c.white, edge: c.red }],
+      [0.013, 0.022],
     ),
   ].join("");
 
@@ -1080,28 +1125,33 @@ function axio(k, fonts) {
             x: capped.x,
             y: capped.y,
             w: capped.w,
-            h: Math.min(capped.h * 0.52, 0.2 * s),
+            h: Math.min(capped.h * 0.5, 0.19 * s),
           },
-          { fill: c.red, keyline: c.fielder, edge: 0.12, tracking: 0.02 },
+          { fill: c.red, keyline: c.violet, edge: 0.16, tracking: 0.02 },
         );
-        const school = fitted(
-          fonts["Anton-Regular.ttf"],
-          "DRIVING SCHOOL",
-          {
-            x: name.x,
-            y: name.y + name.height * 1.12,
-            w: name.width,
-            h: name.height * 0.42,
-          },
-          { fill: c.red, keyline: c.fielder, edge: 0.06, tracking: 0.08 },
-        );
+        // DRIVING and SCHOOL set apart under it, as their sign writer does.
+        const half = name.width * 0.46;
+        const rowY = name.y + name.height * 1.16;
+        const rowH = name.height * 0.36;
+        const word = (text, x) =>
+          fitted(
+            fonts["Anton-Regular.ttf"],
+            text,
+            { x, y: rowY, w: half, h: rowH },
+            { fill: c.red, keyline: c.violet, edge: 0.08, tracking: 0.06 },
+          ).svg;
+        const school = {
+          svg:
+            word("DRIVING", name.x) +
+            word("SCHOOL", name.x + name.width - half),
+        };
         const phone = fitted(
           fonts["Poppins-Bold.ttf"],
           "#0722213810",
           {
             x: name.x + name.width * 0.3,
-            y: name.y + name.height * 1.66,
-            w: name.width * 0.7,
+            y: rowY + rowH * 1.25,
+            w: name.width * 0.6,
             h: name.height * 0.24,
           },
           { fill: c.red, tracking: 0.02 },
@@ -1165,21 +1215,57 @@ function axio(k, fonts) {
       },
     ),
   );
-  // The back: KEEP DISTANCE on the boot, CAUTION on the bumper.
+  // The back (reference-axio-rear*.jpg): KEEP and DISTANCE either side of
+  // the badge with stars round them and the number under; CAUTION over
+  // INSTANT BRAKES on the turquoise bumper, a red L and a warning triangle.
   const sb = k.scale("back");
   const boot = k.clearRect("back", box.xmin, box.xmax, backTop + 0.03, L.belt, {
     inset: 0.04,
   });
   if (boot) {
+    const bh = Math.min(0.075, (boot.y1 - boot.y0) * 0.5);
+    const y1 = boot.y1 - 0.01;
+    const keep = k.boxPx("back", boot.z0, y1, -0.11, y1 - bh);
+    const dist = k.boxPx("back", 0.11, y1, boot.z1, y1 - bh);
+    const ink = { fill: c.red, keyline: c.violet, edge: 0.08, tracking: 0.04 };
+    const keepW = fitted(fonts["AlfaSlabOne-Regular.ttf"], "KEEP", keep, {
+      ...ink,
+      align: "right",
+    });
+    const distW = fitted(fonts["AlfaSlabOne-Regular.ttf"], "DISTANCE", dist, {
+      ...ink,
+      align: "left",
+    });
+    const [px, py] = k.pt.back(boot.z1 - 0.2, y1 - bh - 0.06);
     extra.push(
       k.pixels(
         "back",
-        fitted(
-          fonts["AlfaSlabOne-Regular.ttf"],
-          "KEEP DISTANCE",
-          k.cap(k.boxPx("back", boot.z0, boot.y1, boot.z1, boot.y0), 0.08 * sb),
-          { fill: c.red, keyline: c.fielder, edge: 0.06, tracking: 0.03 },
-        ).svg,
+        keepW.svg +
+          distW.svg +
+          fitted(
+            fonts["Poppins-Bold.ttf"],
+            "#0722213810",
+            {
+              x: px - 0.18 * sb,
+              y: py - 0.015 * sb,
+              w: 0.36 * sb,
+              h: 0.03 * sb,
+            },
+            { fill: c.red, tracking: 0.02 },
+          ).svg,
+      ),
+      k.inView(
+        "back",
+        scatter(
+          61,
+          boot.z0,
+          boot.z1,
+          y1 - bh - 0.1,
+          y1 - bh - 0.01,
+          7,
+          [{ fill: c.blue }, { fill: c.white, edge: c.red }],
+          [0.012, 0.022],
+        ),
       ),
     );
   }
@@ -1187,15 +1273,68 @@ function axio(k, fonts) {
     inset: 0.03,
   });
   if (bump) {
+    const bb = k.boxPx("back", bump.z0, bump.y1, bump.z1, bump.y0);
+    const capped = k.cap(bb, 0.15 * sb, "top");
+    const mid = {
+      x: capped.x + capped.w * 0.16,
+      y: capped.y,
+      w: capped.w * 0.68,
+      h: capped.h,
+    };
+    const caution = fitted(
+      fonts["AlfaSlabOne-Regular.ttf"],
+      "CAUTION",
+      { ...mid, h: mid.h * 0.66 },
+      { fill: c.red, keyline: c.violet, edge: 0.06, tracking: 0.05 },
+    );
+    const brakes = fitted(
+      fonts["Anton-Regular.ttf"],
+      "INSTANT BRAKES",
+      {
+        x: caution.x,
+        y: caution.y + caution.height * 1.12,
+        w: caution.width,
+        h: mid.h * 0.26,
+      },
+      { fill: c.red, tracking: 0.12 },
+    );
+    const side = Math.min(capped.h * 0.8, capped.w * 0.12);
     extra.push(
       k.pixels(
         "back",
-        fitted(
-          fonts["AlfaSlabOne-Regular.ttf"],
-          "CAUTION",
-          k.cap(k.boxPx("back", bump.z0, bump.y1, bump.z1, bump.y0), 0.1 * sb),
-          { fill: c.red, keyline: c.white, edge: 0.06, tracking: 0.05 },
-        ).svg,
+        caution.svg +
+          brakes.svg +
+          lPlate(
+            capped.x + capped.w - side * 0.6,
+            capped.y + capped.h / 2,
+            side,
+            {
+              ground: "none",
+              frame: c.red,
+            },
+          ) +
+          triangle(
+            fonts,
+            capped.x + side * 0.6,
+            capped.y + capped.h / 2,
+            side,
+            {
+              stroke: c.red,
+              fill: c.white,
+              glyph: "!",
+            },
+          ),
+      ),
+    );
+  }
+  // A small red triangle low on each rear quarter.
+  for (const view of ["left", "right"]) {
+    const s = k.scale(view);
+    const [tx, ty] = k.pt[view](box.zmax - 0.25, yAt(0.7));
+    extra.push(
+      k.pixels(
+        view,
+        triangle(fonts, tx, ty, 0.05 * s, { stroke: c.red, fill: c.red }),
       ),
     );
   }
@@ -1367,57 +1506,94 @@ function splash(k, fonts) {
 
 // -- the white "Team STEGA" Mazda (crossover) --
 
+/**
+ * Their white Mazda (reference-team-*.jpg): a big red star edged black on
+ * the rear door with black, red and grey streaks sweeping back from it, a
+ * red shard splash edged black over the rear quarter, STEGA in blue italics
+ * on the front door, red warning triangles, red arrows on the bonnet, the
+ * Team STEGA plate; DRIVER UNDER INSTRUCTIONS, CAUTION and KEEP | Team
+ * STEGA | DISTANCE at the back.
+ */
 function team(k, fonts) {
   const { L, box } = k;
   const c = COLORS;
   const m = measures(k);
   const { far, zAt, yAt } = m;
+  const at = (u, v) => [zAt(u), yAt(v)];
+  const edge = (w) =>
+    ` stroke="${c.black}" stroke-width="${w}" stroke-linejoin="round" paint-order="stroke"`;
 
-  // Red and blue shards: a burst pointing forward from the rear quarter
-  // behind the name, and a chevron on the front wing.
-  const shard = (z0, y0, z1, y1, w, col) =>
+  // The streaks, from the star back and up over the rear door.
+  const [sz, sy] = at(0.3, 0.45);
+  const R = Math.min(0.22, m.band * 0.36);
+  const streak = (dv, w, col, reach = 0.55) =>
     poly(
       ribbon(
         bez(
-          [z0, y0],
-          [z0 + (z1 - z0) * 0.3, y0 + (y1 - y0) * 0.3],
-          [z0 + (z1 - z0) * 0.7, y0 + (y1 - y0) * 0.7],
-          [z1, y1],
+          [sz, sy + dv * m.band],
+          [sz + R * 1.2, sy + (dv + 0.12) * m.band],
+          [zAt(0.3 - reach * 0.6), yAt(0.2 - dv)],
+          [zAt(0.3 - reach), yAt(0.06 - dv * 1.3)],
         ),
         taper(w),
-        6,
       ),
       col,
     );
-  const burst = [
-    shard(zAt(-0.15), yAt(0.25), zAt(0.42), yAt(0.55), 0.12, c.red),
-    shard(zAt(-0.15), yAt(0.55), zAt(0.38), yAt(0.4), 0.08, c.red),
-    shard(zAt(-0.1), yAt(0.05), zAt(0.35), yAt(0.3), 0.05, c.blue),
-    shard(zAt(-0.12), yAt(0.85), zAt(0.3), yAt(0.62), 0.05, c.blue),
+  const streaks = [
+    streak(0.18, 0.11, c.black),
+    streak(0.06, 0.08, c.red, 0.62),
+    streak(-0.05, 0.05, c.black, 0.5),
+    streak(-0.14, 0.035, "#9aa0a6", 0.42),
+    streak(0.27, 0.04, c.red, 0.4),
   ].join("");
-  const wing = [
-    shard(zAt(0.9), yAt(0.1), zAt(1.2), yAt(0.3), 0.07, c.red),
-    shard(zAt(0.9), yAt(0.5), zAt(1.2), yAt(0.3), 0.07, c.red),
+  // The shard splash over the rear quarter: red, edged black.
+  const shard = poly(
+    [
+      at(0.18, 0.74),
+      at(0.02, 0.56),
+      at(-0.08, 0.64),
+      at(-0.18, 0.4),
+      at(-0.3, 0.5),
+      at(-0.5, 0.3),
+      at(-0.42, 0.58),
+      at(-0.3, 0.8),
+      at(-0.16, 0.7),
+      at(-0.06, 0.9),
+      at(0.06, 0.78),
+    ],
+    c.red,
+    edge(0.014),
+  );
+  const side = [
+    k.rect(-far, -far, far, far, c.white),
+    shard,
+    streaks,
+    star(sz + 0.02, sy - 0.02, R * 1.06, c.black, { turn: 0.25 }),
+    star(sz, sy, R, c.red, { edge: c.black, edgeK: 0.08, turn: 0.25 }),
   ].join("");
-  const side = [k.rect(-far, -far, far, far, c.white), burst, wing].join("");
 
-  // The bonnet: two red arrows, tails in the middle, heads out to the sides.
+  // The bonnet: two red arrows, heads out towards the windscreen's corners.
   const bon = L.bonnet;
-  const bz = bon.z0 + (bon.z1 - bon.z0) * 0.55;
   const arrow = (sgn) => {
-    const xIn = sgn * 0.06;
-    const xOut = sgn * Math.min(bon.x1 * 0.85, 0.62);
-    const head = Math.abs(xOut - xIn) * 0.42;
-    const t = 0.07;
+    const zA = bon.z0 + (bon.z1 - bon.z0) * 0.3;
+    const zB = bon.z0 + (bon.z1 - bon.z0) * 0.72;
+    const xIn = sgn * 0.05;
+    const xOut = sgn * Math.min(bon.x1 * 0.88, 0.66);
+    const t = 0.05;
+    const kink = (xIn + xOut) / 2;
     return poly(
       [
-        [bz - t, xIn],
-        [bz + t * 0.3, xOut - sgn * head],
-        [bz + t * 2.4, xOut - sgn * head * 1.15],
-        [bz - t * 0.3, xOut],
-        [bz - t * 2.6, xOut - sgn * head * 1.15],
-        [bz - t * 1.2, xOut - sgn * head],
-        [bz - t * 2.2, xIn],
+        [zA, xIn],
+        [zA + t * 1.6, xIn],
+        [zA + (zB - zA) * 0.45, kink - sgn * 0.02],
+        [zA + (zB - zA) * 0.45 + t, kink + sgn * 0.04],
+        [zB - t * 0.6, xOut - sgn * 0.16],
+        [zB + t * 0.9, xOut - sgn * 0.2],
+        [zB, xOut],
+        [zB - t * 2.6, xOut - sgn * 0.12],
+        [zB - t * 1.6, xOut - sgn * 0.16],
+        [zA + (zB - zA) * 0.45 - t * 0.4, kink + sgn * 0.06],
+        [zA + (zB - zA) * 0.4 - t, kink],
       ],
       c.red,
     );
@@ -1426,52 +1602,91 @@ function team(k, fonts) {
     "",
   );
   const front = k.rect(-far, -far, far, far, c.white);
-  const back = k.rect(-far, -far, far, far, c.white);
+  // The back's corners carry the side's red and black round.
+  const corner = (sgn) =>
+    [
+      poly(
+        [
+          [sgn * box.xmax, L.belt - 0.06],
+          [sgn * (box.xmax - 0.22), L.sill + (L.belt - L.sill) * 0.45],
+          [sgn * (box.xmax - 0.16), L.sill + (L.belt - L.sill) * 0.42],
+          [sgn * box.xmax, L.belt - 0.16],
+        ],
+        c.red,
+        edge(0.01),
+      ),
+      poly(
+        [
+          [sgn * box.xmax, L.belt - 0.2],
+          [sgn * (box.xmax - 0.12), L.sill + (L.belt - L.sill) * 0.4],
+          [sgn * (box.xmax - 0.09), L.sill + (L.belt - L.sill) * 0.38],
+          [sgn * box.xmax, L.belt - 0.26],
+        ],
+        c.black,
+      ),
+    ].join("");
+  const back = [
+    k.rect(-far, -far, far, far, c.white),
+    corner(1),
+    corner(-1),
+  ].join("");
 
   const extra = [];
-  // STEGA in blue italics over the shards, DRIVING SCHOOL under it.
-  const spot = nameSpot(k, zAt(0.55), zAt(0.02), L.sill, L.belt);
+  // STEGA in blue italics on the front door, DRIVING SCHOOL under it.
+  const spot = nameSpot(k, zAt(0.95), zAt(0.5), L.sill, L.belt);
   if (spot) {
     extra.push(
       onBothSides(k, spot, (b, view) => {
         const s = k.scale(view);
+        const capped = k.cap(b, 0.3 * s);
         const name = fitted(
           fonts["Poppins-ExtraBold.ttf"],
           "STEGA",
-          k.cap({ ...b, h: b.h * 0.74 }, 0.22 * s, "top"),
+          { ...capped, h: capped.h * 0.7 },
           {
             fill: c.blue,
-            keyline: c.white,
-            edge: 0.06,
-            tracking: 0.02,
+            keyline: c.navy,
+            edge: 0.1,
+            tracking: 0.01,
             skew: -12,
           },
         );
         return (
           name.svg +
           fitted(
-            fonts["Poppins-Bold.ttf"],
+            fonts["Anton-Regular.ttf"],
             "DRIVING SCHOOL",
             {
               x: name.x,
-              y: name.y + name.height * 1.12,
+              y: name.y + name.height * 1.1,
               w: name.width,
-              h: name.height * 0.28,
+              h: capped.h * 0.24,
             },
-            { fill: c.fielder, tracking: 0.08, skew: -12 },
+            { fill: "#5b6068", tracking: 0.1, skew: -12 },
           ).svg
         );
       }),
     );
   }
-  // Red triangles on the front wings and bumper.
+  // Warning triangles: one over the front wheel, one in the shard.
   for (const view of ["left", "right"]) {
     const s = k.scale(view);
-    const [tx, ty] = k.pt[view](zAt(1) - L.wheels.front.r * 1.15, yAt(0.62));
+    const [tx, ty] = k.pt[view](...at(0.92, 0.3));
+    const [qx, qy] = k.pt[view](...at(-0.26, 0.6));
     extra.push(
       k.pixels(
         view,
-        triangle(fonts, tx, ty, 0.09 * s, { stroke: c.red, glyph: "!" }),
+        triangle(fonts, tx, ty, 0.09 * s, {
+          stroke: c.red,
+          fill: c.white,
+          glyph: "!",
+        }) +
+          triangle(fonts, qx, qy, 0.07 * s, {
+            stroke: c.white,
+            fill: c.red,
+            glyph: "!",
+            ink: c.white,
+          }),
       ),
     );
   }
@@ -1488,78 +1703,145 @@ function team(k, fonts) {
         `<g transform="rotate(180 ${n3(b.x + b.w / 2)} ${n3(b.y + b.h / 2)})">${phoneIn(fonts, b, c.black)}</g>`,
     ),
   );
-  // The front: the Team STEGA plate in the middle, red triangles at the corners.
+  // The front: the Team STEGA plate, a red triangle low on the bumper.
   const sf = k.scale("front");
   const plateY = L.sill + (L.bonnet.y - L.sill) * 0.35;
-  const plate = k.boxPx("front", 0.24, plateY + 0.07, -0.24, plateY - 0.07);
-  const [t1x, t1y] = k.pt.front(box.xmax * 0.7, plateY + 0.04);
-  const [t2x, t2y] = k.pt.front(box.xmin * 0.7, plateY + 0.04);
+  const plate = k.boxPx("front", 0.26, plateY + 0.075, -0.26, plateY - 0.075);
+  const [t1x, t1y] = k.pt.front(box.xmin * 0.72, plateY - 0.02);
   extra.push(
     k.pixels(
       "front",
-      [
-        `<rect x="${n3(plate.x)}" y="${n3(plate.y)}" width="${n3(plate.w)}" height="${n3(plate.h)}" rx="${n3(plate.h * 0.08)}" fill="${c.white}" stroke="${c.black}" stroke-width="${n3(plate.h * 0.04)}"/>`,
-        fitted(
-          fonts["Poppins-Bold.ttf"],
-          "Team",
-          {
-            x: plate.x,
-            y: plate.y + plate.h * 0.08,
-            w: plate.w,
-            h: plate.h * 0.3,
-          },
-          { fill: c.red },
-        ).svg,
-        fitted(
-          fonts["Poppins-ExtraBold.ttf"],
-          "STEGA",
-          {
-            x: plate.x + plate.w * 0.06,
-            y: plate.y + plate.h * 0.44,
-            w: plate.w * 0.88,
-            h: plate.h * 0.46,
-          },
-          { fill: c.red, tracking: 0.04 },
-        ).svg,
-        triangle(fonts, t1x, t1y, 0.1 * sf, { stroke: c.red, glyph: "!" }),
-        triangle(fonts, t2x, t2y, 0.1 * sf, { stroke: c.red, glyph: "!" }),
-      ].join(""),
+      teamPlate(fonts, plate) +
+        triangle(fonts, t1x, t1y, 0.1 * sf, {
+          stroke: c.red,
+          fill: c.white,
+          glyph: "!",
+        }),
     ),
   );
-  // The back: STEGA in blue, the number under it.
-  const tail = k.clearRect("back", box.xmin, box.xmax, L.sill + 0.05, L.belt, {
-    inset: 0.04,
-  });
-  if (tail) {
-    const sb = k.scale("back");
-    const b = k.cap(
-      k.boxPx("back", tail.z0, tail.y1, tail.z1, tail.y0),
-      0.16 * sb,
+  // The back: DRIVER UNDER INSTRUCTIONS over the boot, two triangles,
+  // CAUTION; KEEP | Team STEGA | DISTANCE on the bumper.
+  const sb = k.scale("back");
+  const split = L.sill + (L.belt - L.sill) * 0.42;
+  const boot = k.clearRect(
+    "back",
+    box.xmin + 0.2,
+    box.xmax - 0.2,
+    split,
+    L.belt,
+    {
+      inset: 0.03,
+    },
+  );
+  if (boot) {
+    const bb = k.boxPx("back", boot.z0, boot.y1, boot.z1, boot.y0);
+    const lineH = Math.min(0.055 * sb, bb.h * 0.3);
+    const top1 = fitted(
+      fonts["AlfaSlabOne-Regular.ttf"],
+      "DRIVER UNDER INSTRUCTIONS",
+      { x: bb.x, y: bb.y, w: bb.w, h: lineH },
+      { fill: c.red, tracking: 0.02 },
     );
-    const name = fitted(
-      fonts["Poppins-ExtraBold.ttf"],
-      "STEGA",
-      { ...b, h: b.h * 0.7 },
-      { fill: c.blue, tracking: 0.04, skew: -12 },
+    const cH = Math.min(0.1 * sb, bb.h * 0.42);
+    const caution = fitted(
+      fonts["AlfaSlabOne-Regular.ttf"],
+      "CAUTION",
+      { x: bb.x + bb.w * 0.15, y: bb.y + bb.h - cH, w: bb.w * 0.7, h: cH },
+      { fill: c.red, tracking: 0.04 },
     );
+    const triY = (top1.y + top1.height + caution.y) / 2 + cH * 0.1;
+    const tri = Math.min(0.08 * sb, caution.y - top1.y - top1.height);
     extra.push(
       k.pixels(
         "back",
-        name.svg +
-          phoneIn(
-            fonts,
+        top1.svg +
+          caution.svg +
+          triangle(fonts, caution.x + caution.width * 0.18, triY, tri, {
+            stroke: c.red,
+            fill: c.white,
+            glyph: "!",
+          }) +
+          triangle(fonts, caution.x + caution.width * 0.82, triY, tri, {
+            stroke: c.red,
+            fill: c.white,
+            glyph: "!",
+          }),
+      ),
+    );
+  }
+  const bump = k.clearRect(
+    "back",
+    box.xmin + 0.1,
+    box.xmax - 0.1,
+    L.sill,
+    split,
+    {
+      inset: 0.02,
+    },
+  );
+  if (bump) {
+    const bb = k.cap(
+      k.boxPx("back", bump.z0, bump.y1, bump.z1, bump.y0),
+      0.12 * sb,
+    );
+    const pw = Math.min(bb.w * 0.26, bb.h * 2.2);
+    const px = bb.x + (bb.w - pw) / 2;
+    const ink = { fill: c.black, tracking: 0.03 };
+    extra.push(
+      k.pixels(
+        "back",
+        teamPlate(fonts, { x: px, y: bb.y, w: pw, h: bb.h }) +
+          fitted(
+            fonts["Poppins-ExtraBold.ttf"],
+            "KEEP",
             {
-              x: name.x,
-              y: name.y + name.height * 1.15,
-              w: name.width,
-              h: b.h * 0.24,
+              x: bb.x,
+              y: bb.y + bb.h * 0.25,
+              w: px - bb.x - bb.w * 0.02,
+              h: bb.h * 0.5,
             },
-            c.red,
-          ),
+            { ...ink, align: "right" },
+          ).svg +
+          fitted(
+            fonts["Poppins-ExtraBold.ttf"],
+            "DISTANCE",
+            {
+              x: px + pw + bb.w * 0.02,
+              y: bb.y + bb.h * 0.25,
+              w: bb.x + bb.w - px - pw - bb.w * 0.02,
+              h: bb.h * 0.5,
+            },
+            { ...ink, align: "left" },
+          ).svg,
       ),
     );
   }
   return assemble(k, { side, top, front, back, extra });
+}
+
+/** Their Team STEGA plate: white, a black edge, red lettering. */
+function teamPlate(fonts, plate) {
+  const c = COLORS;
+  return [
+    `<rect x="${n3(plate.x)}" y="${n3(plate.y)}" width="${n3(plate.w)}" height="${n3(plate.h)}" rx="${n3(plate.h * 0.08)}" fill="${c.white}" stroke="${c.black}" stroke-width="${n3(plate.h * 0.05)}"/>`,
+    fitted(
+      fonts["Poppins-Bold.ttf"],
+      "Team",
+      { x: plate.x, y: plate.y + plate.h * 0.1, w: plate.w, h: plate.h * 0.3 },
+      { fill: c.red },
+    ).svg,
+    fitted(
+      fonts["Poppins-ExtraBold.ttf"],
+      "STEGA",
+      {
+        x: plate.x + plate.w * 0.08,
+        y: plate.y + plate.h * 0.46,
+        w: plate.w * 0.84,
+        h: plate.h * 0.42,
+      },
+      { fill: c.red, tracking: 0.04 },
+    ).svg,
+  ].join("");
 }
 
 // -- the white truck (van, lorry) --
