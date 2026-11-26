@@ -5,7 +5,7 @@ import {
   boardSchoolNames,
 } from "~/components/board/sponsor-credit";
 import { MDX } from "~/components/brand/mdx-components";
-import { DRIVING_SCHOOL_PAGES } from "~/lib/driving-school-pages";
+import { DrivingSchoolList } from "~/components/school/driving-school-list";
 
 You can't skip this step: NTSA's [Provisional Driving Licence page](https://ntsa.go.ke/services/service/provisional-driving-licence-pdl) says a learner is required to enrol at a licensed driving school. This guide covers what schools charge, how to check that one is licensed, and what to ask before you pay.
 
@@ -62,15 +62,9 @@ NTSA's timing sets the shortest path: your PDL has to mature for 21 days before 
 
 ## Driving schools with their own page
 
-Each page has the school's published fees for every class, its branches, phone number and social pages, all from the school's own site, with the date we checked.
+Each page has the school's published fees for every class, its branches, phone number and social pages, all from the school's own site, with the date we checked. Schools on DriveRush also tell you about themselves in their own words, with each branch's address, map and opening hours.
 
-<MDX.ul>
-  {DRIVING_SCHOOL_PAGES.map((school) => (
-    <li key={school.slug}>
-      <MDX.a href={school.path}>{school.name} fees</MDX.a>: {school.locations[0]}
-    </li>
-  ))}
-</MDX.ul>
+<DrivingSchoolList />
 
 ## Make the most of your school
 

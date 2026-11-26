@@ -16,6 +16,15 @@ new school, or a changed look, needs no commit and no deploy.
 | Which livery shows                                                | `school_liveries.status` (one `live` per school)                | staff (console: Preview, Publish, Retire)              |
 | Whose cars take turns for everyone                                | `school_sponsorships` (Kenyan dates)                            | staff (console: Sponsorship)                           |
 
+The profile and branches also show on the school's public page,
+`/driving-schools-kenya/<slug>` (where a page's `schoolSlug` names it):
+"From the school" (logo, tagline, about, call, WhatsApp, email, website,
+socials) and its branches with address, map, phone and hours, in the
+server-rendered page and its structured data (`app/lib/school/public-profile.ts`).
+The guide's list marks those schools "On DriveRush" with their tagline. Both
+read the same cached `board_schools()` manifest, so an owner's edit shows
+within its 5 minutes.
+
 A school's **own learners** see its live livery whether or not it sponsors.
 **Guests and free learners** see the sponsoring schools take turns. **Paid
 learners** see plain cars.
