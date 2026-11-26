@@ -31,7 +31,8 @@ select is(tests.value_as(pg_temp.w('owner_a'), format('select pending_bank_label
   'Equity ••1111', 'the owner sees the bank waiting');
 select is(tests.value_as(pg_temp.w('admin_a1'), format('select coalesce(pending_bank_label, ''hidden'') from public.school_pass_info(%L)', pg_temp.w('school_a'))),
   'hidden', 'a branch admin does not');
-select is(tests.value_as(pg_temp.w('staff'), 'select string_agg(pending_bank_label, '','') from public.admin_list_bank_requests()'),
+-- Only this school's row: a seeded database has the demo's own request too.
+select is(tests.value_as(pg_temp.w('staff'), format('select string_agg(pending_bank_label, '','') from public.admin_list_bank_requests() where school_id = %L', pg_temp.w('school_a'))),
   'Equity ••1111', 'staff see it in their list');
 
 select is(
