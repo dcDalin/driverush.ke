@@ -1,5 +1,5 @@
 /**
- * The five schools' look and profile, the way they are made for real:
+ * The six schools' look and profile, the way they are made for real:
  *
  * 1. the su uploads their livery folders (seed/fixtures/liveries/<slug>/)
  *    to the school-media bucket (files already there are not sent again) as

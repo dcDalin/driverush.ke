@@ -130,7 +130,7 @@ dashboard.
 ## Trying it locally
 
 `npm run db:reset` gives the test personas, and `npm run db:seed` the full
-demo: 5 schools, their owners and admins, and learners in every link state
+demo: 6 schools, their owners and admins, and learners in every link state
 (pending, active, choosing, switched, declined, released, moved, expired,
 renewed, paid through the school, own pass, free). Every account's password is
 `driverush-local-1`. The table of who is who, and how to add your own su

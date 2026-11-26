@@ -1,5 +1,5 @@
 /**
- * The three demo schools, made the way they are for real and signed in as
+ * The four demo schools, made the way they are for real and signed in as
  * the person who would do each step, so every function's own guard runs:
  * the fixture's su creates the school with an owner's email, the owner adds
  * branches and admins. An owner or admin who signs up after being added

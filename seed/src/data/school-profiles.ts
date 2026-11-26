@@ -1,5 +1,5 @@
 /**
- * The five schools' profiles for the local demo. Only what the schools say
+ * The six schools' profiles for the local demo. Only what the schools say
  * publicly is used: their sites and social pages come from the researched
  * driving-school pages (app/lib/driving-school-pages.ts, each with a
  * source), the phones from their own cars' lettering. Branches are demo
@@ -61,6 +61,15 @@ export const SCHOOL_PROFILES: ProfileSeed[] = [
       'Petanns Driving School, "Shule Ya Wakenya", teaches learners in its white, blue and orange cars.',
     whatsapp: "0705 05 05 04",
     website: "https://petannsdrivingschool.co.ke",
+  },
+  {
+    slug: "stega",
+    owner: "owner@stega.test",
+    tagline: "Driving lessons in Nairobi since 1995",
+    about:
+      "Stega Driving School has taught learners in Nairobi since 1995, in its red, blue and white fleet.",
+    phone: "0722 213 810",
+    website: "https://stegadrivingschool.com",
   },
 ];
 

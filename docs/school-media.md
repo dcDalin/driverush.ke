@@ -66,7 +66,7 @@ and JPEG only. SVG is refused because it can carry script.
 1. **One manifest.**
    - `board_schools()` returns every active school with a profile or a live
      livery: public fields and paths only, no drafts, nobody's ids. It is
-     about 24 KB for five schools before compression.
+     about 24 KB for six schools before compression.
    - The server keeps it for 5 minutes (`school-catalog.server.ts`) and puts
      it in the root loader, so server-rendered pages need no extra request.
    - `/api/board-schools` serves the same list with
@@ -170,7 +170,7 @@ The board shows plain cars in production until these steps are done:
 2. Push the baseline.
 3. Set the Vercel env: `SUPABASE_*`, `VITE_SUPABASE_*` and
    `SUPABASE_SERVICE_ROLE_KEY`. The logo upload needs the service role key.
-4. Create the five schools in the console.
+4. Create the six schools in the console.
 5. For each school, run `npm run livery:publish <slug> -- --hosted`, then
    **Publish**.
 6. Add each school's sponsorship.
@@ -179,7 +179,7 @@ The board shows plain cars in production until these steps are done:
 
 ## Locally
 
-- `npm run db:seed` publishes all five schools from `seed/fixtures/liveries/`.
+- `npm run db:seed` publishes all six schools from `seed/fixtures/liveries/`.
 - It fills their profiles from what they say publicly (sites and socials
   from `app/lib/driving-school-pages.ts`, phones from their cars) and adds
   demo branch details.

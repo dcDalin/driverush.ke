@@ -1,0 +1,19 @@
+{
+  "label": "Their real fleet, one car per vehicle (2026-11-26)",
+  "base": "#f7f7f4",
+  "rail": {
+    "gold": "#e8212b",
+    "red": "#2c63d8"
+  },
+  "topBoard": {
+    "width": 1.35,
+    "height": 0.45,
+    "cut": 0.05,
+    "edge": "#2c63d8"
+  },
+  "brand": {
+    "paint": "#e8212b",
+    "ink": "#1e69a7"
+  },
+  "note": "Their real fleet, one Stega car per board vehicle; their own blue oval roof board, STEGA in yellow bulb letters."
+}

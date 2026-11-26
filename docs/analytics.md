@@ -136,7 +136,8 @@ get wrong" report.
 
 ### Driving schools
 
-Five schools take turns on the board (Heltz, Top Gear, Blixen, AA, Petanns).
+Six schools take turns on the board (Heltz, Top Gear, Blixen, AA, Petanns,
+and Stega since 26 Nov 2026).
 Since 22 Nov 2026 the school changes with every new task, and the game's
 address carries it (`/model-town-board/play?…&school=<id>`), so break pages
 down by `$pathname`, not `$current_url`.

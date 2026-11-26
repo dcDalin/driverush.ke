@@ -1,5 +1,5 @@
 /**
- * The three demo schools the full seed adds next to the test fixture's Heltz
+ * The four demo schools the full seed adds next to the test fixture's Heltz
  * and Top Gear (supabase/seeds/local_demo.sql, never changed here). Their
  * slugs name their livery folders (seed/fixtures/liveries/<slug>/), which the
  * media step publishes, so each school's learners see its paint on the board.
@@ -120,5 +120,16 @@ export const DEMO_SCHOOLS: SchoolSpec[] = [
         joins: "before",
       },
     ],
+  },
+  {
+    slug: "stega",
+    name: "Stega Driving School",
+    owner: {
+      email: "owner@stega.test",
+      name: "Grace Muthoni",
+      joins: "before",
+    },
+    branches: [{ name: "Nairobi CBD", town: "Nairobi" }],
+    admins: [],
   },
 ];

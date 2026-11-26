@@ -42,7 +42,7 @@ remix-hook-form, shadcn everywhere. Guides: `docs/forms-and-data.md`,
   (migrations plus the test personas in `supabase/seeds/local_demo.sql`;
   every demo password is `driverush-local-1`). Local codes land in Mailpit at
   http://127.0.0.1:54724.
-- Full demo: `npm run db:seed` (Snaplet, `seed/`: 5 schools, ~45 learners in
+- Full demo: `npm run db:seed` (Snaplet, `seed/`: 6 schools, ~45 learners in
   every state, progress; your own su from `SEED_SU_EMAIL` in `.env.local`,
   never committed: the repo is public). `npm run db:refresh` = `db:sync` +
   `db:seed`. Guide: `seed/README.md`.

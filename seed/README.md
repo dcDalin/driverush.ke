@@ -6,7 +6,7 @@ Demo data for the **local** Supabase stack. Built like thinkrush
 | Tier                   | Command                                     | What you get                                                                                                                                                           |
 | ---------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | SQL seed (fast)        | `npm run db:reset`                          | Migrations, the reference rows (plans) and `supabase/seeds/local_demo.sql`: the test personas (2 schools, 11 people)                                                   |
-| Full demo (TypeScript) | `npm run db:seed` (or `npm run db:refresh`) | Everything above, plus your own su, 3 more schools, 32 more learners in every state with progress, and all 5 schools' profiles, liveries (in Storage) and sponsorships |
+| Full demo (TypeScript) | `npm run db:seed` (or `npm run db:refresh`) | Everything above, plus your own su, 4 more schools, 32 more learners in every state with progress, and all 6 schools' profiles, liveries (in Storage) and sponsorships |
 
 The tests use the test personas, and both tiers have them. The pgTAP, db,
 route and e2e suites pass after either command.
@@ -77,9 +77,10 @@ the demo):
 | Blixen Auto Driving School | `owner@blixen.test`                       | Nairobi West, Kitengela, Machakos | `west.admin@blixen.test` (Nairobi West); `south.admin@blixen.test` (Kitengela and Machakos)                                                        |
 | AA Driving School          | `owner@aa.test` (invited, then signed up) | Hurlingham, Mombasa, Nakuru       | `mombasa.admin@aa.test`; `nakuru.admin@aa.test`; `wanjiru@schools.test` (Hurlingham, and Petanns Kisumu); `new.admin@aa.test` (invite, no account) |
 | Petanns Driving School     | `owner@petanns.test`                      | Kisumu, Eldoret                   | `eldoret.admin@petanns.test`; `wanjiru@schools.test` (Kisumu)                                                                                      |
+| Stega Driving School       | `owner@stega.test`                        | Nairobi CBD                       | none (the owner adds learners)                                                                                                                     |
 
 Every school takes passes: the fixture's `HELTZ` (KES 700) and `TOPGEAR`
-(KES 600), and the demo schools' `BLIXEN`, `AADS` and `PETANNS` (KES 700),
+(KES 600), and the demo schools' `BLIXEN`, `AADS`, `PETANNS` and `STEGA` (KES 700),
 each with a made-up Paystack subaccount code.
 
 **Demo learners** (`src/data/people.ts`, `<first name>@learner.test`). Each
@@ -136,7 +137,7 @@ show empty rows too. Every run gives the same people and the same numbers.
 8. **Profiles, liveries, sponsorships** (`src/steps/media.ts`).
    - First it removes the last run's folders from the `school-media` bucket:
      a reset gives every school a new id.
-   - Then, for each of the five schools:
+   - Then, for each of the six schools:
      - It uploads `fixtures/liveries/<slug>/` (`src/media.ts`: content-named
        paths, one-year cache, files already stored are skipped) as a draft
        livery, and the su publishes it.
