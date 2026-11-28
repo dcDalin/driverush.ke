@@ -4,7 +4,7 @@
  * account with that email.
  */
 import * as React from "react";
-import { data, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import { HoneypotInputs } from "remix-utils/honeypot/react";
 
 import {
@@ -19,9 +19,8 @@ import {
   SelectField,
   ServerFormProvider,
 } from "~/components/ui/forms/server";
-import { getRequestClient, requireStaff } from "~/lib/auth/require.server";
+import { requireStaff } from "~/lib/auth/require.server";
 import { consoleAction } from "~/lib/console/action.server";
-import { consoleGate, GATED } from "~/lib/console/gate.server";
 import { useServerForm } from "~/lib/forms/use-server-form";
 import { GrantRoleSchema } from "~/schemas/console";
 
@@ -37,20 +36,18 @@ export function meta() {
   ];
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const context = await getRequestClient(request);
-  const gate = await consoleGate(context);
-  return data(gate.ok && gate.su ? { gated: false as const } : GATED, {
-    headers: context.headers,
-  });
-}
+/*
+ * No loader: the page under this modal (the schools list, the staff list)
+ * only draws it for staff (a su for staff), so opening it costs no server
+ * trip. The action checks again.
+ */
 
 export async function action({ request }: Route.ActionArgs) {
   const staff = await requireStaff(request);
   return consoleAction(staff, await request.formData(), request);
 }
 
-export default function StaffGrant({ loaderData }: Route.ComponentProps) {
+export default function StaffGrant() {
   const navigate = useNavigate();
   const { methods, fetcher, formRef, busy } = useServerForm({
     schema: GrantRoleSchema,
@@ -67,7 +64,6 @@ export default function StaffGrant({ loaderData }: Route.ComponentProps) {
       void navigate(CLOSE_TO, { replace: true, preventScrollReset: true });
   }, [granted, navigate]);
 
-  if (loaderData.gated) return null;
   return (
     <RouteModal closeTo={CLOSE_TO} label="Staff">
       <ServerFormProvider methods={methods}>

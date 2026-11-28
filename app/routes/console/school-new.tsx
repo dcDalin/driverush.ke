@@ -6,7 +6,6 @@
  * opens the new school's page.
  */
 import * as React from "react";
-import { data } from "react-router";
 import { HoneypotInputs } from "remix-utils/honeypot/react";
 
 import {
@@ -18,9 +17,8 @@ import {
 } from "~/components/console/route-modal";
 import { Button } from "~/components/ui/button";
 import { InputField, ServerFormProvider } from "~/components/ui/forms/server";
-import { getRequestClient, requireStaff } from "~/lib/auth/require.server";
+import { requireStaff } from "~/lib/auth/require.server";
 import { consoleAction } from "~/lib/console/action.server";
-import { consoleGate, GATED } from "~/lib/console/gate.server";
 import { useServerForm } from "~/lib/forms/use-server-form";
 import { CreateSchoolSchema } from "~/schemas/console";
 
@@ -35,13 +33,11 @@ export function meta() {
   ];
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const context = await getRequestClient(request);
-  const gate = await consoleGate(context);
-  return data(gate.ok ? { gated: false as const } : GATED, {
-    headers: context.headers,
-  });
-}
+/*
+ * No loader: the page under this modal (the schools list, the staff list)
+ * only draws it for staff (a su for staff), so opening it costs no server
+ * trip. The action checks again.
+ */
 
 export async function action({ request }: Route.ActionArgs) {
   const staff = await requireStaff(request);
@@ -57,7 +53,7 @@ function slugOf(name: string) {
     .slice(0, 60);
 }
 
-export default function SchoolNew({ loaderData }: Route.ComponentProps) {
+export default function SchoolNew() {
   const closeTo = useCloseTo("/console/schools");
   const { methods, fetcher, formRef, busy } = useServerForm({
     schema: CreateSchoolSchema,
@@ -77,7 +73,6 @@ export default function SchoolNew({ loaderData }: Route.ComponentProps) {
     if (!slugTouched) methods.setValue("slug", slugOf(name ?? ""));
   }, [name, slugTouched, methods]);
 
-  if (loaderData.gated) return null;
   return (
     <RouteModal closeTo={closeTo} label="Schools">
       <ServerFormProvider methods={methods}>

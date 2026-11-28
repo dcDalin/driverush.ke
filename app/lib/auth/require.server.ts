@@ -5,6 +5,12 @@
  * each route, never only in a parent, because a data request can run a child
  * loader on its own. `test/routes/gate-first.test.ts` checks every route.
  *
+ * Read once per request: React Router hands the same `Request` to every
+ * loader (and the middleware) of one request, so the layout's and the page's
+ * loaders share one client and one session check instead of asking Supabase
+ * two or three times. `privatePage` middleware sends the cookies it
+ * refreshed and keeps the response out of every cache.
+ *
  * The database checks again on every call; these gates only decide what a
  * page shows and turn a refused request away early.
  */
@@ -19,8 +25,7 @@ export type SignedIn = RequestContext & {
   caller: Extract<Caller, { signedIn: true }>;
 };
 
-/** Anyone: the client and caller (who may be signed out). 404 with accounts off. */
-export async function getRequestClient(request: Request) {
+async function readRequestClient(request: Request) {
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_PUBLISHABLE_KEY) {
     throw data("Not found", { status: 404 });
   }
@@ -29,6 +34,23 @@ export async function getRequestClient(request: Request) {
   headers.set("Cache-Control", "private, no-store");
   const caller = await getCaller(supabase);
   return { supabase, headers, caller };
+}
+
+const perRequest = new WeakMap<Request, ReturnType<typeof readRequestClient>>();
+
+/** Anyone: the client and caller (who may be signed out). 404 with accounts off. */
+export function getRequestClient(request: Request) {
+  let pending = perRequest.get(request);
+  if (!pending) {
+    pending = readRequestClient(request);
+    perRequest.set(request, pending);
+  }
+  return pending;
+}
+
+/** The request's client if a loader or action already asked for it. */
+export function peekRequestClient(request: Request) {
+  return perRequest.get(request);
 }
 
 /** A signed-in person, or 401. */
