@@ -31,6 +31,8 @@ function Car({
   topBoard,
   roll,
   steer,
+  turned,
+  lock,
   simple,
 }: {
   src: string;
@@ -39,6 +41,8 @@ function Car({
   topBoard: TopBoard | null;
   roll: boolean;
   steer: boolean;
+  turned: number | null;
+  lock: number | null;
   simple: boolean;
 }) {
   const gltf = useLoader(GLTFLoader, src, (loader) =>
@@ -92,14 +96,23 @@ function Car({
   // A wheel that is not true on its axle shows here at once.
   useFrame((state, dt) => {
     const model = holder.userData.model as CarModel;
-    if (roll) {
+    if (turned != null) {
+      for (const wheel of model.userData.wheels) {
+        wheel.rotation.x = (-turned * Math.PI) / 180;
+      }
+    } else if (roll) {
       for (const wheel of model.userData.wheels) {
         const radius = (wheel.userData.radius as number | undefined) ?? 0.32;
         wheel.rotation.x -= (1.4 * Math.min(dt, 0.05)) / radius;
       }
     }
-    const lock = steer ? Math.sin(state.clock.elapsedTime * 1.2) * 0.45 : 0;
-    for (const hub of model.userData.steering) hub.rotation.y = -lock;
+    const swing =
+      lock != null
+        ? (lock * Math.PI) / 180
+        : steer
+          ? Math.sin(state.clock.elapsedTime * 1.2) * 0.45
+          : 0;
+    for (const hub of model.userData.steering) hub.rotation.y = -swing;
   });
   return <primitive object={holder} />;
 }
@@ -157,6 +170,8 @@ export default function SponsorCarCanvas({
   view,
   roll = false,
   steer = false,
+  turned = null,
+  lock = null,
   bare = false,
   simple = false,
 }: {
@@ -170,6 +185,10 @@ export default function SponsorCarCanvas({
   roll?: boolean;
   /** Swing the front wheels from lock to lock. */
   steer?: boolean;
+  /** Hold every wheel turned this many degrees forward, for a still picture. */
+  turned?: number | null;
+  /** Hold the front wheels steered this many degrees. */
+  lock?: number | null;
   /**
    * The car alone on a clear background, with no ground under it: for the
    * small pictures in the car menu (`/tools/car-thumb`).
@@ -208,6 +227,8 @@ export default function SponsorCarCanvas({
           topBoard={topBoard}
           roll={roll}
           steer={steer}
+          turned={turned}
+          lock={lock}
           simple={simple}
         />
       </React.Suspense>

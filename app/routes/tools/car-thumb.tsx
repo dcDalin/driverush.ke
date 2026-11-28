@@ -10,7 +10,8 @@
  * `&school=<id>` paints it in that school's livery with its roof board, and
  * `&heading=&tilt=&dist=` move the camera: the review sheets of the schools'
  * paint are photographed this way too. `&roll` turns the wheels and `&steer`
- * swings the front pair, to check them; `&simple` draws it as the board's
+ * swings the front pair, to check them (`&turned=` and `&lock=` hold them at
+ * an angle in degrees, for a still picture); `&simple` draws it as the board's
  * lighter picture does.
  *
  * Internal: noindex, outside the tools layout so nothing else is in the shot.
@@ -78,6 +79,8 @@ export default function CarThumb() {
             view={view}
             roll={params.has("roll")}
             steer={params.has("steer")}
+            turned={params.has("turned") ? number("turned", 0) : null}
+            lock={params.has("lock") ? number("lock", 0) : null}
             simple={params.has("simple")}
             bare
           />
