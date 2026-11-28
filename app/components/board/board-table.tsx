@@ -983,13 +983,16 @@ function finishFence(width: number, depth: number) {
 }
 
 /**
- * The most a wheel turns in one frame. A rim with ten spokes looks the same
- * every 36 degrees, so a turn of more than half that between two frames reads
- * as the wheel going backwards, and one near it as a flicker. A third of the
- * tightest pattern on any of the vehicles keeps every wheel plainly rolling
- * forward at any speed and frame rate; past that speed it just holds its pace.
+ * The most a wheel turns in one frame, as a share of the angle its pattern
+ * repeats at (72 degrees for five spokes, 36 for ten). A turn of more than
+ * half a repeat between two frames reads as the wheel going backwards, and
+ * one near it as a flicker; under a third, every wheel plainly rolls forward
+ * at any speed and frame rate. Past that speed it just holds its pace, so a
+ * rim with few spokes is let turn faster than one with many.
  */
-const MAX_ROLL = (10 * Math.PI) / 180;
+const ROLL_SHARE = 0.3;
+/** For a car whose model does not say (`extras.spokes`): the busiest rim. */
+const SPOKES = 10;
 /** The front wheels turn less than the real lock, so they stay inside the arches. */
 const MAX_STEER_SHOWN = 0.45;
 
@@ -997,11 +1000,12 @@ const MAX_STEER_SHOWN = 0.45;
 function rollWheels(holder: THREE.Object3D, distance: number) {
   const model = holder.userData.model as CarModel;
   const radius = model.userData.wheelRadius ?? WHEEL_RADIUS;
+  const most = ((2 * Math.PI) / (model.userData.spokes ?? SPOKES)) * ROLL_SHARE;
   // The nose points down -z, so rolling forward turns the top of the wheel that way.
   for (const wheel of model.userData.wheels) {
     // Each by its own radius: a smaller wheel turns faster over the same road.
     const own = (wheel.userData.radius as number | undefined) ?? radius;
-    wheel.rotation.x -= clamp(distance / own, -MAX_ROLL, MAX_ROLL);
+    wheel.rotation.x -= clamp(distance / own, -most, most);
   }
 }
 

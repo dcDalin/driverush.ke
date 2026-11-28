@@ -68,6 +68,7 @@ export function carFromGltf(
 
   let smooth = false;
   let wheelRadius = 0.32;
+  let spokes: number | undefined;
   let roof: { y: number; z: number } | undefined;
   copy.traverse((node) => {
     if (node.userData.smooth === true) smooth = true;
@@ -77,6 +78,8 @@ export function carFromGltf(
     }
     const radius = node.userData.wheelRadius;
     if (typeof radius === "number") wheelRadius = radius;
+    const count = node.userData.spokes;
+    if (typeof count === "number" && count > 0) spokes = count;
   });
 
   const paintwork = simple
@@ -192,6 +195,14 @@ export function carFromGltf(
     if (wheel.name.startsWith("wheel_f")) steering.push(hub);
   }
 
-  car.userData = { tail, wheels, steering, wheelRadius, paintwork, roof };
+  car.userData = {
+    tail,
+    wheels,
+    steering,
+    wheelRadius,
+    spokes,
+    paintwork,
+    roof,
+  };
   return car as CarModel;
 }

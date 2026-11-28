@@ -32,6 +32,7 @@ import {
   ALL_EXTENSIONS,
   EXTMeshoptCompression,
 } from "@gltf-transform/extensions";
+import { copyToDocument, prune, unpartition } from "@gltf-transform/functions";
 import { MeshoptDecoder, MeshoptEncoder } from "meshoptimizer";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -139,8 +140,7 @@ const CARS = {
       ({ z }) => z > 0,
       "rear",
     ],
-    ["wheel", "main_paint", STEEL],
-    ["wheel", "Material.013", WELL],
+    // Its wheels are the saloon's, finished there (WHEELS_FROM).
   ],
   wagon: [
     ["wheel", "material_4", RUBBER],
@@ -291,6 +291,31 @@ const CARS = {
   ],
 };
 
+/**
+ * A vehicle that wears another's wheels takes them from the other's finished
+ * file, whole: the builder's own copy was thinned along with the rest of the
+ * car, which left the hatchback's rims lumpy and lopsided. Each is sized to
+ * the tyre radius the vehicle already has, on the axle it already has.
+ */
+const WHEELS_FROM = { hatchback: "saloon" };
+
+/**
+ * How many times a wheel's pattern repeats in one turn (spokes, slots, the
+ * holes of a steel rim), counted off each finished model. The board reads it
+ * from the model (`extras.spokes`) to limit how far a wheel turns between two
+ * frames: past half a repeat it would look to be going backwards.
+ */
+const SPOKES = {
+  saloon: 10,
+  hatchback: 10,
+  wagon: 14,
+  pickup: 5,
+  suv: 6,
+  van: 6,
+  lorry: 6,
+  crossover: 5,
+};
+
 // ---- the pass -----------------------------------------------------------------
 
 await MeshoptDecoder.ready;
@@ -356,6 +381,38 @@ async function finish(id) {
     }
     return node.getMesh();
   };
+
+  const donorId = WHEELS_FROM[id];
+  if (donorId) {
+    const donor = await io.read(path.join(DIR, `${donorId}.glb`));
+    const wheelOf = (d, name) =>
+      d
+        .getRoot()
+        .listNodes()
+        .find((n) => n.getName() === name);
+    // One wheel for each side, worn front and rear.
+    const sides = ["l", "r"].map((side) => wheelOf(donor, `wheel_f${side}`));
+    const copies = copyToDocument(
+      doc,
+      donor,
+      sides.map((n) => n.getMesh()),
+    );
+    for (const [i, side] of ["l", "r"].entries()) {
+      const from = sides[i];
+      for (const end of ["f", "r"]) {
+        const wheel = wheelOf(doc, `wheel_${end}${side}`);
+        const fit = wheel.getExtras().radius / from.getExtras().radius;
+        wheel
+          .setMesh(copies.get(from.getMesh()))
+          .setScale(from.getScale().map((v) => v * fit));
+      }
+    }
+    // The wheels it wore before, and their pictures; then one buffer again,
+    // as a .glb must have (the copies came with their own).
+    // The paint keeps its UVs though no picture uses them here: the
+    // board lays a school's paint over them.
+    await doc.transform(prune({ keepAttributes: true }), unpartition());
+  }
 
   let changed = 0;
   for (const node of [...doc.getRoot().listNodes()]) {
@@ -450,6 +507,12 @@ async function finish(id) {
       if (!kept) mesh.removePrimitive(prim);
     }
   }
+  const top = doc
+    .getRoot()
+    .listNodes()
+    .find((n) => n.getExtras().smooth === true);
+  top.setExtras({ ...top.getExtras(), spokes: SPOKES[id] });
+
   // Materials nothing wears any more.
   for (const material of doc.getRoot().listMaterials()) {
     if (!material.listParents().some((p) => p.propertyType === "Primitive")) {

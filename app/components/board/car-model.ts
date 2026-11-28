@@ -298,6 +298,11 @@ export type CarModel = THREE.Group & {
     steering: THREE.Group[];
     /** The wheels' radius in metres, when it is not `WHEEL_RADIUS`. */
     wheelRadius?: number;
+    /**
+     * How many times a wheel's pattern repeats in one turn, when the model
+     * says: the board limits each frame's roll by it.
+     */
+    spokes?: number;
     /** Where a school's name board stands on the roof (`top-board.ts`). */
     roof?: { y: number; z: number };
     /**

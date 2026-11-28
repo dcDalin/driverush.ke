@@ -62,22 +62,22 @@ const SHELL = [
  * like any other picture.
  */
 const BOARD_FILES = [
-  "/assets/board/cars/saloon.glb?v=7",
-  "/assets/board/cars/hatchback.glb?v=8",
-  "/assets/board/cars/wagon.glb?v=7",
-  "/assets/board/cars/pickup.glb?v=7",
-  "/assets/board/cars/suv.glb?v=8",
-  "/assets/board/cars/van.glb?v=3",
-  "/assets/board/cars/lorry.glb?v=3",
-  "/assets/board/cars/crossover.glb?v=3",
-  "/assets/board/cars/thumbs/saloon.webp?v=5",
-  "/assets/board/cars/thumbs/hatchback.webp?v=5",
-  "/assets/board/cars/thumbs/wagon.webp?v=5",
-  "/assets/board/cars/thumbs/pickup.webp?v=5",
-  "/assets/board/cars/thumbs/suv.webp?v=5",
-  "/assets/board/cars/thumbs/van.webp?v=5",
-  "/assets/board/cars/thumbs/lorry.webp?v=5",
-  "/assets/board/cars/thumbs/crossover.webp?v=5",
+  "/assets/board/cars/saloon.glb?v=8",
+  "/assets/board/cars/hatchback.glb?v=9",
+  "/assets/board/cars/wagon.glb?v=8",
+  "/assets/board/cars/pickup.glb?v=8",
+  "/assets/board/cars/suv.glb?v=9",
+  "/assets/board/cars/van.glb?v=4",
+  "/assets/board/cars/lorry.glb?v=4",
+  "/assets/board/cars/crossover.glb?v=4",
+  "/assets/board/cars/thumbs/saloon.webp?v=6",
+  "/assets/board/cars/thumbs/hatchback.webp?v=6",
+  "/assets/board/cars/thumbs/wagon.webp?v=6",
+  "/assets/board/cars/thumbs/pickup.webp?v=6",
+  "/assets/board/cars/thumbs/suv.webp?v=6",
+  "/assets/board/cars/thumbs/van.webp?v=6",
+  "/assets/board/cars/thumbs/lorry.webp?v=6",
+  "/assets/board/cars/thumbs/crossover.webp?v=6",
 ];
 /** Every built file the game needs, lazy ones too. Written by `vite.config.ts`. */
 const GAME_LIST = "/sw-board.json";
