@@ -83,10 +83,16 @@ export function activeTab(pathname: string): SiteTabId | null {
   return null;
 }
 
-/** The game fills the screen and the internal tools have their own chrome. */
+/**
+ * The game fills the screen; the internal tools, the console and a school's
+ * dashboard have their own chrome (a menu button on a phone). `/school`
+ * alone, the list of someone's schools, is a page of the site.
+ */
 export function tabBarHidden(pathname: string): boolean {
   return (
     isNavLinkActive("/model-town-board/play", pathname, "") ||
-    isNavLinkActive("/tools", pathname, "")
+    isNavLinkActive("/tools", pathname, "") ||
+    isNavLinkActive("/console", pathname, "") ||
+    /^\/school\/[^/]+/.test(pathname)
   );
 }

@@ -149,13 +149,23 @@ export function DashShell({
               </SheetBody>
             </SheetContent>
           </Sheet>
+          {/* On a phone only the page's own name: the menu button is beside
+              it, and the dashboard's name would squeeze it to a few letters. */}
           <p className="m-0 flex min-w-0 items-center gap-2 text-[13px] text-ink-3">
-            <Link to={home} className="truncate hover:text-ink">
+            <Link
+              to={home}
+              className={cn(
+                "truncate hover:text-ink",
+                here && here.to !== home && "hidden sm:inline",
+              )}
+            >
               {title}
             </Link>
             {here && here.to !== home ? (
               <>
-                <span aria-hidden>/</span>
+                <span aria-hidden className="hidden sm:inline">
+                  /
+                </span>
                 <Link
                   to={here.to}
                   className="truncate font-semibold text-ink hover:text-rush"
@@ -167,8 +177,8 @@ export function DashShell({
           </p>
           <div className="ml-auto flex items-center gap-2">
             <Button asChild variant="ghost" size="sm">
-              <Link to="/">
-                View site
+              <Link to="/" aria-label="View site">
+                <span className="hidden sm:inline">View site</span>
                 <Icon icon={ArrowOutIcon} size={14} />
               </Link>
             </Button>
