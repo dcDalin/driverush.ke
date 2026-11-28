@@ -10,15 +10,13 @@ import { isRouteErrorResponse } from "react-router";
 
 import { NeedsSignIn, NothingHere } from "~/components/school/signed-out";
 import { Button } from "~/components/ui/button";
-import { getPostHog, initAnalytics } from "~/lib/analytics";
+import { withPostHog } from "~/lib/analytics";
 
 export function FrameError({ error }: { error: unknown }) {
   const known = isRouteErrorResponse(error);
   React.useEffect(() => {
     if (known && error.status < 500) return;
-    void initAnalytics().then(() => {
-      getPostHog()?.captureException(error);
-    });
+    withPostHog((posthog) => posthog.captureException(error));
   }, [error, known]);
 
   if (known && error.status === 401) {

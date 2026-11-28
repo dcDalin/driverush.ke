@@ -22,18 +22,12 @@ import { HoneypotProvider } from "remix-utils/honeypot/react";
 import { AccountShell } from "~/components/account/account-shell";
 import { EntitlementLivery } from "~/components/account/entitlement-livery";
 import { ProgressSync } from "~/components/account/progress-sync";
-import { RoadClosedScene, ScenePlate } from "~/components/brand/art/scenes";
 import { NavigationProgressBar } from "~/components/brand/navigation-progress-bar";
 import { TabBar } from "~/components/brand/tab-bar";
 import { TrafficLoader } from "~/components/brand/traffic-loader";
 import { Button } from "~/components/ui/button";
 import { Toaster } from "~/components/ui/sonner";
-import {
-  getPostHog,
-  initAnalytics,
-  useGaPage,
-  usePageviews,
-} from "~/lib/analytics";
+import { useGaPage, usePageviews, withPostHog } from "~/lib/analytics";
 import {
   primeCatalog,
   type Sponsor,
@@ -283,11 +277,27 @@ export function pageKey(pathname: string) {
   return dashboard ? dashboard[0] : pathname;
 }
 
+/**
+ * The error page's picture. Its own chunk: the scenes and their sign art are
+ * only needed when something has gone wrong, not on every page.
+ */
+const RoadClosedArt = React.lazy(() =>
+  import("~/components/brand/art/scenes").then(
+    ({ RoadClosedScene, ScenePlate }) => ({
+      default: () => (
+        <ScenePlate>
+          <RoadClosedScene title="A road barrier with a number plate reading KDR 404" />
+        </ScenePlate>
+      ),
+    }),
+  ),
+);
+
 export default function App() {
   const location = useLocation();
   // Keeps PostHog person properties (signs mastered) in step with the local
-  // progress stores. PostHog itself is initialised in
-  // `entry.client.tsx`, before hydration.
+  // progress stores. PostHog itself is started in `entry.client.tsx`,
+  // alongside the page.
   useLearnerAnalytics();
   const loaderData = useRouteLoaderData<typeof loader>("root");
   // The board's schools, set before any child renders (server and browser
@@ -342,9 +352,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       loadWhole();
       return;
     }
-    void initAnalytics().then(() => {
-      getPostHog()?.captureException(error);
-    });
+    withPostHog((posthog) => posthog.captureException(error));
   }, [error, reloading]);
 
   if (reloading) {
@@ -378,9 +386,9 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
           ? "Page not found"
           : "Something went wrong"
       } · ${SITE.name}`}</title>
-      <ScenePlate>
-        <RoadClosedScene title="A road barrier with a number plate reading KDR 404" />
-      </ScenePlate>
+      <React.Suspense fallback={null}>
+        <RoadClosedArt />
+      </React.Suspense>
       <div className="grid gap-3">
         <h1 className="m-0 font-display text-[clamp(30px,7vw,48px)] leading-[0.95] font-semibold tracking-tighter">
           {message}

@@ -36,7 +36,7 @@ import {
   type SignProgress,
   TRAINER_STORAGE_KEYS,
 } from "./pelican-progress";
-import { getPostHog } from "./posthog";
+import { withPostHog } from "./posthog";
 import { liveStreak, readPracticeStreak } from "./practice-streak";
 import { readTestRecord, testBucket, today } from "./test-date";
 import { testPlan } from "./test-plan";
@@ -175,22 +175,22 @@ export function useLearnerAnalytics() {
         test_booked: profile.test_date ? "yes" : "no",
       });
 
-      const posthog = getPostHog();
-      if (!posthog) return;
+      // PostHog may still be loading: this runs once it is up.
+      withPostHog((posthog) => {
+        // Free for everyone: super properties don't create a person profile,
+        // so even a bouncing visitor's events carry their stage.
+        posthog.register({ learner_stage: profile.learner_stage });
 
-      // Free for everyone: super properties don't create a person profile, so
-      // even a bouncing visitor's events carry their stage.
-      posthog.register({ learner_stage: profile.learner_stage });
+        // Billable: `setPersonProperties` creates the profile under
+        // `identified_only`. Hold off until they've done something real.
+        if (profile.learner_stage === "visitor") return;
 
-      // Billable: `setPersonProperties` creates the profile under
-      // `identified_only`. Hold off until they've done something real.
-      if (profile.learner_stage === "visitor") return;
+        const fingerprint = JSON.stringify(profile);
+        if (fingerprint === lastSent.current) return;
+        lastSent.current = fingerprint;
 
-      const fingerprint = JSON.stringify(profile);
-      if (fingerprint === lastSent.current) return;
-      lastSent.current = fingerprint;
-
-      posthog.setPersonProperties(profile, { first_seen_at: firstSeenAt() });
+        posthog.setPersonProperties(profile, { first_seen_at: firstSeenAt() });
+      });
     };
 
     const syncOnHide = () => {

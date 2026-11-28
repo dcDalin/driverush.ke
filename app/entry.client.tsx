@@ -1,34 +1,25 @@
 /**
  * Client entry. React Router ships a default version of this file; we own it
- * so PostHog can be initialised *before* hydration — autocapture, session
- * replay, `$pageview` / `$pageleave` and exception capture all need to be
- * running from the first paint, not from an effect somewhere in the tree.
- *
- * `<PostHogProvider>` then makes the same client available to components via
- * `usePostHog()` / feature-flag hooks. It renders children even when PostHog
- * is unconfigured, so a missing token degrades to "no analytics", never to a
- * blank page.
+ * to start PostHog at the same moment as the page: posthog-js is fetched by a
+ * dynamic import while React hydrates, so the page never waits for it
+ * (owner, 2026-11-28). Autocapture, replay, the first pageview and exception
+ * capture begin when it arrives; app events sent before then wait in a queue
+ * (`withPostHog`, `lib/posthog.ts`). A missing token or a blocked request
+ * means no analytics, never a blank page.
  */
-import { PostHogProvider } from "@posthog/react";
 import { startTransition, StrictMode } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { HydratedRouter } from "react-router/dom";
 
-import { initPostHog } from "~/lib/posthog";
+import { startPostHog } from "~/lib/posthog";
 
-const posthog = initPostHog();
-
-const app = (
-  <StrictMode>
-    <HydratedRouter />
-  </StrictMode>
-);
+void startPostHog();
 
 startTransition(() => {
   hydrateRoot(
     document,
-    // No client (PostHog unconfigured) → mount the app without the provider
-    // rather than handing it an uninitialised instance.
-    posthog ? <PostHogProvider client={posthog}>{app}</PostHogProvider> : app,
+    <StrictMode>
+      <HydratedRouter />
+    </StrictMode>,
   );
 });

@@ -24,7 +24,7 @@
  */
 import * as React from "react";
 
-import { analytics, getPostHog } from "~/lib/analytics";
+import { analytics, withPostHog } from "~/lib/analytics";
 import {
   askedSchool,
   pickSponsor,
@@ -105,9 +105,10 @@ function show(next: Sponsor | null, { remember }: { remember: boolean }) {
   // Every event after this carries the school, so drives can be counted per
   // school. PostHog keeps registered properties across visits, so no school
   // clears the last one.
-  const ph = getPostHog();
-  if (next) ph?.register({ sponsor: next.id });
-  else ph?.unregister("sponsor");
+  withPostHog((ph) => {
+    if (next) ph.register({ sponsor: next.id });
+    else ph.unregister("sponsor");
+  });
   for (const listener of listeners) listener();
 }
 

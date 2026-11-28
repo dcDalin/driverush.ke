@@ -50,7 +50,6 @@
     "@hookform/resolvers": "^5.2.2",
     "@oslojs/crypto": "^1.0.1",
     "@oslojs/encoding": "^1.1.0",
-    "@posthog/react": "^1.10.3",
     "@react-router/node": "8.5.3",
     "@react-router/serve": "8.5.3",
     "@react-three/drei": "^10.7.9",
