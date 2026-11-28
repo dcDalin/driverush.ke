@@ -39,8 +39,14 @@ export function FilterSelect({
       value={value}
       onValueChange={(next) => setParams({ [param]: String(next) })}
     >
-      <SelectTrigger aria-label={label} className={cn("w-full", className)}>
-        <SelectValue>{chosen}</SelectValue>
+      <SelectTrigger
+        aria-label={label}
+        className={cn("w-full min-w-0", className)}
+      >
+        {/* One line, cut short if it must: a phone fits two filters a row. */}
+        <SelectValue>
+          <span className="block truncate text-left">{chosen}</span>
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         {options.map((option) => (

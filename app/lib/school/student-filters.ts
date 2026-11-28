@@ -10,7 +10,7 @@ export const STUDENTS_PAGE_SIZE = 25;
 
 export const STUDENT_STATUSES = [
   { value: ALL, label: "Everyone" },
-  { value: "active", label: "With you this month" },
+  { value: "active", label: "With you now" },
   { value: "paid", label: "Has a pass" },
   { value: "unpaid", label: "No pass yet" },
   { value: "pending", label: "Waiting to join" },
