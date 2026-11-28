@@ -91,20 +91,22 @@ export default function SchoolStudents() {
             <TableRow>
               <TableHead>Student</TableHead>
               <TableHead className="hidden sm:table-cell">Branch</TableHead>
-              <TableHead>With the school</TableHead>
+              <TableHead className="hidden sm:table-cell">
+                With the school
+              </TableHead>
               <TableHead className="hidden text-right md:table-cell">
                 Levels
               </TableHead>
               <TableHead className="hidden text-right md:table-cell">
                 Signs
               </TableHead>
-              <TableHead>Pass</TableHead>
+              <TableHead className="hidden sm:table-cell">Pass</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {shown.map((s) => (
               <TableRow key={s.id}>
-                <TableCell className="max-w-64 min-w-36">
+                <TableCell className="max-w-64 sm:min-w-36">
                   <span className="block truncate font-semibold">
                     {s.name ?? s.email}
                   </span>
@@ -113,15 +115,34 @@ export default function SchoolStudents() {
                       {s.email}
                     </span>
                   ) : null}
-                  {/* On a phone the branch sits under the name. */}
+                  {/* On a phone the branch, where they are and their pass
+                      sit under the name: the table needs no sideways scroll. */}
                   <span className="block truncate text-[12.5px] text-ink-3 sm:hidden">
                     {branchName(s.branchId)}
+                  </span>
+                  <span className="mt-1 flex flex-wrap gap-1.5 sm:hidden">
+                    {s.inviteExpired ? (
+                      <Badge variant="outline">Invite expired</Badge>
+                    ) : s.status === "pending" ? (
+                      <Badge variant="amber">Waiting to join</Badge>
+                    ) : s.status === "active" && s.endsAt ? (
+                      <Badge variant="green">
+                        Until {DATE.format(new Date(s.endsAt))}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline">Month over</Badge>
+                    )}
+                    {s.passEndsAt ? (
+                      <Badge variant={s.passThroughSchool ? "green" : "blue"}>
+                        Pass to {DATE.format(new Date(s.passEndsAt))}
+                      </Badge>
+                    ) : null}
                   </span>
                 </TableCell>
                 <TableCell className="hidden whitespace-nowrap text-ink-2 sm:table-cell">
                   {branchName(s.branchId)}
                 </TableCell>
-                <TableCell className="whitespace-nowrap">
+                <TableCell className="hidden whitespace-nowrap sm:table-cell">
                   {s.inviteExpired ? (
                     <Badge variant="outline">Invite expired</Badge>
                   ) : s.status === "pending" ? (
@@ -140,7 +161,7 @@ export default function SchoolStudents() {
                 <TableCell className="hidden text-right tabular-nums md:table-cell">
                   {s.summary ? s.summary.signsMastered : "–"}
                 </TableCell>
-                <TableCell className="whitespace-nowrap">
+                <TableCell className="hidden whitespace-nowrap sm:table-cell">
                   {s.passEndsAt ? (
                     <Badge variant={s.passThroughSchool ? "green" : "blue"}>
                       {s.passThroughSchool ? "Through school" : "Own"} to{" "}

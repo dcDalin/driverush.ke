@@ -50,6 +50,25 @@ export function useCloseTo(base: string) {
   return base.includes("?") ? base : `${base}${search}`;
 }
 
+/**
+ * A form modal opens with the cursor in its first field. Left alone, the
+ * dialog moves focus to its close button as it opens, which blurs the field
+ * and makes the form show "required" errors before anything is typed.
+ */
+function focusFirstField(event: Event) {
+  const content = event.currentTarget as HTMLElement | null;
+  const field = content
+    ? [
+        ...content.querySelectorAll<HTMLElement>(
+          "[data-slot=dialog-body] input:not([type=hidden]), [data-slot=dialog-body] textarea",
+        ),
+      ].find((el) => el.tabIndex >= 0 && el.offsetParent !== null)
+    : undefined;
+  if (!field) return;
+  event.preventDefault();
+  field.focus();
+}
+
 export function RouteModal({
   closeTo,
   label,
@@ -76,6 +95,7 @@ export function RouteModal({
       <DialogContent
         titlebarLabel={label}
         className={cn(SIZE[size], className)}
+        onOpenAutoFocus={focusFirstField}
       >
         {children}
       </DialogContent>

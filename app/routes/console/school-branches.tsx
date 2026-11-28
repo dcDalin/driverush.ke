@@ -145,10 +145,18 @@ export default function SchoolBranches() {
           <TableHeader>
             <TableRow>
               <TableHead>Branch</TableHead>
-              <TableHead className="text-right">Admins</TableHead>
-              <TableHead className="text-right">Students</TableHead>
-              <TableHead className="text-right">Waiting</TableHead>
-              <TableHead className="text-right">With a pass</TableHead>
+              <TableHead className="hidden text-right sm:table-cell">
+                Admins
+              </TableHead>
+              <TableHead className="hidden text-right sm:table-cell">
+                Students
+              </TableHead>
+              <TableHead className="hidden text-right sm:table-cell">
+                Waiting
+              </TableHead>
+              <TableHead className="hidden text-right sm:table-cell">
+                With a pass
+              </TableHead>
               <TableHead className="w-0">
                 <span className="sr-only">Change</span>
               </TableHead>
@@ -157,7 +165,7 @@ export default function SchoolBranches() {
           <TableBody>
             {shown.map((r) => (
               <TableRow key={r.branch.id}>
-                <TableCell className="min-w-40">
+                <TableCell className="sm:min-w-40">
                   <span className="flex flex-wrap items-center gap-2 font-semibold">
                     {r.branch.name}
                     {!r.branch.is_active && (
@@ -167,23 +175,28 @@ export default function SchoolBranches() {
                   <span className="block text-[12.5px] text-ink-3">
                     {r.branch.town || "No town"}
                   </span>
+                  {/* On a phone the counts sit here, so Edit stays in view. */}
+                  <span className="block text-[12.5px] text-ink-2 sm:hidden">
+                    {r.admins} admins · {r.active} students · {r.waiting}{" "}
+                    waiting · {r.paid} with a pass
+                  </span>
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="hidden text-right sm:table-cell">
                   {count(r.admins, to("team", r.branch.id))}
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="hidden text-right sm:table-cell">
                   {count(
                     r.active,
                     to("students", r.branch.id, "&istatus=active"),
                   )}
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="hidden text-right sm:table-cell">
                   {count(
                     r.waiting,
                     to("students", r.branch.id, "&istatus=pending"),
                   )}
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="hidden text-right sm:table-cell">
                   {count(r.paid, to("students", r.branch.id, "&istatus=paid"))}
                 </TableCell>
                 <TableCell className="text-right">

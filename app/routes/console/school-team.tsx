@@ -156,8 +156,8 @@ export default function SchoolTeam() {
           <TableHeader>
             <TableRow>
               <TableHead>Person</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Branches</TableHead>
+              <TableHead className="hidden sm:table-cell">Role</TableHead>
+              <TableHead className="hidden sm:table-cell">Branches</TableHead>
               <TableHead className="w-0">
                 <span className="sr-only">Change</span>
               </TableHead>
@@ -166,7 +166,7 @@ export default function SchoolTeam() {
           <TableBody>
             {shown.map((p) => (
               <TableRow key={p.key}>
-                <TableCell className="max-w-64 min-w-44">
+                <TableCell className="max-w-64 sm:min-w-44">
                   <span className="block truncate font-semibold">
                     {p.name ?? p.email}
                   </span>
@@ -175,8 +175,31 @@ export default function SchoolTeam() {
                       {p.email}
                     </span>
                   ) : null}
+                  {/* On a phone the role and branches sit here. */}
+                  <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[12.5px] text-ink-2 sm:hidden">
+                    <Badge
+                      variant={
+                        p.kind === "owner"
+                          ? "ink"
+                          : p.kind === "admin"
+                            ? "outline"
+                            : "amber"
+                      }
+                    >
+                      {p.kind === "invited"
+                        ? p.expired
+                          ? "invite expired"
+                          : "invited"
+                        : p.kind}
+                    </Badge>
+                    <span className="min-w-0 truncate">
+                      {p.kind === "owner"
+                        ? "Every branch"
+                        : names(p.branchIds) || "No branch"}
+                    </span>
+                  </span>
                 </TableCell>
-                <TableCell className="whitespace-nowrap">
+                <TableCell className="hidden whitespace-nowrap sm:table-cell">
                   {p.kind === "owner" ? (
                     <Badge variant="ink">owner</Badge>
                   ) : p.kind === "admin" ? (
@@ -187,14 +210,14 @@ export default function SchoolTeam() {
                     <Badge variant="amber">invited</Badge>
                   )}
                 </TableCell>
-                <TableCell className="min-w-40 text-ink-2">
+                <TableCell className="hidden min-w-40 text-ink-2 sm:table-cell">
                   {p.kind === "owner"
                     ? "Every branch"
                     : names(p.branchIds) || "None"}
                 </TableCell>
-                <TableCell className="text-right whitespace-nowrap">
+                <TableCell className="text-right align-top whitespace-nowrap sm:align-middle">
                   {p.kind === "admin" ? (
-                    <>
+                    <span className="flex flex-col items-end gap-1 sm:flex-row sm:justify-end">
                       <Button asChild size="sm" variant="ghost">
                         <Link
                           to={path(`team/${p.key}/branches`)}
@@ -211,7 +234,7 @@ export default function SchoolTeam() {
                           Remove
                         </Link>
                       </Button>
-                    </>
+                    </span>
                   ) : p.kind === "invited" ? (
                     <Button asChild size="sm" variant="ghost">
                       <Link

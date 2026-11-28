@@ -39,7 +39,11 @@ export function useServerForm<S extends z.ZodType<FieldValues, FieldValues>>({
   const fetcher = useFetcher({ key });
   const formRef = React.useRef<HTMLFormElement>(null);
   const methods = useRemixForm<z.input<S>, unknown, z.output<S>>({
-    mode: "onTouched",
+    // Checked when sent, then as the person corrects it: never before they
+    // have tried. Checking on blur showed "required" errors the moment a
+    // modal opened, as dialogs move the cursor about while they open.
+    mode: "onSubmit",
+    reValidateMode: "onChange",
     resolver: zodResolver(schema),
     defaultValues,
     fetcher,
