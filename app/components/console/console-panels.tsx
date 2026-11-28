@@ -22,6 +22,15 @@ function kenyaToday(now = Date.now()) {
   return new Date(now + 3 * 3_600_000).toISOString().slice(0, 10);
 }
 
+/** A period's day as the rest of the console writes it: "29 Oct 2026". */
+const DAY = new Intl.DateTimeFormat("en-KE", {
+  timeZone: "UTC",
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+});
+const day = (date: string) => DAY.format(new Date(`${date}T00:00:00Z`));
+
 function currentSponsorship(list: ConsoleSponsorship[]) {
   const today = kenyaToday();
   return (
@@ -58,9 +67,9 @@ export function Sponsorships({
           {current ? (
             <>
               <span>
-                Since {current.starts_on}
+                Since {day(current.starts_on)}
                 {current.ends_on
-                  ? `, until ${current.ends_on}`
+                  ? `, until ${day(current.ends_on)}`
                   : ", no end set"}
                 {current.note ? ` (${current.note})` : ""}
               </span>
@@ -91,7 +100,8 @@ export function Sponsorships({
           {others.map((p) => (
             <li key={p.id} className="flex flex-wrap gap-x-3 px-4 py-2.5">
               <span className="font-semibold">
-                {p.starts_on} to {p.ends_on ?? "no end set"}
+                {day(p.starts_on)} to{" "}
+                {p.ends_on ? day(p.ends_on) : "no end set"}
               </span>
               {p.note ? <span className="text-ink-3">{p.note}</span> : null}
             </li>
