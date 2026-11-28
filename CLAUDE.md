@@ -119,13 +119,18 @@ remix-hook-form, shadcn everywhere. Guides: `docs/forms-and-data.md`,
   `staff/grant`; `components/console/route-modal.tsx`), never a dialog kept
   in state. On a phone a big modal (`md` and up) fills the screen; a small
   one stays a card. Each page's loader opens with `getRequestClient` then
-  `consoleGate`. One school (`/console/schools/:id`) is itself a modal
-  route over the schools list (a wide `RouteModal`, links inside carrying
-  the list's search through `useConsoleSchoolPath`): a header, tabs that are
-  child routes (set-up, livery, payments, sponsorship; `RouteTabs`) and every change a modal route over its page (`ModalForm`, `ConfirmModal`); its pages read the frame's loader through `useConsoleSchool()`. It holds
-  (set-up checklist, hand-over, livery folder upload, sponsorship,
-  payments). A school created with no owner is `setup` (hidden everywhere)
-  until handed over. The
+  `consoleGate`. One school (`/console/schools/:id`, owner 2026-11-28) is a
+  layout page inside the console, not a modal: "All schools" goes back to
+  the list with its search (`useConsoleSchoolPath`), a header, tabs that
+  are child routes (set-up, profile, branches, team, students, livery,
+  payments, sponsorship; `RouteTabs`) and every change a modal route over
+  its tab (`ModalForm`, `ConfirmModal`). Tabs have no loader and read the
+  frame's through `useConsoleSchool()` / `useSchool()`; the frame's
+  `shouldRevalidate` skips a re-read on a plain tab switch (the school
+  layout and console layout do the same), and the root keys its page fade
+  on `pageKey()` so a dashboard is not remounted between its own pages. A
+  school created with no owner is `setup` (hidden everywhere) until handed
+  over. The
   service worker and robots.txt leave `/school`, `/console`, `/auth`, `/api`
   alone.
 - Payments (owner, 2026-11-25/26; `docs/payments.md`): learners buy 60-day

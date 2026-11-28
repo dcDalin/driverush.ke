@@ -15,15 +15,14 @@
  * page gates itself too (a data request can run a page without this one).
  * A change anywhere in the console revalidates every open console page.
  */
-import * as React from "react";
-import { data, Outlet, useRevalidator } from "react-router";
+import { data, Outlet, type ShouldRevalidateFunctionArgs } from "react-router";
 
 import { SiteNav } from "~/components/brand/site-nav";
 import { ConsoleShell } from "~/components/console/shell";
 import { NeedsSignIn, NothingHere } from "~/components/school/signed-out";
 import { listBankRequests } from "~/database/billing/school";
 import { getRequestClient, requireStaff } from "~/lib/auth/require.server";
-import { useSession } from "~/lib/auth/session";
+import { useRevalidateOnSession } from "~/lib/auth/use-revalidate-on-session";
 import { consoleAction } from "~/lib/console/action.server";
 import { consoleGate } from "~/lib/console/gate.server";
 import { useLiveRevalidate } from "~/lib/realtime/use-live-revalidate";
@@ -56,21 +55,23 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 /**
- * Signing in or out happens in the browser, on this page: ask the server
- * again each time the session changes, so the console opens (or closes)
- * without a reload. The first session read is the one the page was drawn
- * with, so it is skipped.
+ * Moving between pages of the same frame (its tabs, a modal over a tab)
+ * re-reads nothing here; a saved form, a live update or a revalidate does.
  */
-function useRevalidateOnSession() {
-  const session = useSession();
-  const { revalidate } = useRevalidator();
-  const seen = React.useRef<typeof session | null>(null);
-  React.useEffect(() => {
-    if (session.status === "loading" || session.status === "off") return;
-    const first = seen.current === null;
-    seen.current = session;
-    if (!first) void revalidate();
-  }, [session, revalidate]);
+export function shouldRevalidate({
+  currentUrl,
+  nextUrl,
+  currentParams,
+  nextParams,
+  formMethod,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs) {
+  const sameFrame =
+    !formMethod &&
+    currentUrl.pathname !== nextUrl.pathname &&
+    currentParams.schoolId === nextParams.schoolId &&
+    currentUrl.searchParams.get("q") === nextUrl.searchParams.get("q");
+  return sameFrame ? false : defaultShouldRevalidate;
 }
 
 export default function ConsoleLayout({ loaderData }: Route.ComponentProps) {

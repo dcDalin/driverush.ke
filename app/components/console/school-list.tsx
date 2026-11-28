@@ -80,7 +80,7 @@ function count(n: number, one: string, many = `${one}s`) {
 
 export function SchoolList({ schools }: { schools: ConsoleSchoolRow[] }) {
   const navigation = useNavigation();
-  // Under the school list the row opens a modal over it: keep its filters.
+  // The school page keeps the list's filters for its "All schools" link.
   const { pathname, search } = useLocation();
   const keep = pathname.startsWith("/console/schools") ? search : "";
   const loading =
@@ -110,10 +110,7 @@ export function SchoolList({ schools }: { schools: ConsoleSchoolRow[] }) {
               i > 0 ? "rounded-none border-t border-line" : "rounded-none"
             }
           >
-            <Link
-              to={`/console/schools/${school.id}${keep}`}
-              preventScrollReset
-            >
+            <Link to={`/console/schools/${school.id}${keep}`}>
               <ItemContent>
                 <ItemTitle className="flex flex-wrap items-center gap-2">
                   {school.name}

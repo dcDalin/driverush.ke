@@ -17,13 +17,11 @@
  * `requireUser` and hands over to `schoolAction`. A change revalidates the
  * frame, so every open page follows; typing in a list's search does not.
  */
-import * as React from "react";
 import {
   data,
   Link,
   Outlet,
   type ShouldRevalidateFunctionArgs,
-  useRevalidator,
 } from "react-router";
 
 import { SiteNav } from "~/components/brand/site-nav";
@@ -31,7 +29,7 @@ import { DashShell } from "~/components/console/shell";
 import { NeedsSignIn, NothingHere } from "~/components/school/signed-out";
 import { Button } from "~/components/ui/button";
 import { getRequestClient, requireUser } from "~/lib/auth/require.server";
-import { useSession } from "~/lib/auth/session";
+import { useRevalidateOnSession } from "~/lib/auth/use-revalidate-on-session";
 import { useLiveRevalidate } from "~/lib/realtime/use-live-revalidate";
 import { schoolAction } from "~/lib/school/action.server";
 import { loadSchool } from "~/lib/school/load.server";
@@ -60,34 +58,23 @@ export async function action({ request, params }: Route.ActionArgs) {
 }
 
 /**
- * The lists filter in the browser, with their search in the address: a
- * change of search alone reads nothing new. Everything else (a submitted
- * form, a live update, another school) asks again.
+ * Moving about one school's dashboard (its pages, a modal over a page, a
+ * list's search in the address) reads nothing new: the frame already holds
+ * the school. A saved form, a live update or another school asks again.
  */
 export function shouldRevalidate({
   currentUrl,
   nextUrl,
+  currentParams,
+  nextParams,
   formMethod,
   defaultShouldRevalidate,
 }: ShouldRevalidateFunctionArgs) {
-  const onlySearch =
+  const moving =
     !formMethod &&
-    currentUrl.pathname === nextUrl.pathname &&
-    currentUrl.search !== nextUrl.search;
-  return onlySearch ? false : defaultShouldRevalidate;
-}
-
-/** Signing in or out happens in the browser, on this page: ask again. */
-function useRevalidateOnSession() {
-  const session = useSession();
-  const { revalidate } = useRevalidator();
-  const seen = React.useRef<typeof session | null>(null);
-  React.useEffect(() => {
-    if (session.status === "loading" || session.status === "off") return;
-    const first = seen.current === null;
-    seen.current = session;
-    if (!first) void revalidate();
-  }, [session, revalidate]);
+    currentParams.schoolId === nextParams.schoolId &&
+    currentUrl.href !== nextUrl.href;
+  return moving ? false : defaultShouldRevalidate;
 }
 
 const ROLE_LABEL = {

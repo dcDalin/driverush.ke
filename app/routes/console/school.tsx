@@ -1,11 +1,10 @@
 /**
- * `/console/schools/:schoolId`: one school for DriveRush staff, opened as a
- * wide modal route over the schools list (thinkrush's detail views: the list
- * keeps rendering underneath, the address can be shared, and closing goes
- * back to the list with its filters). The modal's header says which school,
- * its status and owner, and holds the two changes that are about the school
- * itself; its tabs are child routes, and every change stacks as a smaller
- * modal over the tab it belongs to:
+ * `/console/schools/:schoolId`: one school for DriveRush staff, as a layout
+ * route (owner, 2026-11-28: "use react router 7 features like layout ... that
+ * doesn't involve full modal rendering when we switch tabs"). The header
+ * (which school, its status and owner, and the two changes about the school
+ * itself) and the tabs are drawn once; each tab is a child route in the
+ * `<Outlet />`, and every change opens as a modal route over its tab:
  *
  *   (index)       Set-up: what is done and what is left, each step linking
  *                 to where it is done
@@ -35,14 +34,20 @@
  * link inside carries the list's search (`useConsoleSchoolPath`).
  */
 import * as React from "react";
-import { data, Link, Outlet, useLocation } from "react-router";
+import {
+  data,
+  Link,
+  Outlet,
+  type ShouldRevalidateFunctionArgs,
+  useLocation,
+} from "react-router";
 
-import { RouteModal } from "~/components/console/route-modal";
+import { Icon } from "~/components/brand/icon";
+import { ArrowLeftIcon } from "~/components/brand/icons";
 import { STATUS_BADGE, STATUS_LABEL } from "~/components/console/school-status";
-import { RouteTabs } from "~/components/console/shell";
+import { PageHeader, RouteTabs } from "~/components/console/shell";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { DialogDescription, DialogTitle } from "~/components/ui/dialog";
 import { listSchoolEarnings } from "~/database/billing/school";
 import { getConsoleSchool } from "~/database/console/queries";
 import { getRequestClient, requireStaff } from "~/lib/auth/require.server";
@@ -99,6 +104,26 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   );
 }
 
+/**
+ * Moving between pages of the same frame (its tabs, a modal over a tab)
+ * re-reads nothing here; a saved form, a live update or a revalidate does.
+ */
+export function shouldRevalidate({
+  currentUrl,
+  nextUrl,
+  currentParams,
+  nextParams,
+  formMethod,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs) {
+  const sameFrame =
+    !formMethod &&
+    currentUrl.pathname !== nextUrl.pathname &&
+    currentParams.schoolId === nextParams.schoolId &&
+    currentUrl.searchParams.get("q") === nextUrl.searchParams.get("q");
+  return sameFrame ? false : defaultShouldRevalidate;
+}
+
 export async function action({ request }: Route.ActionArgs) {
   const staff = await requireStaff(request);
   return consoleAction(staff, await request.formData(), request);
@@ -111,29 +136,44 @@ function useListTo() {
 }
 
 export default function ConsoleSchool({ loaderData }: Route.ComponentProps) {
-  const closeTo = useListTo();
+  const listTo = useListTo();
   if ("gated" in loaderData) return null;
   if (loaderData.state === "missing") {
     return (
-      <RouteModal closeTo={closeTo} label="Schools">
-        <div className="flex flex-col gap-2 px-4 pt-4 pb-6 sm:px-6 sm:pt-6 sm:pb-8">
-          <DialogTitle>No such school</DialogTitle>
-          <DialogDescription>
-            It may have been removed. Close this to go back to the list.
-          </DialogDescription>
-        </div>
-      </RouteModal>
+      <>
+        <BackToList to={listTo} />
+        <PageHeader
+          title="No such school"
+          description="It may have been removed. Go back to the list."
+        />
+      </>
     );
   }
-  return <SchoolModal {...loaderData} closeTo={closeTo} />;
+  return <SchoolPage {...loaderData} listTo={listTo} />;
 }
 
-function SchoolModal({
+function BackToList({ to }: { to: string }) {
+  return (
+    <Button variant="ghost" size="sm" asChild className="-mb-3 self-start">
+      <Link to={to}>
+        <Icon icon={ArrowLeftIcon} size={16} />
+        All schools
+      </Link>
+    </Button>
+  );
+}
+
+/**
+ * The layout: the school's header and its tabs, drawn once and kept while
+ * the tabs change. Only the `<Outlet />` (the open tab, and over it the
+ * modal of a change in progress) swaps.
+ */
+function SchoolPage({
   school,
   inside,
-  closeTo,
+  listTo,
 }: Extract<Route.ComponentProps["loaderData"], { state: "ok" }> & {
-  closeTo: string;
+  listTo: string;
 }) {
   const consoleSchoolPath = useConsoleSchoolPath();
   const { id, name, slug, status } = school.school;
@@ -149,31 +189,27 @@ function SchoolModal({
     </Badge>
   );
   return (
-    <RouteModal
-      closeTo={closeTo}
-      label="Schools"
-      size="xl"
-      className="sm:h-[calc(100dvh-2rem)]"
-    >
-      <div className="flex shrink-0 flex-col gap-3 px-4 pt-3 sm:gap-4 sm:px-6 sm:pt-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <DialogTitle className="flex flex-wrap items-center gap-2">
-              {name}
-              <Badge variant={STATUS_BADGE[status]}>
-                {STATUS_LABEL[status]}
-              </Badge>
-            </DialogTitle>
-            <DialogDescription className="mt-1">
-              /{slug} ·{" "}
-              {school.ownerEmail
-                ? `Owner ${school.ownerEmail}`
-                : school.invitedOwnerEmail
-                  ? `Invited ${school.invitedOwnerEmail}`
-                  : "No owner yet"}
-            </DialogDescription>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
+    <>
+      <BackToList to={listTo} />
+      <PageHeader
+        title={
+          <span className="flex flex-wrap items-center gap-2">
+            {name}
+            <Badge variant={STATUS_BADGE[status]}>{STATUS_LABEL[status]}</Badge>
+          </span>
+        }
+        description={
+          <>
+            /{slug} ·{" "}
+            {school.ownerEmail
+              ? `Owner ${school.ownerEmail}`
+              : school.invitedOwnerEmail
+                ? `Invited ${school.invitedOwnerEmail}`
+                : "No owner yet"}
+          </>
+        }
+        actions={
+          <>
             <Button asChild variant="paper" size="sm">
               <Link to={to("status")} preventScrollReset>
                 Change status
@@ -184,48 +220,46 @@ function SchoolModal({
                 {inSetup ? "Hand over" : "Change owner"}
               </Link>
             </Button>
-          </div>
-        </div>
-        <RouteTabs
-          label="This school"
-          tabs={[
-            { label: "Set-up", to: to(), end: true },
-            { label: "Profile", to: to("profile") },
-            {
-              label: `Branches (${inside.branches.length})`,
-              to: to("branches"),
-            },
-            {
-              label: `Team (${inside.team.length + inside.invites.length})`,
-              to: to("team"),
-            },
-            {
-              label: `Students (${inside.students.length})`,
-              to: to("students"),
-            },
-            {
-              label: "Livery",
-              to: to("livery"),
-              badge: school.setup.livery === "draft" ? dot : null,
-            },
-            {
-              label: "Payments",
-              to: to("payments"),
-              badge: school.payments?.pending_bank_label ? dot : null,
-            },
-            { label: "Sponsorship", to: to("sponsorship") },
-          ]}
-        />
-      </div>
-      {/* The open tab, and over it the modal of a change in progress. Its
-          parts keep their height: the column scrolls, it does not squeeze. */}
-      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 py-4 sm:gap-6 sm:px-6 sm:py-5 [&>*]:shrink-0">
-        {/* The owner's own pages and modals (profile, branches, team) work
-            here too, as staff, with links that stay in the console. */}
-        <SchoolScopeProvider data={inside} path={to}>
+          </>
+        }
+      />
+      <RouteTabs
+        label="This school"
+        tabs={[
+          { label: "Set-up", to: to(), end: true },
+          { label: "Profile", to: to("profile") },
+          {
+            label: `Branches (${inside.branches.length})`,
+            to: to("branches"),
+          },
+          {
+            label: `Team (${inside.team.length + inside.invites.length})`,
+            to: to("team"),
+          },
+          {
+            label: `Students (${inside.students.length})`,
+            to: to("students"),
+          },
+          {
+            label: "Livery",
+            to: to("livery"),
+            badge: school.setup.livery === "draft" ? dot : null,
+          },
+          {
+            label: "Payments",
+            to: to("payments"),
+            badge: school.payments?.pending_bank_label ? dot : null,
+          },
+          { label: "Sponsorship", to: to("sponsorship") },
+        ]}
+      />
+      {/* The owner's own pages and modals (profile, branches, team) work
+          here too, as staff, with links that stay in the console. */}
+      <SchoolScopeProvider data={inside} path={to}>
+        <div className="flex flex-col gap-5 sm:gap-6">
           <Outlet />
-        </SchoolScopeProvider>
-      </div>
-    </RouteModal>
+        </div>
+      </SchoolScopeProvider>
+    </>
   );
 }

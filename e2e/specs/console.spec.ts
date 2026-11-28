@@ -16,16 +16,15 @@ test("DriveRush staff create a school for an owner who has not signed up", async
   await dialog.getByLabel("Short name (for links)").fill(slug);
   await dialog.getByLabel("Owner's email (optional)").fill(`${slug}@e2e.test`);
   await dialog.getByRole("button", { name: "Create school" }).click();
-  // Straight to the school, a modal over the list: live, its owner invited.
+  // Straight to the school's page: live, its owner invited.
   await expect(
     page.getByRole("heading", { name: "E2E Driving School" }),
   ).toBeVisible();
-  // (The list under the modal names the owner too: look in the school.)
   await expect(
-    page.getByRole("dialog").getByText(`Invited ${slug}@e2e.test`),
+    page.getByRole("main").getByText(`Invited ${slug}@e2e.test`),
   ).toBeVisible();
   // And the list finds it by search.
-  await page.getByRole("button", { name: "Close dialog" }).click();
+  await page.getByRole("link", { name: "All schools" }).click();
   await expect(page).toHaveURL(/\/console\/schools$/);
   await page.getByLabel("Search schools").fill(slug);
   await expect(
@@ -48,9 +47,9 @@ test("staff set a school up first, then hand it over", async ({ page }) => {
     page.getByRole("heading", { name: "E2E Set Up School" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("dialog").getByText("Setting up").first(),
+    page.getByRole("main").getByText("Setting up").first(),
   ).toBeVisible();
-  // Handing over is a smaller modal stacked over the school's Set-up tab.
+  // Handing over is a modal over the school's Set-up tab.
   // (The header's button and the checklist's Owner step both open it.)
   await page
     .getByRole("link", { name: "Hand over", exact: true })
@@ -61,12 +60,11 @@ test("staff set a school up first, then hand it over", async ({ page }) => {
   await handOver.getByLabel("Owner's email").fill(`${slug}@e2e.test`);
   await handOver.getByRole("button", { name: "Hand over and go live" }).click();
   await expect(page.getByText(/Handed over/)).toBeVisible();
-  // (The list under the modal names the owner too: look in the school.)
   await expect(
-    page.getByRole("dialog").getByText(`Invited ${slug}@e2e.test`),
+    page.getByRole("main").getByText(`Invited ${slug}@e2e.test`),
   ).toBeVisible();
   await expect(
-    page.getByRole("dialog").getByText("Active").first(),
+    page.getByRole("main").getByText("Active").first(),
   ).toBeVisible();
 });
 
@@ -91,7 +89,7 @@ test("staff help a school from the console, never from its dashboard", async ({
   // The search reaches the address a moment later; the school keeps it.
   await expect(page).toHaveURL(/q=heltz/);
   await page.getByRole("link", { name: /Heltz Driving Academy/ }).click();
-  const school = page.getByRole("dialog");
+  const school = page.getByRole("main");
   const tabs = school.getByRole("navigation", { name: "This school" });
   // The guided set-up, and what is left for the school, with no way across.
   await expect(school.getByRole("heading", { name: "Set-up" })).toBeVisible();
@@ -127,7 +125,7 @@ test("staff set a school up: its branches by size, its team, its profile", async
   await page.getByLabel("Search schools").fill("academy");
   await expect(page).toHaveURL(/q=academy/);
   await page.getByRole("link", { name: /Kenya Driving Academy/ }).click();
-  const school = page.getByRole("dialog");
+  const school = page.getByRole("main");
   const tabs = school.getByRole("navigation", { name: "This school" });
 
   // Branches, the busiest first; a count opens its students, filtered.

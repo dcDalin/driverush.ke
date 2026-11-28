@@ -273,6 +273,18 @@ function swUrl() {
   return `/sw.js?media=${encodeURIComponent(new URL(supabase).origin)}`;
 }
 
+/**
+ * What counts as "a new page" for the entrance animation: each address,
+ * except inside a dashboard (the console, one school's dashboard, the
+ * tools), which is one page whose layout routes swap only their outlet.
+ */
+export function pageKey(pathname: string) {
+  const dashboard = pathname.match(
+    /^\/(console|tools)(?=\/|$)|^\/school\/[^/]+/,
+  );
+  return dashboard ? dashboard[0] : pathname;
+}
+
 export default function App() {
   const location = useLocation();
   const firstPath = React.useRef(location.pathname);
@@ -299,9 +311,11 @@ export default function App() {
   const shell = (
     <>
       {/* Keyed so each new page gets a fresh entrance. There's no exit, so a tap
-          never waits on the old page, and the first load isn't animated. */}
+          never waits on the old page, and the first load isn't animated. A
+          dashboard is one page for this (`pageKey`): moving between its tabs
+          keeps its frame, instead of rebuilding the whole app on each tap. */}
       <div
-        key={location.pathname}
+        key={pageKey(location.pathname)}
         className={navigated.current ? "dr-page" : undefined}
       >
         <Outlet />

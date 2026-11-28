@@ -130,77 +130,75 @@ export default [
     { id: "console-layout" },
     [
       index("routes/console/overview.tsx"),
-      // The list; over it, as modal routes, "New school" and one school: a
-      // wide modal with tabs that are child routes, every change a smaller
-      // modal stacked over its tab. Static `new` wins over `:schoolId`.
+      // The list, and "New school" as a modal route over it.
       route("schools", "routes/console/schools.tsx", [
         route("new", "routes/console/school-new.tsx"),
-        route(
-          ":schoolId",
-          "routes/console/school.tsx",
-          { id: "console-school" },
-          [
-            layout("routes/console/school-setup.tsx", [
-              index("routes/console/school-setup-index.tsx"),
-              route("hand-over", "routes/console/school-hand-over.tsx"),
-              route("status", "routes/console/school-status.tsx"),
-            ]),
-            route("livery", "routes/console/school-livery.tsx", [
-              route("upload", "routes/console/school-livery-upload.tsx"),
-              route(
-                ":liveryId/:verb",
-                "routes/console/school-livery-confirm.tsx",
-              ),
-            ]),
-            route("payments", "routes/console/school-payments.tsx", [
-              route(
-                "review/:decision",
-                "routes/console/school-bank-review.tsx",
-              ),
-              route("code", "routes/console/school-code.tsx"),
-              route("bank", "routes/console/school-bank.tsx"),
-            ]),
-            route("sponsorship", "routes/console/school-sponsorship.tsx", [
-              route("new", "routes/console/school-sponsorship-new.tsx"),
-            ]),
-            // Helping a school set up (owner, 2026-11-28): the owner's own pages
-            // and modals, as staff, under the console. Students are read only.
-            route("profile", "routes/console/school-profile.tsx", [
-              route("edit", "routes/school/profile-edit.tsx", {
-                id: "console-profile-edit",
-              }),
-              route("logo/:kind", "routes/school/profile-logo.tsx", {
-                id: "console-profile-logo",
-              }),
-              route("branches/:branchId", "routes/school/profile-branch.tsx", {
-                id: "console-profile-branch",
-              }),
-            ]),
-            route("branches", "routes/console/school-branches.tsx", [
-              route("add", "routes/school/branch-add.tsx", {
-                id: "console-branch-add",
-              }),
-              route(":branchId/edit", "routes/school/branch-edit.tsx", {
-                id: "console-branch-edit",
-              }),
-            ]),
-            route("team", "routes/console/school-team.tsx", [
-              route("add", "routes/school/admin-add.tsx", {
-                id: "console-admin-add",
-              }),
-              route(
-                "invites/:inviteId/withdraw",
-                "routes/school/invite-withdraw.tsx",
-                { id: "console-invite-withdraw" },
-              ),
-              route(":memberId/:verb", "routes/school/admin-change.tsx", {
-                id: "console-admin-change",
-              }),
-            ]),
-            route("students", "routes/console/school-students.tsx"),
-          ],
-        ),
       ]),
+      // One school: a layout route (header and tabs stay put) around a page
+      // per tab, every change a modal route over its tab. Static `new` (under
+      // the list) wins over `:schoolId`.
+      route(
+        "schools/:schoolId",
+        "routes/console/school.tsx",
+        { id: "console-school" },
+        [
+          layout("routes/console/school-setup.tsx", [
+            index("routes/console/school-setup-index.tsx"),
+            route("hand-over", "routes/console/school-hand-over.tsx"),
+            route("status", "routes/console/school-status.tsx"),
+          ]),
+          route("livery", "routes/console/school-livery.tsx", [
+            route("upload", "routes/console/school-livery-upload.tsx"),
+            route(
+              ":liveryId/:verb",
+              "routes/console/school-livery-confirm.tsx",
+            ),
+          ]),
+          route("payments", "routes/console/school-payments.tsx", [
+            route("review/:decision", "routes/console/school-bank-review.tsx"),
+            route("code", "routes/console/school-code.tsx"),
+            route("bank", "routes/console/school-bank.tsx"),
+          ]),
+          route("sponsorship", "routes/console/school-sponsorship.tsx", [
+            route("new", "routes/console/school-sponsorship-new.tsx"),
+          ]),
+          // Helping a school set up (owner, 2026-11-28): the owner's own pages
+          // and modals, as staff, under the console. Students are read only.
+          route("profile", "routes/console/school-profile.tsx", [
+            route("edit", "routes/school/profile-edit.tsx", {
+              id: "console-profile-edit",
+            }),
+            route("logo/:kind", "routes/school/profile-logo.tsx", {
+              id: "console-profile-logo",
+            }),
+            route("branches/:branchId", "routes/school/profile-branch.tsx", {
+              id: "console-profile-branch",
+            }),
+          ]),
+          route("branches", "routes/console/school-branches.tsx", [
+            route("add", "routes/school/branch-add.tsx", {
+              id: "console-branch-add",
+            }),
+            route(":branchId/edit", "routes/school/branch-edit.tsx", {
+              id: "console-branch-edit",
+            }),
+          ]),
+          route("team", "routes/console/school-team.tsx", [
+            route("add", "routes/school/admin-add.tsx", {
+              id: "console-admin-add",
+            }),
+            route(
+              "invites/:inviteId/withdraw",
+              "routes/school/invite-withdraw.tsx",
+              { id: "console-invite-withdraw" },
+            ),
+            route(":memberId/:verb", "routes/school/admin-change.tsx", {
+              id: "console-admin-change",
+            }),
+          ]),
+          route("students", "routes/console/school-students.tsx"),
+        ],
+      ),
       route("payments", "routes/console/payments.tsx"),
       route("staff", "routes/console/staff.tsx", [
         route("grant", "routes/console/staff-grant.tsx"),
