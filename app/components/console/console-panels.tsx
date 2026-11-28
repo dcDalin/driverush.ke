@@ -125,8 +125,9 @@ function StaffRow({ member, isMe }: { member: StaffMember; isMe: boolean }) {
   );
   return (
     <li className="flex items-center justify-between gap-3 px-4 py-3">
-      <div className="flex items-center gap-2">
-        <span className="font-semibold">{member.email}</span>
+      {/* A long email wraps; "Revoke" keeps its place on a phone. */}
+      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+        <span className="min-w-0 font-semibold break-all">{member.email}</span>
         <Badge variant={member.role === "driverush_su" ? "ink" : "outline"}>
           {member.role === "driverush_su" ? "su" : "admin"}
         </Badge>
@@ -136,6 +137,7 @@ function StaffRow({ member, isMe }: { member: StaffMember; isMe: boolean }) {
           type="button"
           size="sm"
           variant="ghost"
+          className="shrink-0"
           isLoading={busy}
           onClick={() =>
             submit({
