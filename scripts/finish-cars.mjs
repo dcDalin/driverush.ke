@@ -312,7 +312,7 @@ async function finish(id) {
     if (!mesh) continue;
     const part = partOf(node.getName());
     const m = node.getWorldMatrix();
-    const [ax, ay, az] = part === "wheel" ? [m[12], m[13], m[14]] : [0, 0, 0];
+    const [ay, az] = part === "wheel" ? [m[13], m[14]] : [0, 0];
     for (const prim of mesh.listPrimitives()) {
       const source = prim.getMaterial();
       const fits = rules.filter(
