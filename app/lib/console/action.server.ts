@@ -31,6 +31,7 @@ import {
   switchOffSubaccount,
 } from "~/lib/payments/subaccounts.server";
 import { emailHeldInvites } from "~/lib/school/action.server";
+import { afterResponse } from "~/lib/server/after-response.server";
 import {
   ReviewBankSchema,
   SetPassCodeSchema,
@@ -91,12 +92,16 @@ export async function consoleAction(
         headers,
       });
     }
-    if (v.ownerEmail && result.data) {
-      const school = await getConsoleSchool(supabase, result.data);
-      await tellOwner(v.ownerEmail, {
-        school: v.name,
-        result: school?.ownerEmail ? "added" : "invited",
-        origin,
+    const ownerEmail = v.ownerEmail;
+    const schoolId = result.data;
+    if (ownerEmail && schoolId) {
+      await afterResponse(async () => {
+        const school = await getConsoleSchool(supabase, schoolId);
+        await tellOwner(ownerEmail, {
+          school: v.name,
+          result: school?.ownerEmail ? "added" : "invited",
+          origin,
+        });
       });
     }
     // Straight to the new school, to set it up or check it.
@@ -119,17 +124,22 @@ export async function consoleAction(
       v.email,
       v.keepPrevious,
     );
-    if (result.data) {
-      const firstHandOver = before?.school.status === "setup";
-      // The admins staff added while setting it up hear about it now.
-      const admins = firstHandOver
-        ? await emailHeldInvites(supabase, v.schoolId, origin)
-        : 0;
-      await tellOwner(v.email, {
-        school: before?.school.name ?? "your driving school",
-        result: result.data === "invited" ? "invited" : "added",
-        origin,
-        ...(firstHandOver && before ? handOverLists(before.setup, admins) : {}),
+    const handedOver = result.data;
+    if (handedOver) {
+      await afterResponse(async () => {
+        const firstHandOver = before?.school.status === "setup";
+        // The admins staff added while setting it up hear about it now.
+        const admins = firstHandOver
+          ? await emailHeldInvites(supabase, v.schoolId, origin)
+          : 0;
+        await tellOwner(v.email, {
+          school: before?.school.name ?? "your driving school",
+          result: handedOver === "invited" ? "invited" : "added",
+          origin,
+          ...(firstHandOver && before
+            ? handOverLists(before.setup, admins)
+            : {}),
+        });
       });
     }
     return reply(
@@ -225,14 +235,17 @@ export async function consoleAction(
     if (!result.error) {
       await switchOffSubaccount(result.data);
       const to = before?.ownerEmail;
-      if (to && before.payments?.pending_bank_label) {
-        await tellBankDecision(to, {
-          school: before.school.name,
-          approved: approve,
-          bank: before.payments.pending_bank_label,
-          note: v.note || null,
-          origin,
-        });
+      const bank = before?.payments?.pending_bank_label;
+      if (to && before && bank) {
+        await afterResponse(() =>
+          tellBankDecision(to, {
+            school: before.school.name,
+            approved: approve,
+            bank,
+            note: v.note || null,
+            origin,
+          }),
+        );
       }
     }
     return reply(

@@ -37,6 +37,7 @@ import {
   makeSubaccount,
   switchOffSubaccount,
 } from "~/lib/payments/subaccounts.server";
+import { afterResponse } from "~/lib/server/after-response.server";
 import { RequestBankSchema, SetPassPriceSchema } from "~/schemas/billing";
 import {
   AddAdminSchema,
@@ -154,7 +155,8 @@ export async function schoolAction(
         await validateForm(formData, AddStudentSchema),
         async (v) => {
           const added = await schools.addStudent(supabase, v.branchId, v.email);
-          if (added.data) await emailStudent(added.data);
+          const linkId = added.data;
+          if (linkId) await afterResponse(() => emailStudent(linkId));
           return added;
         },
         DONE[intent],
@@ -170,18 +172,18 @@ export async function schoolAction(
             v.branchIds,
           );
           // "updated": an admin already, branches changed; nothing to send.
-          if (
-            !inSetup &&
-            (added.data === "added" || added.data === "invited")
-          ) {
-            const branches = await listBranches(supabase, schoolId);
-            await tellAdmin(v.email, {
-              school: await schoolName(),
-              branches: branches
-                .filter((b) => v.branchIds.includes(b.id))
-                .map((b) => b.name),
-              result: added.data === "invited" ? "invited" : "added",
-              origin,
+          const result = added.data;
+          if (!inSetup && (result === "added" || result === "invited")) {
+            await afterResponse(async () => {
+              const branches = await listBranches(supabase, schoolId);
+              await tellAdmin(v.email, {
+                school: await schoolName(),
+                branches: branches
+                  .filter((b) => v.branchIds.includes(b.id))
+                  .map((b) => b.name),
+                result,
+                origin,
+              });
             });
           }
           return added;
@@ -285,12 +287,14 @@ export async function schoolAction(
         });
       }
       await switchOffSubaccount(recorded.data);
-      await tellStaffBankRequested({
-        school: await schoolName(),
-        bank: made.label,
-        accountName: v.accountName,
-        origin,
-      });
+      await afterResponse(async () =>
+        tellStaffBankRequested({
+          school: await schoolName(),
+          bank: made.label,
+          accountName: v.accountName,
+          origin,
+        }),
+      );
       return dataWithSuccess({ ok: true as const }, DONE[intent], { headers });
     }
     case "upload-logo": {
@@ -350,13 +354,16 @@ export async function schoolAction(
       // The database checks the branch, the 10 minutes and the 5 sends, and
       // renews the invite for 30 days; then the email goes.
       const sent = await schools.resendStudentInvite(supabase, v.linkId);
-      if (sent.data) {
-        await tellStudent(sent.data.email, {
-          school: sent.data.school_name,
-          branch: sent.data.branch_name,
-          started: false,
-          origin,
-        });
+      const invite = sent.data;
+      if (invite) {
+        await afterResponse(() =>
+          tellStudent(invite.email, {
+            school: invite.school_name,
+            branch: invite.branch_name,
+            started: false,
+            origin,
+          }),
+        );
       }
       return reply(sent, DONE[v.intent]);
     }
@@ -385,23 +392,25 @@ export async function schoolAction(
       const sent = await schools.resendMemberInvite(supabase, v.inviteId);
       if (sent.data) {
         const { email, role, branch_ids, school_name } = sent.data;
-        if (role === "owner") {
-          await tellOwner(email, {
-            school: school_name,
-            result: "invited",
-            origin,
-          });
-        } else {
-          const branches = await listBranches(supabase, schoolId);
-          await tellAdmin(email, {
-            school: school_name,
-            branches: branches
-              .filter((b) => branch_ids.includes(b.id))
-              .map((b) => b.name),
-            result: "invited",
-            origin,
-          });
-        }
+        await afterResponse(async () => {
+          if (role === "owner") {
+            await tellOwner(email, {
+              school: school_name,
+              result: "invited",
+              origin,
+            });
+          } else {
+            const branches = await listBranches(supabase, schoolId);
+            await tellAdmin(email, {
+              school: school_name,
+              branches: branches
+                .filter((b) => branch_ids.includes(b.id))
+                .map((b) => b.name),
+              result: "invited",
+              origin,
+            });
+          }
+        });
       }
       return reply(sent, DONE[v.intent]);
     }

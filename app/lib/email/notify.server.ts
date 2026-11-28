@@ -1,7 +1,8 @@
 /**
  * Who gets told what, after a change is saved. Each sends one email through
- * `sendEmail` (never throws) and is awaited by the action, so a test or a
- * local run sees it land in Mailpit before the toast.
+ * `sendEmail` (never throws). Actions send them through `afterResponse`: on
+ * Vercel after the answer has gone, elsewhere awaited, so a test or a local
+ * run sees it land in Mailpit before the toast.
  */
 import {
   adminEmail,
