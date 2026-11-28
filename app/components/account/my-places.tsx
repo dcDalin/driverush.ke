@@ -1,6 +1,7 @@
 /**
  * The account menu's way into the rest of DriveRush (owner, 2026-11-26): the
- * learner's pass, the schools they own or help run, and the console for
+ * learner's own course (every level and how far they are; owner,
+ * 2026-11-28), their pass, the schools they own or help run, and the console for
  * staff. The places come from `/api/me/places` through a keyed fetcher, the
  * pass from the entitlement the menu already has.
  */
@@ -11,6 +12,7 @@ import { Icon } from "~/components/brand/icon";
 import {
   ChevronRightIcon,
   GridIcon,
+  RoadIcon,
   SettingsIcon,
   StarIcon,
 } from "~/components/brand/icons";
@@ -69,13 +71,15 @@ export function MyPlaces({ onGo }: { onGo: () => void }) {
   const staff = places.data?.staff ?? false;
   const pass = entitlement?.full_access ? entitlement.pass_ends_at : null;
   const offerPass = !pass && passesOn();
-  if (!pass && !offerPass && !staff && schools.length === 0) return null;
 
   return (
     <nav
       aria-label="Your places"
       className="mb-3 flex flex-col gap-1 border-b border-line pb-3"
     >
+      <Place to="/model-town-board/levels" icon={RoadIcon} onGo={onGo}>
+        Your course
+      </Place>
       {pass ? (
         <p className="m-0 flex items-center gap-2 px-2 py-1 text-[13px] text-ink-2">
           <Icon icon={StarIcon} size={16} className="text-amber" />
