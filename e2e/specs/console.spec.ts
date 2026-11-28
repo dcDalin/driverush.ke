@@ -141,10 +141,7 @@ test("staff set a school up: its branches by size, its team, its profile", async
 
   // The team: an admin's branches open the owner's own modal, as staff.
   await tabs.getByRole("link", { name: /^Team/ }).click();
-  await school
-    .getByRole("link", { name: "Branches", exact: true })
-    .first()
-    .click();
+  await school.getByRole("link", { name: "Change branches" }).first().click();
   await expect(page).toHaveURL(/\/team\/[0-9a-f-]{36}\/branches\?q=academy$/);
   await expect(
     page.getByRole("dialog", { name: /branches$/ }).getByRole("button", {

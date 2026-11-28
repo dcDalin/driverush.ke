@@ -1,7 +1,7 @@
 /**
- * The console's lists inside one school (branches, team, students): the
- * school as its owner sees it (`useSchool()`, fed by the console's school
- * modal), the lists' address params (`iq`, `ibranch`, `istatus`, `irole`,
+ * The lists inside one school (branches, team, students), on the console's
+ * school and the owner's dashboard: the school (`useSchool()`), the lists'
+ * address params (`iq`, `ibranch`, `istatus`, `irole`,
  * `iopen`, `ipage`, kept apart from the schools list's own), and paging.
  */
 import { useSearchParams } from "react-router";

@@ -60,8 +60,10 @@ export function PassPanel({
             <AlertTitle>Passes are not on sale yet</AlertTitle>
             <AlertDescription>
               DriveRush opens passes soon. Until then every learner gets the
-              first 16 levels free, and your code below starts working on the
-              day passes open.
+              first 16 levels free.{" "}
+              {ready
+                ? "Your code below starts working on the day passes open."
+                : "You can add your bank and get your code once they open."}
             </AlertDescription>
           </AlertBody>
         </Alert>

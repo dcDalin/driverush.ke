@@ -29,7 +29,7 @@ export function FilterBar({
     <div className="flex flex-col gap-2">
       {search}
       {children ? (
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))] gap-2 sm:auto-cols-fr sm:grid-flow-col sm:grid-cols-none">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))] gap-2 sm:auto-cols-[minmax(10rem,16rem)] sm:grid-flow-col sm:grid-cols-none sm:justify-start">
           {children}
         </div>
       ) : null}

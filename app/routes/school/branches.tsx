@@ -1,13 +1,16 @@
 /**
- * `/school/:schoolId/branches`: (owner) rename or move a branch, close or
- * reopen it. "Add branch" is a modal route over the list (`branches/add`).
+ * `/school/:schoolId/branches`: (owner) every branch with its admins and
+ * students (`BranchList`, the same list DriveRush staff see), searched and
+ * filtered open or closed; rename or move a branch, close or reopen it in
+ * its own modal. "Add branch" is a modal route over the list
+ * (`branches/add`).
  */
 import { Link, Outlet } from "react-router";
 
 import { Icon } from "~/components/brand/icon";
 import { PlusIcon } from "~/components/brand/icons";
 import { PageHeader } from "~/components/console/shell";
-import { BranchesPanel } from "~/components/school/branches-panel";
+import { BranchList } from "~/components/school/branch-list";
 import { NothingHere } from "~/components/school/signed-out";
 import { Button } from "~/components/ui/button";
 import { requireUser } from "~/lib/auth/require.server";
@@ -42,7 +45,16 @@ export default function SchoolBranches() {
           </Button>
         }
       />
-      <BranchesPanel schoolId={d.school.id} branches={d.branches} />
+      <section className="flex flex-col gap-4">
+        <h2 className="sr-only">Branches</h2>
+        {d.branches.length === 0 ? (
+          <p className="m-0 rounded-lg border border-dashed border-line px-4 py-8 text-center text-[14px] text-ink-3">
+            No branch yet. Add your first one, then add students to it.
+          </p>
+        ) : (
+          <BranchList students={{ branch: "sbranch", status: "sstatus" }} />
+        )}
+      </section>
       <Outlet />
     </>
   );
