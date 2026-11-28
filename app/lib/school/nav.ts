@@ -1,7 +1,7 @@
 /**
  * A school dashboard's map: the side menu's groups and pages for one school
- * and one person. A branch admin gets students and passes; the owner (and
- * DriveRush staff) also get the team, the branches and the profile.
+ * and one person. A branch admin gets students and passes; the owner also
+ * gets the team, the branches and the profile.
  */
 import {
   GridIcon,

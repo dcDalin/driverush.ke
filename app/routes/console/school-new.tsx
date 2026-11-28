@@ -91,7 +91,7 @@ export default function SchoolNew({ loaderData }: Route.ComponentProps) {
         >
           <RouteModalHeader
             title="New school"
-            description="Leave the owner's email empty to set the school up first: its profile, branches and livery stay hidden until you hand it over."
+            description="With the owner's email, they get the school at once and fill in the rest. Leave it empty to upload the livery first: the school stays hidden until you hand it over."
           />
           <RouteModalBody className="flex flex-col gap-3 pt-4">
             <HoneypotInputs />

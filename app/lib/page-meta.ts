@@ -185,6 +185,11 @@ const ROUTES: Record<string, Entry> = {
     template: "/console/schools/:schoolId/sponsorship",
     path: "/console/schools/:schoolId/sponsorship",
   },
+  "routes/console/school-inside": {
+    group: "Console",
+    template: "/console/schools/:schoolId/inside",
+    path: "/console/schools/:schoolId/inside",
+  },
   "routes/console/school-sponsorship-new": {
     group: "Console",
     template: "/console/schools/:schoolId/sponsorship/new",

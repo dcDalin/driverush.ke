@@ -10,7 +10,7 @@
 -- ===================================================
 begin;
 
-select plan(16);
+select plan(20);
 
 create temp table w as select tests.make_world() as j;
 create function pg_temp.w(k text) returns text language sql as $$ select j ->> k from w $$;
@@ -57,6 +57,32 @@ select is(
   'handing over to an email with no account leaves an owner invite');
 select is((select status::text from public.schools where id = (select id from made)), 'active',
   'and the school is live');
+
+-- ── Public only once its owner has made it ready ───────────────────────
+-- It has a branch (staff added Ruiru above) but no logo or profile text.
+select is(
+  tests.value_as('anon', $$select count(*) from jsonb_array_elements(public.board_schools()) as e where e ->> 'slug' = 'kilele'$$),
+  '0',
+  'handed over, it is still not on the board or the site: no logo, no profile');
+insert into public.school_profiles (school_id, tagline) values ((select id from made), 'Learn in Ruiru')
+  on conflict (school_id) do update set tagline = excluded.tagline;
+select is(
+  tests.value_as('anon', $$select count(*) from jsonb_array_elements(public.board_schools()) as e where e ->> 'slug' = 'kilele'$$),
+  '0',
+  'a tagline alone is not enough');
+update public.school_profiles
+   set logo = jsonb_build_object('path', (select id from made)::text || '/logo/0123456789abcdef.webp', 'width', 10, 'height', 10)
+ where school_id = (select id from made);
+select is(
+  tests.value_as('anon', $$select count(*) from jsonb_array_elements(public.board_schools()) as e where e ->> 'slug' = 'kilele'$$),
+  '1',
+  'with a logo, profile text and an open branch, everyone sees it');
+update public.school_branches set is_active = false where school_id = (select id from made);
+select is(
+  tests.value_as('anon', format($$select count(*) from public.school_profiles where school_id = %L$$, (select id from made))),
+  '0',
+  'and with its last branch closed, its profile is private again');
+update public.school_branches set is_active = true where school_id = (select id from made);
 select is(
   (select email::text from public.school_member_invites where school_id = (select id from made) and role = 'owner' and status = 'pending'),
   'owner@kilele.test',

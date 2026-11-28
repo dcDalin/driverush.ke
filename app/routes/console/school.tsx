@@ -19,6 +19,10 @@
  *     code, bank  change the code; set a checked bank yourself
  *   sponsorship   when its cars take turns
  *     new         a new sponsorship period
+ *   inside        a read-only look at its branches, team and students
+ *
+ * Staff never enter the school's own dashboard (owner, 2026-11-28): they
+ * give it a livery and an owner here, and the owner does the rest there.
  *
  * This loader reads the school once; the routes under it have none and read
  * it through `useConsoleSchool()`. Changes go through `consoleAction`. Every
@@ -26,8 +30,6 @@
  */
 import { data, Link, Outlet, useLocation } from "react-router";
 
-import { Icon } from "~/components/brand/icon";
-import { ArrowOutIcon } from "~/components/brand/icons";
 import { RouteModal } from "~/components/console/route-modal";
 import { STATUS_BADGE, STATUS_LABEL } from "~/components/console/school-status";
 import { RouteTabs } from "~/components/console/shell";
@@ -152,12 +154,6 @@ function SchoolModal({
             </DialogDescription>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button asChild variant="ghost" size="sm">
-              <Link to={`/school/${id}`}>
-                Its dashboard
-                <Icon icon={ArrowOutIcon} size={14} />
-              </Link>
-            </Button>
             <Button asChild variant="paper" size="sm">
               <Link to={to("status")} preventScrollReset>
                 Change status
@@ -185,6 +181,7 @@ function SchoolModal({
               badge: school.payments?.pending_bank_label ? dot : null,
             },
             { label: "Sponsorship", to: to("sponsorship") },
+            { label: "Inside", to: to("inside") },
           ]}
         />
       </div>

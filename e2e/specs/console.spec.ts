@@ -80,3 +80,41 @@ test("staff who signed in with a reset code, not their password, are asked to si
     page.getByRole("heading", { name: "Sign in again" }),
   ).toBeVisible();
 });
+
+test("staff look inside a school from the console, never from its dashboard", async ({
+  page,
+}) => {
+  await page.goto("/guides");
+  await signInWithPassword(page, "admin@driverush.test");
+  await page.goto("/console/schools");
+  await page.getByLabel("Search schools").fill("heltz");
+  // The search reaches the address a moment later; the school keeps it.
+  await expect(page).toHaveURL(/q=heltz/);
+  await page.getByRole("link", { name: /Heltz Driving Academy/ }).click();
+  const school = page.getByRole("dialog");
+  // Staff's part and the owner's part are told apart, with no way across.
+  await expect(
+    school.getByRole("heading", { name: "Your part" }),
+  ).toBeVisible();
+  await expect(
+    school.getByRole("heading", { name: /The owner's part/ }),
+  ).toBeVisible();
+  await expect(school.getByRole("link", { name: /dashboard/i })).toHaveCount(0);
+
+  // A read-only look inside.
+  await school.getByRole("link", { name: "Inside" }).click();
+  await expect(page).toHaveURL(/\/inside\?q=heltz$/);
+  await expect(school.getByText("amina@learner.test")).toBeVisible();
+  await expect(
+    school.getByRole("button", { name: /Release|Move|Remove/ }),
+  ).toHaveCount(0);
+
+  // The school's own dashboard turns staff back to the console.
+  const id = page.url().match(/schools\/([0-9a-f-]{36})/)![1];
+  await page.goto(`/school/${id}`);
+  await expect(
+    page.getByRole("heading", { name: "This is the school's own dashboard" }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "Open it in the console" }).click();
+  await expect(page).toHaveURL(new RegExp(`/console/schools/${id}$`));
+});

@@ -163,6 +163,9 @@ export default [
             route("sponsorship", "routes/console/school-sponsorship.tsx", [
               route("new", "routes/console/school-sponsorship-new.tsx"),
             ]),
+            // A read-only look inside, for support: staff never open the
+            // school's own dashboard.
+            route("inside", "routes/console/school-inside.tsx"),
           ],
         ),
       ]),

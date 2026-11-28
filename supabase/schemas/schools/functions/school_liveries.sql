@@ -69,7 +69,8 @@ as $$
 $$;
 
 -- Access:  anon (anyone, guests included)
--- Guard:   public (only active schools' public profile and live livery)
+-- Guard:   public (only public schools: active and made ready by their
+--          owner, private.is_active_school; their profile and live livery)
 -- Callers: web root loader and /api/board-schools (server, cached)
 create or replace function private.board_schools()
 returns jsonb
@@ -81,8 +82,7 @@ as $$
   select coalesce(jsonb_agg(private.board_school_json(s, l) order by s.name), '[]'::jsonb)
     from public.schools as s
     left join public.school_liveries as l on l.school_id = s.id and l.status = 'live'
-   where s.status = 'active'
-     and (l.id is not null or exists (select 1 from public.school_profiles as p where p.school_id = s.id));
+   where private.is_active_school(s.id);
 $$;
 
 -- A draft (or any livery) shaped like a board_schools() entry, for staff to

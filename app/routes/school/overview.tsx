@@ -1,7 +1,14 @@
 /**
- * `/school/:schoolId`: the dashboard's first page. In order: what is
- * waiting for someone (no bank, no branch, invites that ran out), the
- * numbers with a link into the list behind each, and the newest students.
+ * `/school/:schoolId`: the dashboard's first page. In order:
+ *
+ *   Get your school ready  (owner, until it is done) DriveRush hands a
+ *                          school over with its name and its cars; the owner
+ *                          gives it a logo, a profile and a first branch
+ *                          (then it is public), a bank and its first
+ *                          students. Each step opens the modal that does it.
+ *   Needs you              invites that ran out; for an admin, no branch yet
+ *   At a glance            the numbers, each linking into its list
+ *   Newest students
  */
 import { Link } from "react-router";
 
@@ -9,7 +16,10 @@ import { kes } from "~/components/account/pass-offers";
 import { Icon } from "~/components/brand/icon";
 import {
   ArrowRightIcon,
+  CheckIcon,
+  ChevronRightIcon,
   LearnerIcon,
+  MinusIcon,
   PlusIcon,
   StarIcon,
   WalletIcon,
@@ -24,6 +34,7 @@ import {
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { earningsTotals } from "~/database/billing/school";
+import { schoolReadiness } from "~/database/schools/readiness";
 import { requireUser } from "~/lib/auth/require.server";
 import { schoolAction } from "~/lib/school/action.server";
 import { schoolPath } from "~/lib/school/nav";
@@ -56,6 +67,46 @@ function Need({
   );
 }
 
+function ReadyStep({
+  done,
+  label,
+  detail,
+  to,
+  action,
+}: {
+  done: boolean;
+  label: string;
+  detail: string;
+  to: string;
+  action: string;
+}) {
+  return (
+    <li className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+      <span
+        className={
+          done
+            ? "flex size-6 shrink-0 items-center justify-center rounded-full bg-kenya-green text-kenya-green-foreground"
+            : "flex size-6 shrink-0 items-center justify-center rounded-full border border-line text-ink-3"
+        }
+      >
+        <Icon icon={done ? CheckIcon : MinusIcon} size={14} />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="text-[14px] font-semibold">{label}</span>
+        <span className="text-[13px] text-ink-3">{detail}</span>
+      </span>
+      {done ? null : (
+        <Button asChild size="sm" variant="paper">
+          <Link to={to} preventScrollReset>
+            {action}
+            <Icon icon={ChevronRightIcon} size={14} />
+          </Link>
+        </Button>
+      )}
+    </li>
+  );
+}
+
 export default function SchoolOverview() {
   const d = useSchool();
   const to = (page = "") => schoolPath(d.school.id, page);
@@ -67,12 +118,30 @@ export default function SchoolOverview() {
   const paid = active.filter((s) => s.passEndsAt).length;
   const earned = earningsTotals(d.earnings).thisMonth;
   const bankWaiting = Boolean(d.passInfo?.pending_bank_label);
-  const bankNeeded = d.canManage && !d.passInfo?.ready && !bankWaiting;
   const openBranches = d.branches.filter(
     (b) => b.is_active && d.myBranchIds.includes(b.id),
   );
   const noBranch = openBranches.length === 0;
-  const calm = !bankNeeded && !noBranch && expired === 0;
+  // The owner's own list covers the branch and the bank; "Needs you" keeps
+  // what is left for them, and everything for an admin.
+  const ready = schoolReadiness({
+    logo: d.profile?.logo,
+    tagline: d.profile?.tagline,
+    about: d.profile?.about,
+    openBranches: d.branches.filter((b) => b.is_active).length,
+  });
+  const bankDone = Boolean(d.passInfo?.ready) || bankWaiting;
+  const steps = [
+    ready.logo,
+    ready.profile,
+    ready.branch,
+    ...(d.paymentsOn ? [bankDone] : []),
+    d.students.length > 0,
+  ];
+  const stepsDone = steps.filter(Boolean).length;
+  const gettingReady = d.canManage && stepsDone < steps.length;
+  const adminNoBranch = !d.canManage && noBranch;
+  const calm = !adminNoBranch && expired === 0;
   const latest = [...d.students]
     .sort((a, b) => (b.addedAt ?? "").localeCompare(a.addedAt ?? ""))
     .slice(0, LATEST);
@@ -106,52 +175,124 @@ export default function SchoolOverview() {
         }
       />
 
-      <Section title="Needs you">
-        {calm ? (
-          <p className="m-0 rounded-lg border border-dashed border-line px-4 py-5 text-[14px] text-ink-3">
-            Nothing is waiting.
-            {bankWaiting ? " DriveRush is checking the bank you sent." : ""}
-          </p>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {noBranch ? (
-              <Need title="Add a branch first">
-                Students are added to a branch.{" "}
-                {d.canManage ? (
-                  <Link to={to("branches/add")} className={link}>
-                    Add your first branch
-                  </Link>
-                ) : (
-                  "Ask the school's owner to give you one."
-                )}
-              </Need>
-            ) : null}
-            {bankNeeded ? (
-              <Need title="Add your bank to get paid">
-                Learners can pay through your school once DriveRush has checked
-                your bank.{" "}
-                <Link to={to("passes")} className={link}>
-                  Add it on Passes
-                </Link>
-              </Need>
-            ) : null}
-            {expired > 0 ? (
-              <Need
-                title={
-                  expired === 1
-                    ? "1 invite has run out"
-                    : `${expired} invites have run out`
+      {gettingReady ? (
+        <Section
+          title={
+            <span className="flex flex-wrap items-center gap-2">
+              Get your school ready
+              <Badge variant="outline">
+                {stepsDone} of {steps.length}
+              </Badge>
+            </span>
+          }
+          description={
+            ready.ready
+              ? "Your school is on DriveRush. Finish the rest to take payments and follow your students."
+              : "Your school is not on DriveRush's site or its board yet. It goes on once it has a logo, a profile and an open branch."
+          }
+        >
+          <ul className="m-0 flex list-none flex-col divide-y divide-line rounded-lg border border-line bg-surface p-0">
+            <ReadyStep
+              done={ready.logo}
+              label="Upload your logo"
+              detail={
+                ready.logo
+                  ? "Uploaded."
+                  : "Shown beside your name, and on your cars' credits."
+              }
+              to={to("profile/logo/logo")}
+              action="Upload"
+            />
+            <ReadyStep
+              done={ready.profile}
+              label="Describe your school"
+              detail={
+                ready.profile
+                  ? "Filled in."
+                  : "A tagline, what you teach and how to reach you."
+              }
+              to={to("profile/edit")}
+              action="Write it"
+            />
+            <ReadyStep
+              done={ready.branch}
+              label="Add your first branch"
+              detail={
+                ready.branch
+                  ? `${openBranches.length} open.`
+                  : "Students and admins belong to a branch."
+              }
+              to={to("branches/add")}
+              action="Add branch"
+            />
+            {d.paymentsOn ? (
+              <ReadyStep
+                done={bankDone}
+                label="Add your bank"
+                detail={
+                  d.passInfo?.ready
+                    ? "You are being paid."
+                    : bankWaiting
+                      ? "Sent. DriveRush is checking it."
+                      : "So learners can pay through you and you earn from each pass."
                 }
-              >
-                An invite lasts 30 days.{" "}
-                <Link to={`${to("students")}?sstatus=expired`} className={link}>
-                  Send {expired === 1 ? "it" : "them"} again
-                </Link>
-              </Need>
+                to={to("passes/bank")}
+                action="Add bank"
+              />
             ) : null}
-          </div>
-        )}
-      </Section>
+            <ReadyStep
+              done={d.students.length > 0}
+              label="Add your first students"
+              detail={
+                d.students.length > 0
+                  ? "Added."
+                  : noBranch
+                    ? "After your first branch."
+                    : "By email. Each one gets a link."
+              }
+              to={noBranch ? to("branches/add") : to("students/add")}
+              action={noBranch ? "Add branch first" : "Add student"}
+            />
+          </ul>
+        </Section>
+      ) : null}
+
+      {gettingReady && calm ? null : (
+        <Section title="Needs you">
+          {calm ? (
+            <p className="m-0 rounded-lg border border-dashed border-line px-4 py-5 text-[14px] text-ink-3">
+              Nothing is waiting.
+              {bankWaiting ? " DriveRush is checking the bank you sent." : ""}
+            </p>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {adminNoBranch ? (
+                <Need title="No branch yet">
+                  Students are added to a branch. Ask the school's owner to give
+                  you one.
+                </Need>
+              ) : null}
+              {expired > 0 ? (
+                <Need
+                  title={
+                    expired === 1
+                      ? "1 invite has run out"
+                      : `${expired} invites have run out`
+                  }
+                >
+                  An invite lasts 30 days.{" "}
+                  <Link
+                    to={`${to("students")}?sstatus=expired`}
+                    className={link}
+                  >
+                    Send {expired === 1 ? "it" : "them"} again
+                  </Link>
+                </Need>
+              ) : null}
+            </div>
+          )}
+        </Section>
+      )}
 
       <Section title="At a glance">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

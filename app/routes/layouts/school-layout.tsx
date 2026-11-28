@@ -20,6 +20,7 @@
 import * as React from "react";
 import {
   data,
+  Link,
   Outlet,
   type ShouldRevalidateFunctionArgs,
   useRevalidator,
@@ -28,6 +29,7 @@ import {
 import { SiteNav } from "~/components/brand/site-nav";
 import { DashShell } from "~/components/console/shell";
 import { NeedsSignIn, NothingHere } from "~/components/school/signed-out";
+import { Button } from "~/components/ui/button";
 import { getRequestClient, requireUser } from "~/lib/auth/require.server";
 import { useSession } from "~/lib/auth/session";
 import { useLiveRevalidate } from "~/lib/realtime/use-live-revalidate";
@@ -91,7 +93,6 @@ function useRevalidateOnSession() {
 const ROLE_LABEL = {
   owner: "School owner",
   admin: "Branch admin",
-  staff: "DriveRush staff",
 } as const;
 
 export default function SchoolLayout({ loaderData }: Route.ComponentProps) {
@@ -108,6 +109,22 @@ export default function SchoolLayout({ loaderData }: Route.ComponentProps) {
               title="School dashboard"
               body="Sign in with the email your school added you with to see your students and their progress."
             />
+          ) : loaderData.state === "staff" ? (
+            <section className="mx-auto flex max-w-md flex-col items-start gap-4 py-16">
+              <h1 className="font-display text-[28px] font-bold tracking-tight">
+                This is the school's own dashboard
+              </h1>
+              <p className="text-ink-2">
+                DriveRush staff set a school up, hand it to its owner and look
+                inside it from the console. Only the school's owner and admins
+                work here.
+              </p>
+              <Button asChild variant="rush">
+                <Link to={`/console/schools/${loaderData.schoolId}`}>
+                  Open it in the console
+                </Link>
+              </Button>
+            </section>
           ) : (
             <NothingHere
               title="Not your school"

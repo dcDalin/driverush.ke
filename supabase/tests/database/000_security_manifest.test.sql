@@ -129,8 +129,8 @@ insert into tests.function_access (fn, access, guard, guard_detail, callers) val
   ('pass_school_by_code(text)', 'authenticated', 'public', 'a school''s public price and branch names only', '/pass (server, learner session)'),
   ('private.pass_school_by_code(text)', 'authenticated', 'public', 'a school''s public price and branch names only', '/pass (server, learner session)'),
   -- Anyone, guests included
-  ('board_schools()', 'anon', 'public', 'active schools'' public profile and live livery only', 'web root loader, /api/board-schools (server)'),
-  ('private.board_schools()', 'anon', 'public', 'active schools'' public profile and live livery only', 'web root loader, /api/board-schools (server)'),
+  ('board_schools()', 'anon', 'public', 'public schools'' (active and made ready) profile and live livery only', 'web root loader, /api/board-schools (server)'),
+  ('private.board_schools()', 'anon', 'public', 'public schools'' (active and made ready) profile and live livery only', 'web root loader, /api/board-schools (server)'),
   -- Row level security helpers (answer for the caller)
   ('private.is_staff()', 'authenticated', 'public', 'answers for the caller', 'RLS policies; admin_* functions'),
   ('private.is_su()', 'authenticated', 'public', 'answers for the caller', 'RLS policies; grant_platform_role, revoke_platform_role'),
@@ -138,7 +138,7 @@ insert into tests.function_access (fn, access, guard, guard_detail, callers) val
   ('private.is_school_member(uuid)', 'authenticated', 'public', 'answers for the caller', 'RLS policies; school_student_progress'),
   ('private.can_see_branch(uuid)', 'authenticated', 'public', 'answers for the caller', 'RLS policies; can_manage_branch, school_student_progress'),
   ('private.has_school_link(uuid)', 'authenticated', 'public', 'answers for the caller', 'RLS policies (schools, school_branches)'),
-  ('private.is_active_school(uuid)', 'anon', 'public', 'a public fact (is the school active); returns no row', 'RLS policies (school_profiles, school_liveries)'),
+  ('private.is_active_school(uuid)', 'anon', 'public', 'a public fact (is the school public: active and made ready); returns no row', 'RLS policies (school_profiles, school_liveries)'),
   -- Supabase Auth
   ('custom_access_token_hook(jsonb)', 'auth_hook', 'none', '', 'Supabase Auth (access token hook)'),
   -- Internal

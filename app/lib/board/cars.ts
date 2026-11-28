@@ -34,13 +34,14 @@ const CAR_SIZE: CarSize = {
  * the cars Kenyans learn in and drive, but carry generic names here.
  */
 /** The car menu pictures' version: bump it when they are taken again. */
-const THUMB_V = 2;
+const THUMB_V = 3;
 
 export const BOARD_CARS = [
   // `model`: who made it, and its page. A CC BY model must be credited where
   // the cars are chosen (board-settings-sheet); the others are credited too.
-  // `?v=6` (and `?v=2` for the three bigger vehicles, which started later):
-  // every wheel true on its axle, round and standing on the road.
+  // `?v=7` (`?v=3` for the van and lorry, `?v=2` for the crossover, which
+  // started later): lamps, tyres, rims and chrome set right by
+  // `scripts/finish-cars.mjs`.
   // A new address, so no cache hands out an old one. Keep public/sw.js's
   // BOARD_FILES in step.
   // `thumb`: its small picture for the car menu, taken off the model by
@@ -50,7 +51,7 @@ export const BOARD_CARS = [
   {
     id: "saloon",
     label: "Saloon",
-    src: "/assets/board/cars/saloon.glb?v=6",
+    src: "/assets/board/cars/saloon.glb?v=7",
     thumb: `/assets/board/cars/thumbs/saloon.webp?v=${THUMB_V}`,
     size: CAR_SIZE,
     model: {
@@ -62,7 +63,7 @@ export const BOARD_CARS = [
   {
     id: "hatchback",
     label: "Hatchback",
-    src: "/assets/board/cars/hatchback.glb?v=6",
+    src: "/assets/board/cars/hatchback.glb?v=7",
     thumb: `/assets/board/cars/thumbs/hatchback.webp?v=${THUMB_V}`,
     size: CAR_SIZE,
     model: {
@@ -74,7 +75,7 @@ export const BOARD_CARS = [
   {
     id: "wagon",
     label: "Wagon",
-    src: "/assets/board/cars/wagon.glb?v=6",
+    src: "/assets/board/cars/wagon.glb?v=7",
     thumb: `/assets/board/cars/thumbs/wagon.webp?v=${THUMB_V}`,
     size: CAR_SIZE,
     model: {
@@ -86,7 +87,7 @@ export const BOARD_CARS = [
   {
     id: "pickup",
     label: "Pickup",
-    src: "/assets/board/cars/pickup.glb?v=6",
+    src: "/assets/board/cars/pickup.glb?v=7",
     thumb: `/assets/board/cars/thumbs/pickup.webp?v=${THUMB_V}`,
     size: CAR_SIZE,
     model: {
@@ -98,7 +99,7 @@ export const BOARD_CARS = [
   {
     id: "suv",
     label: "SUV",
-    src: "/assets/board/cars/suv.glb?v=6",
+    src: "/assets/board/cars/suv.glb?v=7",
     thumb: `/assets/board/cars/thumbs/suv.webp?v=${THUMB_V}`,
     size: CAR_SIZE,
     model: {
@@ -112,7 +113,7 @@ export const BOARD_CARS = [
   {
     id: "van",
     label: "Van",
-    src: "/assets/board/cars/van.glb?v=2",
+    src: "/assets/board/cars/van.glb?v=3",
     thumb: `/assets/board/cars/thumbs/van.webp?v=${THUMB_V}`,
     size: { length: 4.74, width: 1.85, wheelbase: 2.55, height: 1.92 },
     big: true,
@@ -125,7 +126,7 @@ export const BOARD_CARS = [
   {
     id: "lorry",
     label: "Lorry",
-    src: "/assets/board/cars/lorry.glb?v=2",
+    src: "/assets/board/cars/lorry.glb?v=3",
     thumb: `/assets/board/cars/thumbs/lorry.webp?v=${THUMB_V}`,
     // Its axles are 3.2 m apart, but it steers by a car's wheelbase: a
     // cab-over lorry's front wheels turn further than a car's, and the turn
@@ -143,7 +144,7 @@ export const BOARD_CARS = [
   {
     id: "crossover",
     label: "Crossover",
-    src: "/assets/board/cars/crossover.glb?v=1",
+    src: "/assets/board/cars/crossover.glb?v=2",
     thumb: `/assets/board/cars/thumbs/crossover.webp?v=${THUMB_V}`,
     size: CAR_SIZE,
     model: {

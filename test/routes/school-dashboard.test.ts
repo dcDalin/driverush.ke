@@ -91,6 +91,20 @@ describe("school dashboard loader", () => {
       "not-member",
     );
   });
+
+  it("sends DriveRush staff to the console: the dashboard is the school's", async () => {
+    const staff = await signInCookies("admin@driverush.test");
+    const { data } = await load(staff);
+    expect(data.state).toBe("staff");
+    expect(data.schoolId).toBe(schoolId);
+    expect(data.students).toBeUndefined();
+    // And their posts are refused before anything is read.
+    const refused = await post(
+      remixFields({ intent: "add-branch", name: "Staff Branch", town: "X" }),
+      staff,
+    );
+    expect(refused.status).toBe(403);
+  });
 });
 
 describe("school dashboard action", () => {

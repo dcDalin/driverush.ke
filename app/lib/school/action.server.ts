@@ -7,7 +7,6 @@
  * `~/database/schools` function as the signed-in person, so row level
  * security and the functions' guards decide what they may do.
  */
-import { isStaffRole } from "~/database/auth/roles";
 import { requestSchoolBank } from "~/database/billing/bank.server";
 import { setPassPrice } from "~/database/billing/school";
 import type { Result } from "~/database/result";
@@ -76,6 +75,16 @@ export async function schoolAction(
   schoolId: string,
   request: Request,
 ) {
+  // The school's own people only: DriveRush staff change a school from the
+  // console (the database would let staff through here; the app does not).
+  const myRole = await getMySchoolRole(supabase, schoolId, caller.userId);
+  if (!myRole) {
+    return dataWithError(
+      { ok: false as const },
+      "Only the school's owner and admins can change it.",
+      { status: 403, headers },
+    );
+  }
   const formData = await request.formData();
   const intent = readFormIntent(formData);
   const origin = originOf(request);
@@ -376,12 +385,11 @@ export async function schoolAction(
   }
 }
 
-/** The school's owner, or DriveRush staff: who may change its profile and bank. */
+/** The school's owner: who may change its profile and bank. */
 async function canManageSchool(
   supabase: SignedIn["supabase"],
   schoolId: string,
   caller: SignedIn["caller"],
 ) {
-  if (isStaffRole(caller.role)) return true;
   return (await getMySchoolRole(supabase, schoolId, caller.userId)) === "owner";
 }

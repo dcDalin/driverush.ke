@@ -106,8 +106,13 @@ as $$
   );
 $$;
 
--- Whether a school is active: the one public fact about a school that
--- decides whether its profile and live livery are shown to everyone.
+-- Whether a school is public: the one public fact about a school that
+-- decides whether its profile and live livery are shown to everyone. It is
+-- active, and its owner has made it ready (owner, 2026-11-28): a logo, a
+-- tagline or about text, and at least one open branch. DriveRush staff hand a
+-- school over with only its name and livery; until its owner fills these in
+-- there is no half-empty school on the site or the board.
+-- `app/database/schools/readiness.ts` says the same to the owner and the console.
 --
 -- Access:  anon (evaluated as any caller inside policies, guests included)
 -- Guard:   public (a public fact; no row of schools is returned)
@@ -122,13 +127,23 @@ as $$
   select exists (
     select 1 from public.schools as s
      where s.id = p_school_id and s.status = 'active'
+       and exists (
+         select 1 from public.school_profiles as p
+          where p.school_id = s.id
+            and p.logo is not null
+            and (p.tagline is not null or p.about is not null)
+       )
+       and exists (
+         select 1 from public.school_branches as b
+          where b.school_id = s.id and b.is_active
+       )
   );
 $$;
 
 revoke all on function private.is_active_school(uuid) from public;
 grant execute on function private.is_active_school(uuid) to service_role;
 comment on function private.is_active_school(uuid) is
-  'Whether this school is active (its profile and live livery are public).';
+  'Whether this school is public: active, with a logo, a tagline or about text and an open branch (its profile and live livery are shown to everyone).';
 
 revoke all on function private.is_school_owner(uuid) from public;
 revoke all on function private.is_school_member(uuid) from public;

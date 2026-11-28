@@ -983,10 +983,13 @@ function finishFence(width: number, depth: number) {
 }
 
 /**
- * The most a wheel turns in one frame: under half the gap between two spokes,
- * so a fast car's wheels never look as if they are turning backwards.
+ * The most a wheel turns in one frame. A rim with ten spokes looks the same
+ * every 36 degrees, so a turn of more than half that between two frames reads
+ * as the wheel going backwards, and one near it as a flicker. A third of the
+ * tightest pattern on any of the vehicles keeps every wheel plainly rolling
+ * forward at any speed and frame rate; past that speed it just holds its pace.
  */
-const MAX_ROLL = (30 * Math.PI) / 180;
+const MAX_ROLL = (10 * Math.PI) / 180;
 /** The front wheels turn less than the real lock, so they stay inside the arches. */
 const MAX_STEER_SHOWN = 0.45;
 
@@ -998,7 +1001,7 @@ function rollWheels(holder: THREE.Object3D, distance: number) {
   for (const wheel of model.userData.wheels) {
     // Each by its own radius: a smaller wheel turns faster over the same road.
     const own = (wheel.userData.radius as number | undefined) ?? radius;
-    wheel.rotation.x -= Math.min(distance / own, MAX_ROLL);
+    wheel.rotation.x -= clamp(distance / own, -MAX_ROLL, MAX_ROLL);
   }
 }
 

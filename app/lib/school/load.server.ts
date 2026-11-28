@@ -3,7 +3,12 @@
  * (`layouts/school-layout.tsx`) and shared with the pages under it: the
  * school, the caller's place in it, branches, team, invites, students with
  * their progress, the pass set-up and earnings, and (owner and staff) the
- * profile and logos. `signed-out` and `not-member` are drawn by the frame.
+ * profile and logos. `signed-out`, `not-member` and `staff` are drawn by the
+ * frame.
+ *
+ * DriveRush staff are not let in (owner, 2026-11-28): they create a school,
+ * give it its livery and hand it over; the dashboard belongs to the school.
+ * Their read-only look inside is in the console (`school-inside.tsx`).
  */
 import {
   getSchoolPassInfo,
@@ -27,14 +32,16 @@ export async function loadSchool(
     role: caller.role,
   });
   if (!dashboard) return { state: "not-member" as const };
+  const { role, ...school } = dashboard;
+  if (role === "staff") return { state: "staff" as const, schoolId };
+  // The owner alone manages (`getSchoolDashboard` also says yes to staff).
+  const canManage = role === "owner";
   const paymentsOn = paymentsEnabled();
   const [profile, passInfo, earnings, banks] = await Promise.all([
-    dashboard.canManage
-      ? getSchoolProfile(supabase, schoolId)
-      : Promise.resolve(null),
+    canManage ? getSchoolProfile(supabase, schoolId) : Promise.resolve(null),
     getSchoolPassInfo(supabase, schoolId),
     listSchoolEarnings(supabase, schoolId),
-    dashboard.canManage && paymentsOn ? kenyanBanks() : Promise.resolve([]),
+    canManage && paymentsOn ? kenyanBanks() : Promise.resolve([]),
   ]);
   // Logos are shown from Storage by their public URL.
   const base = process.env.SUPABASE_URL ?? "";
@@ -44,7 +51,9 @@ export async function loadSchool(
   };
   return {
     state: "ok" as const,
-    ...dashboard,
+    ...school,
+    role,
+    canManage,
     profile,
     passInfo,
     earnings,

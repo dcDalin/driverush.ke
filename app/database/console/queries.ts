@@ -5,6 +5,7 @@
  * reads every staff role. Reads throw.
  */
 import { orThrow } from "../result";
+import { schoolReadiness } from "../schools/readiness";
 import type {
   AppRole,
   Enums,
@@ -122,9 +123,9 @@ export async function getConsoleSchool(
         .then(orThrow),
       supabase
         .from("school_branches")
-        .select("id", { count: "exact", head: true })
+        .select("is_active")
         .eq("school_id", schoolId)
-        .then((r) => r.count ?? 0),
+        .then(orThrow),
       supabase
         .from("school_profiles")
         .select("tagline, about, logo, logo_mono")
@@ -147,6 +148,12 @@ export async function getConsoleSchool(
       )?.email ?? null)
     : null;
 
+  const ready = schoolReadiness({
+    logo: profile?.logo,
+    tagline: profile?.tagline,
+    about: profile?.about,
+    openBranches: branches.filter((b) => b.is_active).length,
+  });
   return {
     school,
     ownerEmail,
@@ -168,9 +175,11 @@ export async function getConsoleSchool(
         : payments?.pending_bank_label
           ? ("waiting" as const)
           : ("none" as const),
-      profile: Boolean(profile?.tagline || profile?.about),
-      logo: Boolean(profile?.logo),
-      branches,
+      profile: ready.profile,
+      logo: ready.logo,
+      branches: branches.length,
+      /** Public once active: a logo, profile text and an open branch. */
+      ready: ready.ready,
       livery: liveries.some((l) => l.status === "live")
         ? ("live" as const)
         : liveries.some((l) => l.status === "draft")

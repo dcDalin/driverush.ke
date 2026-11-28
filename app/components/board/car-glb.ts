@@ -32,6 +32,32 @@ export const SHARED = "sharedGeometry";
 
 const WHEEL = /^wheel_(f|r)(l|r)$/;
 
+/**
+ * A material for the lighter picture, which has no room to reflect: metal
+ * with nothing to mirror is drawn black, so rims, chrome and lamp bowls are
+ * made mostly plain there and take the daylight instead. One per material,
+ * shared like the original.
+ */
+const plain = new WeakMap<THREE.Material, THREE.Material>();
+function plainOf(material: THREE.Material): THREE.Material {
+  const standard = material as THREE.MeshStandardMaterial;
+  if (!standard.isMeshStandardMaterial || standard.metalness <= 0.3) {
+    return material;
+  }
+  let made = plain.get(material);
+  if (!made) {
+    const copy = standard.clone();
+    copy.metalness = 0.3;
+    // A little darker: bare of reflections, bright metal reads as white.
+    copy.color.multiplyScalar(0.8);
+    copy.roughness = Math.max(standard.roughness, 0.35);
+    copy.userData[SHARED] = true;
+    made = copy;
+    plain.set(material, made);
+  }
+  return made;
+}
+
 export function carFromGltf(
   source: THREE.Object3D,
   { paint, simple = false }: GlbCarOptions,
@@ -130,6 +156,9 @@ export function carFromGltf(
         ? mesh.material
         : [mesh.material];
       for (const material of list) material.userData[SHARED] = true;
+      if (simple && !Array.isArray(mesh.material)) {
+        mesh.material = plainOf(mesh.material);
+      }
     } else {
       mesh.material = body;
     }
