@@ -13,6 +13,7 @@ import { usePracticeStreak } from "~/lib/practice-streak";
 import { SIGN_GAMES } from "~/lib/road-signs";
 import { SIGN_BRAND } from "~/lib/sign-credits";
 import { ROUND_SIZE, trainerHref } from "~/lib/trainer-rounds";
+import { linkPrefetch } from "~/lib/ui/link-prefetch";
 import { useSignProgress } from "~/lib/use-sign-progress";
 import { cn } from "~/lib/utils";
 
@@ -78,13 +79,18 @@ export function SignTrainerList({
                     variant={index === 0 ? "rush" : "paper"}
                     className="w-full sm:w-auto sm:min-w-40"
                   >
-                    <Link to={href} aria-label={`${game.title}: ${start}`}>
+                    <Link
+                      prefetch={linkPrefetch()}
+                      to={href}
+                      aria-label={`${game.title}: ${start}`}
+                    >
                       {start}
                     </Link>
                   </Button>
                 </div>
               ) : (
                 <Link
+                  prefetch={linkPrefetch()}
                   to={href}
                   aria-label={`${game.title}: ${start}`}
                   className={cn(

@@ -3,6 +3,7 @@
  * blogs.tsx) and both need the same "is this link the current page?" logic,
  * so the rule lives here.
  */
+import { href } from "react-router";
 
 /**
  * True if `href` represents the page the user is currently on.
@@ -33,13 +34,14 @@ export function isNavLinkActive(
 
 /**
  * The site's four places. The phone's tab bar and the top bar's links are both
- * built from this list, so they always agree.
+ * built from this list, so they always agree. Typed addresses (`href`): a
+ * route that moves or is renamed fails the typecheck here.
  */
 export const SITE_TABS = [
-  { id: "home", label: "Home", href: "/" },
-  { id: "board", label: "Board", href: "/model-town-board" },
-  { id: "signs", label: "Signs", href: "/road-signs" },
-  { id: "guides", label: "Guides", href: "/guides" },
+  { id: "home", label: "Home", href: href("/") },
+  { id: "board", label: "Board", href: href("/model-town-board") },
+  { id: "signs", label: "Signs", href: href("/road-signs") },
+  { id: "guides", label: "Guides", href: href("/guides") },
 ] as const;
 
 export type SiteTabId = (typeof SITE_TABS)[number]["id"];

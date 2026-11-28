@@ -10,11 +10,13 @@ import { useCourseStart } from "~/components/board/use-course-start";
 import { Icon } from "~/components/brand/icon";
 import { PlayIcon } from "~/components/brand/icons";
 import { freeLabel } from "~/lib/board/free-copy";
+import { linkPrefetch } from "~/lib/ui/link-prefetch";
 
 export function BoardStartCard() {
   const start = useCourseStart();
   return (
     <Link
+      prefetch={linkPrefetch()}
       to={start.href}
       className="group grid border-2 border-ink bg-surface shadow-stamp transition-colors outline-none hover:bg-paper-3 focus-visible:bg-paper-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,260px)]"
     >

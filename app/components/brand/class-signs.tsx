@@ -11,6 +11,7 @@ import type { SignCategoryId } from "~/lib/image-focus";
 import { SIGN_PAGES, signPagePath } from "~/lib/road-sign-pages";
 import { signClassPage } from "~/lib/sign-class-pages";
 import { trainerHref } from "~/lib/trainer-rounds";
+import { linkPrefetch } from "~/lib/ui/link-prefetch";
 
 export function ClassSigns({ category }: { category: SignCategoryId }) {
   const page = signClassPage(category)!;
@@ -29,6 +30,7 @@ export function ClassSigns({ category }: { category: SignCategoryId }) {
         </span>
         <Button variant="rush" size="sm" asChild>
           <Link
+            prefetch={linkPrefetch()}
             to={trainerHref("/road-signs/pelican", {
               category: page.category,
               go: true,
@@ -39,6 +41,7 @@ export function ClassSigns({ category }: { category: SignCategoryId }) {
         </Button>
         <Button variant="paper" size="sm" asChild>
           <Link
+            prefetch={linkPrefetch()}
             to={trainerHref("/road-signs/3d", {
               category: page.category,
               go: true,
@@ -52,6 +55,7 @@ export function ClassSigns({ category }: { category: SignCategoryId }) {
         {signs.map((sign) => (
           <li key={sign.id}>
             <Link
+              prefetch={linkPrefetch()}
               to={signPagePath(sign)}
               className="grid h-full grid-cols-[56px_1fr] items-start gap-3 rounded-lg border border-line bg-paper-3 p-3 no-underline transition-colors outline-none hover:bg-surface focus-visible:bg-surface"
             >

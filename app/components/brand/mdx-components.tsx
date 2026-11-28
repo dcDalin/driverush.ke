@@ -10,6 +10,7 @@
 import type * as React from "react";
 import { Link } from "react-router";
 
+import { linkPrefetch } from "~/lib/ui/link-prefetch";
 import { cn } from "~/lib/utils";
 
 type AnchorProps = React.ComponentProps<"a">;
@@ -24,7 +25,7 @@ function MdxLink({ href, className, children, ...rest }: AnchorProps) {
 
   if (isInternal && href) {
     return (
-      <Link to={href} className={classes}>
+      <Link prefetch={linkPrefetch()} to={href} className={classes}>
         {children}
       </Link>
     );

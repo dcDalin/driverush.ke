@@ -61,6 +61,7 @@ import {
   useTestRecord,
 } from "~/lib/test-date";
 import { planLine, testPlan } from "~/lib/test-plan";
+import { linkPrefetch } from "~/lib/ui/link-prefetch";
 import { useCourseProgress } from "~/lib/use-course-progress";
 import { cn } from "~/lib/utils";
 
@@ -119,6 +120,7 @@ export function CourseCard({
         {/* The button below is the link that is read out. This is the same
             way in for anyone who taps the picture. */}
         <Link
+          prefetch={linkPrefetch()}
           to={href}
           aria-hidden
           tabIndex={-1}
@@ -128,7 +130,7 @@ export function CourseCard({
         </Link>
         <div className="grid gap-3 bg-surface p-4">
           <Button asChild variant="rush" size="lg" className="w-full">
-            <Link to={href}>
+            <Link prefetch={linkPrefetch()} to={href}>
               <Icon icon={PlayIcon} size={18} />
               <CourseLabel
                 label={label}
@@ -211,7 +213,7 @@ export function CourseCard({
           )}
           {weakest && weakest.kind === "drive" && (
             <Button variant="quiet-rush" asChild className={quiet}>
-              <Link to={levelHref(weakest.id)}>
+              <Link prefetch={linkPrefetch()} to={levelHref(weakest.id)}>
                 Or get 3 stars on level {weakest.n}: {weakest.title}
               </Link>
             </Button>
@@ -253,7 +255,9 @@ export function BoardLevels({ className }: { className?: string }) {
             Units
           </h2>
           <Button variant="quiet-rush" asChild className={quiet}>
-            <Link to={BOARD_LEVELS_PATH}>All levels</Link>
+            <Link prefetch={linkPrefetch()} to={BOARD_LEVELS_PATH}>
+              All levels
+            </Link>
           </Button>
         </div>
         <ol className="m-0 grid list-none gap-2 p-0 sm:grid-cols-2">
@@ -265,6 +269,7 @@ export function BoardLevels({ className }: { className?: string }) {
             return (
               <li key={unit.id}>
                 <Link
+                  prefetch={linkPrefetch()}
                   to={`${BOARD_LEVELS_PATH}#unit-${unit.id}`}
                   className={cn(
                     "flex h-full min-h-16 items-center gap-3 rounded-soft border px-4 py-3 text-ink no-underline transition-colors outline-none hover:bg-paper-2 focus-visible:bg-paper-2",
@@ -331,6 +336,7 @@ export function BoardLevels({ className }: { className?: string }) {
       </div>
 
       <Link
+        prefetch={linkPrefetch()}
         to={BOARD_PLAY_PATH}
         className="flex min-h-16 items-center gap-3 border border-ink/25 bg-surface px-4 py-3 text-ink no-underline transition-colors outline-none hover:bg-paper-2 focus-visible:bg-paper-2"
       >
@@ -354,7 +360,9 @@ export function BoardLevels({ className }: { className?: string }) {
       </Link>
 
       <Button variant="quiet-rush" asChild className={quiet}>
-        <Link to={`${BOARD_PLAY_PATH}?learn=1`}>Explore the board</Link>
+        <Link prefetch={linkPrefetch()} to={`${BOARD_PLAY_PATH}?learn=1`}>
+          Explore the board
+        </Link>
       </Button>
     </div>
   );

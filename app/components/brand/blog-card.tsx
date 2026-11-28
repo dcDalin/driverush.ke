@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import { Icon } from "~/components/brand/icon";
 import { ArrowRightIcon } from "~/components/brand/icons";
 import type { BlogPost } from "~/lib/blog";
+import { linkPrefetch } from "~/lib/ui/link-prefetch";
 import { cn } from "~/lib/utils";
 
 type BlogCardProps = React.ComponentProps<"article"> & {
@@ -50,6 +51,7 @@ function BlogCard({ post, compact, className, ...props }: BlogCardProps) {
         )}
       >
         <Link
+          prefetch={linkPrefetch()}
           to={`/blogs/${post.slug}`}
           className="outline-none after:absolute after:inset-0 after:content-[''] focus-visible:[&_::after]:outline focus-visible:[&_::after]:outline-2 focus-visible:[&_::after]:outline-rush"
         >

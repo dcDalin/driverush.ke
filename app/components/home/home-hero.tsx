@@ -30,6 +30,7 @@ import { whoIs } from "~/lib/auth/who-is";
 import { COURSE_LEVELS, unitOf, UNITS } from "~/lib/board/curriculum";
 import { freeLabel } from "~/lib/board/free-copy";
 import { stagger } from "~/lib/motion";
+import { linkPrefetch } from "~/lib/ui/link-prefetch";
 
 const COURSE_UNITS = UNITS.filter((unit) => unit.id !== "mock");
 
@@ -77,6 +78,7 @@ export function HomeHero() {
             Learn which lane goes where, take the roundabout, find the shortest
             correct route and park. Break a rule and you're told which one.{" "}
             <Link
+              prefetch={linkPrefetch()}
               to="/model-town-board"
               className="underline decoration-ink/30 underline-offset-2 hover:decoration-ink"
             >
@@ -93,6 +95,7 @@ export function HomeHero() {
         ) : (
           <>
             <Link
+              prefetch={linkPrefetch()}
               to={href}
               aria-label={`${label}: ${detail}`}
               className="group block overflow-hidden rounded-soft border border-ink/25 outline-none"
@@ -110,7 +113,7 @@ export function HomeHero() {
                 size="lg"
                 className="w-full sm:w-auto sm:min-w-64"
               >
-                <Link to={href}>
+                <Link prefetch={linkPrefetch()} to={href}>
                   <Icon icon={PlayIcon} size={18} />
                   <CourseLabel label={label} ready={ready} started={done > 0} />
                 </Link>

@@ -9,7 +9,7 @@
  * filled in from this browser's saved progress once the page is running.
  */
 import * as React from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 
 import { useSkipAhead } from "~/components/board/skip-ahead";
 import { Icon } from "~/components/brand/icon";
@@ -37,6 +37,7 @@ import {
 } from "~/lib/board/curriculum";
 import { passHref, usePaywall } from "~/lib/board/use-paywall";
 import { BOARD_PLAY_PATH, levelHref } from "~/lib/board-guides";
+import { linkPrefetch } from "~/lib/ui/link-prefetch";
 import { useCourseProgress } from "~/lib/use-course-progress";
 import { cn } from "~/lib/utils";
 
@@ -89,7 +90,6 @@ function LevelCard({
   onPick?: (level: Level) => void;
   onLocked: (level: Level) => void;
 }) {
-  const navigate = useNavigate();
   const mock = level.kind === "mock";
   const done = state === "done";
   const next = state === "next";
@@ -98,8 +98,17 @@ function LevelCard({
   return (
     <li className={cn(mock && "col-span-full")}>
       <Link
-        to={mock ? BOARD_PLAY_PATH : levelHref(level.id)}
-        replace={replace}
+        // Behind the paywall, the level links to the pass itself: a real
+        // link, so it can be opened, prefetched and read out as one.
+        to={
+          walled && !now
+            ? passHref(level)
+            : mock
+              ? BOARD_PLAY_PATH
+              : levelHref(level.id)
+        }
+        replace={replace && !(walled && !now)}
+        prefetch={linkPrefetch()}
         data-level={level.id}
         data-state={state}
         aria-current={now ? "true" : next ? "step" : undefined}
@@ -109,11 +118,7 @@ function LevelCard({
             : `Level ${level.n}: ${level.title}. ${now ? "Playing now. " : ""}${STATE_SAID[state]}.`
         }
         onClick={(event) => {
-          if (walled && !now) {
-            event.preventDefault();
-            navigate(passHref(level));
-            return;
-          }
+          if (walled && !now) return;
           if (locked && !now) {
             event.preventDefault();
             onLocked(level);

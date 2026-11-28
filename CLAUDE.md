@@ -137,8 +137,9 @@ remix-hook-form, shadcn everywhere. Guides: `docs/forms-and-data.md`,
   its tab (`ModalForm`, `ConfirmModal`). Tabs have no loader and read the
   frame's through `useConsoleSchool()` / `useSchool()`; the frame's
   `shouldRevalidate` skips a re-read on a plain tab switch (the school
-  layout and console layout do the same), and the root keys its page fade
-  on `pageKey()` so a dashboard is not remounted between its own pages. A
+  layout and console layout do the same), and the root keys its page
+  transition (React `<ViewTransition>`, `motion.css`) on `pageKey()` so a
+  dashboard is not remounted or faded between its own pages. A
   school created with no owner is `setup` (hidden everywhere) until handed
   over. The
   service worker and robots.txt leave `/school`, `/console`, `/auth`, `/api`

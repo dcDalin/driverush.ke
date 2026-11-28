@@ -6,6 +6,7 @@
 import { Link } from "react-router";
 
 import { BOARD_FEATURES } from "~/lib/board/features";
+import { linkPrefetch } from "~/lib/ui/link-prefetch";
 
 export function BoardFeatureList() {
   return (
@@ -24,7 +25,10 @@ export function BoardFeatureList() {
             {feature.sign && (
               <>
                 {" "}
-                <Link to={feature.sign.to}>The {feature.sign.label} sign</Link>.
+                <Link prefetch={linkPrefetch()} to={feature.sign.to}>
+                  The {feature.sign.label} sign
+                </Link>
+                .
               </>
             )}
           </dd>

@@ -13,6 +13,7 @@ import { Rail } from "~/components/brand/rail";
 import { SiteFooter } from "~/components/brand/site-footer";
 import { SiteNav } from "~/components/brand/site-nav";
 import { SITE } from "~/lib/site";
+import { linkPrefetch } from "~/lib/ui/link-prefetch";
 
 /** "2026-11-05" reads as "5 November 2026", without a timezone shifting the day. */
 function formatChecked(date: string) {
@@ -70,7 +71,11 @@ export function GuideLayout({
               {byline && (
                 <span>
                   By{" "}
-                  <Link to="/about" className="hover:text-ink hover:underline">
+                  <Link
+                    prefetch={linkPrefetch()}
+                    to="/about"
+                    className="hover:text-ink hover:underline"
+                  >
                     {SITE.byline}
                   </Link>{" "}
                   · {dateLabel} {formatChecked(checked)}

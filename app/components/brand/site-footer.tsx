@@ -19,6 +19,7 @@ import {
 import { SIGN_CLASS_PAGES } from "~/lib/sign-class-pages";
 import { SIGN_SOURCE } from "~/lib/sign-credits";
 import { SITE } from "~/lib/site";
+import { linkPrefetch } from "~/lib/ui/link-prefetch";
 
 const Container = ({ children }: { children: React.ReactNode }) => (
   <div className="mx-auto w-full max-w-6xl px-5 sm:px-9">{children}</div>
@@ -122,6 +123,7 @@ export function SiteFooter() {
           <p className="m-0 mt-2 max-w-xl font-serif text-sm leading-snug opacity-80">
             The learner cars on the{" "}
             <Link
+              prefetch={linkPrefetch()}
               to={BOARD_PATH}
               className="underline underline-offset-2 hover:opacity-80"
             >
@@ -196,6 +198,7 @@ function FooterCol({
             <li key={it.label} className="py-1">
               {isInternal ? (
                 <Link
+                  prefetch={linkPrefetch()}
                   to={it.href}
                   className="font-mono text-xs tracking-wide opacity-85 hover:underline"
                 >

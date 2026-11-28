@@ -10,6 +10,7 @@ import {
   BOARD_PATH,
   type BoardGuideId,
 } from "~/lib/board-guides";
+import { linkPrefetch } from "~/lib/ui/link-prefetch";
 
 export function BoardGuideLinks({
   current,
@@ -38,6 +39,7 @@ export function BoardGuideLinks({
       {links.map((link) => (
         <li key={link.to}>
           <Link
+            prefetch={linkPrefetch()}
             to={link.to}
             className="grid h-full gap-1 border-2 border-ink bg-paper-3 p-4 no-underline transition-colors outline-none hover:bg-surface focus-visible:bg-surface"
           >

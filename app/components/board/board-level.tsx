@@ -81,6 +81,7 @@ import {
 import { shownWays, type Way } from "~/lib/board/ways";
 import { BOARD_LEVELS_PATH, levelHref } from "~/lib/board-guides";
 import { useBoardStore } from "~/lib/board-store";
+import { linkPrefetch } from "~/lib/ui/link-prefetch";
 import { cn } from "~/lib/utils";
 
 const eyebrow =
@@ -152,7 +153,7 @@ export function LevelNext({
     <PanelActions>
       {next && (
         <Button variant="game-gold" asChild className={primary}>
-          <Link to={levelHref(next.id)} replace>
+          <Link prefetch={linkPrefetch()} to={levelHref(next.id)} replace>
             <span className="min-w-0">
               {next.kind === "mock"
                 ? "Next: the mock test"
@@ -170,7 +171,7 @@ export function LevelNext({
           </Button>
         ) : (
           <Button variant="game-link" asChild className={quiet}>
-            <Link to={BOARD_LEVELS_PATH} replace>
+            <Link prefetch={linkPrefetch()} to={BOARD_LEVELS_PATH} replace>
               All levels
             </Link>
           </Button>
@@ -190,7 +191,7 @@ function SkipOn({ level }: { level: Level }) {
         You have done this level before.
       </p>
       <Button variant="game-outline" asChild className={secondary}>
-        <Link to={levelHref(next.id)} replace>
+        <Link prefetch={linkPrefetch()} to={levelHref(next.id)} replace>
           {next.kind === "mock"
             ? "Go to the mock test"
             : `Go to level ${next.n}`}
@@ -418,6 +419,7 @@ function SlidesLevel({
         </p>
         {card.sign && (
           <Link
+            prefetch={linkPrefetch()}
             to={card.sign.to}
             className="mt-2 inline-flex min-h-11 items-center gap-1 text-[13px] font-bold text-kenya-gold underline-offset-4 hover:underline"
           >
@@ -485,7 +487,7 @@ function SlidesLevel({
           </div>
           {done && after && (
             <Button variant="game-link" asChild className={quiet}>
-              <Link to={levelHref(after.id)} replace>
+              <Link prefetch={linkPrefetch()} to={levelHref(after.id)} replace>
                 Done before. Skip to level {after.n}
               </Link>
             </Button>
@@ -973,7 +975,11 @@ function WatchLevel({
             </Button>
             {done && levelAfter(level) && (
               <Button variant="game-link" asChild className={quiet}>
-                <Link to={levelHref(levelAfter(level)!.id)} replace>
+                <Link
+                  prefetch={linkPrefetch()}
+                  to={levelHref(levelAfter(level)!.id)}
+                  replace
+                >
                   Done before. Skip to level {levelAfter(level)!.n}
                 </Link>
               </Button>

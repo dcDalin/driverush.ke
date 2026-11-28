@@ -5,6 +5,7 @@ import "./pwa.css";
 import "~/lib/install";
 
 import * as React from "react";
+import { ViewTransition } from "react";
 import {
   isRouteErrorResponse,
   Link,
@@ -271,7 +272,7 @@ function swUrl() {
 }
 
 /**
- * What counts as "a new page" for the entrance animation: each address,
+ * What counts as "a new page" for the page transition: each address,
  * except inside a dashboard (the console, one school's dashboard, the
  * tools), which is one page whose layout routes swap only their outlet.
  */
@@ -284,9 +285,6 @@ export function pageKey(pathname: string) {
 
 export default function App() {
   const location = useLocation();
-  const firstPath = React.useRef(location.pathname);
-  const navigated = React.useRef(false);
-  if (location.pathname !== firstPath.current) navigated.current = true;
   // Keeps PostHog person properties (signs mastered) in step with the local
   // progress stores. PostHog itself is initialised in
   // `entry.client.tsx`, before hydration.
@@ -300,16 +298,23 @@ export default function App() {
   useFlashToasts();
   const shell = (
     <>
-      {/* Keyed so each new page gets a fresh entrance. There's no exit, so a tap
-          never waits on the old page, and the first load isn't animated. A
-          dashboard is one page for this (`pageKey`): moving between its tabs
-          keeps its frame, instead of rebuilding the whole app on each tap. */}
-      <div
+      {/* A View Transition per page (`motion.css`): moving to another page
+          cross-fades the old one out and the new one in, on the compositor.
+          The first load isn't animated (hydration is not a transition), and
+          nothing inside a page animates (`update="none"`): a list's filter or
+          a fresh read just changes. A dashboard is one page for this
+          (`pageKey`): its tabs swap without a fade, inside one frame. */}
+      <ViewTransition
         key={pageKey(location.pathname)}
-        className={navigated.current ? "dr-page" : undefined}
+        enter="dr-page-in"
+        exit="dr-page-out"
+        update="none"
+        default="none"
       >
-        <Outlet />
-      </div>
+        <div>
+          <Outlet />
+        </div>
+      </ViewTransition>
       <TabBar />
       {/* The sign-in sheet, loaded the first time something opens it. */}
       <AccountShell />

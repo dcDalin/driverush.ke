@@ -14,6 +14,7 @@ import { isDue, MASTERED_BOX, type SignProgress } from "~/lib/pelican-progress";
 import { CHART_SRC, SIGN_PAGES, signPagePath } from "~/lib/road-sign-pages";
 import { signClassPage } from "~/lib/sign-class-pages";
 import { trainerHref } from "~/lib/trainer-rounds";
+import { linkPrefetch } from "~/lib/ui/link-prefetch";
 import { useSignProgress } from "~/lib/use-sign-progress";
 
 const THUMB_PAD = 0;
@@ -63,6 +64,7 @@ export function SignClassList() {
               </span>
               <Button variant="paper" size="sm" asChild>
                 <Link
+                  prefetch={linkPrefetch()}
                   to={trainerHref("/road-signs/pelican", {
                     category: category.id,
                     go: true,
@@ -73,6 +75,7 @@ export function SignClassList() {
               </Button>
               <Button variant="paper" size="sm" asChild>
                 <Link
+                  prefetch={linkPrefetch()}
                   to={trainerHref("/road-signs/3d", {
                     category: category.id,
                     go: true,
@@ -83,6 +86,7 @@ export function SignClassList() {
               </Button>
               {signClassPage(category.id) && (
                 <Link
+                  prefetch={linkPrefetch()}
                   to={signClassPage(category.id)!.path}
                   className="ml-auto font-sans text-[13px] font-semibold text-rush hover:underline"
                 >
@@ -105,6 +109,7 @@ export function SignClassList() {
                   <div className="min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <Link
+                        prefetch={linkPrefetch()}
                         to={signPagePath(sign)}
                         className="font-display text-[12.5px] leading-tight font-bold tracking-[0.02em] text-ink uppercase underline-offset-2 hover:text-rush hover:underline"
                       >

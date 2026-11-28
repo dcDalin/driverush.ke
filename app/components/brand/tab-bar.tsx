@@ -14,8 +14,10 @@ import {
   RoadIcon,
   WarningIcon,
 } from "~/components/brand/icons";
+import { useActiveTab } from "~/components/brand/use-active-tab";
 import { analytics } from "~/lib/analytics";
-import { activeTab, SITE_TABS, tabBarHidden } from "~/lib/nav";
+import { SITE_TABS, tabBarHidden } from "~/lib/nav";
+import { linkPrefetch } from "~/lib/ui/link-prefetch";
 import { cn } from "~/lib/utils";
 
 const ICONS: Record<(typeof SITE_TABS)[number]["id"], IconDef> = {
@@ -27,8 +29,8 @@ const ICONS: Record<(typeof SITE_TABS)[number]["id"], IconDef> = {
 
 export function TabBar() {
   const { pathname } = useLocation();
+  const current = useActiveTab();
   if (tabBarHidden(pathname)) return null;
-  const current = activeTab(pathname);
   return (
     <>
       {/* Holds the page clear of the bar. */}
@@ -46,6 +48,7 @@ export function TabBar() {
             return (
               <li key={tab.id}>
                 <Link
+                  prefetch={linkPrefetch()}
                   to={tab.href}
                   aria-current={on ? "page" : undefined}
                   onClick={() =>

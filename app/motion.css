@@ -14,10 +14,16 @@
   }
 }
 
-@keyframes dr-page {
+@keyframes dr-page-in {
   from {
     opacity: 0;
     transform: translate3d(0, 6px, 0);
+  }
+}
+
+@keyframes dr-page-out {
+  to {
+    opacity: 0;
   }
 }
 
@@ -92,9 +98,24 @@
   animation: dr-rise 140ms var(--ease-out-quart) backwards;
 }
 
-/* Client-side page change. Quick, because the point is the next page. */
-.dr-page {
-  animation: dr-page 220ms var(--ease-out-quart) backwards;
+/*
+ * Client-side page change: a View Transition (React's <ViewTransition> around
+ * the page in `root.tsx`). The browser snapshots the old page and the new
+ * one and cross-fades them on the compositor, so a tap never waits on it.
+ * Quick, because the point is the next page. The rest of the shell (the tab
+ * bar) stays put. Browsers without view transitions just swap the page.
+ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+::view-transition-old(.dr-page-out) {
+  animation: dr-page-out 120ms ease-in both;
+}
+
+::view-transition-new(.dr-page-in) {
+  animation: dr-page-in 200ms var(--ease-out-quart) both;
 }
 
 .dr-pop {
@@ -251,9 +272,14 @@ p {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+
   .dr-rise,
   .dr-sheet,
-  .dr-page,
   .dr-pop,
   .dr-settle,
   .dr-shake,

@@ -17,6 +17,7 @@ import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import type { BlogPost } from "~/lib/blog";
 import { SITE } from "~/lib/site";
+import { linkPrefetch } from "~/lib/ui/link-prefetch";
 import { cn } from "~/lib/utils";
 
 type BlogPostLayoutProps = {
@@ -38,7 +39,7 @@ function TryItNowPanel() {
         </p>
       </div>
       <Button variant="rush" size="sm" asChild>
-        <Link to="/road-signs">
+        <Link prefetch={linkPrefetch()} to="/road-signs">
           Start training
           <Icon icon={ArrowRightIcon} size={14} />
         </Link>
@@ -67,6 +68,7 @@ export function BlogPostLayout({
         <div className="mx-auto w-full max-w-3xl px-5 pt-6 pb-24 sm:px-9 sm:pt-10">
           <div className="mb-6 flex items-center justify-between gap-3">
             <Link
+              prefetch={linkPrefetch()}
               to="/blogs"
               className="inline-flex items-center gap-2 font-sans text-[11px] font-medium tracking-wider text-ink-3 uppercase outline-none hover:text-ink focus-visible:text-ink"
             >
@@ -107,7 +109,11 @@ export function BlogPostLayout({
                 <span aria-hidden>·</span>
                 <span>
                   By{" "}
-                  <Link to="/about" className="hover:text-ink hover:underline">
+                  <Link
+                    prefetch={linkPrefetch()}
+                    to="/about"
+                    className="hover:text-ink hover:underline"
+                  >
                     {SITE.byline}
                   </Link>
                 </span>
@@ -166,7 +172,7 @@ export function BlogPostLayout({
                 asChild
                 className="max-sm:h-auto max-sm:min-h-14 max-sm:w-full max-sm:px-4 max-sm:py-3 max-sm:text-center max-sm:whitespace-normal"
               >
-                <Link to="/road-signs/pelican">
+                <Link prefetch={linkPrefetch()} to="/road-signs/pelican">
                   <Icon icon={PelicanIcon} size={18} />
                   Train on the Pelican chart
                 </Link>
@@ -177,7 +183,7 @@ export function BlogPostLayout({
                 asChild
                 className="max-sm:h-auto max-sm:min-h-14 max-sm:w-full max-sm:px-4 max-sm:py-3 max-sm:text-center max-sm:whitespace-normal"
               >
-                <Link to="/road-signs/3d">
+                <Link prefetch={linkPrefetch()} to="/road-signs/3d">
                   <Icon icon={Sign3DIcon} size={18} />
                   Spin signs in 3D
                 </Link>
@@ -192,6 +198,7 @@ export function BlogPostLayout({
                   Keep reading
                 </h2>
                 <Link
+                  prefetch={linkPrefetch()}
                   to="/blogs"
                   className="font-sans text-[11px] font-medium tracking-wider text-rush uppercase hover:underline"
                 >
