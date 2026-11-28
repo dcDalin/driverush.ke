@@ -2,8 +2,8 @@
  * The owner's own DriveRush su. The repo is public, so the address is never
  * in it: it comes from SEED_SU_EMAIL (set in the gitignored .env.local). The
  * role is granted by the fixture's su through grant_platform_role, as the
- * console would. Staff roles count only on a password session, so the
- * account gets one: SEED_SU_PASSWORD, or the demo password.
+ * console would. Staff roles count on a password or Google session, so the
+ * account gets a password: SEED_SU_PASSWORD, or the demo password.
  */
 import { account, note } from "../ledger";
 import { DEMO_PASSWORD, must, signInAs } from "../local";

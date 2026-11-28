@@ -116,11 +116,11 @@ Errors: `42501` refused (wrong caller), `P0001` a business rule (`admin_limit`,
 
 ## Where people use it
 
-| Page                           | Who                                       | What                                                                          |
-| ------------------------------ | ----------------------------------------- | ----------------------------------------------------------------------------- |
-| Account menu (top bar)         | any signed-in learner                     | their school until when; schools waiting for them (Join, No thanks); sign out |
-| `/school`, `/school/:schoolId` | school owner, school admins, staff        | students by branch with progress; team and branches (owner, staff)            |
-| `/console`                     | DriveRush su and admin (password session) | schools, owners, status; staff roles (su)                                     |
+| Page                           | Who                                                 | What                                                                          |
+| ------------------------------ | --------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Account menu (top bar)         | any signed-in learner                               | their school until when; schools waiting for them (Join, No thanks); sign out |
+| `/school`, `/school/:schoolId` | school owner, school admins, staff                  | students by branch with progress; team and branches (owner, staff)            |
+| `/console`                     | DriveRush su and admin (password or Google session) | schools, owners, status; staff roles (su)                                     |
 
 Progress rows (`learner_progress.data`) hold `{ "json": <the store's saved
 value> }`, the localStorage value of that store. The app syncs them

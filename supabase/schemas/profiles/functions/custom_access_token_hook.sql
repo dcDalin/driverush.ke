@@ -3,8 +3,9 @@
 -- ===================================================
 -- Supabase Auth runs this before it issues a token. It writes the highest
 -- platform role the account holds into the user_role claim, downgraded to
--- `user` unless the session signed in with a password, so an emailed code or
--- a Google sign-in never carries a console role. The claim is for the app's
+-- `user` unless the session signed in with a password or Google
+-- (private.signed_in_for_staff has the same rule), so an emailed code never
+-- carries a console role. The claim is for the app's
 -- routing only; the database checks user_roles itself (private.is_staff).
 --
 -- Access:  auth_hook
@@ -40,7 +41,7 @@ begin
                      else '[]'::jsonb
                 end
               ) as m
-        where m ->> 'method' = 'password'
+        where m ->> 'method' in ('password', 'oauth')
      ) then
     v_role := 'user';
   end if;
@@ -56,4 +57,4 @@ grant usage on schema public to supabase_auth_admin;
 grant execute on function public.custom_access_token_hook(jsonb) to supabase_auth_admin;
 
 comment on function public.custom_access_token_hook(jsonb) is
-  'Supabase Auth hook: adds the highest platform role as user_role (console roles only on a password session).';
+  'Supabase Auth hook: adds the highest platform role as user_role (console roles only on a password or Google session).';

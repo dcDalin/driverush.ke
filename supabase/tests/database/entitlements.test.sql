@@ -11,7 +11,7 @@
 -- ===================================================
 begin;
 
-select plan(20);
+select plan(21);
 
 create temp table w as select tests.make_world() as j;
 create function pg_temp.w(k text) returns text language sql as $$ select j ->> k from w $$;
@@ -56,6 +56,8 @@ select is(tests.claims_for(pg_temp.w('staff')::uuid) ->> 'user_role', 'driverush
   'a DriveRush admin''s password session carries their role');
 select is(tests.claims_for(pg_temp.w('staff')::uuid, 'otp') ->> 'user_role', 'user',
   'an emailed-code session carries only user');
+select is(tests.claims_for(pg_temp.w('staff')::uuid, 'oauth') ->> 'user_role', 'driverush_admin',
+  'a DriveRush admin''s Google session carries their role');
 select is(tests.claims_for(pg_temp.w('su')::uuid) ->> 'user_role', 'driverush_su',
   'a su''s password session carries su');
 select is(tests.value_as('otp:' || pg_temp.w('su'), 'select private.is_staff()'), 'false',

@@ -43,7 +43,7 @@ schema_paths = [
   './schemas/_private/extensions.sql',
   './schemas/_private/private_schema.sql',
   './schemas/_private/local_stack.sql',
-  './schemas/_private/signed_in_with_password.sql',
+  './schemas/_private/signed_in_for_staff.sql',
   './schemas/_private/set_updated_at.sql',
   './schemas/_private/media_checks.sql',
 
@@ -196,8 +196,8 @@ web3 = 30
 
 [auth.email]
 # Learners and schools sign in with Google (the first choice) or an email and
-# password. DriveRush su/admin console roles count only on a password session
-# (private.signed_in_with_password). Confirmations stay on: a school links a
+# password. DriveRush su/admin console roles count on either, never on a code
+# (private.signed_in_for_staff). Confirmations stay on: a school links a
 # learner by email, so a link only ever matches a confirmed address. A new
 # password account confirms its email with a 6-digit code.
 enable_signup = true

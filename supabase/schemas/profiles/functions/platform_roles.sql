@@ -2,7 +2,7 @@
 -- FUNCTIONS: platform role checks
 -- ===================================================
 -- Read user_roles directly (not the token's user_role claim), so a revoked
--- role stops working at once, and only on a password session.
+-- role stops working at once, and only on a password or Google session.
 
 -- Access:  service_role
 -- Guard:   none (the grant is the gate)
@@ -14,7 +14,7 @@ stable
 security definer
 set search_path = ''
 as $$
-  select private.signed_in_with_password()
+  select private.signed_in_for_staff()
      and exists (
        select 1 from public.user_roles as r
         where r.user_id = auth.uid() and r.role = any (p_roles)
@@ -55,8 +55,8 @@ grant execute on function private.is_staff() to service_role;
 grant execute on function private.is_su() to service_role;
 
 comment on function private.has_platform_role(public.app_role[]) is
-  'Whether the caller holds one of these platform roles, on a password session.';
+  'Whether the caller holds one of these platform roles, on a password or Google session.';
 comment on function private.is_staff() is
-  'Whether the caller is DriveRush su or admin (password session).';
+  'Whether the caller is DriveRush su or admin (password or Google session).';
 comment on function private.is_su() is
-  'Whether the caller is DriveRush su (password session).';
+  'Whether the caller is DriveRush su (password or Google session).';

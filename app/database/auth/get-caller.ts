@@ -4,7 +4,7 @@
  * Reads verified claims only (`getClaims()` checks the access token's
  * signature first), never `getSession()`, which trusts the cookie as is. The
  * role is the token's `user_role` (custom_access_token_hook): DriveRush su or
- * admin only on a password session, otherwise `user`. It is for routing; the
+ * admin only on a password or Google session, otherwise `user`. It is for routing; the
  * database checks roles again on every call.
  */
 import type { AppRole, TypedSupabaseClient } from "../types";

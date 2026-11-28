@@ -120,7 +120,7 @@ Each table's `rls/` file opens with an access block:
 ## Roles in one paragraph
 
 Platform roles (`user_roles`, `app_role`): `driverush_su`, `driverush_admin`,
-`user`. They count only on a password session (`private.is_staff`, `is_su`,
+`user`. They count only on a password or Google session (`private.is_staff`, `is_su`,
 and the `user_role` claim from `custom_access_token_hook`). School roles
 (`school_members`, `school_role`): one `owner` per school, set by DriveRush
 staff, and up to 50 `admin`s tied to branches by the owner. Learners are tied

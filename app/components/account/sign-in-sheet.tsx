@@ -5,8 +5,10 @@
  *   1. Google, the first choice, when this build turns it on
  *      (`VITE_AUTH_GOOGLE=on`).
  *   2. Email and password. A new account confirms its email with a 6-digit
- *      code; a forgotten password is replaced with one. School and DriveRush
- *      staff need a password session for their consoles.
+ *      code; a forgotten password is replaced with one.
+ *
+ * DriveRush staff roles count on either (owner, 2026-11-28), never on the
+ * code session a password reset signs in with.
  *
  * Browser-side forms (the session lives in the browser's client), so plain
  * react-hook-form with the shared zod schemas and the client field kit. A

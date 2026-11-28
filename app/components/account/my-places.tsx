@@ -69,6 +69,7 @@ export function MyPlaces({ onGo }: { onGo: () => void }) {
 
   const schools = places.data?.schools ?? [];
   const staff = places.data?.staff ?? false;
+  const staffSignInAgain = places.data?.staffSignInAgain ?? false;
   const pass = entitlement?.full_access ? entitlement.pass_ends_at : null;
   const offerPass = !pass && passesOn();
 
@@ -101,8 +102,13 @@ export function MyPlaces({ onGo }: { onGo: () => void }) {
           {school.name}
         </Place>
       ))}
-      {staff ? (
-        <Place to="/console" icon={SettingsIcon} onGo={onGo}>
+      {staff || staffSignInAgain ? (
+        <Place
+          to="/console"
+          icon={SettingsIcon}
+          badge={staffSignInAgain ? "sign in again" : undefined}
+          onGo={onGo}
+        >
           DriveRush console
         </Place>
       ) : null}

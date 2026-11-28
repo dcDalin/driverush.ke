@@ -39,7 +39,7 @@ and JPEG only. SVG is refused because it can carry script.
   database.
 - **Reading:** anyone, by public URL; no read policy exists for clients,
   because a public one would let anyone list the bucket.
-- **Writing:** DriveRush staff only, on a password session: list, upload,
+- **Writing:** DriveRush staff only, on a password or Google session: list, upload,
   replace and delete (`storage.objects` policies in the same schema file).
   School owners, learners and guests are refused; owners' logos go through
   the server (service role, after its owner check). `livery:publish` signs

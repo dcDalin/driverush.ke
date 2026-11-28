@@ -1,7 +1,7 @@
 -- ===================================================
 -- FUNCTIONS: granting and revoking DriveRush staff roles
 -- ===================================================
--- Only a DriveRush su (on a password session). The first su is granted by
+-- Only a DriveRush su (on a password or Google session). The first su is granted by
 -- SQL on the database itself.
 
 -- Access:  authenticated (DriveRush su)

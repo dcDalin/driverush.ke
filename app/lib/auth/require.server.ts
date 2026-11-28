@@ -43,7 +43,7 @@ export async function requireUser(request: Request): Promise<SignedIn> {
   return context as SignedIn;
 }
 
-/** DriveRush su or admin on a password session, or 403. */
+/** DriveRush su or admin on a password or Google session, or 403. */
 export async function requireStaff(request: Request): Promise<SignedIn> {
   const context = await requireUser(request);
   if (!isStaffRole(context.caller.role)) {

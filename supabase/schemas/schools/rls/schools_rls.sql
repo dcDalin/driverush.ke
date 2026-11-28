@@ -95,7 +95,7 @@ create policy "school_profiles: public if active; members and staff"
 -- Reads:  anyone, guests included: the live livery of an active school
 --         (the board shows it to everyone). DriveRush staff read every
 --         livery: drafts, live and retired. `created_by` is granted to nobody.
--- Writes: DriveRush staff only (password session, private.is_staff):
+-- Writes: DriveRush staff only (password or Google session, private.is_staff):
 --           insert  a draft (status draft, published_at null: the table's
 --                   defaults; the columns are not granted)
 --           update  a livery's content (label, colours, media paths)

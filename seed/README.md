@@ -42,9 +42,8 @@ SEED_SU_PASSWORD=<a password, optional>
 
 `db:seed` creates that account, confirmed, with a password. The fixture's su
 (`su@driverush.test`) then grants it `driverush_su` through
-`grant_platform_role`. Console roles count only on a password session, so
-sign in with the password, not Google. Without `SEED_SU_PASSWORD`
-the password is the demo one.
+`grant_platform_role`. Console roles count on a password or Google session, never on an
+emailed code. Without `SEED_SU_PASSWORD` the password is the demo one.
 
 On a hosted project nobody is seeded. Grant the first su by hand (SQL editor:
 insert into `public.user_roles`), with a password nobody else uses.

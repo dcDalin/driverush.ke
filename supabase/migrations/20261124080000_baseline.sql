@@ -60,20 +60,23 @@ grant execute on function private.is_local_stack() to service_role;
 comment on function private.is_local_stack() is
   'Whether this is a Supabase CLI stack (local, CI): its JWT secret is the CLI default. Unset reads as hosted.';
 
--- ── supabase/schemas/_private/signed_in_with_password.sql
+-- ── supabase/schemas/_private/signed_in_for_staff.sql
 -- ===================================================
--- FUNCTION: private.signed_in_with_password
+-- FUNCTION: private.signed_in_for_staff
 -- ===================================================
--- Whether the caller's session signed in with a password. A DriveRush su or
--- admin role counts only on such a session: an emailed one-time code or a
--- Google sign-in plays as a plain learner. Reads the token's `amr`, which
--- Supabase Auth keeps through a refresh. custom_access_token_hook applies the
--- same rule to the `user_role` claim.
+-- Whether the caller's session signed in a way a DriveRush su or admin role
+-- counts on: a password, or Google (owner, 2026-11-28: Google proves the
+-- account at least as well as a password). An emailed one-time code, which
+-- is also what a password reset signs in with, plays as a plain learner.
+-- Reads the token's `amr`, which Supabase Auth keeps through a refresh;
+-- `oauth` is any OAuth provider, and Google is the only one turned on
+-- (config.toml). custom_access_token_hook applies the same rule to the
+-- `user_role` claim.
 --
 -- Access:  service_role
 -- Guard:   none (the grant is the gate)
 -- Callers: private.has_platform_role
-create or replace function private.signed_in_with_password()
+create or replace function private.signed_in_for_staff()
 returns boolean
 language sql
 stable
@@ -87,15 +90,15 @@ as $$
                   else '[]'::jsonb
              end
            ) as m
-     where m ->> 'method' = 'password'
+     where m ->> 'method' in ('password', 'oauth')
   );
 $$;
 
-revoke all on function private.signed_in_with_password() from public;
-grant execute on function private.signed_in_with_password() to service_role;
+revoke all on function private.signed_in_for_staff() from public;
+grant execute on function private.signed_in_for_staff() to service_role;
 
-comment on function private.signed_in_with_password() is
-  'Whether the caller''s session signed in with a password. A DriveRush console role counts only on such a session.';
+comment on function private.signed_in_for_staff() is
+  'Whether the caller''s session signed in with a password or Google. A DriveRush console role counts only on such a session.';
 
 -- ── supabase/schemas/_private/set_updated_at.sql
 -- ===================================================
@@ -957,7 +960,7 @@ comment on table public.learner_progress is
 -- FUNCTIONS: platform role checks
 -- ===================================================
 -- Read user_roles directly (not the token's user_role claim), so a revoked
--- role stops working at once, and only on a password session.
+-- role stops working at once, and only on a password or Google session.
 
 -- Access:  service_role
 -- Guard:   none (the grant is the gate)
@@ -969,7 +972,7 @@ stable
 security definer
 set search_path = ''
 as $$
-  select private.signed_in_with_password()
+  select private.signed_in_for_staff()
      and exists (
        select 1 from public.user_roles as r
         where r.user_id = auth.uid() and r.role = any (p_roles)
@@ -1010,11 +1013,11 @@ grant execute on function private.is_staff() to service_role;
 grant execute on function private.is_su() to service_role;
 
 comment on function private.has_platform_role(public.app_role[]) is
-  'Whether the caller holds one of these platform roles, on a password session.';
+  'Whether the caller holds one of these platform roles, on a password or Google session.';
 comment on function private.is_staff() is
-  'Whether the caller is DriveRush su or admin (password session).';
+  'Whether the caller is DriveRush su or admin (password or Google session).';
 comment on function private.is_su() is
-  'Whether the caller is DriveRush su (password session).';
+  'Whether the caller is DriveRush su (password or Google session).';
 
 -- ── supabase/schemas/profiles/functions/custom_access_token_hook.sql
 -- ===================================================
@@ -1022,8 +1025,9 @@ comment on function private.is_su() is
 -- ===================================================
 -- Supabase Auth runs this before it issues a token. It writes the highest
 -- platform role the account holds into the user_role claim, downgraded to
--- `user` unless the session signed in with a password, so an emailed code or
--- a Google sign-in never carries a console role. The claim is for the app's
+-- `user` unless the session signed in with a password or Google
+-- (private.signed_in_for_staff has the same rule), so an emailed code never
+-- carries a console role. The claim is for the app's
 -- routing only; the database checks user_roles itself (private.is_staff).
 --
 -- Access:  auth_hook
@@ -1059,7 +1063,7 @@ begin
                      else '[]'::jsonb
                 end
               ) as m
-        where m ->> 'method' = 'password'
+        where m ->> 'method' in ('password', 'oauth')
      ) then
     v_role := 'user';
   end if;
@@ -1075,7 +1079,7 @@ grant usage on schema public to supabase_auth_admin;
 grant execute on function public.custom_access_token_hook(jsonb) to supabase_auth_admin;
 
 comment on function public.custom_access_token_hook(jsonb) is
-  'Supabase Auth hook: adds the highest platform role as user_role (console roles only on a password session).';
+  'Supabase Auth hook: adds the highest platform role as user_role (console roles only on a password or Google session).';
 
 -- ── supabase/schemas/schools/functions/school_access.sql
 -- ===================================================
@@ -1621,7 +1625,7 @@ comment on function private.handle_auth_user_updated() is
 -- ===================================================
 -- FUNCTIONS: granting and revoking DriveRush staff roles
 -- ===================================================
--- Only a DriveRush su (on a password session). The first su is granted by
+-- Only a DriveRush su (on a password or Google session). The first su is granted by
 -- SQL on the database itself.
 
 -- Access:  authenticated (DriveRush su)
@@ -5435,7 +5439,7 @@ create policy "school_profiles: public if active; members and staff"
 -- Reads:  anyone, guests included: the live livery of an active school
 --         (the board shows it to everyone). DriveRush staff read every
 --         livery: drafts, live and retired. `created_by` is granted to nobody.
--- Writes: DriveRush staff only (password session, private.is_staff):
+-- Writes: DriveRush staff only (password or Google session, private.is_staff):
 --           insert  a draft (status draft, published_at null: the table's
 --                   defaults; the columns are not granted)
 --           update  a livery's content (label, colours, media paths)
@@ -5965,7 +5969,7 @@ grant delete on public.learner_progress to authenticated;
 -- is no SELECT policy for anyone else: a public one would let anyone list
 -- the bucket (Supabase lint 0025).
 --
--- Writing: DriveRush staff only (password session, private.is_staff), as
+-- Writing: DriveRush staff only (password or Google session, private.is_staff), as
 -- for school_liveries: they may list, upload, replace and delete. Everyone
 -- else is refused. `npm run livery:publish` signs in as staff and goes
 -- through these policies; only the server's logo upload (after its owner

@@ -9,7 +9,7 @@
 -- is no SELECT policy for anyone else: a public one would let anyone list
 -- the bucket (Supabase lint 0025).
 --
--- Writing: DriveRush staff only (password session, private.is_staff), as
+-- Writing: DriveRush staff only (password or Google session, private.is_staff), as
 -- for school_liveries: they may list, upload, replace and delete. Everyone
 -- else is refused. `npm run livery:publish` signs in as staff and goes
 -- through these policies; only the server's logo upload (after its owner

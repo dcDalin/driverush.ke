@@ -90,7 +90,7 @@ const sessions = new Map<string, Client>();
 /**
  * Signs in with a password, as a person would in the app, so the RPCs run
  * with that person's rights and their own guards. A password session is also
- * what DriveRush staff roles need (private.signed_in_with_password).
+ * one DriveRush staff roles count on (private.signed_in_for_staff).
  */
 export async function signInAs(email: string, password = DEMO_PASSWORD) {
   const known = sessions.get(email);

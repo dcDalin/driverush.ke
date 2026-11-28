@@ -168,7 +168,7 @@ insert into tests.function_access (fn, access, guard, guard_detail, callers) val
   ('private.new_pass_code(text)', 'service_role', 'none', '', 'called by school_request_bank'),
   ('school_request_bank(uuid, uuid, text, text, text)', 'service_role', 'none', '', 'bank form (server, after the owner gate)'),
   ('private.school_request_bank(uuid, uuid, text, text, text)', 'service_role', 'none', '', 'called by school_request_bank'),
-  ('private.signed_in_with_password()', 'service_role', 'none', '', 'called by has_platform_role'),
+  ('private.signed_in_for_staff()', 'service_role', 'none', '', 'called by has_platform_role'),
   ('school_set_logo(uuid, text, jsonb, uuid)', 'service_role', 'none', '', 'logo upload (server, after the owner gate); the seed'),
   ('private.school_set_logo(uuid, text, jsonb, uuid)', 'service_role', 'none', '', 'called by school_set_logo'),
   ('private.board_school_json(schools, school_liveries)', 'service_role', 'none', '', 'called by board_schools, admin_livery_draft_get'),
@@ -299,7 +299,7 @@ end;
 $$;
 
 -- The claims Supabase Auth signs for this user. amr says how they signed in
--- ('password' or 'otp'); user_role is what custom_access_token_hook adds.
+-- ('password', 'oauth' for Google, or 'otp'); user_role is what custom_access_token_hook adds.
 create function tests.claims_for(p_user uuid, p_method text default 'password')
 returns jsonb
 language sql

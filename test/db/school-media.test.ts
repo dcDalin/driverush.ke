@@ -1,7 +1,7 @@
 /**
  * The school-media bucket and school_liveries through the real APIs, as
  * each person: anyone reads a live livery and its files by URL; only
- * DriveRush staff (password session) list, upload, change and delete; a
+ * DriveRush staff (password or Google session) list, upload, change and delete; a
  * school owner, a learner, a guest and staff on an emailed-code session are
  * refused. pgTAP (school_media.test.sql) proves the same rules in SQL.
  */

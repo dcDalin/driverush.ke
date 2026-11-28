@@ -33,7 +33,7 @@ afterAll(async () => {
 });
 
 describe("the access token", () => {
-  it("carries a DriveRush admin role on a password session", async () => {
+  it("carries a DriveRush admin role on a password or Google session", async () => {
     const staff = await signInWithPassword("admin@driverush.test");
     expect((await claimsOf(staff)).user_role).toBe("driverush_admin");
   });
