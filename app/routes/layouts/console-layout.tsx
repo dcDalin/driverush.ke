@@ -21,6 +21,7 @@ import { SiteNav } from "~/components/brand/site-nav";
 import { ConsoleShell } from "~/components/console/shell";
 import { NeedsSignIn, NothingHere } from "~/components/school/signed-out";
 import { listBankRequests } from "~/database/billing/school";
+import { privatePage } from "~/lib/auth/private-page.server";
 import { getRequestClient, requireStaff } from "~/lib/auth/require.server";
 import { useRevalidateOnSession } from "~/lib/auth/use-revalidate-on-session";
 import { consoleAction } from "~/lib/console/action.server";
@@ -35,6 +36,9 @@ export function meta() {
     { name: "robots", content: "noindex" },
   ];
 }
+
+/** About one person: never kept by a cache. */
+export const middleware: Route.MiddlewareFunction[] = [privatePage];
 
 export async function loader({ request }: Route.LoaderArgs) {
   const context = await getRequestClient(request);

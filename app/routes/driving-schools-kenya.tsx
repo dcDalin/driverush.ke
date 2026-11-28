@@ -7,6 +7,7 @@ import { GuideLayout } from "~/components/brand/guide-layout";
 import Body from "~/guides/driving-schools.mdx";
 import { loadSchoolProfiles } from "~/lib/board/school-catalog.server";
 import { DRIVING_SCHOOL_PAGES } from "~/lib/driving-school-pages";
+import { PUBLIC_DATA_PAGE_CACHE } from "~/lib/http-cache";
 import { absUrl, breadcrumbLd, graphLd, guideLd, pageMeta } from "~/lib/site";
 
 import type { Route } from "./+types/driving-schools-kenya";
@@ -18,6 +19,11 @@ const DESCRIPTION =
   "Fees that Kenyan driving schools publish themselves, how long a course takes, how to check a school is NTSA licensed, and what to ask before you pay.";
 
 /** The schools on DriveRush: their logo and tagline for the list, by slug. */
+/** Drawn from the schools' own data: the CDN keeps it five minutes. */
+export function headers() {
+  return { "Cache-Control": PUBLIC_DATA_PAGE_CACHE };
+}
+
 export async function loader() {
   const all = await loadSchoolProfiles();
   const profiles: Record<

@@ -119,6 +119,10 @@ export default [
   route("api/me/school-invites", "routes/api/me.school-invites.ts"),
   route("api/me/places", "routes/api/me.places.ts"),
   route("api/board-schools", "routes/api/board-schools.ts"),
+  // Asked by the GA head script once a visit, and by the shell after a form:
+  // the per-visitor answers the prerendered pages can't carry.
+  route("api/visit", "routes/api/visit.ts"),
+  route("api/flash", "routes/api/flash.ts"),
   route("api/webhooks/paystack", "routes/api/webhooks.paystack.ts"),
   // DriveRush staff: schools, owners and staff roles. Signed in only.
   // A dashboard frame (side menu, top bar) around one page per section;

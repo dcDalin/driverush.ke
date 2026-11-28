@@ -28,6 +28,7 @@ import { SiteNav } from "~/components/brand/site-nav";
 import { DashShell } from "~/components/console/shell";
 import { NeedsSignIn, NothingHere } from "~/components/school/signed-out";
 import { Button } from "~/components/ui/button";
+import { privatePage } from "~/lib/auth/private-page.server";
 import { getRequestClient, requireUser } from "~/lib/auth/require.server";
 import { useRevalidateOnSession } from "~/lib/auth/use-revalidate-on-session";
 import { useLiveRevalidate } from "~/lib/realtime/use-live-revalidate";
@@ -44,6 +45,9 @@ export function meta({ loaderData: loaded }: Route.MetaArgs) {
     { name: "robots", content: "noindex" },
   ];
 }
+
+/** About one person: never kept by a cache. */
+export const middleware: Route.MiddlewareFunction[] = [privatePage];
 
 export async function loader({ request, params }: Route.LoaderArgs) {
   const context = await getRequestClient(request);

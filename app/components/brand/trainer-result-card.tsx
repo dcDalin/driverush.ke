@@ -4,11 +4,10 @@
  * other trainer. That last one is the moat at work: chart and 3D feed each other.
  */
 import { motion, type Variants } from "framer-motion";
-import type * as React from "react";
+import * as React from "react";
 import { Link } from "react-router";
 
 import { RoundDoneScene } from "~/components/brand/art/scenes";
-import { CelebrationConfetti } from "~/components/brand/celebration-confetti";
 import { ConfirmAction } from "~/components/brand/confirm-action";
 import { Icon } from "~/components/brand/icon";
 import {
@@ -31,6 +30,13 @@ import {
   type RunScopeKind,
   trainerHref,
 } from "~/lib/trainer-rounds";
+
+/** Only a flawless round fires it, so the confetti library loads then. */
+const CelebrationConfetti = React.lazy(() =>
+  import("~/components/brand/celebration-confetti").then((module) => ({
+    default: module.CelebrationConfetti,
+  })),
+);
 
 const CARD = {
   hidden: {},
@@ -173,7 +179,9 @@ export function TrainerResultCard({
     >
       {/* Saved for a flawless round, so it still means something. */}
       {selfGraded && (flawless || allKnown) && (
-        <CelebrationConfetti bursts={2} />
+        <React.Suspense fallback={null}>
+          <CelebrationConfetti bursts={2} />
+        </React.Suspense>
       )}
       <motion.div
         variants={CARD}

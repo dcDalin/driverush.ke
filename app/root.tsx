@@ -6,7 +6,6 @@ import "~/lib/install";
 
 import * as React from "react";
 import {
-  data,
   isRouteErrorResponse,
   Link,
   Links,
@@ -14,12 +13,10 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
-  type ShouldRevalidateFunctionArgs,
   useLocation,
   useRouteLoaderData,
 } from "react-router";
 import { HoneypotProvider } from "remix-utils/honeypot/react";
-import { toast } from "sonner";
 
 import { AccountShell } from "~/components/account/account-shell";
 import { EntitlementLivery } from "~/components/account/entitlement-livery";
@@ -42,11 +39,11 @@ import {
   useCatalogRefresh,
 } from "~/lib/board/school-catalog";
 import { loadBoardSchools } from "~/lib/board/school-catalog.server";
-import { shouldMeasure } from "~/lib/bot-traffic";
 import { honeypot } from "~/lib/forms/honeypot.server";
-import { getToast } from "~/lib/forms/toast.server";
+import { useFlashToasts } from "~/lib/forms/use-flash-toasts";
 import { loadWhole, shouldLoadWhole, useFreshBuild } from "~/lib/fresh-build";
 import { GA_MEASUREMENT_ID, gaHeadScript } from "~/lib/ga";
+import { PUBLIC_PAGE_CACHE } from "~/lib/http-cache";
 import { guestVisitScript } from "~/lib/progress/guest-visit";
 import { absUrl, appMeta, SITE } from "~/lib/site";
 import {
@@ -68,36 +65,38 @@ const GUEST_VISIT_SCRIPT = guestVisitScript(
 const BOARD_INIT_SCRIPT = `try{var s=JSON.parse(localStorage.getItem("driverush:board")||"{}").state;if(s&&((s.learned&&s.learned.length)||(s.bestStars&&Object.keys(s.bestStars).length)))document.documentElement.dataset.board="started"}catch(e){}`;
 
 /**
- * Whether Google Analytics measures this visit: not for a bot, or for a
- * browser run from a data centre (`bot-traffic.ts`). Decided once, from the
- * request that loads the page, and kept for every navigation after it.
+ * The same for every visitor, so every public page can be prerendered and
+ * cached: the board's schools (a snapshot, refreshed in the browser when old,
+ * `useCatalogRefresh`) and the bot trap's fields for server forms (remix-utils
+ * honeypot; a build-time timestamp still passes its check). What is about one
+ * visitor is asked for separately: GA's bot check (`/api/visit`), an action's
+ * message (`/api/flash`), the session (in the browser).
  */
-export async function loader({ request }: Route.LoaderArgs) {
-  // A one-time message an action left (remix-toast), and the bot trap's
-  // fields for every server form (remix-utils honeypot).
-  const { toast: flash, headers } = await getToast(request);
-  // The board's schools (public, cached a few minutes on the server), primed
-  // here too so `meta` functions drawn on the server see them.
+export async function loader() {
+  // Primed here too so `meta` functions drawn on the server see the schools.
   const schools = await loadBoardSchools();
   primeCatalog(schools);
-  return data(
-    {
-      measure: shouldMeasure(request),
-      schools,
-      schoolsAt: Date.now(),
-      flash: flash ?? null,
-      honeypotInputProps: await honeypot.getInputProps(),
-    },
-    { headers },
-  );
+  return {
+    schools,
+    schoolsAt: Date.now(),
+    honeypotInputProps: await honeypot.getInputProps(),
+  };
+}
+
+/** Nothing in it changes with a navigation or a form. */
+export function shouldRevalidate() {
+  return false;
 }
 
 /**
- * The root loads once per visit (the offline app keeps the page it has),
- * except after a form submission, so the message that action left shows.
+ * Public pages are the same for everyone (the session is read in the
+ * browser), so Vercel's CDN may keep a server-rendered one for an hour and
+ * serve it stale while it renders the next. Prerendered pages are files and
+ * never get here. Pages about one person override this with `privatePage`
+ * middleware (`lib/auth/private-page.server.ts`).
  */
-export function shouldRevalidate({ formMethod }: ShouldRevalidateFunctionArgs) {
-  return formMethod !== undefined && formMethod.toUpperCase() !== "GET";
+export function headers() {
+  return { "Cache-Control": PUBLIC_PAGE_CACHE };
 }
 
 export const links: Route.LinksFunction = () => [
@@ -169,8 +168,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
   // script has run by then, and its text must not change.
   const gaPage = useGaPage();
   const [gaLanding] = React.useState(gaPage);
-  // Missing on the error page when the root itself failed: measure then.
-  const measure = useRouteLoaderData<typeof loader>("root")?.measure ?? true;
   usePageviews();
   // An app left open loads a newer deploy on its next move to another page.
   useFreshBuild();
@@ -243,7 +240,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: BOARD_INIT_SCRIPT }} />
         <Meta />
         {/* After <Meta />, so the landing page view has the page's title. */}
-        {GA_MEASUREMENT_ID && measure && (
+        {GA_MEASUREMENT_ID && (
           <script
             dangerouslySetInnerHTML={{ __html: gaHeadScript(gaLanding) }}
           />
@@ -300,14 +297,7 @@ export default function App() {
   primeCatalog((loaderData?.schools ?? NO_SCHOOLS) as readonly Sponsor[]);
   useCatalogRefresh(loaderData?.schoolsAt ?? null);
   // Show the message an action left (remix-toast) with the house toaster.
-  const flash = loaderData?.flash;
-  React.useEffect(() => {
-    if (!flash) return;
-    if (flash.type === "error") toast.error(flash.message);
-    else if (flash.type === "success") toast.success(flash.message);
-    else if (flash.type === "warning") toast.warning(flash.message);
-    else toast(flash.message);
-  }, [flash]);
+  useFlashToasts();
   const shell = (
     <>
       {/* Keyed so each new page gets a fresh entrance. There's no exit, so a tap

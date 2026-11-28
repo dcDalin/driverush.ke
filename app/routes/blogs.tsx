@@ -10,23 +10,27 @@ import { SiteFooter } from "~/components/brand/site-footer";
 import { SiteNav } from "~/components/brand/site-nav";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { BLOG_KEYWORDS, getAllPosts } from "~/lib/blog";
+import { getAllPosts } from "~/lib/blog";
+import { BLOG_KEYWORDS } from "~/lib/blog-page";
 import { absUrl, breadcrumbLd, keywords, SITE, siteWideMeta } from "~/lib/site";
 
 import type { Route } from "./+types/blogs";
 
 const PATH = "/blogs";
 
-// `meta()` runs on every request — keep it self-contained so the static
-// import-cost of the posts list (~10 frontmatters) is the only work.
-export function meta(_: Route.MetaArgs) {
+/** Every post's frontmatter; the list itself stays on the server (`blog.ts`). */
+export function loader() {
+  return { posts: getAllPosts() };
+}
+
+export function meta({ loaderData }: Route.MetaArgs) {
   const title =
     "DriveRush Blog · NTSA, road signs and learning to drive in Kenya";
   const description =
     "Honest, practical writing on the NTSA test, Kenyan road signs, getting your driving licence, and surviving Nairobi traffic, from the team behind DriveRush.";
   const url = absUrl(PATH);
   const ogImage = absUrl(SITE.ogImage);
-  const posts = getAllPosts();
+  const posts = loaderData?.posts ?? [];
 
   return [
     { title },
@@ -95,8 +99,8 @@ const Container = ({ children }: { children: React.ReactNode }) => (
   <div className="mx-auto w-full max-w-6xl px-5 sm:px-9">{children}</div>
 );
 
-export default function BlogsIndex() {
-  const posts = getAllPosts();
+export default function BlogsIndex({ loaderData }: Route.ComponentProps) {
+  const { posts } = loaderData;
   const [hero, ...rest] = posts;
 
   return (

@@ -9,7 +9,13 @@ import { toast } from "sonner";
 
 import { TrafficLoader } from "~/components/brand/traffic-loader";
 import { Button } from "~/components/ui/button";
+import { privatePage } from "~/lib/auth/private-page.server";
 import { sessionReady } from "~/lib/auth/session";
+
+import type { Route } from "./+types/auth-callback";
+
+/** The address carries a sign-in code: never kept by a cache. */
+export const middleware: Route.MiddlewareFunction[] = [privatePage];
 
 export function meta() {
   return [

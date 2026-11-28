@@ -78,6 +78,16 @@ remix-hook-form, shadcn everywhere. Guides: `docs/forms-and-data.md`,
 - Pages render as a guest on the server; the session is read in the browser
   (`app/lib/auth/session.ts`, Supabase client loaded lazily). A build without
   the `VITE_SUPABASE_*` settings has accounts off.
+- Public pages are prerendered at build (`react-router.config.ts`, the list in
+  `lib/prerender-paths.ts`); the rest render on request, public ones cached
+  by the CDN (root `headers`, `lib/http-cache.ts`), pages about one person
+  behind `privatePage` middleware (`private, no-store`). So the root loader
+  is the same for everyone: GA's bot check is `/api/visit`, an action's
+  toast is read from `/api/flash` after a form settles (`useFlashToasts`).
+  Loaders read the router's `url`, never `new URL(request.url)` (it keeps
+  `.data`). Static text rides in loaders, not bundles: a sign's write-up
+  (`road-sign-guide.ts`), one MDX body per page (`mdx-bodies.tsx`), the
+  blog list (`blog.ts`, server only).
 - Signed in: progress stores sync to `learner_progress` (`app/lib/progress/`).
   Guests' progress lasts one visit (owner decision): the head script in
   `guest-visit.ts` clears it on a new visit; `GUEST_PROGRESS_KEPT` reverses it.

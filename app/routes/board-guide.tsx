@@ -5,23 +5,17 @@
  * descriptions are in `lib/board-guides.ts` and their text is MDX in
  * `app/guides/`. Each one opens with a way into the trainer.
  */
-import type * as React from "react";
 import { Link } from "react-router";
 
 import { BoardStartCard } from "~/components/board/board-start-card";
 import { GuideLayout } from "~/components/brand/guide-layout";
-import DiagramBody from "~/guides/board-diagram.mdx";
-import LaneOptionsBody from "~/guides/board-lane-options.mdx";
-import ParkingBody from "~/guides/board-parking.mdx";
-import QuestionsBody from "~/guides/board-questions.mdx";
-import RoundaboutBody from "~/guides/board-roundabout.mdx";
-import RulesBody from "~/guides/board-rules.mdx";
 import {
   BOARD_CHECKED,
   BOARD_PATH,
   boardGuideByPath,
   type BoardGuideId,
 } from "~/lib/board-guides";
+import { mdxBodies } from "~/lib/mdx-bodies";
 import { ogCardAlt, ogCardPath } from "~/lib/og-cards";
 import {
   BOARD_KEYWORDS,
@@ -33,19 +27,34 @@ import {
 
 import type { Route } from "./+types/board-guide";
 
-const BODIES: Record<BoardGuideId, React.ComponentType> = {
-  diagram: DiagramBody,
-  "lane-options": LaneOptionsBody,
-  questions: QuestionsBody,
-  roundabout: RoundaboutBody,
-  rules: RulesBody,
-  parking: ParkingBody,
-};
+/** Each guide's text, loaded on its own page only (`mdx-bodies.tsx`). */
+const BODIES = mdxBodies({
+  diagram: () => import("~/guides/board-diagram.mdx"),
+  "lane-options": () => import("~/guides/board-lane-options.mdx"),
+  questions: () => import("~/guides/board-questions.mdx"),
+  roundabout: () => import("~/guides/board-roundabout.mdx"),
+  rules: () => import("~/guides/board-rules.mdx"),
+  parking: () => import("~/guides/board-parking.mdx"),
+} satisfies Record<BoardGuideId, unknown>);
 
-export function loader({ url }: Route.LoaderArgs) {
+export async function loader({ url }: Route.LoaderArgs) {
   const guide = boardGuideByPath(url.pathname);
   if (!guide) throw new Response("Not found", { status: 404 });
+  await BODIES.load(guide.id);
   return { path: guide.path };
+}
+
+/** On a move from another page: the guide's text arrives with its data. */
+export async function clientLoader({
+  url,
+  serverLoader,
+}: Route.ClientLoaderArgs) {
+  const guide = boardGuideByPath(url.pathname);
+  const [data] = await Promise.all([
+    serverLoader(),
+    guide ? BODIES.load(guide.id) : undefined,
+  ]);
+  return data;
 }
 
 export function meta({ loaderData: data }: Route.MetaArgs) {
@@ -80,7 +89,6 @@ export function meta({ loaderData: data }: Route.MetaArgs) {
 
 export default function BoardGuide({ loaderData }: Route.ComponentProps) {
   const guide = boardGuideByPath(loaderData.path)!;
-  const Body = BODIES[guide.id];
   return (
     <GuideLayout
       kicker={`Model Town Board · ${guide.name}`}
@@ -103,7 +111,7 @@ export default function BoardGuide({ loaderData }: Route.ComponentProps) {
         </>
       }
     >
-      <Body />
+      <BODIES.Body file={guide.id} />
     </GuideLayout>
   );
 }

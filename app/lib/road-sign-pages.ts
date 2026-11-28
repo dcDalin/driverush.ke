@@ -4,11 +4,11 @@
  * sitemap entry by itself, as long as it has a line in `SIGN_DETAILS`.
  */
 import { SIGN_DETAILS } from "~/data/road-sign-details";
-import { SIGN_GUIDES, type SignGuide } from "~/data/road-sign-guides";
 import signs3d from "~/data/road-signs-3d.json";
 import pelican from "~/data/road-signs-pelican.json";
 import type { FocusRegion, RegionBox, SignCategoryId } from "~/lib/image-focus";
 import { signCrop } from "~/lib/sign-crops";
+import { signSlug } from "~/lib/sign-slug";
 
 import { TITLE_SUFFIX } from "./site";
 
@@ -32,14 +32,6 @@ export const CHART_SRC = pelican.imageSrc as string;
 export const SIGN_IMAGE_SIZE = 512;
 export const signImagePath = (sign: { slug: string }) =>
   `/assets/road-signs/signs/${sign.slug}.png`;
-
-function signSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/['’]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
 
 export const SIGN_PAGES: SignPage[] = (pelican.regions as FocusRegion[]).map(
   (region) => ({
@@ -130,13 +122,6 @@ export function isSignConfirmed(sign: { code?: string }): boolean {
 
 export function signPageByCode(code: string): SignPage | undefined {
   return BY_CODE.get(code);
-}
-
-/** The long-form write-up, for signs that are in search. */
-export function signGuide(sign: { code?: string }): SignGuide | undefined {
-  return sign.code && isSignConfirmed(sign)
-    ? SIGN_GUIDES[sign.code]
-    : undefined;
 }
 
 export function signPagePath(sign: { slug: string }): string {

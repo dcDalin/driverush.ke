@@ -66,6 +66,8 @@ export default tseslint.config(
             "HydrateFallback",
             "clientLoader",
             "clientAction",
+            "middleware",
+            "clientMiddleware",
             "handle",
             "Layout",
           ],

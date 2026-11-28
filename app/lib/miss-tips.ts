@@ -5,9 +5,9 @@
  * something rather than just repeating the name.
  */
 import type { SignCategoryId } from "~/lib/image-focus";
+import { signGuide } from "~/lib/road-sign-guide";
 import {
   SIGN_CLASS_GUIDE,
-  signGuide,
   type SignPage,
   signPageByCode,
 } from "~/lib/road-sign-pages";

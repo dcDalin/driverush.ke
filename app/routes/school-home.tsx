@@ -10,6 +10,7 @@ import { NeedsSignIn, NothingHere } from "~/components/school/signed-out";
 import { Badge } from "~/components/ui/badge";
 import { Card } from "~/components/ui/card";
 import { listMySchools } from "~/database/schools/queries";
+import { privatePage } from "~/lib/auth/private-page.server";
 import { getRequestClient } from "~/lib/auth/require.server";
 
 import type { Route } from "./+types/school-home";
@@ -20,6 +21,9 @@ export function meta() {
     { name: "robots", content: "noindex" },
   ];
 }
+
+/** About one person: never kept by a cache. */
+export const middleware: Route.MiddlewareFunction[] = [privatePage];
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { supabase, headers, caller } = await getRequestClient(request);

@@ -32,6 +32,7 @@ import {
   passSchoolByCode,
 } from "~/database/billing/checkout";
 import { getMyEntitlement } from "~/database/entitlement/get-my-entitlement";
+import { privatePage } from "~/lib/auth/private-page.server";
 import { getRequestClient, requireUser } from "~/lib/auth/require.server";
 import { levelById } from "~/lib/board/curriculum";
 import { BOARD_PATH, levelHref } from "~/lib/board-guides";
@@ -52,6 +53,9 @@ export function meta() {
 }
 
 const LEVEL = /^[a-z0-9-]{1,60}$/;
+
+/** About one person: never kept by a cache. */
+export const middleware: Route.MiddlewareFunction[] = [privatePage];
 
 export async function loader({ request, url }: Route.LoaderArgs) {
   const { supabase, headers, caller } = await getRequestClient(request);

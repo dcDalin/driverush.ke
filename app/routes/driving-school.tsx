@@ -26,6 +26,7 @@ import {
   drivingSchoolBySlug,
   type DrivingSchoolPage,
 } from "~/lib/driving-school-pages";
+import { PUBLIC_DATA_PAGE_CACHE } from "~/lib/http-cache";
 import {
   hasOwnWords,
   type PublicSchool,
@@ -34,6 +35,11 @@ import {
 import { breadcrumbLd, graphLd, guideLd, pageMeta } from "~/lib/site";
 
 import type { Route } from "./+types/driving-school";
+
+/** Drawn from the schools' own data: the CDN keeps it five minutes. */
+export function headers() {
+  return { "Cache-Control": PUBLIC_DATA_PAGE_CACHE };
+}
 
 export async function loader({ params }: Route.LoaderArgs) {
   const school = drivingSchoolBySlug(params.slug);

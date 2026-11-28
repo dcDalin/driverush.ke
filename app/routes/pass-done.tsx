@@ -16,6 +16,7 @@ import { Button } from "~/components/ui/button";
 import { getMyPayment } from "~/database/billing/checkout";
 import { getMyEntitlement } from "~/database/entitlement/get-my-entitlement";
 import { refreshEntitlement } from "~/lib/auth/entitlement";
+import { privatePage } from "~/lib/auth/private-page.server";
 import { getRequestClient } from "~/lib/auth/require.server";
 import { useSession } from "~/lib/auth/session";
 import { levelById } from "~/lib/board/curriculum";
@@ -34,6 +35,9 @@ export function meta() {
 }
 
 const REFERENCE = /^dr_[A-Za-z0-9_]{1,64}$/;
+
+/** About one person: never kept by a cache. */
+export const middleware: Route.MiddlewareFunction[] = [privatePage];
 
 export async function loader({ request, url }: Route.LoaderArgs) {
   const { supabase, headers, caller } = await getRequestClient(request);

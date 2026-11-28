@@ -13,10 +13,15 @@ const ROUTES = path.resolve(__dirname, "../../routes");
 const GATED =
   /^(school[-/]|console|pass|api\/|layouts\/(console|school)-layout)/;
 /**
- * Public on purpose: the same answer for everyone, guests included, and
- * cached by the CDN. Nothing here reads a session.
+ * No session on purpose. The board's schools: the same answer for everyone,
+ * cached by the CDN. The visit check and the flash message: about this
+ * request (its address, its toast cookie), never about an account.
  */
-const PUBLIC = new Set(["api/board-schools.ts"]);
+const PUBLIC = new Set([
+  "api/board-schools.ts",
+  "api/visit.ts",
+  "api/flash.ts",
+]);
 /**
  * No session, so a different gate first: the caller's signature over the raw
  * body (Paystack's webhook), before anything is read or written.

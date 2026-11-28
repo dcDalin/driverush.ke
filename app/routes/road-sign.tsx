@@ -1,8 +1,9 @@
 /**
  * `/road-signs/:slug`: one Kenyan road sign. People search for individual signs by
  * name, so each gets a page that answers the question and then gets them
- * practising it. The data is static, and the loader exists only so an unknown slug
- * returns a real 404.
+ * practising it. The data is static and the page is prerendered: the loader
+ * hands over this sign's write-up (`road-sign-guide.ts`), so the browser never
+ * loads every sign's text, and an unknown slug returns a real 404.
  */
 import { Link } from "react-router";
 
@@ -13,13 +14,13 @@ import { SiteFooter } from "~/components/brand/site-footer";
 import { SiteNav } from "~/components/brand/site-nav";
 import { Button } from "~/components/ui/button";
 import { ogCardAlt, ogCardPath } from "~/lib/og-cards";
+import { signGuide } from "~/lib/road-sign-guide";
 import {
   hasSign3D,
   isSignConfirmed,
   relatedSigns,
   SIGN_CLASS_GUIDE,
   SIGN_IMAGE_SIZE,
-  signGuide,
   signHeading,
   signImagePath,
   signPageByCode,
@@ -49,7 +50,7 @@ function clip(text: string, limit: number): string {
 export function loader({ params }: Route.LoaderArgs) {
   const sign = signPageBySlug(params.slug);
   if (!sign) throw new Response("Not found", { status: 404 });
-  return { slug: sign.slug };
+  return { slug: sign.slug, guide: signGuide(sign) ?? null };
 }
 
 export function meta({ loaderData: data }: Route.MetaArgs) {
@@ -116,7 +117,7 @@ export default function RoadSign({ loaderData }: Route.ComponentProps) {
   const guide = SIGN_CLASS_GUIDE[sign.category!];
   const classPage = signClassPage(sign.category);
   const codes = sign.code ? [sign.code] : [];
-  const extra = signGuide(sign);
+  const extra = loaderData.guide;
   const lookAlikes = (extra?.confusedWith ?? []).flatMap(({ code, how }) => {
     const other = signPageByCode(code);
     return other ? [{ other, how }] : [];

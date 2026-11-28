@@ -404,7 +404,7 @@ export const LABELLED_ROUTE_IDS = Object.keys(ROUTES);
  * other key (`ttclid`, `fbclid`, share payloads, `ga_debug`) is dropped, so
  * one page doesn't fragment into hundreds of rows in GA reports.
  */
-const KEEP_PARAMS = new Set([
+export const KEEP_PARAMS: ReadonlySet<string> = new Set([
   "utm_source",
   "utm_medium",
   "utm_campaign",

@@ -46,6 +46,11 @@ const TEACHES = UNITS.filter((unit) => unit.id !== "mock").map(
   (unit) => unit.title,
 );
 
+/** The question bank stays on the server: the page shows its count. */
+export function loader() {
+  return { questionCount: BOARD_QUESTIONS.length };
+}
+
 export function meta(_: Route.MetaArgs) {
   return [
     ...pageMeta({
@@ -89,7 +94,7 @@ export function meta(_: Route.MetaArgs) {
   ];
 }
 
-export default function ModelTownBoard() {
+export default function ModelTownBoard({ loaderData }: Route.ComponentProps) {
   useBoardPage();
 
   return (
@@ -126,7 +131,7 @@ export default function ModelTownBoard() {
         <MDX.p>
           Test yourself with{" "}
           <MDX.a href={`${BOARD_PATH}/questions`}>
-            {BOARD_QUESTIONS.length} questions and answers
+            {loaderData.questionCount} questions and answers
           </MDX.a>
           , check{" "}
           <MDX.a href={`${BOARD_PATH}/lane-options`}>
