@@ -56,19 +56,22 @@ export async function consoleAction(
 
   const reply = (result: Result<unknown>, message: string) =>
     result.error
-      ? dataWithError({ ok: false as const }, result.error, { headers })
+      ? dataWithError({ ok: false as const }, result.error, {
+          status: 400,
+          headers,
+        })
       : dataWithSuccess({ ok: true as const }, message, { headers });
   const invalid = (errors: unknown) =>
     dataWithError(
       { ok: false as const, errors },
       "Check the highlighted fields.",
-      { headers },
+      { status: 400, headers },
     );
   const noAccount = () =>
     dataWithError(
       { ok: false as const },
       "No account has that email. They sign up first.",
-      { headers },
+      { status: 400, headers },
     );
 
   if (intent === "create-school") {
@@ -83,7 +86,10 @@ export async function consoleAction(
       ownerEmail: v.ownerEmail,
     });
     if (result.error) {
-      return dataWithError({ ok: false as const }, result.error, { headers });
+      return dataWithError({ ok: false as const }, result.error, {
+        status: 400,
+        headers,
+      });
     }
     if (v.ownerEmail && result.data) {
       const school = await getConsoleSchool(supabase, result.data);
@@ -143,7 +149,7 @@ export async function consoleAction(
       return dataWithError(
         { ok: false as const },
         "The upload did not finish. Try again.",
-        { headers },
+        { status: 400, headers },
       );
     }
     return reply(
@@ -172,7 +178,10 @@ export async function consoleAction(
     if (errors || !v) return invalid(errors);
     const made = await makeSubaccount(v);
     if (!made.ok) {
-      return dataWithError({ ok: false as const }, made.message, { headers });
+      return dataWithError({ ok: false as const }, made.message, {
+        status: 400,
+        headers,
+      });
     }
     const result = await setSchoolPayments(supabase, {
       schoolId: v.schoolId,

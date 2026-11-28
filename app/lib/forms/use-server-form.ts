@@ -8,13 +8,14 @@
  *   - the honeypot's hidden fields posted with the values (`withNativeFields`);
  *   - pending state for the submit button (`busy`).
  *
- * The action's flash message (remix-toast) shows as a toast once the root
- * revalidates after the submission.
+ * The action's flash message (remix-toast) shows as a toast once the
+ * submission settles (`useFlashToasts`). A route modal closes as soon as
+ * its action accepts the form (`useCloseWhenDone`).
  */
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as React from "react";
 import type { DefaultValues, FieldValues } from "react-hook-form";
-import { useFetcher } from "react-router";
+import { useFetcher, useLocation } from "react-router";
 import { useRemixForm } from "remix-hook-form";
 import type { z } from "zod";
 
@@ -36,7 +37,12 @@ export function useServerForm<S extends z.ZodType<FieldValues, FieldValues>>({
   /** Clear the fields once the action accepts them (add-forms). */
   resetOnSuccess?: boolean;
 }) {
-  const fetcher = useFetcher({ key });
+  // One fetcher per form and per mount: a modal opened again starts with no
+  // answer from the last time it was sent. Fixed at mount, so a page form
+  // keeps its fetcher while the page's own search changes.
+  const location = useLocation();
+  const [opening] = React.useState(location.key);
+  const fetcher = useFetcher({ key: `${key}:${opening}` });
   const formRef = React.useRef<HTMLFormElement>(null);
   const methods = useRemixForm<z.input<S>, unknown, z.output<S>>({
     // Checked when sent, then as the person corrects it: never before they

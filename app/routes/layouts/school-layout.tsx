@@ -17,15 +17,11 @@
  * `requireUser` and hands over to `schoolAction`. A change revalidates the
  * frame, so every open page follows; typing in a list's search does not.
  */
-import {
-  data,
-  Link,
-  Outlet,
-  type ShouldRevalidateFunctionArgs,
-} from "react-router";
+import { data, Link, Outlet } from "react-router";
 
 import { SiteNav } from "~/components/brand/site-nav";
 import { DashShell } from "~/components/console/shell";
+import { FrameError } from "~/components/school/frame-error";
 import { NeedsSignIn, NothingHere } from "~/components/school/signed-out";
 import { Button } from "~/components/ui/button";
 import { privatePage } from "~/lib/auth/private-page.server";
@@ -35,6 +31,7 @@ import { useLiveRevalidate } from "~/lib/realtime/use-live-revalidate";
 import { schoolAction } from "~/lib/school/action.server";
 import { loadSchool } from "~/lib/school/load.server";
 import { schoolNav, schoolPath } from "~/lib/school/nav";
+import { frameShouldRevalidate } from "~/lib/ui/frame-revalidate";
 
 import type { Route } from "./+types/school-layout";
 
@@ -61,25 +58,8 @@ export async function action({ request, params }: Route.ActionArgs) {
   return schoolAction(context, params.schoolId, request);
 }
 
-/**
- * Moving about one school's dashboard (its pages, a modal over a page, a
- * list's search in the address) reads nothing new: the frame already holds
- * the school. A saved form, a live update or another school asks again.
- */
-export function shouldRevalidate({
-  currentUrl,
-  nextUrl,
-  currentParams,
-  nextParams,
-  formMethod,
-  defaultShouldRevalidate,
-}: ShouldRevalidateFunctionArgs) {
-  const moving =
-    !formMethod &&
-    currentParams.schoolId === nextParams.schoolId &&
-    currentUrl.href !== nextUrl.href;
-  return moving ? false : defaultShouldRevalidate;
-}
+/** Moving about inside the frame reads nothing again (`frameShouldRevalidate`). */
+export const shouldRevalidate = frameShouldRevalidate;
 
 const ROLE_LABEL = {
   owner: "School owner",
@@ -143,5 +123,17 @@ export default function SchoolLayout({ loaderData }: Route.ComponentProps) {
     >
       <Outlet />
     </DashShell>
+  );
+}
+
+/** A failed page or change, inside the dashboard's words (`FrameError`). */
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  return (
+    <>
+      <SiteNav />
+      <main className="mx-auto min-h-screen w-full max-w-5xl px-5 pb-24 text-ink sm:px-9">
+        <FrameError error={error} />
+      </main>
+    </>
   );
 }

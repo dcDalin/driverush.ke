@@ -35,6 +35,7 @@ import {
 import { getRequestClient, requireStaff } from "~/lib/auth/require.server";
 import { consoleAction } from "~/lib/console/action.server";
 import { consoleGate, GATED } from "~/lib/console/gate.server";
+import { oncePerRequest } from "~/lib/server/once-per-request";
 
 import type { Route } from "./+types/overview";
 
@@ -58,7 +59,9 @@ export async function loader({ request }: Route.LoaderArgs) {
       listConsoleSchools(supabase, { ...ANY, status: "setup" }),
       listConsoleSchools(supabase, { ...ANY, status: "active" }),
       listConsoleSchools(supabase, { ...ANY, sponsoring: "yes" }),
-      listBankRequests(supabase),
+      oncePerRequest(request, "bank-requests", () =>
+        listBankRequests(supabase),
+      ),
       getPaymentTotals(supabase),
     ]);
   return data(

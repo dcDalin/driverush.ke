@@ -20,6 +20,7 @@ import {
 import { getRequestClient, requireStaff } from "~/lib/auth/require.server";
 import { consoleAction } from "~/lib/console/action.server";
 import { consoleGate, GATED } from "~/lib/console/gate.server";
+import { oncePerRequest } from "~/lib/server/once-per-request";
 import { PaymentFiltersSchema } from "~/schemas/billing";
 
 import type { Route } from "./+types/payments";
@@ -43,7 +44,7 @@ export async function loader({ request, url }: Route.LoaderArgs) {
     page: params.ppage,
   });
   const [bankRequests, totals, payments] = await Promise.all([
-    listBankRequests(supabase),
+    oncePerRequest(request, "bank-requests", () => listBankRequests(supabase)),
     getPaymentTotals(supabase),
     listPayments(supabase, filters),
   ]);

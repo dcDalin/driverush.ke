@@ -9,7 +9,9 @@
  * security.
  *
  * A fallback for when realtime is off or the socket drops: a slow poll while
- * the tab is visible (never while hidden, never stacked).
+ * the tab is visible (never while hidden, never stacked), only while a topic
+ * is not joined. Coming back to a tab hidden a while, or a topic joining
+ * again after a drop, re-reads once: events may have been missed meanwhile.
  */
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import * as React from "react";
@@ -44,18 +46,32 @@ export function useLiveRevalidate(topics: string[]) {
       }, QUIET_MS);
     };
 
+    // Which topics are joined right now; the poll covers any that are not.
+    const topicList = key.split("|");
+    const joined = new Set<string>();
+    const dropped = new Set<string>();
+    const onStatus = (topic: string) => (status: string) => {
+      if (status === "SUBSCRIBED") {
+        joined.add(topic);
+        // Joined again after a drop: catch up on what was missed.
+        if (dropped.delete(topic)) revalidate();
+      } else if (joined.delete(topic)) {
+        dropped.add(topic);
+      }
+    };
+
     void (async () => {
       client = await loadClient();
       const { data } = await client.auth.getSession();
       if (cancelled || !data.session) return;
       await client.realtime.setAuth(data.session.access_token);
       if (cancelled) return;
-      for (const topic of key.split("|")) {
+      for (const topic of topicList) {
         channels.push(
           client
             .channel(topic, { config: { private: true } })
             .on("broadcast", { event: "*" }, revalidate)
-            .subscribe(),
+            .subscribe(onStatus(topic)),
         );
       }
     })().catch(() => {
@@ -63,13 +79,24 @@ export function useLiveRevalidate(topics: string[]) {
     });
 
     const poll = setInterval(() => {
-      if (document.visibilityState === "visible") revalidate();
+      if (document.visibilityState !== "visible") return;
+      if (joined.size < topicList.length) revalidate();
     }, POLL_MS);
+
+    // A phone puts a hidden tab's socket to sleep: back after a while, read
+    // once rather than trust that nothing happened.
+    let hiddenAt = 0;
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") hiddenAt = Date.now();
+      else if (hiddenAt && Date.now() - hiddenAt > POLL_MS) revalidate();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
       cancelled = true;
       clearTimeout(timer);
       clearInterval(poll);
+      document.removeEventListener("visibilitychange", onVisibility);
       for (const channel of channels) void client?.removeChannel(channel);
     };
   }, [key]);

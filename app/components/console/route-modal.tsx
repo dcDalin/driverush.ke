@@ -73,6 +73,8 @@ export function RouteModal({
   closeTo,
   label,
   size = "sm",
+  busy = false,
+  closing = false,
   className,
   children,
 }: {
@@ -80,15 +82,19 @@ export function RouteModal({
   /** The small label in the dialog's title bar. */
   label: string;
   size?: keyof typeof SIZE;
+  /** A form in it is being sent: Escape and the backdrop wait for it. */
+  busy?: boolean;
+  /** Its action accepted the form (`useCloseWhenDone`): the dialog goes now. */
+  closing?: boolean;
   className?: string;
   children: React.ReactNode;
 }) {
   const navigate = useNavigate();
   return (
     <Dialog
-      open
+      open={!closing}
       onOpenChange={(open) => {
-        if (!open)
+        if (!open && !busy)
           void navigate(closeTo, { replace: true, preventScrollReset: true });
       }}
     >
@@ -140,29 +146,43 @@ export function RouteModalFooter({
 }) {
   return (
     <DialogFooter>
-      <Button asChild variant="ghost" disabled={busy}>
-        <Link to={closeTo} replace preventScrollReset>
+      {busy ? (
+        // A link can't be disabled: while the form is sent, a plain button.
+        <Button variant="ghost" disabled>
           Cancel
-        </Link>
-      </Button>
+        </Button>
+      ) : (
+        <Button asChild variant="ghost">
+          <Link to={closeTo} replace preventScrollReset>
+            Cancel
+          </Link>
+        </Button>
+      )}
       {children}
     </DialogFooter>
   );
 }
 
-/** Back to `closeTo` once a fetcher's action answered `{ ok: true }`. */
+/**
+ * Closes a route modal once its fetcher's action answered `{ ok: true }`:
+ * the dialog goes at once (pass the result to `<RouteModal closing>`), while
+ * the frame re-reads what changed behind it, and the address goes back to
+ * `closeTo` when that is done, so the list under it is already up to date.
+ */
 export function useCloseWhenDone(
   fetcher: { state: string; data?: unknown },
   closeTo: string,
-) {
+): boolean {
   const navigate = useNavigate();
-  const done =
-    fetcher.state === "idle" &&
+  const closing =
+    fetcher.state !== "submitting" &&
     (fetcher.data as { ok?: boolean } | undefined)?.ok === true;
+  const done = closing && fetcher.state === "idle";
   React.useEffect(() => {
     if (done)
       void navigate(closeTo, { replace: true, preventScrollReset: true });
   }, [done, navigate, closeTo]);
+  return closing;
 }
 
 /**
@@ -197,9 +217,15 @@ export function ModalForm({
   children: React.ReactNode;
 }) {
   const { methods, fetcher, formRef, busy } = form;
-  useCloseWhenDone(fetcher, closeTo);
+  const closing = useCloseWhenDone(fetcher, closeTo);
   return (
-    <RouteModal closeTo={closeTo} label={label} size={size}>
+    <RouteModal
+      closeTo={closeTo}
+      label={label}
+      size={size}
+      busy={busy}
+      closing={closing}
+    >
       <ServerFormProvider methods={methods}>
         <fetcher.Form
           ref={formRef}
@@ -246,11 +272,14 @@ export function ConfirmModal({
   confirm: string;
   fields: Record<string, string>;
 }) {
-  const fetcher = useFetcher({ key: `confirm:${here}` });
+  // One fetcher per opening, so a modal opened again starts fresh.
+  const location = useLocation();
+  const [opening] = React.useState(location.key);
+  const fetcher = useFetcher({ key: `confirm:${here}:${opening}` });
   const busy = fetcher.state !== "idle";
-  useCloseWhenDone(fetcher, closeTo);
+  const closing = useCloseWhenDone(fetcher, closeTo);
   return (
-    <RouteModal closeTo={closeTo} label={label}>
+    <RouteModal closeTo={closeTo} label={label} busy={busy} closing={closing}>
       <RouteModalHeader title={title} description={body} />
       <RouteModalBody className="pt-2">{null}</RouteModalBody>
       <RouteModalFooter closeTo={closeTo} busy={busy}>

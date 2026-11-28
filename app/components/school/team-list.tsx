@@ -241,8 +241,12 @@ function RoleBadge({ person }: { person: Person }) {
 }
 
 function EmailAgain({ person }: { person: Person }) {
-  const { busy, pending, submit } = useInlineAction(`invite:${person.key}`);
-  const spent = person.sentCount >= MAX_SENDS;
+  const { busy, pending, sent, submit } = useInlineAction(
+    `invite:${person.key}`,
+  );
+  // Counted at once when tapped; the list confirms it.
+  const sentCount = person.sentCount + (sent("resend-invite") ? 1 : 0);
+  const spent = sentCount >= MAX_SENDS;
   return (
     <Button
       type="button"
@@ -253,7 +257,7 @@ function EmailAgain({ person }: { person: Person }) {
       title={
         spent
           ? `Sent ${MAX_SENDS} times: withdraw it, then add them again`
-          : `Sent ${person.sentCount} of ${MAX_SENDS} times`
+          : `Sent ${sentCount} of ${MAX_SENDS} times`
       }
       onClick={() => submit({ intent: "resend-invite", inviteId: person.key })}
     >

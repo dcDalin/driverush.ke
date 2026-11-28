@@ -34,21 +34,15 @@
  * link inside carries the list's search (`useConsoleSchoolPath`).
  */
 import * as React from "react";
-import {
-  data,
-  Link,
-  Outlet,
-  type ShouldRevalidateFunctionArgs,
-  useLocation,
-} from "react-router";
+import { data, Link, Outlet, useLocation } from "react-router";
 
 import { Icon } from "~/components/brand/icon";
 import { ArrowLeftIcon } from "~/components/brand/icons";
 import { STATUS_BADGE, STATUS_LABEL } from "~/components/console/school-status";
 import { PageHeader, RouteTabs } from "~/components/console/shell";
+import { FrameError } from "~/components/school/frame-error";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { listSchoolEarnings } from "~/database/billing/school";
 import { getConsoleSchool } from "~/database/console/queries";
 import { getRequestClient, requireStaff } from "~/lib/auth/require.server";
 import { consoleAction } from "~/lib/console/action.server";
@@ -57,11 +51,10 @@ import {
   listSearch,
   useConsoleSchoolPath,
 } from "~/lib/console/use-console-school";
-import { kenyanBanks } from "~/lib/payments/banks.server";
-import { paymentsEnabled } from "~/lib/payments/env.server";
 import { useLiveRevalidate } from "~/lib/realtime/use-live-revalidate";
 import { loadSchool } from "~/lib/school/load.server";
 import { SchoolScopeProvider } from "~/lib/school/use-school";
+import { frameShouldRevalidate } from "~/lib/ui/frame-revalidate";
 
 import type { Route } from "./+types/school";
 
@@ -81,12 +74,11 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const gate = await consoleGate(context);
   const { supabase, headers } = context;
   if (!gate.ok) return data(GATED, { headers });
-  const [school, earnings, banks, inside] = await Promise.all([
+  const [school, inside] = await Promise.all([
     getConsoleSchool(supabase, params.schoolId),
-    listSchoolEarnings(supabase, params.schoolId).catch(() => []),
-    kenyanBanks(),
     // The school as its owner sees it: for the tabs where staff help it
-    // set up (profile, branches, team) and read its students.
+    // set up (profile, branches, team) and read its students. Its earnings
+    // and bank list serve the payments tab too.
     loadSchool(context, params.schoolId, { asStaff: true }),
   ]);
   if (!school || inside.state !== "ok")
@@ -96,33 +88,16 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       state: "ok" as const,
       school,
       inside,
-      earnings,
-      banks,
-      paymentsOn: paymentsEnabled(),
+      earnings: inside.earnings,
+      banks: inside.banks,
+      paymentsOn: inside.paymentsOn,
     },
     { headers },
   );
 }
 
-/**
- * Moving between pages of the same frame (its tabs, a modal over a tab)
- * re-reads nothing here; a saved form, a live update or a revalidate does.
- */
-export function shouldRevalidate({
-  currentUrl,
-  nextUrl,
-  currentParams,
-  nextParams,
-  formMethod,
-  defaultShouldRevalidate,
-}: ShouldRevalidateFunctionArgs) {
-  const sameFrame =
-    !formMethod &&
-    currentUrl.pathname !== nextUrl.pathname &&
-    currentParams.schoolId === nextParams.schoolId &&
-    currentUrl.searchParams.get("q") === nextUrl.searchParams.get("q");
-  return sameFrame ? false : defaultShouldRevalidate;
-}
+/** Moving about inside the frame reads nothing again (`frameShouldRevalidate`). */
+export const shouldRevalidate = frameShouldRevalidate;
 
 export async function action({ request }: Route.ActionArgs) {
   const staff = await requireStaff(request);
@@ -262,4 +237,9 @@ function SchoolPage({
       </SchoolScopeProvider>
     </>
   );
+}
+
+/** A failed tab or change, inside the console's frame (`FrameError`). */
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  return <FrameError error={error} />;
 }

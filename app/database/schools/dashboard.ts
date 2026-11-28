@@ -1,8 +1,9 @@
 /**
- * Everything a school's dashboard shows, in one call for its loader: the
- * school, the caller's place in it, branches, team, invites and students
- * (each with a progress summary while their month runs). Null when the
- * school does not exist or the caller has no place in it.
+ * Everything a school's dashboard shows, in one call for its loader and one
+ * round trip to the database: the school, the caller's place in it,
+ * branches, team, invites and students (each with a progress summary while
+ * their month runs). Null when the school does not exist or the caller has
+ * no place in it.
  */
 import { isStaffRole } from "../auth/roles";
 import type { AppRole, SchoolRole, TypedSupabaseClient } from "../types";
@@ -38,6 +39,12 @@ export type StudentRow = {
 
 export type DashboardRole = SchoolRole | "staff";
 
+/** A settled read's answer, or its error raised. */
+function valueOf<T>(read: PromiseSettledResult<T>): T {
+  if (read.status === "rejected") throw read.reason;
+  return read.value;
+}
+
 export async function getSchoolDashboard(
   supabase: TypedSupabaseClient,
   {
@@ -47,24 +54,35 @@ export async function getSchoolDashboard(
   }: { schoolId: string; userId: string; role: AppRole },
   now = Date.now(),
 ) {
-  const school = await getSchool(supabase, schoolId);
-  if (!school) return null;
-
-  const [branches, team, links, progress] = await Promise.all([
+  // One round trip: everything at once. A stranger to the school sees no
+  // school (row level security) and is refused the rest, so those errors
+  // count only once the school is known to be theirs to see. The pending
+  // invites are for the owner and staff only; anyone else's are dropped
+  // below.
+  const [schoolRead, ...rest] = await Promise.allSettled([
+    getSchool(supabase, schoolId),
     listBranches(supabase, schoolId),
     listSchoolMembers(supabase, schoolId),
     listOpenStudentLinks(supabase, schoolId),
     listStudentProgress(supabase, schoolId),
-  ]);
+    listPendingMemberInvites(supabase, schoolId).catch(() => []),
+  ] as const);
+  const school = valueOf(schoolRead);
+  if (!school) return null;
+  const [branches, team, links, progress, pendingInvites] = [
+    valueOf(rest[0]),
+    valueOf(rest[1]),
+    valueOf(rest[2]),
+    valueOf(rest[3]),
+    valueOf(rest[4]),
+  ];
 
   const me = team.find((m) => m.user_id === userId);
   const staff = isStaffRole(role);
   if (!me && !staff) return null;
   const myRole: DashboardRole = me?.role ?? "staff";
   const canManage = myRole === "owner" || staff;
-  const invites = (
-    canManage ? await listPendingMemberInvites(supabase, schoolId) : []
-  ).map((invite) => ({
+  const invites = (canManage ? pendingInvites : []).map((invite) => ({
     ...invite,
     expired: Date.parse(invite.expires_at) <= now,
   }));

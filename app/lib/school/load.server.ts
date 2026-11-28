@@ -21,6 +21,21 @@ import { mediaUrl } from "~/lib/board/school-catalog";
 import { kenyanBanks } from "~/lib/payments/banks.server";
 import { paymentsEnabled } from "~/lib/payments/env.server";
 
+type Settled<T> = { ok: true; value: T } | { ok: false; error: unknown };
+
+/** A read whose error is held, to be raised only if its answer is used. */
+function settle<T>(read: Promise<T>): Promise<Settled<T>> {
+  return read.then(
+    (value) => ({ ok: true as const, value }),
+    (error: unknown) => ({ ok: false as const, error }),
+  );
+}
+
+function unwrap<T>(read: Settled<T>): T {
+  if (!read.ok) throw read.error;
+  return read.value;
+}
+
 export async function loadSchool(
   { supabase, caller }: RequestContext,
   schoolId: string,
@@ -28,11 +43,24 @@ export async function loadSchool(
   { asStaff = false }: { asStaff?: boolean } = {},
 ) {
   if (!caller.signedIn) return { state: "signed-out" as const };
-  const dashboard = await getSchoolDashboard(supabase, {
-    schoolId,
-    userId: caller.userId,
-    role: caller.role,
-  });
+  const paymentsOn = paymentsEnabled();
+  // All in one round trip: the school's pass set-up, earnings and profile
+  // are read alongside the dashboard instead of after it. Their errors are
+  // held until the caller is known to belong (a stranger gets "not a member",
+  // not an error), and the profile and bank list are dropped for anyone who
+  // does not manage the school.
+  const [dashboard, profileRead, passInfoRead, earningsRead, bankList] =
+    await Promise.all([
+      getSchoolDashboard(supabase, {
+        schoolId,
+        userId: caller.userId,
+        role: caller.role,
+      }),
+      settle(getSchoolProfile(supabase, schoolId)),
+      settle(getSchoolPassInfo(supabase, schoolId)),
+      settle(listSchoolEarnings(supabase, schoolId)),
+      paymentsOn ? kenyanBanks() : Promise.resolve([]),
+    ]);
   if (!dashboard) return { state: "not-member" as const };
   const { role, ...school } = dashboard;
   if (role === "staff" && !asStaff) {
@@ -41,13 +69,10 @@ export async function loadSchool(
   // The owner manages; so do staff, in the console only (structure, not
   // students: `schoolAction` and the database hold that line).
   const canManage = role === "owner" || role === "staff";
-  const paymentsOn = paymentsEnabled();
-  const [profile, passInfo, earnings, banks] = await Promise.all([
-    canManage ? getSchoolProfile(supabase, schoolId) : Promise.resolve(null),
-    getSchoolPassInfo(supabase, schoolId),
-    listSchoolEarnings(supabase, schoolId),
-    canManage && paymentsOn ? kenyanBanks() : Promise.resolve([]),
-  ]);
+  const profile = canManage ? unwrap(profileRead) : null;
+  const passInfo = unwrap(passInfoRead);
+  const earnings = unwrap(earningsRead);
+  const banks = canManage ? bankList : [];
   // Logos are shown from Storage by their public URL.
   const base = process.env.SUPABASE_URL ?? "";
   const logoUrl = (ref: unknown) => {

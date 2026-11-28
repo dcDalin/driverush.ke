@@ -3,8 +3,6 @@
  * students list. An email and one of the person's open branches; the
  * student is emailed a link.
  */
-import * as React from "react";
-import { useNavigate } from "react-router";
 import { HoneypotInputs } from "remix-utils/honeypot/react";
 
 import {
@@ -13,6 +11,7 @@ import {
   RouteModalFooter,
   RouteModalHeader,
   useCloseTo,
+  useCloseWhenDone,
 } from "~/components/console/route-modal";
 import { Button } from "~/components/ui/button";
 import {
@@ -51,18 +50,16 @@ export default function StudentAdd() {
       branchId: branches[0]?.id ?? "",
     },
   });
-  // Done: back to the list, which now shows it.
-  const navigate = useNavigate();
-  const done =
-    fetcher.state === "idle" &&
-    (fetcher.data as { ok?: boolean } | undefined)?.ok === true;
-  React.useEffect(() => {
-    if (done)
-      void navigate(closeTo, { replace: true, preventScrollReset: true });
-  }, [done, navigate, closeTo]);
+  // Accepted: the dialog goes at once, the list under it re-reads.
+  const closing = useCloseWhenDone(fetcher, closeTo);
 
   return (
-    <RouteModal closeTo={closeTo} label="Students">
+    <RouteModal
+      closeTo={closeTo}
+      label="Students"
+      busy={busy}
+      closing={closing}
+    >
       <ServerFormProvider methods={methods}>
         <fetcher.Form
           ref={formRef}

@@ -54,6 +54,16 @@ otherwise) or `requireStaff` (403 otherwise), from
 can run a child loader alone. `app/lib/auth/gate-first.test.ts` fails a route
 that does not.
 
+The check costs one session read per request, however many loaders ask:
+React Router hands every loader (and the middleware) of a request the same
+`Request`, and `getRequestClient` remembers its answer for it. Another read
+two loaders of one request both need goes through
+`oncePerRequest(request, key, read)` (`app/lib/server/once-per-request.ts`).
+Pages about one person export `middleware = [privatePage]`
+(`app/lib/auth/private-page.server.ts`): `private, no-store`, and the
+cookies Supabase refreshed. A modal route whose page under it is already
+gated needs no loader of its own; its action checks.
+
 ## Forms that post to a route action
 
 remix-hook-form, through `useServerForm` (`app/lib/forms/use-server-form.ts`):
@@ -95,20 +105,34 @@ switch (readFormIntent(formData)) {
       return dataWithError(
         { ok: false, errors },
         "Check the highlighted fields.",
-        { headers },
+        { status: 400, headers },
       );
     const result = await addStudent(supabase, data.branchId, data.email);
     return result.error
-      ? dataWithError({ ok: false }, result.error, { headers })
+      ? dataWithError({ ok: false }, result.error, { status: 400, headers })
       : dataWithSuccess({ ok: true }, "Student added.", { headers });
   }
 }
 ```
 
 - The field errors from `validateForm` land back in the same fields.
+- A refusal answers **400**: nothing changed, so React Router does not re-run
+  the page's loaders (a typo never reloads the dashboard).
 - `dataWithSuccess` / `dataWithError` (remix-toast) leave a one-time message
-  the root shows as a toast. The root loader revalidates only after a
-  submission, so the offline app still loads it once per visit.
+  in a cookie; once the submission settles the shell reads it from
+  `/api/flash` and shows it (`useFlashToasts`). The root loader never reads
+  it: it is the same for every visitor, so public pages can be prerendered.
+- A route modal (`ModalForm`, `ConfirmModal`, or `RouteModal` with
+  `useCloseWhenDone`) closes the moment its action answers `{ ok: true }`,
+  while the frame re-reads behind it; the address goes back to `closeTo`
+  when that is done. While a form is sent, Escape, the backdrop and Cancel
+  wait. `useServerForm` keys its fetcher per mount, so a modal opened again
+  starts fresh.
+- A dashboard frame exports `shouldRevalidate = frameShouldRevalidate`
+  (`app/lib/ui/frame-revalidate.ts`): moving about inside it (tabs, modals,
+  a list's search in the address) reads nothing again; a saved form, a live
+  update or another school does. It exports an `ErrorBoundary` drawing
+  `FrameError`, so a lapsed session or a refused change stays inside it.
 - Every server form has `<HoneypotInputs />`; `validateForm` refuses a post
   without the trap field.
 
@@ -116,8 +140,9 @@ switch (readFormIntent(formData)) {
 
 A button that changes one thing (release a student, remove an admin) uses a
 keyed fetcher, `useInlineAction(key)`: keyed by the thing it changes, its
-`pending` intent drives the button's `isLoading`, and the loader brings the
-new state once it settles. It posts plain fields with an `intent`; the action
+`pending` intent drives the button's `isLoading`, `sent(intent)` lets the row
+show the change at once (an invite counted as sent again), and the loader
+brings the new state once it settles. It posts plain fields with an `intent`; the action
 parses them with the matching schema (`StudentActionSchema`, ...).
 
 ## Resource routes

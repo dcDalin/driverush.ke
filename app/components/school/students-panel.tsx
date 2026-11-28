@@ -145,7 +145,11 @@ function StudentItem({
   canMove: boolean;
   schoolId: string;
 }) {
-  const { pending, busy, submit } = useInlineAction(`student:${student.id}`);
+  const { pending, busy, sent, submit } = useInlineAction(
+    `student:${student.id}`,
+  );
+  // Counted at once when "Email again" is tapped; the list confirms it.
+  const sentCount = student.sentCount + (sent("resend-student") ? 1 : 0);
   const { search } = useLocation();
   // Each change asks first, in a modal route over this list (filters kept).
   const ask = (verb: "move" | "release" | "withdraw") =>
@@ -177,8 +181,10 @@ function StudentItem({
           ) : null}
           {student.status === "pending" ? (
             <span className="text-ink-3">
-              Sent {student.sentCount} of {MAX_SENDS} times, last{" "}
-              {DATE.format(new Date(student.lastSentAt))}
+              Sent {sentCount} of {MAX_SENDS} times, last{" "}
+              {sent("resend-student")
+                ? "now"
+                : DATE.format(new Date(student.lastSentAt))}
             </span>
           ) : null}
           {student.status === "ended" && (

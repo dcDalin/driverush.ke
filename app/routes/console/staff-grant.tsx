@@ -3,8 +3,6 @@
  * only; the database checks again). The person must already have a DriveRush
  * account with that email.
  */
-import * as React from "react";
-import { useNavigate } from "react-router";
 import { HoneypotInputs } from "remix-utils/honeypot/react";
 
 import {
@@ -12,6 +10,7 @@ import {
   RouteModalBody,
   RouteModalFooter,
   RouteModalHeader,
+  useCloseWhenDone,
 } from "~/components/console/route-modal";
 import { Button } from "~/components/ui/button";
 import {
@@ -48,24 +47,17 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function StaffGrant() {
-  const navigate = useNavigate();
   const { methods, fetcher, formRef, busy } = useServerForm({
     schema: GrantRoleSchema,
     key: "grant-role",
     action: HERE,
     defaultValues: { intent: "grant-role", email: "", role: "driverush_admin" },
   });
-  // Granted: back to the list, which now shows them.
-  const granted =
-    fetcher.state === "idle" &&
-    (fetcher.data as { ok?: boolean } | undefined)?.ok === true;
-  React.useEffect(() => {
-    if (granted)
-      void navigate(CLOSE_TO, { replace: true, preventScrollReset: true });
-  }, [granted, navigate]);
+  // Granted: the dialog goes at once, the list under it re-reads.
+  const closing = useCloseWhenDone(fetcher, CLOSE_TO);
 
   return (
-    <RouteModal closeTo={CLOSE_TO} label="Staff">
+    <RouteModal closeTo={CLOSE_TO} label="Staff" busy={busy} closing={closing}>
       <ServerFormProvider methods={methods}>
         <fetcher.Form
           ref={formRef}

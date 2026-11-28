@@ -96,7 +96,12 @@ export async function schoolAction(
   // 2026-11-28): staff may add and change branches, the team, the profile
   // and the logo, from the console. Students, the price and the bank stay
   // the school's alone (the database refuses staff on students too).
-  const myRole = await getMySchoolRole(supabase, schoolId, caller.userId);
+  // The caller's place, the form and the school, read at once.
+  const [myRole, formData, school] = await Promise.all([
+    getMySchoolRole(supabase, schoolId, caller.userId),
+    request.formData(),
+    getSchool(supabase, schoolId),
+  ]);
   const asStaff = !myRole && isStaffRole(caller.role);
   if (!myRole && !asStaff) {
     return dataWithError(
@@ -105,7 +110,6 @@ export async function schoolAction(
       { status: 403, headers },
     );
   }
-  const formData = await request.formData();
   const intent = readFormIntent(formData);
   if (asStaff && !STAFF_INTENTS.has(intent ?? "")) {
     return dataWithError(
@@ -116,14 +120,16 @@ export async function schoolAction(
   }
   // While a school is being set up, nobody is emailed: its admins hear
   // about it when it is handed over (`emailHeldInvites`).
-  const school = await getSchool(supabase, schoolId);
   const inSetup = school?.status === "setup";
   const origin = originOf(request);
   const schoolName = async () => school?.name ?? "Your driving school";
 
   const reply = (result: Result<unknown>, message: string) =>
     result.error
-      ? dataWithError({ ok: false as const }, result.error, { headers })
+      ? dataWithError({ ok: false as const }, result.error, {
+          status: 400,
+          headers,
+        })
       : dataWithSuccess({ ok: true as const }, message, { headers });
 
   // Forms with fields: the honeypot, then the same schema the browser used.
@@ -136,7 +142,7 @@ export async function schoolAction(
       return dataWithError(
         { ok: false as const, errors: validated.errors },
         "Check the highlighted fields.",
-        { headers },
+        { status: 400, headers },
       );
     }
     return reply(await run(validated.data), message);
@@ -246,7 +252,7 @@ export async function schoolAction(
         return dataWithError(
           { ok: false as const, errors: validated.errors },
           "Check the highlighted fields.",
-          { headers },
+          { status: 400, headers },
         );
       }
       const v = validated.data;
@@ -260,7 +266,10 @@ export async function schoolAction(
       }
       const made = await makeSubaccount(v);
       if (!made.ok) {
-        return dataWithError({ ok: false as const }, made.message, { headers });
+        return dataWithError({ ok: false as const }, made.message, {
+          status: 400,
+          headers,
+        });
       }
       const recorded = await requestSchoolBank({
         schoolId,
@@ -297,7 +306,7 @@ export async function schoolAction(
         return dataWithError(
           { ok: false as const },
           parsed.error.issues[0]?.message ?? "Choose a picture.",
-          { headers },
+          { status: 400, headers },
         );
       }
       if (
@@ -370,7 +379,7 @@ export async function schoolAction(
         return dataWithError(
           { ok: false as const },
           "Nothing is sent while the school is being set up: invites go out when it is handed over.",
-          { headers },
+          { status: 400, headers },
         );
       }
       const sent = await schools.resendMemberInvite(supabase, v.inviteId);

@@ -81,72 +81,81 @@ export async function getConsoleSchool(
   supabase: TypedSupabaseClient,
   schoolId: string,
 ) {
-  const school = orThrow(
-    await supabase
+  // At most two round trips: the school and everything about it at once,
+  // then the owner's email once their id is known (in the same batch).
+  const [
+    school,
+    ownerEmail,
+    invite,
+    liveries,
+    sponsorships,
+    branches,
+    profile,
+    payments,
+  ] = await Promise.all([
+    supabase
       .from("schools")
       .select("id, name, slug, status, created_at")
       .eq("id", schoolId)
-      .maybeSingle(),
-  );
+      .maybeSingle()
+      .then(orThrow),
+    supabase
+      .from("school_members")
+      .select("user_id")
+      .eq("school_id", schoolId)
+      .eq("role", "owner")
+      .maybeSingle()
+      .then(orThrow)
+      .then(async (owner) =>
+        owner
+          ? (orThrow(
+              await supabase
+                .from("profiles")
+                .select("email")
+                .eq("id", owner.user_id)
+                .maybeSingle(),
+            )?.email ?? null)
+          : null,
+      ),
+    supabase
+      .from("school_member_invites")
+      .select("email, expires_at")
+      .eq("school_id", schoolId)
+      .eq("role", "owner")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(orThrow),
+    supabase
+      .from("school_liveries")
+      .select("id, status, label, created_at, published_at")
+      .eq("school_id", schoolId)
+      .order("created_at", { ascending: false })
+      .then(orThrow),
+    supabase
+      .from("school_sponsorships")
+      .select("id, starts_on, ends_on, note")
+      .eq("school_id", schoolId)
+      .order("starts_on", { ascending: false })
+      .then(orThrow),
+    supabase
+      .from("school_branches")
+      .select("is_active")
+      .eq("school_id", schoolId)
+      .then(orThrow),
+    supabase
+      .from("school_profiles")
+      .select("tagline, about, logo, logo_mono")
+      .eq("school_id", schoolId)
+      .maybeSingle()
+      .then(orThrow),
+    supabase
+      .rpc("school_pass_info", { p_school_id: schoolId })
+      .then(orThrow)
+      .then((rows) => rows[0] ?? null),
+  ]);
   if (!school) return null;
-
-  const [owner, invite, liveries, sponsorships, branches, profile, payments] =
-    await Promise.all([
-      supabase
-        .from("school_members")
-        .select("user_id")
-        .eq("school_id", schoolId)
-        .eq("role", "owner")
-        .maybeSingle()
-        .then(orThrow),
-      supabase
-        .from("school_member_invites")
-        .select("email, expires_at")
-        .eq("school_id", schoolId)
-        .eq("role", "owner")
-        .eq("status", "pending")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle()
-        .then(orThrow),
-      supabase
-        .from("school_liveries")
-        .select("id, status, label, created_at, published_at")
-        .eq("school_id", schoolId)
-        .order("created_at", { ascending: false })
-        .then(orThrow),
-      supabase
-        .from("school_sponsorships")
-        .select("id, starts_on, ends_on, note")
-        .eq("school_id", schoolId)
-        .order("starts_on", { ascending: false })
-        .then(orThrow),
-      supabase
-        .from("school_branches")
-        .select("is_active")
-        .eq("school_id", schoolId)
-        .then(orThrow),
-      supabase
-        .from("school_profiles")
-        .select("tagline, about, logo, logo_mono")
-        .eq("school_id", schoolId)
-        .maybeSingle()
-        .then(orThrow),
-      supabase
-        .rpc("school_pass_info", { p_school_id: schoolId })
-        .then(orThrow)
-        .then((rows) => rows[0] ?? null),
-    ]);
-
-  const ownerEmail = owner
-    ? (orThrow(
-        await supabase
-          .from("profiles")
-          .select("email")
-          .eq("id", owner.user_id)
-          .maybeSingle(),
-      )?.email ?? null)
-    : null;
 
   const ready = schoolReadiness({
     logo: profile?.logo,
