@@ -1,5 +1,6 @@
 /**
- * The strip above a list: the search on its own line, the filters under it,
+ * The strip above a list: the search on its own line, the filters under it
+ * (two a row on a phone, an odd last one across both),
  * then the count and "Clear filters" (only when something is set).
  */
 import type * as React from "react";
@@ -29,7 +30,7 @@ export function FilterBar({
     <div className="flex flex-col gap-2">
       {search}
       {children ? (
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))] gap-2 sm:auto-cols-[minmax(10rem,16rem)] sm:grid-flow-col sm:grid-cols-none sm:justify-start">
+        <div className="grid grid-cols-2 gap-2 *:last:odd:col-span-2 sm:auto-cols-[minmax(10rem,16rem)] sm:grid-flow-col sm:grid-cols-none sm:justify-start sm:*:last:odd:col-span-1">
           {children}
         </div>
       ) : null}

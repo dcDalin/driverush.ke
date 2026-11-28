@@ -126,11 +126,20 @@ export function SchoolList({ schools }: { schools: ConsoleSchoolRow[] }) {
                     <Badge variant="blue">sponsoring</Badge>
                   ) : null}
                 </ItemTitle>
-                <ItemDescription>
-                  /{school.slug} · {ownerLine(school)} ·{" "}
-                  {count(school.branches, "branch", "branches")} ·{" "}
-                  {count(school.admins, "admin")} ·{" "}
-                  {count(school.students, "student")} this month
+                {/* Each part wraps whole on a phone, never mid-phrase. */}
+                <ItemDescription className="flex flex-wrap gap-x-1">
+                  {[
+                    `/${school.slug}`,
+                    ownerLine(school),
+                    count(school.branches, "branch", "branches"),
+                    count(school.admins, "admin"),
+                    `${count(school.students, "student")} this month`,
+                  ].map((part, i) => (
+                    <span key={i} className="max-w-full truncate">
+                      {i > 0 ? "· " : ""}
+                      {part}
+                    </span>
+                  ))}
                 </ItemDescription>
               </ItemContent>
               <ItemActions>

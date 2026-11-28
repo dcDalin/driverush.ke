@@ -156,7 +156,7 @@ export function BranchList({ students: sp }: { students: StudentParams }) {
                     {r.branch.town || "No town"}
                   </span>
                   {/* On a phone the counts sit here, so Edit stays in view. */}
-                  <span className="flex flex-wrap gap-x-1.5 text-[12.5px] text-ink-2 sm:hidden">
+                  <span className="flex flex-wrap gap-x-1 text-[12.5px] text-ink-2 sm:hidden">
                     {[
                       `${r.admins} admins`,
                       `${r.active} students`,
