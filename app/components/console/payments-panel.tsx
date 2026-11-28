@@ -60,16 +60,21 @@ export function BankRequests({ requests }: { requests: BankRequest[] }) {
         <AlertDescription>
           <ul className="m-0 flex list-none flex-col gap-1 p-0">
             {requests.map((r) => (
-              <li key={r.school_id}>
+              <li key={r.school_id} className="flex flex-wrap gap-x-1">
                 <Link
                   to={`/console/schools/${r.school_id}/payments`}
                   className="font-semibold underline underline-offset-2"
                 >
                   {r.school_name}
-                </Link>{" "}
-                · {r.pending_bank_label}
-                {r.pending_account_name ? ` (${r.pending_account_name})` : ""} ·
-                sent {DAY.format(new Date(r.requested_at))}
+                </Link>
+                <Parts
+                  parts={[
+                    r.pending_bank_label,
+                    r.pending_account_name ?? "",
+                    `sent ${DAY.format(new Date(r.requested_at))}`,
+                  ]}
+                  first={false}
+                />
               </li>
             ))}
           </ul>
@@ -89,9 +94,11 @@ function Total({
   note?: string;
 }) {
   return (
-    <div className="flex flex-col gap-1 rounded-lg border border-line bg-surface p-4">
+    <div className="flex flex-col gap-0.5 rounded-lg border border-line bg-surface p-3 sm:gap-1 sm:p-4">
       <span className="text-[13px] text-ink-3">{label}</span>
-      <span className="font-display text-[22px] font-bold">{value}</span>
+      <span className="font-display text-[19px] font-bold sm:text-[22px]">
+        {value}
+      </span>
       {note ? <span className="text-[13px] text-ink-3">{note}</span> : null}
     </div>
   );
@@ -119,11 +126,13 @@ export function PaymentTotalsGrid({ totals }: { totals: PaymentTotals[] }) {
             <Total
               label="Paystack fees"
               value={kes(Math.round(Number(t.fees_kes)))}
-              note="On school passes, the school's share pays it"
             />
           </div>
         </section>
       ))}
+      <p className="m-0 text-[13px] text-ink-3">
+        On a school pass, Paystack's fee comes out of the school's share.
+      </p>
     </div>
   );
 }
@@ -219,6 +228,16 @@ export function PaymentList({
   );
 }
 
+/** Parts of a line, each wrapping whole on a phone, never mid-phrase. */
+function Parts({ parts, first = true }: { parts: string[]; first?: boolean }) {
+  return parts.filter(Boolean).map((part, i) => (
+    <span key={i} className="max-w-full truncate">
+      {i > 0 || !first ? "· " : ""}
+      {part}
+    </span>
+  ));
+}
+
 function PaymentRowContent({ row }: { row: PaymentRow }) {
   return (
     <>
@@ -233,15 +252,22 @@ function PaymentRowContent({ row }: { row: PaymentRow }) {
             {PLAN_LABEL[row.plan_code] ?? row.plan_code}
           </span>
         </ItemTitle>
-        <ItemDescription>
-          {DAY.format(new Date(row.settled_at ?? row.created_at))} ·{" "}
-          {row.payer_email ?? "Deleted account"}
-          {row.school_name
-            ? ` · ${row.school_name}: school ${kes(row.school_share_kes)}, DriveRush ${kes(row.driverush_share_kes)}`
-            : ""}
-          {row.fee_kes ? ` · fee ${kes(Math.round(Number(row.fee_kes)))}` : ""}
-          {" · "}
-          <span className="font-mono">{row.provider_ref}</span>
+        <ItemDescription className="flex flex-wrap gap-x-1">
+          <Parts
+            parts={[
+              DAY.format(new Date(row.settled_at ?? row.created_at)),
+              row.payer_email ?? "Deleted account",
+              row.school_name ?? "",
+              row.school_name ? `school ${kes(row.school_share_kes)}` : "",
+              row.school_name
+                ? `DriveRush ${kes(row.driverush_share_kes)}`
+                : "",
+              row.fee_kes ? `fee ${kes(Math.round(Number(row.fee_kes)))}` : "",
+            ]}
+          />
+          <span className="max-w-full truncate">
+            · <span className="font-mono">{row.provider_ref}</span>
+          </span>
         </ItemDescription>
       </ItemContent>
       {row.school_id ? (
