@@ -7,7 +7,7 @@
 import sharp from "sharp";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { action, loader } from "~/routes/school-dashboard";
+import { action, loader } from "~/routes/layouts/school-layout";
 
 import { anonClient, serviceClient } from "../db/helpers";
 import {

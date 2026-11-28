@@ -1,7 +1,8 @@
 /**
- * The console's frame (thinkrush `admin-layout` + `sidebar`): a side menu
+ * The dashboard frame shared by the console and a school's dashboard
+ * (thinkrush `admin-layout` + `sidebar`): a side menu
  * that stays put on a wide screen and slides in from a button on a phone, a
- * top bar that says where you are, and the page primitives every console
+ * top bar that says where you are, and the page primitives every dashboard
  * page is built from (`PageHeader`, `Section`, `StatTile`), so spacing and
  * type stay the same from page to page.
  */
@@ -31,28 +32,100 @@ import {
 } from "~/components/ui/sheet";
 import { signOut, useSession } from "~/lib/auth/session";
 import { whoIs } from "~/lib/auth/who-is";
-import {
-  type ConsoleBadges,
-  consoleNavFor,
-  type ConsolePage,
-  consolePageAt,
-} from "~/lib/console/nav";
+import { type ConsoleBadges, consoleNavFor } from "~/lib/console/nav";
 import { cn } from "~/lib/utils";
 
+/** One page in a dashboard's side menu. */
+export type DashPage = {
+  id: string;
+  label: string;
+  to: string;
+  icon: IconDef;
+  /** One line for the menu's tooltip. */
+  description: string;
+  /** A count beside the item: what is waiting for someone. */
+  badge?: number;
+};
+
+export type DashGroup = { label: string | null; pages: DashPage[] };
+
+/** The page a path belongs to: the longest `to` it is at or under. */
+export function dashPageAt(
+  groups: DashGroup[],
+  home: string,
+  pathname: string,
+): DashPage | null {
+  const path = pathname.replace(/\/+$/, "") || "/";
+  let best: DashPage | null = null;
+  for (const page of groups.flatMap((group) => group.pages)) {
+    const under =
+      page.to === home
+        ? path === home
+        : path === page.to || path.startsWith(`${page.to}/`);
+    if (under && (!best || page.to.length > best.to.length)) best = page;
+  }
+  return best;
+}
+
 type ShellProps = {
-  su: boolean;
-  badges: ConsoleBadges;
+  /** The dashboard's first page, and what the breadcrumb starts with. */
+  home: string;
+  /** The breadcrumb's first word: "Console", or the school's name. */
+  title: string;
+  /** The small tag beside the logo. */
+  tag: string;
+  groups: DashGroup[];
+  /** Under the person's name in the menu's foot. */
+  roleLabel: string;
   children: React.ReactNode;
 };
 
-export function ConsoleShell({ su, badges, children }: ShellProps) {
+/** The console's frame: its own menu for this person, with live badges. */
+export function ConsoleShell({
+  su,
+  badges,
+  children,
+}: {
+  su: boolean;
+  badges: ConsoleBadges;
+  children: React.ReactNode;
+}) {
+  const groups: DashGroup[] = consoleNavFor(su).map((group) => ({
+    label: group.label,
+    pages: group.pages.map((page) => ({
+      ...page,
+      badge: page.badge ? badges[page.badge] : 0,
+    })),
+  }));
+  return (
+    <DashShell
+      home="/console"
+      title="Console"
+      tag="Console"
+      groups={groups}
+      roleLabel={su ? "DriveRush su" : "DriveRush admin"}
+    >
+      {children}
+    </DashShell>
+  );
+}
+
+export function DashShell({
+  home,
+  title,
+  tag,
+  groups,
+  roleLabel,
+  children,
+}: ShellProps) {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const { pathname } = useLocation();
-  const here = consolePageAt(pathname);
+  const here = dashPageAt(groups, home, pathname);
+  const menu = { home, tag, groups, roleLabel, here };
   return (
     <div className="min-h-screen overflow-x-clip bg-paper-2 text-ink">
       <aside className="hidden border-r border-line bg-surface lg:fixed lg:inset-y-0 lg:z-30 lg:flex lg:w-60 lg:flex-col">
-        <SideMenu su={su} badges={badges} here={here} />
+        <SideMenu {...menu} />
       </aside>
       <div className="lg:pl-60">
         <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-line bg-surface/90 px-4 backdrop-blur sm:px-6">
@@ -62,30 +135,25 @@ export function ConsoleShell({ su, badges, children }: ShellProps) {
                 variant="paper"
                 size="icon-sm"
                 className="lg:hidden"
-                aria-label="Open the console menu"
+                aria-label="Open the menu"
               >
                 <Icon icon={MenuIcon} size={16} />
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-72 p-0">
               <SheetHeader className="sr-only">
-                <SheetTitle>Console menu</SheetTitle>
+                <SheetTitle>Menu</SheetTitle>
               </SheetHeader>
               <SheetBody className="flex h-full flex-col p-0">
-                <SideMenu
-                  su={su}
-                  badges={badges}
-                  here={here}
-                  onGo={() => setMenuOpen(false)}
-                />
+                <SideMenu {...menu} onGo={() => setMenuOpen(false)} />
               </SheetBody>
             </SheetContent>
           </Sheet>
           <p className="m-0 flex min-w-0 items-center gap-2 text-[13px] text-ink-3">
-            <Link to="/console" className="hover:text-ink">
-              Console
+            <Link to={home} className="truncate hover:text-ink">
+              {title}
             </Link>
-            {here && here.to !== "/console" ? (
+            {here && here.to !== home ? (
               <>
                 <span aria-hidden>/</span>
                 <Link
@@ -116,34 +184,38 @@ export function ConsoleShell({ su, badges, children }: ShellProps) {
 }
 
 function SideMenu({
-  su,
-  badges,
+  home,
+  tag,
+  groups,
+  roleLabel,
   here,
   onGo,
 }: {
-  su: boolean;
-  badges: ConsoleBadges;
-  here: ConsolePage | null;
+  home: string;
+  tag: string;
+  groups: DashGroup[];
+  roleLabel: string;
+  here: DashPage | null;
   onGo?: () => void;
 }) {
   return (
     <div className="flex h-full flex-col">
       <Link
-        to="/console"
+        to={home}
         onClick={onGo}
-        aria-label="Console overview"
+        aria-label={`${tag} overview`}
         className="flex h-14 shrink-0 items-center gap-2.5 border-b border-line px-4 outline-none"
       >
         <Logo variant="plain" height={26} tight themed />
         <span className="rounded-md border border-line px-1.5 py-0.5 text-[10px] font-semibold tracking-[0.12em] text-ink-3 uppercase">
-          Console
+          {tag}
         </span>
       </Link>
       <nav
-        aria-label="Console"
+        aria-label={tag}
         className="flex flex-1 flex-col gap-4 overflow-y-auto px-2 py-4"
       >
-        {consoleNavFor(su).map((group) => (
+        {groups.map((group) => (
           <div key={group.label ?? "top"} className="flex flex-col gap-0.5">
             {group.label ? (
               <p className="m-0 px-3 pb-1 text-[10px] font-semibold tracking-[0.12em] text-ink-3 uppercase">
@@ -152,12 +224,12 @@ function SideMenu({
             ) : null}
             {group.pages.map((page) => {
               const active = here?.id === page.id;
-              const waiting = page.badge ? badges[page.badge] : 0;
+              const waiting = page.badge ?? 0;
               return (
                 <NavLink
                   key={page.id}
                   to={page.to}
-                  end={page.to === "/console"}
+                  end={page.to === home}
                   onClick={onGo}
                   prefetch="intent"
                   title={page.description}
@@ -193,12 +265,12 @@ function SideMenu({
           </div>
         ))}
       </nav>
-      <AccountFooter su={su} />
+      <AccountFooter roleLabel={roleLabel} />
     </div>
   );
 }
 
-function AccountFooter({ su }: { su: boolean }) {
+function AccountFooter({ roleLabel }: { roleLabel: string }) {
   const session = useSession();
   const [busy, setBusy] = React.useState(false);
   const who = session.status === "signed-in" ? whoIs(session.user) : null;
@@ -215,9 +287,7 @@ function AccountFooter({ su }: { su: boolean }) {
         <p className="m-0 truncate text-[13px] font-semibold text-ink">
           {who?.fullName ?? email ?? "Signed in"}
         </p>
-        <p className="m-0 truncate text-[11.5px] text-ink-3">
-          {su ? "DriveRush su" : "DriveRush admin"}
-        </p>
+        <p className="m-0 truncate text-[11.5px] text-ink-3">{roleLabel}</p>
       </div>
       <Button
         type="button"

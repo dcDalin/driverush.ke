@@ -87,7 +87,13 @@ remix-hook-form, shadcn everywhere. Guides: `docs/forms-and-data.md`,
   `app/lib/board/paywall.ts` says what is locked (past level 16, a second
   mock test) and `use-paywall.ts` asks it in the game and the level lists,
   only when the build has `VITE_PASSES=on` (the owner's launch switch).
-- `/school/:schoolId` (owners, branch admins). The console (`/console`,
+- `/school/:schoolId` (owners, branch admins) is a dashboard on the same
+  frame as the console (`DashShell`): `layouts/school-layout.tsx` reads
+  everything once (`lib/school/load.server.ts`), the pages under it
+  (`routes/school/`: overview, students, passes, team, branches, profile)
+  have no loader and read it through `useSchool()`, every action hands to
+  `lib/school/action.server.ts`, and the add forms are modal routes
+  (`students/add`, `team/add`, `branches/add`). The console (`/console`,
   staff) is a dashboard like thinkrush's admin: `layouts/console-layout.tsx`
   (side menu from `lib/console/nav.ts`, top bar) around one page per
   section (`routes/console/`: overview, schools, payments, staff), built

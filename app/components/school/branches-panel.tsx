@@ -1,5 +1,6 @@
 /**
- * The owner's branches: add one, rename or move it, close or reopen it. A
+ * The owner's branches ("Add branch" is the `branches/add` modal route):
+ * rename or move one, close or reopen it. A
  * closed branch keeps its students' history but takes no new students.
  */
 import { HoneypotInputs } from "remix-utils/honeypot/react";
@@ -12,7 +13,7 @@ import {
   SwitchField,
 } from "~/components/ui/forms/server";
 import { useServerForm } from "~/lib/forms/use-server-form";
-import { AddBranchSchema, UpdateBranchSchema } from "~/schemas/school";
+import { UpdateBranchSchema } from "~/schemas/school";
 
 type Branch = {
   id: string;
@@ -24,9 +25,12 @@ type Branch = {
 export function BranchesPanel({ branches }: { branches: Branch[] }) {
   return (
     <section className="flex flex-col gap-4">
-      <h2 className="font-display text-[20px] font-bold">Branches</h2>
-      <AddBranch />
-      {branches.length > 0 && (
+      <h2 className="sr-only">Branches</h2>
+      {branches.length === 0 ? (
+        <p className="m-0 rounded-lg border border-dashed border-line px-4 py-8 text-center text-[14px] text-ink-3">
+          No branch yet. Add your first one, then add students to it.
+        </p>
+      ) : (
         <ul className="flex flex-col divide-y divide-line rounded-lg border border-line bg-surface">
           {branches.map((b) => (
             // Keyed by what it shows, so a saved branch starts from its new values.
@@ -38,50 +42,6 @@ export function BranchesPanel({ branches }: { branches: Branch[] }) {
         </ul>
       )}
     </section>
-  );
-}
-
-function AddBranch() {
-  const { methods, fetcher, formRef, busy } = useServerForm({
-    schema: AddBranchSchema,
-    key: "add-branch",
-    resetOnSuccess: true,
-    defaultValues: { intent: "add-branch", name: "", town: "" },
-  });
-  return (
-    <ServerFormProvider methods={methods}>
-      <fetcher.Form
-        ref={formRef}
-        method="post"
-        onSubmit={methods.handleSubmit}
-        noValidate
-        className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4 sm:flex-row sm:items-start"
-      >
-        <HoneypotInputs />
-        <InputField
-          name="name"
-          label="Branch name"
-          className="flex-1"
-          disabled={busy}
-          inputProps={{ placeholder: "Nairobi CBD" }}
-        />
-        <InputField
-          name="town"
-          label="Town"
-          className="flex-1"
-          disabled={busy}
-          inputProps={{ placeholder: "Nairobi" }}
-        />
-        <Button
-          type="submit"
-          variant="rush"
-          isLoading={busy}
-          className="sm:mt-6"
-        >
-          Add branch
-        </Button>
-      </fetcher.Form>
-    </ServerFormProvider>
   );
 }
 

@@ -6,7 +6,7 @@
  */
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { action, loader } from "~/routes/school-dashboard";
+import { action, loader } from "~/routes/layouts/school-layout";
 
 import { seededBranchId, serviceClient } from "../db/helpers";
 import {

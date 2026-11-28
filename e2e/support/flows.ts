@@ -96,6 +96,11 @@ export async function resetPassword(
  * next step must not start before that page has loaded.
  */
 export async function signOut(page: Page) {
+  // A dashboard (school, console) has its own frame, with sign-out in the
+  // menu's foot and no account button: sign out from a page of the site.
+  if (/\/(school|console)(\/|$)/.test(new URL(page.url()).pathname)) {
+    await page.goto("/guides");
+  }
   await accountButton(page, "Your account").click();
   const reloaded = page.waitForEvent("load");
   await page.getByRole("button", { name: "Sign out" }).click();

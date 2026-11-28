@@ -1,13 +1,12 @@
 /**
- * A school's students: add one by email to a branch (they are emailed), and
+ * A school's students ("Add student" is the `students/add` modal route):
  * find anyone added: search by name or email, filter by branch and by where
  * they are (with you this month, has a pass, no pass, waiting to join), a
- * page at a time. Everything is in the address (`?tab=students&sq=&sbranch=
- * &sstatus=&spage=`), so a reload or a shared link keeps the view. A
+ * page at a time. Everything is in the address (`?sq=&sbranch=&sstatus=
+ * &spage=`), so a reload or a shared link keeps the view. A
  * student's progress and pass show while their month runs.
  */
 import * as React from "react";
-import { HoneypotInputs } from "remix-utils/honeypot/react";
 
 import { FilterBar } from "~/components/list/filter-bar";
 import { FilterSelect } from "~/components/list/filter-select";
@@ -15,11 +14,6 @@ import { PaginationBar } from "~/components/list/pagination-bar";
 import { SearchInput } from "~/components/list/search-input";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import {
-  InputField,
-  SelectField,
-  ServerFormProvider,
-} from "~/components/ui/forms/server";
 import {
   Select,
   SelectContent,
@@ -29,7 +23,6 @@ import {
 } from "~/components/ui/select";
 import type { StudentRow } from "~/database/schools/dashboard";
 import { useInlineAction } from "~/lib/forms/use-inline-action";
-import { useServerForm } from "~/lib/forms/use-server-form";
 import {
   ALL,
   filterStudents,
@@ -38,7 +31,6 @@ import {
   STUDENTS_PAGE_SIZE,
 } from "~/lib/school/student-filters";
 import { pageFrom, useListParams } from "~/lib/ui/use-list-params";
-import { AddStudentSchema } from "~/schemas/school";
 
 type Branch = { id: string; name: string; is_active: boolean };
 
@@ -76,14 +68,6 @@ export function StudentsPanel({
   return (
     <section className="flex flex-col gap-4">
       <h2 className="sr-only">Students</h2>
-      {open.length > 0 ? (
-        <AddStudent branches={open} />
-      ) : (
-        <p className="text-[14px] text-ink-3">
-          Add a branch first, then add students to it.
-        </p>
-      )}
-
       {students.length > 0 ? (
         <FilterBar
           params={["sq", "sbranch", "sstatus"]}
@@ -149,58 +133,6 @@ export function StudentsPanel({
         </>
       )}
     </section>
-  );
-}
-
-function AddStudent({ branches }: { branches: Branch[] }) {
-  const { methods, fetcher, formRef, busy } = useServerForm({
-    schema: AddStudentSchema,
-    key: "add-student",
-    resetOnSuccess: true,
-    defaultValues: {
-      intent: "add-student",
-      email: "",
-      branchId: branches[0]?.id ?? "",
-    },
-  });
-  return (
-    <ServerFormProvider methods={methods}>
-      <fetcher.Form
-        ref={formRef}
-        method="post"
-        onSubmit={methods.handleSubmit}
-        noValidate
-        className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4 sm:flex-row sm:items-start"
-      >
-        <HoneypotInputs />
-        <InputField
-          name="email"
-          label="Student's email"
-          className="flex-1"
-          disabled={busy}
-          inputProps={{
-            type: "email",
-            inputMode: "email",
-            placeholder: "name@gmail.com",
-          }}
-        />
-        <SelectField
-          name="branchId"
-          label="Branch"
-          disabled={busy}
-          triggerClassName="w-48"
-          options={branches.map((b) => ({ label: b.name, value: b.id }))}
-        />
-        <Button
-          type="submit"
-          variant="rush"
-          isLoading={busy}
-          className="sm:mt-6"
-        >
-          Add student
-        </Button>
-      </fetcher.Form>
-    </ServerFormProvider>
   );
 }
 

@@ -22,7 +22,7 @@ import { action as consoleAction } from "~/routes/console/schools";
 import {
   action as dashboardAction,
   loader as dashboardLoader,
-} from "~/routes/school-dashboard";
+} from "~/routes/layouts/school-layout";
 
 import { serviceClient } from "../db/helpers";
 import {

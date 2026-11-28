@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 import {
   accountButton,
@@ -7,6 +7,16 @@ import {
   signOut,
   signUp,
 } from "../support/flows";
+
+/** "Add student" from the overview: a modal route over the students list. */
+async function addStudent(page: Page, email: string) {
+  await page.getByRole("link", { name: "Add student" }).click();
+  await expect(page).toHaveURL(/\/students\/add$/);
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Student's email").fill(email);
+  await dialog.getByRole("button", { name: "Add student" }).click();
+  await expect(page.getByText("Student added.")).toBeVisible();
+}
 
 test("the owner adds a student; a branch admin sees only their branch", async ({
   page,
@@ -19,18 +29,19 @@ test("the owner adds a student; a branch admin sees only their branch", async ({
   ).toBeVisible();
 
   const email = freshEmail("student");
-  await page.getByLabel("Student's email").fill(email);
-  await page.getByRole("button", { name: "Add student" }).click();
-  await expect(page.getByText("Student added.")).toBeVisible();
+  await addStudent(page, email);
+  // The modal closes back to the list, which now shows them.
+  await expect(page).toHaveURL(/\/students$/);
   await expect(page.getByText(email)).toBeVisible();
-  await expect(page.getByLabel("Student's email")).toHaveValue("");
   await signOut(page);
 
   await signInWithPassword(page, "westlands.admin@heltz.test");
   await page.goto("/school");
-  // A branch admin's dashboard: Students and Passes, no Team tab.
-  await expect(page.getByRole("tab", { name: "Team" })).toHaveCount(0);
-  await expect(page.getByRole("tab", { name: "Passes" })).toBeVisible();
+  // A branch admin's menu: Students and Passes, no Team.
+  const menu = page.getByRole("navigation", { name: "School" });
+  await expect(menu.getByRole("link", { name: "Team" })).toHaveCount(0);
+  await expect(menu.getByRole("link", { name: "Passes" })).toBeVisible();
+  await menu.getByRole("link", { name: "Students" }).click();
   await expect(page.getByText(email)).toHaveCount(0);
   await expect(page.getByText("brian@learner.test")).toBeVisible();
 });
@@ -42,9 +53,7 @@ test("a learner added by a school wears its livery once they sign up", async ({
   await page.goto("/guides");
   await signInWithPassword(page, "owner@heltz.test");
   await page.goto("/school");
-  await page.getByLabel("Student's email").fill(email);
-  await page.getByRole("button", { name: "Add student" }).click();
-  await expect(page.getByText("Student added.")).toBeVisible();
+  await addStudent(page, email);
   await signOut(page);
 
   await signUp(page, email);
@@ -72,15 +81,17 @@ test("an owner reaches their school from the account menu, finds a student and s
   ).toBeVisible();
 
   // Search, kept in the address.
+  const menu = page.getByRole("navigation", { name: "School" });
+  await menu.getByRole("link", { name: "Students" }).click();
   await page.getByLabel("Search by name or email").fill("amina");
   await expect(page).toHaveURL(/sq=amina/);
   await expect(page.getByText("amina@learner.test")).toBeVisible();
   await expect(page.getByText("brian@learner.test")).toHaveCount(0);
   await expect(page.getByText(/Paid through you until/)).toBeVisible();
 
-  // Tabs, kept in the address too: a reload stays on Passes.
-  await page.getByRole("tab", { name: "Passes" }).click();
-  await expect(page).toHaveURL(/tab=passes/);
+  // Each section is its own page: a reload stays on Passes.
+  await menu.getByRole("link", { name: "Passes" }).click();
+  await expect(page).toHaveURL(/\/passes$/);
   await page.reload();
   await expect(
     page.getByText("https://driverush.ke/pass?code=HELTZ"),

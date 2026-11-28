@@ -10,7 +10,8 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const ROUTES = path.resolve(__dirname, "../../routes");
-const GATED = /^(school-|console|pass|api\/)/;
+const GATED =
+  /^(school[-/]|console|pass|api\/|layouts\/(console|school)-layout)/;
 /**
  * Public on purpose: the same answer for everyone, guests included, and
  * cached by the CDN. Nothing here reads a session.

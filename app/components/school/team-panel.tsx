@@ -2,7 +2,8 @@
  * The owner's view of the school's team: the owner, up to 50 admins (each tied
  * to one or more branches), and admins invited by an email that has not
  * signed up yet (they count toward the 50; their email can be sent again).
- * Everyone added is emailed a link to the dashboard.
+ * Everyone added is emailed a link to the dashboard. "Add admin" is the
+ * `team/add` modal route.
  */
 import { HoneypotInputs } from "remix-utils/honeypot/react";
 
@@ -10,14 +11,13 @@ import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
   CheckboxGroupField,
-  InputField,
   ServerFormProvider,
 } from "~/components/ui/forms/server";
 import type { SchoolDashboard } from "~/database/schools/dashboard";
 import { useInlineAction } from "~/lib/forms/use-inline-action";
 import { useServerForm } from "~/lib/forms/use-server-form";
 import { MAX_SENDS } from "~/lib/school/student-filters";
-import { AddAdminSchema, SetAdminBranchesSchema } from "~/schemas/school";
+import { SetAdminBranchesSchema } from "~/schemas/school";
 
 type Branch = { id: string; name: string };
 type Member = SchoolDashboard["team"][number];
@@ -50,18 +50,10 @@ export function TeamPanel({
       .join(", ");
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex items-end justify-between gap-3">
-        <h2 className="font-display text-[20px] font-bold">Team</h2>
-        <p className="text-[13px] text-ink-3">
-          {admins} of {MAX_ADMINS} admins
-        </p>
-      </div>
-      {branches.length > 0 && admins < MAX_ADMINS && (
-        <AddAdmin
-          options={options}
-          onlyBranch={branches.length === 1 ? branches[0]?.id : undefined}
-        />
-      )}
+      <h2 className="sr-only">Team</h2>
+      <p className="m-0 text-[13px] text-ink-3">
+        {admins} of {MAX_ADMINS} admins
+      </p>
       <ul className="flex flex-col divide-y divide-line rounded-lg border border-line bg-surface">
         {team.map((m) => (
           <MemberItem
@@ -76,62 +68,6 @@ export function TeamPanel({
         ))}
       </ul>
     </section>
-  );
-}
-
-function AddAdmin({
-  options,
-  onlyBranch,
-}: {
-  options: { label: string; value: string }[];
-  onlyBranch?: string;
-}) {
-  const { methods, fetcher, formRef, busy } = useServerForm({
-    schema: AddAdminSchema,
-    key: "add-admin",
-    resetOnSuccess: true,
-    defaultValues: {
-      intent: "add-admin",
-      email: "",
-      branchIds: onlyBranch ? [onlyBranch] : [],
-    },
-  });
-  return (
-    <ServerFormProvider methods={methods}>
-      <fetcher.Form
-        ref={formRef}
-        method="post"
-        onSubmit={methods.handleSubmit}
-        noValidate
-        className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4"
-      >
-        <HoneypotInputs />
-        <InputField
-          name="email"
-          label="Admin's email"
-          disabled={busy}
-          inputProps={{
-            type: "email",
-            inputMode: "email",
-            placeholder: "name@school.co.ke",
-          }}
-        />
-        <CheckboxGroupField
-          name="branchIds"
-          label="Branches"
-          options={options}
-          disabled={busy}
-        />
-        <Button
-          type="submit"
-          variant="rush"
-          className="self-start"
-          isLoading={busy}
-        >
-          Add admin
-        </Button>
-      </fetcher.Form>
-    </ServerFormProvider>
   );
 }
 

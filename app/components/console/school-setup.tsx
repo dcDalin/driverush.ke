@@ -150,7 +150,7 @@ export function SetupChecklist({ school }: { school: ConsoleSchool }) {
           />
         </ul>
         <Button variant="paper" asChild className="self-start">
-          <Link to={`/school/${school.school.id}?tab=profile`}>
+          <Link to={`/school/${school.school.id}/profile`}>
             Edit profile and branches
             <Icon icon={ArrowOutIcon} size={16} />
           </Link>

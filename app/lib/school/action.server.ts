@@ -1,67 +1,25 @@
 /**
- * `/school/:schoolId`: a driving school's dashboard, as tabs kept in the
- * address (`?tab=team`):
+ * Every change a school's dashboard makes, shared by its frame and each page
+ * under it (`/school/:schoolId/...`): a form posts to the page it is on, and
+ * each route's action opens with `requireUser`, then hands over to this.
  *
- *   Students  everyone the school has added, in the branches the person works
- *             in (the owner and DriveRush staff see every branch), with their
- *             progress while their month runs and whether they have a pass.
- *             Search, filter and pages; add by email (they are emailed),
- *             re-send, release, withdraw, move between branches.
- *   Passes    the code learners pay through and the link to hand out; the
- *             owner sets the price (no ceiling, at least DriveRush's share
- *             plus a little) and sends the bank (DriveRush checks it).
- *             Earnings: what the school earned (an admin sees their branches).
- *   Team      (owner) the owner and admins, each admin's branches; add an
- *             admin by email (emailed), change their branches, remove them,
- *             re-send an invite. At most 50.
- *   Branches  (owner) add, rename, close.
- *   Profile   (owner, staff) what learners read about the school, the logos
- *             (uploaded through the server to Supabase Storage) and each
- *             branch's address, map pin, phone and hours.
- *
- * The loader reads through `getSchoolDashboard`; the action validates each
- * intent with its zod schema and calls the matching `~/database/schools`
- * function as the signed-in person, so row level security and the functions'
- * guards decide what they see and may do.
+ * It validates each intent with its zod schema and calls the matching
+ * `~/database/schools` function as the signed-in person, so row level
+ * security and the functions' guards decide what they may do.
  */
-import { data } from "react-router";
-
-import { SiteNav } from "~/components/brand/site-nav";
-import { BranchesPanel } from "~/components/school/branches-panel";
-import { EarningsPanel, PassPanel } from "~/components/school/pass-panel";
-import { ProfilePanel } from "~/components/school/profile-panel";
-import { NeedsSignIn, NothingHere } from "~/components/school/signed-out";
-import { StudentsPanel } from "~/components/school/students-panel";
-import { TeamPanel } from "~/components/school/team-panel";
-import {
-  Alert,
-  AlertBody,
-  AlertDescription,
-  AlertTitle,
-} from "~/components/ui/alert";
-import { Badge } from "~/components/ui/badge";
-import { Button } from "~/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { isStaffRole } from "~/database/auth/roles";
 import { requestSchoolBank } from "~/database/billing/bank.server";
-import {
-  getSchoolPassInfo,
-  listSchoolEarnings,
-  setPassPrice,
-} from "~/database/billing/school";
+import { setPassPrice } from "~/database/billing/school";
 import type { Result } from "~/database/result";
-import { getSchoolDashboard } from "~/database/schools/dashboard";
 import { uploadSchoolLogo } from "~/database/schools/logo.server";
 import * as schools from "~/database/schools/mutations";
 import {
   getMySchoolRole,
   getSchool,
-  getSchoolProfile,
   getStudentLink,
   listBranches,
 } from "~/database/schools/queries";
-import { getRequestClient, requireUser } from "~/lib/auth/require.server";
-import { mediaUrl } from "~/lib/board/school-catalog";
+import type { SignedIn } from "~/lib/auth/require.server";
 import {
   originOf,
   tellAdmin,
@@ -73,14 +31,10 @@ import { formFields, readFormIntent } from "~/lib/forms/form-intent";
 import { checkHoneypot } from "~/lib/forms/honeypot.server";
 import { dataWithError, dataWithSuccess } from "~/lib/forms/toast.server";
 import { validateForm } from "~/lib/forms/validate-form.server";
-import { kenyanBanks } from "~/lib/payments/banks.server";
-import { paymentsEnabled } from "~/lib/payments/env.server";
 import {
   makeSubaccount,
   switchOffSubaccount,
 } from "~/lib/payments/subaccounts.server";
-import { useLiveRevalidate } from "~/lib/realtime/use-live-revalidate";
-import { useTabParam } from "~/lib/ui/use-tab-param";
 import { RequestBankSchema, SetPassPriceSchema } from "~/schemas/billing";
 import {
   AddAdminSchema,
@@ -95,58 +49,6 @@ import {
   UpdateProfileSchema,
   UploadLogoSchema,
 } from "~/schemas/school";
-
-import type { Route } from "./+types/school-dashboard";
-
-export function meta() {
-  return [
-    { title: "School dashboard | DriveRush" },
-    { name: "robots", content: "noindex" },
-  ];
-}
-
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { supabase, headers, caller } = await getRequestClient(request);
-  if (!caller.signedIn)
-    return data({ state: "signed-out" as const }, { headers });
-  const dashboard = await getSchoolDashboard(supabase, {
-    schoolId: params.schoolId,
-    userId: caller.userId,
-    role: caller.role,
-  });
-  if (!dashboard) return data({ state: "not-member" as const }, { headers });
-  const paymentsOn = paymentsEnabled();
-  const [profile, passInfo, earnings, banks] = await Promise.all([
-    dashboard.canManage
-      ? getSchoolProfile(supabase, params.schoolId)
-      : Promise.resolve(null),
-    getSchoolPassInfo(supabase, params.schoolId),
-    listSchoolEarnings(supabase, params.schoolId),
-    dashboard.canManage && paymentsOn ? kenyanBanks() : Promise.resolve([]),
-  ]);
-  // Logos are shown from Storage by their public URL.
-  const base = process.env.SUPABASE_URL ?? "";
-  const logoUrl = (ref: unknown) => {
-    const path = (ref as { path?: unknown } | null)?.path;
-    return typeof path === "string" ? mediaUrl(base, path) : null;
-  };
-  return data(
-    {
-      state: "ok" as const,
-      ...dashboard,
-      profile,
-      passInfo,
-      earnings,
-      paymentsOn,
-      banks,
-      logos: {
-        logo: logoUrl(profile?.logo),
-        logo_mono: logoUrl(profile?.logo_mono),
-      },
-    },
-    { headers },
-  );
-}
 
 const DONE = {
   "add-student": "Student added.",
@@ -169,11 +71,13 @@ const DONE = {
   "resend-invite": "Sent again. The invite lasts another 30 days.",
 } as const;
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { supabase, headers, caller } = await requireUser(request);
+export async function schoolAction(
+  { supabase, headers, caller }: SignedIn,
+  schoolId: string,
+  request: Request,
+) {
   const formData = await request.formData();
   const intent = readFormIntent(formData);
-  const schoolId = params.schoolId;
   const origin = originOf(request);
   const schoolName = async () =>
     (await getSchool(supabase, schoolId))?.name ?? "Your driving school";
@@ -184,7 +88,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       : dataWithSuccess({ ok: true as const }, message, { headers });
 
   // Forms with fields: the honeypot, then the same schema the browser used.
-  const form = async <T,>(
+  const form = async <T>(
     validated: { errors?: unknown; data?: T },
     run: (values: T) => Promise<Result<unknown>>,
     message: string,
@@ -474,156 +378,10 @@ export async function action({ request, params }: Route.ActionArgs) {
 
 /** The school's owner, or DriveRush staff: who may change its profile and bank. */
 async function canManageSchool(
-  supabase: Awaited<ReturnType<typeof requireUser>>["supabase"],
+  supabase: SignedIn["supabase"],
   schoolId: string,
-  caller: Awaited<ReturnType<typeof requireUser>>["caller"],
+  caller: SignedIn["caller"],
 ) {
   if (isStaffRole(caller.role)) return true;
   return (await getMySchoolRole(supabase, schoolId, caller.userId)) === "owner";
-}
-
-export default function SchoolDashboard({ loaderData }: Route.ComponentProps) {
-  return (
-    <>
-      <SiteNav />
-      <main className="mx-auto min-h-screen w-full max-w-5xl px-5 pb-24 text-ink sm:px-9">
-        {loaderData.state === "signed-out" ? (
-          <NeedsSignIn
-            title="School dashboard"
-            body="Sign in with the email your school added you with to see your students and their progress."
-          />
-        ) : loaderData.state === "not-member" ? (
-          <NothingHere
-            title="Not your school"
-            body="This account is not an owner or admin of this school."
-          />
-        ) : (
-          <Dashboard {...loaderData} />
-        )}
-      </main>
-    </>
-  );
-}
-
-const OWNER_TABS = [
-  "students",
-  "passes",
-  "team",
-  "branches",
-  "profile",
-] as const;
-const ADMIN_TABS = ["students", "passes"] as const;
-
-function Dashboard(
-  d: Extract<Route.ComponentProps["loaderData"], { state: "ok" }>,
-) {
-  const [tab, setTab] = useTabParam(d.canManage ? OWNER_TABS : ADMIN_TABS);
-  useLiveRevalidate([`school:${d.school.id}`]);
-  const active = d.students.filter((s) => s.status === "active");
-  const waiting = d.students.filter((s) => s.status === "pending").length;
-  const paid = active.filter((s) => s.passEndsAt).length;
-  const bankWaiting = Boolean(d.passInfo?.pending_bank_label);
-  const noBank = d.canManage && !d.passInfo?.ready && !bankWaiting;
-  return (
-    <div className="flex flex-col gap-6 py-10">
-      <header className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="font-display text-[28px] font-bold tracking-tight">
-            {d.school.name}
-          </h1>
-          <Badge variant={d.role === "owner" ? "ink" : "outline"}>
-            {d.role}
-          </Badge>
-          {d.school.status !== "active" && (
-            <Badge variant="amber">{d.school.status}</Badge>
-          )}
-        </div>
-        <p className="m-0 text-[14px] text-ink-3">
-          {active.length} {active.length === 1 ? "student" : "students"} this
-          month · {paid} with a pass · {waiting} waiting to join
-        </p>
-      </header>
-      {noBank && tab !== "passes" ? (
-        <Alert>
-          <AlertBody>
-            <AlertTitle>Add your bank to get paid</AlertTitle>
-            <AlertDescription>
-              <p className="m-0">
-                Learners can pay through your school once DriveRush has checked
-                your bank.{" "}
-                <Button
-                  type="button"
-                  variant="quiet"
-                  className="h-auto p-0"
-                  onClick={() => setTab("passes")}
-                >
-                  Add it on Passes
-                </Button>
-              </p>
-            </AlertDescription>
-          </AlertBody>
-        </Alert>
-      ) : null}
-      <Tabs value={tab} onValueChange={setTab}>
-        <div className="-mx-5 overflow-x-auto px-5 [scrollbar-width:none] sm:mx-0 sm:px-0">
-          <TabsList>
-            <TabsTrigger value="students">Students</TabsTrigger>
-            <TabsTrigger value="passes">
-              Passes
-              {noBank ? (
-                <Badge variant="amber" className="ml-1">
-                  !
-                </Badge>
-              ) : null}
-            </TabsTrigger>
-            {d.canManage ? (
-              <>
-                <TabsTrigger value="team">Team</TabsTrigger>
-                <TabsTrigger value="branches">Branches</TabsTrigger>
-                <TabsTrigger value="profile">Profile</TabsTrigger>
-              </>
-            ) : null}
-          </TabsList>
-        </div>
-        <TabsContent value="students" className="pt-4">
-          <StudentsPanel
-            students={d.students}
-            branches={d.branches}
-            myBranchIds={d.myBranchIds}
-          />
-        </TabsContent>
-        <TabsContent value="passes" className="flex flex-col gap-10 pt-4">
-          <PassPanel
-            schoolName={d.school.name}
-            info={d.passInfo}
-            canManage={d.canManage}
-            paymentsOn={d.paymentsOn}
-            banks={d.banks}
-          />
-          <EarningsPanel rows={d.earnings} ready={d.passInfo?.ready ?? false} />
-        </TabsContent>
-        {d.canManage ? (
-          <>
-            <TabsContent value="team" className="pt-4">
-              <TeamPanel
-                team={d.team}
-                invites={d.invites}
-                branches={d.branches}
-              />
-            </TabsContent>
-            <TabsContent value="branches" className="pt-4">
-              <BranchesPanel branches={d.branches} />
-            </TabsContent>
-            <TabsContent value="profile" className="pt-4">
-              <ProfilePanel
-                profile={d.profile}
-                logos={d.logos}
-                branches={d.branches}
-              />
-            </TabsContent>
-          </>
-        ) : null}
-      </Tabs>
-    </div>
-  );
 }

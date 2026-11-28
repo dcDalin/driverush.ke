@@ -131,10 +131,50 @@ const ROUTES: Record<string, Entry> = {
     group: "Console",
     path: "/console/staff/grant",
   },
-  "routes/school-dashboard": {
+  "routes/school/overview": {
     group: "School dashboard",
     template: "/school/:schoolId",
     path: "/school/:schoolId",
+  },
+  "routes/school/students": {
+    group: "School dashboard",
+    template: "/school/:schoolId/students",
+    path: "/school/:schoolId/students",
+  },
+  "routes/school/student-add": {
+    group: "School dashboard",
+    template: "/school/:schoolId/students/add",
+    path: "/school/:schoolId/students/add",
+  },
+  "routes/school/passes": {
+    group: "School dashboard",
+    template: "/school/:schoolId/passes",
+    path: "/school/:schoolId/passes",
+  },
+  "routes/school/team": {
+    group: "School dashboard",
+    template: "/school/:schoolId/team",
+    path: "/school/:schoolId/team",
+  },
+  "routes/school/admin-add": {
+    group: "School dashboard",
+    template: "/school/:schoolId/team/add",
+    path: "/school/:schoolId/team/add",
+  },
+  "routes/school/branches": {
+    group: "School dashboard",
+    template: "/school/:schoolId/branches",
+    path: "/school/:schoolId/branches",
+  },
+  "routes/school/branch-add": {
+    group: "School dashboard",
+    template: "/school/:schoolId/branches/add",
+    path: "/school/:schoolId/branches/add",
+  },
+  "routes/school/profile": {
+    group: "School dashboard",
+    template: "/school/:schoolId/profile",
+    path: "/school/:schoolId/profile",
   },
 };
 

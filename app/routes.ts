@@ -79,7 +79,27 @@ export default [
 
   // A driving school's dashboard (owners and branch admins). Signed in only.
   route("school", "routes/school-home.tsx"),
-  route("school/:schoolId", "routes/school-dashboard.tsx"),
+  // A dashboard frame like the console's: one page per section, and the add
+  // forms as modal routes over their lists.
+  route(
+    "school/:schoolId",
+    "routes/layouts/school-layout.tsx",
+    { id: "school-layout" },
+    [
+      index("routes/school/overview.tsx"),
+      route("students", "routes/school/students.tsx", [
+        route("add", "routes/school/student-add.tsx"),
+      ]),
+      route("passes", "routes/school/passes.tsx"),
+      route("team", "routes/school/team.tsx", [
+        route("add", "routes/school/admin-add.tsx"),
+      ]),
+      route("branches", "routes/school/branches.tsx", [
+        route("add", "routes/school/branch-add.tsx"),
+      ]),
+      route("profile", "routes/school/profile.tsx"),
+    ],
+  ),
   // Resource routes for fetchers (no page of their own).
   route("api/me/school-invites", "routes/api/me.school-invites.ts"),
   route("api/me/places", "routes/api/me.places.ts"),

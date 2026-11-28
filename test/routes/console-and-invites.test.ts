@@ -174,7 +174,7 @@ describe("school invites resource route", () => {
     const owner = await signInCookies("owner@heltz.test");
     const topgearOwner = await signInCookies("owner@topgear.test");
     const { action: dashboardAction } =
-      await import("~/routes/school-dashboard");
+      await import("~/routes/layouts/school-layout");
     const { serviceClient } = await import("../db/helpers");
     const schools = await serviceClient().from("schools").select("id, slug");
     const idOf = (slug: string) =>
