@@ -24,6 +24,7 @@ import { Button } from "~/components/ui/button";
 import type { ConsoleSchool } from "~/database/console/queries";
 import { useConsoleSchoolPath } from "~/lib/console/use-console-school";
 import { useSchool } from "~/lib/school/use-school";
+import { cn } from "~/lib/utils";
 
 const EXPIRED = new Intl.DateTimeFormat("en-KE", {
   timeZone: "Africa/Nairobi",
@@ -44,7 +45,8 @@ function Step({
   action?: { label: string; to: string };
 }) {
   return (
-    <li className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+    // On a phone the action sits under the words, so they get the width.
+    <li className="grid grid-cols-[1.5rem_1fr] items-start gap-x-3 gap-y-2 px-4 py-3 sm:grid-cols-[1.5rem_1fr_auto] sm:items-center">
       <span
         className={
           done
@@ -59,7 +61,16 @@ function Step({
         <span className="text-[13px] text-ink-3">{detail}</span>
       </span>
       {action ? (
-        <Button asChild size="sm" variant={done ? "ghost" : "paper"}>
+        <Button
+          asChild
+          size="sm"
+          variant={done ? "ghost" : "paper"}
+          // A ghost button's words line up with the step's on a phone.
+          className={cn(
+            "col-start-2 justify-self-start sm:col-start-auto",
+            done && "max-sm:-ml-3.5",
+          )}
+        >
           <Link to={action.to} preventScrollReset>
             {action.label}
             <Icon icon={ChevronRightIcon} size={14} />
