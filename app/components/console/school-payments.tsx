@@ -112,7 +112,7 @@ export function SchoolPaymentsBlock({
           ) : null}
         </CardContent>
       </Card>
-      <StreamedEarnings rows={earnings} ready={live} />
+      <StreamedEarnings rows={earnings} ready={live} staff />
     </div>
   );
 }

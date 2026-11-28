@@ -251,9 +251,12 @@ const daySaid = (iso: string) =>
 export function StreamedEarnings({
   rows,
   ready,
+  staff = false,
 }: {
   rows: Promise<EarningRow[]>;
   ready: boolean;
+  /** Staff read it in the console: it speaks of the school, not "you". */
+  staff?: boolean;
 }) {
   const waiting = ready ? (
     <section className="flex flex-col gap-4">
@@ -269,12 +272,15 @@ export function StreamedEarnings({
           <section className="flex flex-col gap-2">
             <h2 className="font-display text-[20px] font-bold">Earnings</h2>
             <p className="m-0 text-[14px] text-ink-3">
-              Your earnings did not load. Reload the page to try again.
+              {staff ? "The" : "Your"} earnings did not load. Reload the page to
+              try again.
             </p>
           </section>
         }
       >
-        {(loaded) => <EarningsPanel rows={loaded} ready={ready} />}
+        {(loaded) => (
+          <EarningsPanel rows={loaded} ready={ready} staff={staff} />
+        )}
       </Await>
     </React.Suspense>
   );
@@ -283,16 +289,18 @@ export function StreamedEarnings({
 export function EarningsPanel({
   rows,
   ready,
+  staff = false,
 }: {
   rows: EarningRow[];
   ready: boolean;
+  staff?: boolean;
 }) {
   if (!ready && rows.length === 0) return null;
   const totals = earningsTotals(rows);
   return (
     <section className="flex flex-col gap-4">
       <h2 className="font-display text-[20px] font-bold">Earnings</h2>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-3">
         <Total
           label="This month"
           kesEarned={totals.thisMonth.kes}
@@ -305,34 +313,39 @@ export function EarningsPanel({
         />
       </div>
       <p className="m-0 text-[13px] text-ink-3">
-        Paystack pays your share, less its fee, to your bank two working days
-        after each payment.
+        {staff
+          ? "Paystack pays the school's share, less its fee, to its bank two working days after each payment."
+          : "Paystack pays your share, less its fee, to your bank two working days after each payment."}
       </p>
       {rows.length === 0 ? (
         <p className="m-0 text-[14px] text-ink-3">
-          No learner has paid through you yet. Share your link with this week's
-          class.
+          {staff
+            ? "No learner has paid through the school yet."
+            : "No learner has paid through you yet. Share your link with this week's class."}
         </p>
       ) : (
         <ul className="flex flex-col divide-y divide-line rounded-lg border border-line bg-surface">
           {rows.slice(0, 50).map((r) => (
             <li
               key={r.payment_id}
-              className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 text-[14px]"
+              className="flex items-center gap-3 px-4 py-3 text-[14px]"
             >
-              <span className="w-16 shrink-0 text-ink-3">
-                {daySaid(r.paid_at)}
+              {/* The email gets the width; the day and branch go under it. */}
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate">
+                  {r.learner_email ?? "Deleted account"}
+                </span>
+                <span className="text-[13px] text-ink-3">
+                  {daySaid(r.paid_at)}
+                  {r.branch_name ? ` · ${r.branch_name}` : ""}
+                </span>
               </span>
-              <span className="min-w-0 flex-1 truncate">
-                {r.learner_email ?? "Deleted account"}
-              </span>
-              {r.branch_name && (
-                <span className="text-ink-3">{r.branch_name}</span>
-              )}
               {r.status === "refunded" ? (
                 <Badge variant="amber">Refunded</Badge>
               ) : (
-                <span className="font-semibold">{kes(r.school_share_kes)}</span>
+                <span className="shrink-0 font-semibold">
+                  {kes(r.school_share_kes)}
+                </span>
               )}
             </li>
           ))}
@@ -352,9 +365,9 @@ function Total({
   learners: number;
 }) {
   return (
-    <div className="flex flex-col gap-1 rounded-lg border border-line bg-surface p-4">
+    <div className="flex flex-col gap-0.5 rounded-lg border border-line bg-surface p-3 sm:gap-1 sm:p-4">
       <span className="text-[13px] text-ink-3">{label}</span>
-      <span className="font-display text-[24px] font-bold">
+      <span className="font-display text-[20px] font-bold sm:text-[24px]">
         {kes(kesEarned)}
       </span>
       <span className="text-[13px] text-ink-3">
