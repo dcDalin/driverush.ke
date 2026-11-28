@@ -353,7 +353,9 @@ function LiveryRow({
             : ""}
         </ItemDescription>
       </ItemContent>
-      <ItemActions className="flex-wrap justify-end">
+      {/* On a phone the actions get their own line, so the name keeps the
+          width; "Preview" (a ghost button) lines up with the words. */}
+      <ItemActions className="flex-wrap justify-end max-sm:-ml-3.5 max-sm:w-full max-sm:justify-start">
         <Button size="sm" variant="ghost" asChild>
           <Link
             to={`/model-town-board/play?livery=${livery.id}`}
