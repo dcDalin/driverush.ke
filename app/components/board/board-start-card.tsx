@@ -9,6 +9,7 @@ import { CourseLabel } from "~/components/board/course-label";
 import { useCourseStart } from "~/components/board/use-course-start";
 import { Icon } from "~/components/brand/icon";
 import { PlayIcon } from "~/components/brand/icons";
+import { freeLabel } from "~/lib/board/free-copy";
 
 export function BoardStartCard() {
   const start = useCourseStart();
@@ -23,7 +24,7 @@ export function BoardStartCard() {
         </span>
         <span className="text-[14px] leading-snug text-ink-2">
           Learn the Model Town Board level by level, then drive it and get told
-          which rule you broke. Free, no signup.
+          which rule you broke. {freeLabel()}, no account needed.
         </span>
         <span className="mt-1 inline-flex w-fit items-center gap-2 rounded-soft bg-rush px-3.5 py-2 font-display text-[12.5px] font-bold tracking-wide text-white uppercase">
           <Icon icon={PlayIcon} size={14} />

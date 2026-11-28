@@ -129,7 +129,7 @@ export default function Pass({ loaderData }: Route.ComponentProps) {
       <Shell>
         <NothingHere
           title="The full course"
-          body="Passes are not on sale yet. Every level up to 16, both sign trainers and the guides are free."
+          body="Passes are not on sale yet. Every level, both sign trainers and the guides are free."
         />
       </Shell>
     );

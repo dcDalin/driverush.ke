@@ -1,6 +1,19 @@
 /**
- * The Board page's working part: the picture, one button that starts the
- * course or carries on with it, and the units. Each unit links to its levels
+ * The course, in two parts (owner, 2026-11-28: home says what is next, the
+ * Board page is the course's map):
+ *
+ *   CourseCard   the picture, one button that starts the course or carries
+ *                on with it, and how far along the learner is. `full` adds
+ *                their numbers (board ready, days in a row, today), the test
+ *                date card and "add to home screen": that is the home page
+ *                of a learner who has started. The Board page keeps it slim.
+ *   BoardLevels  the Board page's working part: the slim card, then the
+ *                units, the mock test and "Explore the board".
+ *
+ * Today's drive and Free drive sit on home only (and in the game's More
+ * menu): the Board page had seven ways to drive at once.
+ *
+ * The units: Each unit links to its levels
  * on the levels page (`level-picker.tsx`), where any level can be picked by
  * its picture. All of it is in the server's HTML. What is done, and which
  * level is next, is filled in from this browser's saved progress once the
@@ -11,8 +24,6 @@ import { Link } from "react-router";
 
 import { BoardThumb } from "~/components/board/board-thumb";
 import { CourseLabel } from "~/components/board/course-label";
-import { DailyDriveRow } from "~/components/board/daily-drive-row";
-import { FreeDriveRow } from "~/components/board/free-drive-row";
 import { TestCard } from "~/components/board/test-card";
 import { Icon } from "~/components/brand/icon";
 import {
@@ -60,7 +71,14 @@ const MAX_DOTS = 6;
 /** Layout for a quiet-rush Button: a long level name wraps. */
 const quiet = "h-auto min-h-11 justify-start text-left whitespace-normal";
 
-export function BoardLevels({ className }: { className?: string }) {
+export function CourseCard({
+  full = false,
+  className,
+}: {
+  /** The learner's numbers, the test date card and the install nudge too. */
+  full?: boolean;
+  className?: string;
+}) {
   const saved = useCourseProgress();
   const empty = { learned: [], bestStars: {} };
   const done = saved ? doneCount(saved) : 0;
@@ -72,7 +90,6 @@ export function BoardLevels({ className }: { className?: string }) {
     : done > 0
       ? `Continue: level ${next.n}`
       : "Start level 1";
-  const units = UNITS.filter((unit) => unit.id !== "mock");
   const ready = saved ? readiness(saved) : 0;
   const streak = usePracticeStreak();
   const today =
@@ -97,7 +114,7 @@ export function BoardLevels({ className }: { className?: string }) {
   }, [testStage]);
 
   return (
-    <div id="levels" className={cn("grid scroll-mt-20 gap-5", className)}>
+    <div className={cn("grid gap-5", className)}>
       <div className="overflow-hidden rounded-soft border border-ink/25">
         {/* The button below is the link that is read out. This is the same
             way in for anyone who taps the picture. */}
@@ -138,7 +155,7 @@ export function BoardLevels({ className }: { className?: string }) {
             />
           </div>
           {/* Only for a learner who has started: a first visit stays one button. */}
-          {saved && done > 0 && (
+          {full && saved && done > 0 && (
             <dl className="m-0 grid grid-cols-3 gap-2 border-t border-ink/15 pt-3 text-center">
               <div>
                 <dt className="font-mono text-[9.5px] font-bold tracking-widest text-ink-3 uppercase">
@@ -187,7 +204,7 @@ export function BoardLevels({ className }: { className?: string }) {
               </div>
             </dl>
           )}
-          {saved && planLine(plan) && (
+          {full && saved && planLine(plan) && (
             <p className="m-0 text-center text-[14px] font-bold text-ink">
               {planLine(plan)}
             </p>
@@ -202,17 +219,10 @@ export function BoardLevels({ className }: { className?: string }) {
         </div>
       </div>
 
-      {/* Today's drive: one task a day, the same for everyone, and the
-          streak it keeps. */}
-      <DailyDriveRow surface="course_page" />
-
-      {/* No task: the whole board to drive, every rule still said. */}
-      <FreeDriveRow surface="course_page" />
-
       {/* After a finished level, not before: a first visit is not asked for
           anything. */}
       {/* One card at a time, and the test comes first. */}
-      {test && testCard ? (
+      {!full ? null : test && testCard ? (
         <TestCard
           stage={testCard}
           record={test}
@@ -226,6 +236,16 @@ export function BoardLevels({ className }: { className?: string }) {
       ) : (
         done >= 1 && <InstallNudge surface="levels_page" />
       )}
+    </div>
+  );
+}
+
+export function BoardLevels({ className }: { className?: string }) {
+  const saved = useCourseProgress();
+  const units = UNITS.filter((unit) => unit.id !== "mock");
+  return (
+    <div id="levels" className={cn("grid scroll-mt-20 gap-5", className)}>
+      <CourseCard />
 
       <div className="grid gap-2">
         <div className="flex items-baseline justify-between gap-3">

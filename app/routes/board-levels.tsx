@@ -68,8 +68,8 @@ export default function BoardLevelsPage() {
               All levels
             </h1>
             <p className="m-0 mt-2 text-[15px] leading-snug text-ink-2">
-              {TOTAL} levels in {UNIT_COUNT} units, every one open. Tap a
-              picture to play that level.
+              {TOTAL} levels in {UNIT_COUNT} units, in the order you learn them.
+              Tap a picture to play that level; you can skip ahead.
               {saved && done > 0 && (
                 <>
                   {" "}

@@ -18,6 +18,7 @@ import { MDX } from "~/components/brand/mdx-components";
 import { BOARD_QUESTIONS } from "~/data/board-questions";
 import Body from "~/guides/model-town-board.mdx";
 import { COURSE_LEVELS, UNITS } from "~/lib/board/curriculum";
+import { freeLine } from "~/lib/board/free-copy";
 import {
   BOARD_CHECKED,
   BOARD_PATH,
@@ -99,7 +100,7 @@ export default function ModelTownBoard() {
           Model Town Board <em>simulator.</em>
         </>
       }
-      lede={`${COURSE_LEVELS.length} levels on a 3D board you drive yourself, from the lanes to parking. Every rule from the NTSA handbook. Free, no signup, every level open.`}
+      lede={`${COURSE_LEVELS.length} levels on a 3D board you drive yourself, from the lanes to parking. Every rule from the NTSA handbook. ${freeLine()}`}
       ledeFirstOnly
       checked={CHECKED}
       byline={false}
