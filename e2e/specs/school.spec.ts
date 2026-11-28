@@ -97,6 +97,8 @@ test("an owner reaches their school from the account menu, finds a student and s
     page.getByText("https://driverush.ke/pass?code=HELTZ"),
   ).toBeVisible();
   await expect(page.getByText(/^Paid to/)).toBeVisible();
+  // Earnings stream in after the page: the totals arrive.
+  await expect(page.getByText("Last month", { exact: true })).toBeVisible();
 });
 
 test("an owner's changes open as modals over their list and close back", async ({

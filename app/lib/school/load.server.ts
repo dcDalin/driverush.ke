@@ -3,7 +3,8 @@
  * (`layouts/school-layout.tsx`) and shared with the pages under it: the
  * school, the caller's place in it, branches, team, invites, students with
  * their progress, the pass set-up and earnings, and (owner and staff) the
- * profile and logos. `signed-out`, `not-member` and `staff` are drawn by the
+ * profile and logos. Earnings (up to 1,000 payments) are a promise the
+ * pages show with `<Await>`: the frame draws without waiting for them. `signed-out`, `not-member` and `staff` are drawn by the
  * frame.
  *
  * DriveRush staff are not let in (owner, 2026-11-28): they create a school,
@@ -11,6 +12,7 @@
  * Their read-only look inside is in the console (`school-inside.tsx`).
  */
 import {
+  type EarningRow,
   getSchoolPassInfo,
   listSchoolEarnings,
 } from "~/database/billing/school";
@@ -44,23 +46,23 @@ export async function loadSchool(
 ) {
   if (!caller.signedIn) return { state: "signed-out" as const };
   const paymentsOn = paymentsEnabled();
-  // All in one round trip: the school's pass set-up, earnings and profile
-  // are read alongside the dashboard instead of after it. Their errors are
-  // held until the caller is known to belong (a stranger gets "not a member",
-  // not an error), and the profile and bank list are dropped for anyone who
-  // does not manage the school.
-  const [dashboard, profileRead, passInfoRead, earningsRead, bankList] =
-    await Promise.all([
-      getSchoolDashboard(supabase, {
-        schoolId,
-        userId: caller.userId,
-        role: caller.role,
-      }),
-      settle(getSchoolProfile(supabase, schoolId)),
-      settle(getSchoolPassInfo(supabase, schoolId)),
-      settle(listSchoolEarnings(supabase, schoolId)),
-      paymentsOn ? kenyanBanks() : Promise.resolve([]),
-    ]);
+  // All in one round trip: the school's pass set-up and profile are read
+  // alongside the dashboard instead of after it, and earnings start with
+  // them but are not waited for (streamed). Their errors are held until the
+  // caller is known to belong (a stranger gets "not a member", not an
+  // error), and the profile and bank list are dropped for anyone who does
+  // not manage the school.
+  const earningsRead = settle(listSchoolEarnings(supabase, schoolId));
+  const [dashboard, profileRead, passInfoRead, bankList] = await Promise.all([
+    getSchoolDashboard(supabase, {
+      schoolId,
+      userId: caller.userId,
+      role: caller.role,
+    }),
+    settle(getSchoolProfile(supabase, schoolId)),
+    settle(getSchoolPassInfo(supabase, schoolId)),
+    paymentsOn ? kenyanBanks() : Promise.resolve([]),
+  ]);
   if (!dashboard) return { state: "not-member" as const };
   const { role, ...school } = dashboard;
   if (role === "staff" && !asStaff) {
@@ -71,7 +73,7 @@ export async function loadSchool(
   const canManage = role === "owner" || role === "staff";
   const profile = canManage ? unwrap(profileRead) : null;
   const passInfo = unwrap(passInfoRead);
-  const earnings = unwrap(earningsRead);
+  const earnings: Promise<EarningRow[]> = earningsRead.then(unwrap);
   const banks = canManage ? bankList : [];
   // Logos are shown from Storage by their public URL.
   const base = process.env.SUPABASE_URL ?? "";

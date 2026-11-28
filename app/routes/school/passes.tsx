@@ -6,7 +6,7 @@
 import { Outlet } from "react-router";
 
 import { PageHeader } from "~/components/console/shell";
-import { EarningsPanel, PassPanel } from "~/components/school/pass-panel";
+import { PassPanel, StreamedEarnings } from "~/components/school/pass-panel";
 import { requireUser } from "~/lib/auth/require.server";
 import { schoolAction } from "~/lib/school/action.server";
 import { useSchool } from "~/lib/school/use-school";
@@ -34,7 +34,10 @@ export default function SchoolPasses() {
           canManage={d.canManage}
           paymentsOn={d.paymentsOn}
         />
-        <EarningsPanel rows={d.earnings} ready={d.passInfo?.ready ?? false} />
+        <StreamedEarnings
+          rows={d.earnings}
+          ready={d.passInfo?.ready ?? false}
+        />
       </div>
       <Outlet />
     </>

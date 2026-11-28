@@ -133,6 +133,13 @@ switch (readFormIntent(formData)) {
   a list's search in the address) reads nothing again; a saved form, a live
   update or another school does. It exports an `ErrorBoundary` drawing
   `FrameError`, so a lapsed session or a refused change stays inside it.
+- A slow, long read a frame's pages need only in places (a school's
+  earnings: up to 1,000 payments) is started but not awaited: the loader
+  returns its promise and the page draws it with `<Await>` inside
+  `React.Suspense`, the traffic-light loader as the fallback
+  (`StreamedEarnings`, the overview's "Earned this month"). Hold its error
+  until the caller is known to belong (`settle`, then `.then(unwrap)`), so a
+  stranger is told "not a member", never an error.
 - Every server form has `<HoneypotInputs />`; `validateForm` refuses a post
   without the trap field.
 

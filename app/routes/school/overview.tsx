@@ -10,7 +10,8 @@
  *   At a glance            the numbers, each linking into its list
  *   Newest students        (both once there are students, or the list is done)
  */
-import { Link } from "react-router";
+import * as React from "react";
+import { Await, Link } from "react-router";
 
 import { kes } from "~/components/account/pass-offers";
 import { Icon } from "~/components/brand/icon";
@@ -24,6 +25,7 @@ import {
   StarIcon,
   WalletIcon,
 } from "~/components/brand/icons";
+import { TrafficLoader } from "~/components/brand/traffic-loader";
 import { PageHeader, Section, StatTile } from "~/components/console/shell";
 import {
   Alert,
@@ -33,7 +35,7 @@ import {
 } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { earningsTotals } from "~/database/billing/school";
+import { type EarningRow, earningsTotals } from "~/database/billing/school";
 import { schoolReadiness } from "~/database/schools/readiness";
 import { requireUser } from "~/lib/auth/require.server";
 import { schoolAction } from "~/lib/school/action.server";
@@ -113,6 +115,46 @@ function ReadyStep({
   );
 }
 
+/** This month's share, drawn once the streamed earnings arrive. */
+function EarnedThisMonth({
+  rows,
+  to,
+}: {
+  rows: Promise<EarningRow[]>;
+  to: string;
+}) {
+  const tile = (value: React.ReactNode, note: string) => (
+    <StatTile
+      label="Earned this month"
+      icon={WalletIcon}
+      value={value}
+      note={note}
+      to={to}
+    />
+  );
+  return (
+    <React.Suspense
+      fallback={tile(
+        <TrafficLoader size="sm" aria-label="Reading earnings" />,
+        "Reading what learners paid",
+      )}
+    >
+      <Await
+        resolve={rows}
+        errorElement={tile("?", "Did not load. Reload to try again")}
+      >
+        {(loaded) => {
+          const earned = earningsTotals(loaded).thisMonth;
+          return tile(
+            kes(earned.kes),
+            `${earned.learners} ${earned.learners === 1 ? "learner" : "learners"} paid through you`,
+          );
+        }}
+      </Await>
+    </React.Suspense>
+  );
+}
+
 export default function SchoolOverview() {
   const d = useSchool();
   const to = (page = "") => schoolPath(d.school.id, page);
@@ -122,7 +164,6 @@ export default function SchoolOverview() {
   ).length;
   const expired = d.students.filter((s) => s.inviteExpired).length;
   const paid = active.filter((s) => s.passEndsAt).length;
-  const earned = earningsTotals(d.earnings).thisMonth;
   const bankWaiting = Boolean(d.passInfo?.pending_bank_label);
   const openBranches = d.branches.filter(
     (b) => b.is_active && d.myBranchIds.includes(b.id),
@@ -349,13 +390,7 @@ export default function SchoolOverview() {
                 note="Invited, not signed in yet"
                 to={`${to("students")}?sstatus=pending`}
               />
-              <StatTile
-                label="Earned this month"
-                icon={WalletIcon}
-                value={kes(earned.kes)}
-                note={`${earned.learners} ${earned.learners === 1 ? "learner" : "learners"} paid through you`}
-                to={to("passes")}
-              />
+              <EarnedThisMonth rows={d.earnings} to={to("passes")} />
             </div>
           </Section>
 

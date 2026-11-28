@@ -12,7 +12,7 @@
 import { Link } from "react-router";
 
 import { kes } from "~/components/account/pass-offers";
-import { EarningsPanel } from "~/components/school/pass-panel";
+import { StreamedEarnings } from "~/components/school/pass-panel";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
@@ -41,7 +41,7 @@ export function SchoolPaymentsBlock({
 }: {
   schoolId: string;
   payments: SchoolPassInfo | null;
-  earnings: EarningRow[];
+  earnings: Promise<EarningRow[]>;
   paymentsOn: boolean;
 }) {
   const consoleSchoolPath = useConsoleSchoolPath();
@@ -111,7 +111,7 @@ export function SchoolPaymentsBlock({
           ) : null}
         </CardContent>
       </Card>
-      <EarningsPanel rows={earnings} ready={live} />
+      <StreamedEarnings rows={earnings} ready={live} />
     </div>
   );
 }

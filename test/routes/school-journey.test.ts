@@ -291,9 +291,13 @@ describe("a school end to end", () => {
       accountName: "Journey Driving School Ltd",
     });
     expect(asked.data.ok).toBe(true);
-    const info = (await loadSchool(ownerCookie)).data.passInfo;
+    const loaded = (await loadSchool(ownerCookie)).data;
+    const info = loaded.passInfo;
     expect(info.ready).toBe(false);
     expect(info.pending_bank_label).toBe("Equity Bank ••6789");
+    // Earnings are streamed: a promise of rows, not the rows.
+    expect(loaded.earnings).toBeInstanceOf(Promise);
+    await expect(loaded.earnings).resolves.toEqual([]);
     expect(sent("alerts@driverush.test").at(-1)?.subject).toBe(
       "Bank to check: Journey Driving School",
     );

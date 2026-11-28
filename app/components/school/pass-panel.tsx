@@ -10,11 +10,12 @@
  * modal routes (`passes/price`, `passes/bank`).
  */
 import * as React from "react";
-import { Link } from "react-router";
+import { Await, Link } from "react-router";
 
 import { kes } from "~/components/account/pass-offers";
 import { Icon } from "~/components/brand/icon";
 import { CheckIcon, CopyIcon, WhatsappIcon } from "~/components/brand/icons";
+import { LoadingPanel } from "~/components/brand/traffic-loader";
 import {
   Alert,
   AlertBody,
@@ -241,6 +242,43 @@ const daySaid = (iso: string) =>
     day: "numeric",
     month: "short",
   }).format(new Date(iso));
+
+/**
+ * Earnings as the frame streams them (`loadSchool`): the rest of the page
+ * draws first, then this. Before a bank is live there is rarely anything to
+ * show, so nothing holds the place.
+ */
+export function StreamedEarnings({
+  rows,
+  ready,
+}: {
+  rows: Promise<EarningRow[]>;
+  ready: boolean;
+}) {
+  const waiting = ready ? (
+    <section className="flex flex-col gap-4">
+      <h2 className="font-display text-[20px] font-bold">Earnings</h2>
+      <LoadingPanel label="Reading earnings" size="sm" />
+    </section>
+  ) : null;
+  return (
+    <React.Suspense fallback={waiting}>
+      <Await
+        resolve={rows}
+        errorElement={
+          <section className="flex flex-col gap-2">
+            <h2 className="font-display text-[20px] font-bold">Earnings</h2>
+            <p className="m-0 text-[14px] text-ink-3">
+              Your earnings did not load. Reload the page to try again.
+            </p>
+          </section>
+        }
+      >
+        {(loaded) => <EarningsPanel rows={loaded} ready={ready} />}
+      </Await>
+    </React.Suspense>
+  );
+}
 
 export function EarningsPanel({
   rows,
