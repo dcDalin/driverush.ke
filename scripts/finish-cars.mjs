@@ -10,10 +10,14 @@
  * `wheel`), per material, and where one material covers unlike things, per
  * triangle by where it sits (`where`, in the car's own metres: x across,
  * y up from the road, z along with the nose at -z; a wheel's are about its
- * axle, so `r` is the distance out from it).
+ * axle, so `r` is the distance out from it; `u`, `v` are where it is on the
+ * material's picture).
  *
  * It works on the built files in `public/assets/board/cars/`, so it can be
- * run alone, and again: every rule sets its values outright.
+ * run alone, and again: every rule sets its values outright. Two things it
+ * cannot give back on a later run, so start from the file in git when a
+ * rule that used them changes: a picture taken off (`plain`) and triangles
+ * taken off (`DROP`).
  *
  *   node scripts/finish-cars.mjs [car ...]
  *
@@ -91,6 +95,9 @@ const REVERSE = {
   emissive: [0.12, 0.12, 0.12],
 };
 
+const PLATE_FRONT = { color: [0.85, 0.85, 0.85], metal: 0, rough: 0.45 };
+const PLATE_REAR = { color: [0.9, 0.62, 0.03], metal: 0, rough: 0.45 };
+
 /** Not a look: these triangles are taken off the car. */
 const DROP = Symbol("drop");
 
@@ -116,6 +123,22 @@ const CARS = {
   ],
   hatchback: [
     ["body", "Chrome1Mtl", CHROME],
+    // The number plates lost their picture and came out black: blank
+    // plates in Kenya's colours, white in front and yellow behind.
+    [
+      "body",
+      "469SinTtulo202509291655170011Mtl",
+      PLATE_FRONT,
+      ({ z }) => z < 0,
+      "front",
+    ],
+    [
+      "body",
+      "469SinTtulo202509291655170011Mtl",
+      PLATE_REAR,
+      ({ z }) => z > 0,
+      "rear",
+    ],
     ["wheel", "main_paint", STEEL],
     ["wheel", "Material.013", WELL],
   ],
@@ -168,6 +191,18 @@ const CARS = {
     ["tail", "material_7_16", TAIL_RED],
   ],
   suv: [
+    // One picture for the whole wheel: tyre, brake disc, and a white strip
+    // down its right side that the rim is coloured from. All of it came as
+    // rough metal, so the rim was a flat white. The strip's dark end
+    // is the shade between the spokes, so the rim keeps the picture.
+    [
+      "wheel",
+      "RB1c_Tire_1k",
+      { color: [1, 1, 1], metal: 0.6, rough: 0.3 },
+      ({ u }) => u > 0.83,
+      "rim",
+    ],
+    ["wheel", "RB1c_Tire_1k", { color: [1, 1, 1], metal: 0, rough: 0.9 }],
     // Its lamps are small pictures under tinted covers, dark at this size.
     [
       "body",
@@ -320,6 +355,7 @@ async function finish(id) {
       );
       if (!fits.length) continue;
       const at = prim.getAttribute("POSITION");
+      const uv = prim.getAttribute("TEXCOORD_0");
       const indices = prim.getIndices();
       const count = indices.getCount();
       const point = (i) => {
@@ -340,8 +376,18 @@ async function finish(id) {
         // How wide the triangle itself is, for telling a small part from
         // the big face it lies on.
         const wide = Math.max(a[0], b[0], c[0]) - Math.min(a[0], b[0], c[0]);
+        // Where it is on the material's picture, if it has one.
+        const [u, v] = uv
+          ? [0, 1].map(
+              (k) =>
+                (uv.getElement(indices.getScalar(i), [])[k] +
+                  uv.getElement(indices.getScalar(i + 1), [])[k] +
+                  uv.getElement(indices.getScalar(i + 2), [])[k]) /
+                3,
+            )
+          : [0, 0];
         const rule = fits.find(
-          ([, , , where]) => !where || where({ x, y, z, r, wide }),
+          ([, , , where]) => !where || where({ x, y, z, r, wide, u, v }),
         );
         const key = rule ? fits.indexOf(rule) : -1;
         if (!groups.has(key)) groups.set(key, []);

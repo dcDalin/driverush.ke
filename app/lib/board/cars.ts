@@ -34,14 +34,14 @@ const CAR_SIZE: CarSize = {
  * the cars Kenyans learn in and drive, but carry generic names here.
  */
 /** The car menu pictures' version: bump it when they are taken again. */
-const THUMB_V = 3;
+const THUMB_V = 4;
 
 export const BOARD_CARS = [
   // `model`: who made it, and its page. A CC BY model must be credited where
   // the cars are chosen (board-settings-sheet); the others are credited too.
-  // `?v=7` (`?v=3` for the van and lorry, `?v=2` for the crossover, which
-  // started later): lamps, tyres, rims and chrome set right by
-  // `scripts/finish-cars.mjs`.
+  // `?v=7` (`?v=8` for the hatchback and SUV; `?v=3` for the van and lorry
+  // and `?v=2` for the crossover, which started later): lamps, tyres, rims,
+  // chrome and plates set right by `scripts/finish-cars.mjs`.
   // A new address, so no cache hands out an old one. Keep public/sw.js's
   // BOARD_FILES in step.
   // `thumb`: its small picture for the car menu, taken off the model by
@@ -63,7 +63,7 @@ export const BOARD_CARS = [
   {
     id: "hatchback",
     label: "Hatchback",
-    src: "/assets/board/cars/hatchback.glb?v=7",
+    src: "/assets/board/cars/hatchback.glb?v=8",
     thumb: `/assets/board/cars/thumbs/hatchback.webp?v=${THUMB_V}`,
     size: CAR_SIZE,
     model: {
@@ -99,7 +99,7 @@ export const BOARD_CARS = [
   {
     id: "suv",
     label: "SUV",
-    src: "/assets/board/cars/suv.glb?v=7",
+    src: "/assets/board/cars/suv.glb?v=8",
     thumb: `/assets/board/cars/thumbs/suv.webp?v=${THUMB_V}`,
     size: CAR_SIZE,
     model: {

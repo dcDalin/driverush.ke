@@ -63,21 +63,21 @@ const SHELL = [
  */
 const BOARD_FILES = [
   "/assets/board/cars/saloon.glb?v=7",
-  "/assets/board/cars/hatchback.glb?v=7",
+  "/assets/board/cars/hatchback.glb?v=8",
   "/assets/board/cars/wagon.glb?v=7",
   "/assets/board/cars/pickup.glb?v=7",
-  "/assets/board/cars/suv.glb?v=7",
+  "/assets/board/cars/suv.glb?v=8",
   "/assets/board/cars/van.glb?v=3",
   "/assets/board/cars/lorry.glb?v=3",
   "/assets/board/cars/crossover.glb?v=2",
-  "/assets/board/cars/thumbs/saloon.webp?v=3",
-  "/assets/board/cars/thumbs/hatchback.webp?v=3",
-  "/assets/board/cars/thumbs/wagon.webp?v=3",
-  "/assets/board/cars/thumbs/pickup.webp?v=3",
-  "/assets/board/cars/thumbs/suv.webp?v=3",
-  "/assets/board/cars/thumbs/van.webp?v=3",
-  "/assets/board/cars/thumbs/lorry.webp?v=3",
-  "/assets/board/cars/thumbs/crossover.webp?v=3",
+  "/assets/board/cars/thumbs/saloon.webp?v=4",
+  "/assets/board/cars/thumbs/hatchback.webp?v=4",
+  "/assets/board/cars/thumbs/wagon.webp?v=4",
+  "/assets/board/cars/thumbs/pickup.webp?v=4",
+  "/assets/board/cars/thumbs/suv.webp?v=4",
+  "/assets/board/cars/thumbs/van.webp?v=4",
+  "/assets/board/cars/thumbs/lorry.webp?v=4",
+  "/assets/board/cars/thumbs/crossover.webp?v=4",
 ];
 /** Every built file the game needs, lazy ones too. Written by `vite.config.ts`. */
 const GAME_LIST = "/sw-board.json";
