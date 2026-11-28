@@ -459,7 +459,8 @@ function SlidesLevel({
             </Button>
             <Button
               variant="game-gold"
-              className={primary}
+              // The room the back button leaves, never the whole row.
+              className={cn(primary, "w-auto min-w-0 flex-1")}
               onClick={() => {
                 if (!last) {
                   setAt((n) => n + 1);
