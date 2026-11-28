@@ -34,13 +34,13 @@ const CAR_SIZE: CarSize = {
  * the cars Kenyans learn in and drive, but carry generic names here.
  */
 /** The car menu pictures' version: bump it when they are taken again. */
-const THUMB_V = 4;
+const THUMB_V = 5;
 
 export const BOARD_CARS = [
   // `model`: who made it, and its page. A CC BY model must be credited where
   // the cars are chosen (board-settings-sheet); the others are credited too.
-  // `?v=7` (`?v=8` for the hatchback and SUV; `?v=3` for the van and lorry
-  // and `?v=2` for the crossover, which started later): lamps, tyres, rims,
+  // `?v=7` (`?v=8` for the hatchback and SUV; `?v=3` for the van, lorry
+  // and crossover, which started later): lamps, tyres, rims,
   // chrome and plates set right by `scripts/finish-cars.mjs`.
   // A new address, so no cache hands out an old one. Keep public/sw.js's
   // BOARD_FILES in step.
@@ -144,7 +144,7 @@ export const BOARD_CARS = [
   {
     id: "crossover",
     label: "Crossover",
-    src: "/assets/board/cars/crossover.glb?v=2",
+    src: "/assets/board/cars/crossover.glb?v=3",
     thumb: `/assets/board/cars/thumbs/crossover.webp?v=${THUMB_V}`,
     size: CAR_SIZE,
     model: {

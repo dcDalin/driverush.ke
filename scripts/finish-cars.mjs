@@ -266,6 +266,22 @@ const CARS = {
     ["wheel", "metal", ALLOY],
     ["wheel", "brake", WELL],
     ["body", "metal", CHROME],
+    // Both number plates share the trim's black: picked out by where they
+    // sit, white in front and yellow behind like the hatchback's.
+    [
+      "body",
+      "material_0",
+      PLATE_FRONT,
+      ({ x, y, z }) => z < -2 && Math.abs(x) < 0.16 && y > 0.45 && y < 0.62,
+      "front",
+    ],
+    [
+      "body",
+      "material_0",
+      PLATE_REAR,
+      ({ x, y, z }) => z > 1.88 && Math.abs(x) < 0.15 && y > 0.73 && y < 0.9,
+      "rear",
+    ],
     ["body", "plt1", LENS],
     // The bowls behind the headlamp lenses.
     ["body", "metal3", REFLECTOR, ({ z }) => z < -1.6, "head"],
