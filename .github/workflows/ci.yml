@@ -45,6 +45,12 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      # The stack's ports (54720-54729, supabase/config.toml) sit inside the
+      # range Linux hands out for outgoing connections. While the images
+      # download, one of those connections can be given a port the stack is
+      # about to listen on, and the start fails with "address already in use".
+      - name: Keep the stack's ports free
+        run: sudo sysctl -w net.ipv4.ip_local_reserved_ports=54720-54729
       - name: Start the local Supabase stack
         run: npx supabase start
       - name: pgTAP (security manifest, guards, row level security, behaviour)
@@ -85,6 +91,12 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      # The stack's ports (54720-54729, supabase/config.toml) sit inside the
+      # range Linux hands out for outgoing connections. While the images
+      # download, one of those connections can be given a port the stack is
+      # about to listen on, and the start fails with "address already in use".
+      - name: Keep the stack's ports free
+        run: sudo sysctl -w net.ipv4.ip_local_reserved_ports=54720-54729
       - name: Start the local Supabase stack
         run: npx supabase start
       - name: Point the app at the local stack
