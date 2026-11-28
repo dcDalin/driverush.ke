@@ -176,9 +176,18 @@ export default function SchoolBranches() {
                     {r.branch.town || "No town"}
                   </span>
                   {/* On a phone the counts sit here, so Edit stays in view. */}
-                  <span className="block text-[12.5px] text-ink-2 sm:hidden">
-                    {r.admins} admins · {r.active} students · {r.waiting}{" "}
-                    waiting · {r.paid} with a pass
+                  <span className="flex flex-wrap gap-x-1.5 text-[12.5px] text-ink-2 sm:hidden">
+                    {[
+                      `${r.admins} admins`,
+                      `${r.active} students`,
+                      `${r.waiting} waiting`,
+                      `${r.paid} with a pass`,
+                    ].map((part, i) => (
+                      <span key={part} className="whitespace-nowrap">
+                        {i > 0 ? "· " : ""}
+                        {part}
+                      </span>
+                    ))}
                   </span>
                 </TableCell>
                 <TableCell className="hidden text-right sm:table-cell">
