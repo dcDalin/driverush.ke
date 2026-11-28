@@ -258,6 +258,22 @@ export const LearnerIcon: IconDef = {
   sign: "learner",
 };
 
+// The console's side menu
+export const SchoolIcon: IconDef = {
+  s: "M4 20V9l8-5 8 5v11zM9.5 20v-6h5v6M3 20h18",
+  b: "M4 20V9l8-5 8 5v11z",
+};
+export const WalletIcon: IconDef = {
+  s: "M4 7h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4zM4 7V6a2 2 0 0 1 2-2h10v3M15.5 13h1",
+  b: "M4 7h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4z",
+};
+export const PeopleIcon: IconDef = {
+  s: `${circle(9, 8, 3)}M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 5.2a3 3 0 0 1 0 5.6M17.5 14.4c2 .9 3.5 3 3.5 5.6`,
+};
+export const SignOutIcon: IconDef = {
+  s: "M10 4H5v16h5M15 8l4 4-4 4M19 12H9",
+};
+
 // Platforms keep their own marks (Simple Icons, CC0).
 export const WhatsappIcon: IconDef = {
   brand:

@@ -114,11 +114,22 @@ const ROUTES: Record<string, Entry> = {
   "routes/pass": { group: "Pass", path: "/pass" },
   "routes/pass-done": { group: "Pass", path: "/pass/done" },
   "routes/school-home": { group: "School dashboard", path: "/school" },
-  "routes/console": { group: "Console", path: "/console" },
-  "routes/console-school": {
+  "routes/console/overview": { group: "Console", path: "/console" },
+  "routes/console/schools": { group: "Console", path: "/console/schools" },
+  "routes/console/school-new": {
+    group: "Console",
+    path: "/console/schools/new",
+  },
+  "routes/console/school": {
     group: "Console",
     template: "/console/schools/:schoolId",
     path: "/console/schools/:schoolId",
+  },
+  "routes/console/payments": { group: "Console", path: "/console/payments" },
+  "routes/console/staff": { group: "Console", path: "/console/staff" },
+  "routes/console/staff-grant": {
+    group: "Console",
+    path: "/console/staff/grant",
   },
   "routes/school-dashboard": {
     group: "School dashboard",

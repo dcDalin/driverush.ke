@@ -21,28 +21,10 @@ import {
 } from "~/components/ui/popover";
 import { signOut, useSession } from "~/lib/auth/session";
 import { useSignInSheet } from "~/lib/auth/sign-in-sheet-store";
+import { whoIs } from "~/lib/auth/who-is";
 
 import { MyPlaces } from "./my-places";
 import { MySchool } from "./my-school";
-
-/** A name and picture for the bar: Google's, or made from the email. */
-function whoIs(user: {
-  email?: string;
-  user_metadata?: Record<string, unknown>;
-}) {
-  const meta = user.user_metadata ?? {};
-  const text = (value: unknown) =>
-    typeof value === "string" && value.trim() ? value.trim() : null;
-  const fullName = text(meta.full_name) ?? text(meta.name);
-  const firstName =
-    fullName?.split(/\s+/)[0] ?? user.email?.split("@")[0] ?? "Account";
-  return {
-    fullName,
-    firstName,
-    initial: (firstName[0] ?? "?").toUpperCase(),
-    picture: text(meta.avatar_url) ?? text(meta.picture),
-  };
-}
 
 export function AccountButton() {
   const session = useSession();

@@ -14,11 +14,11 @@
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { action as consoleAction } from "~/routes/console";
 import {
   action as schoolAction,
   loader as schoolLoader,
-} from "~/routes/console-school";
+} from "~/routes/console/school";
+import { action as consoleAction } from "~/routes/console/schools";
 import {
   action as dashboardAction,
   loader as dashboardLoader,

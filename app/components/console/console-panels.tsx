@@ -1,6 +1,6 @@
 /**
  * The console's smaller panels: a school's sponsorship periods and the
- * staff list (su only). Server forms use `useServerForm`, one-tap changes
+ * staff list (su only; "Add staff" is the `staff/grant` modal route). Server forms use `useServerForm`, one-tap changes
  * `useInlineAction`.
  */
 import { HoneypotInputs } from "remix-utils/honeypot/react";
@@ -14,18 +14,14 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
-import {
-  InputField,
-  SelectField,
-  ServerFormProvider,
-} from "~/components/ui/forms/server";
+import { InputField, ServerFormProvider } from "~/components/ui/forms/server";
 import type {
   ConsoleSponsorship,
   StaffMember,
 } from "~/database/console/queries";
 import { useInlineAction } from "~/lib/forms/use-inline-action";
 import { useServerForm } from "~/lib/forms/use-server-form";
-import { GrantRoleSchema, SetSponsorshipSchema } from "~/schemas/console";
+import { SetSponsorshipSchema } from "~/schemas/console";
 
 function kenyaToday(now = Date.now()) {
   return new Date(now + 3 * 3_600_000).toISOString().slice(0, 10);
@@ -147,68 +143,17 @@ export function Sponsorships({
   );
 }
 
-export function StaffPanel({
-  staff,
-  me,
-}: {
-  staff: StaffMember[];
-  me: string;
-}) {
-  const grant = useServerForm({
-    schema: GrantRoleSchema,
-    key: "grant-role",
-    resetOnSuccess: true,
-    defaultValues: { intent: "grant-role", email: "", role: "driverush_admin" },
-  });
+export function StaffList({ staff, me }: { staff: StaffMember[]; me: string }) {
   return (
-    <section className="flex flex-col gap-4">
-      <h2 className="font-display text-[20px] font-bold">Staff</h2>
-      <ServerFormProvider methods={grant.methods}>
-        <grant.fetcher.Form
-          ref={grant.formRef}
-          method="post"
-          onSubmit={grant.methods.handleSubmit}
-          noValidate
-          className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4 sm:flex-row sm:items-start"
-        >
-          <HoneypotInputs />
-          <InputField
-            name="email"
-            label="Email"
-            className="flex-1"
-            disabled={grant.busy}
-            inputProps={{ type: "email", inputMode: "email" }}
-          />
-          <SelectField
-            name="role"
-            label="Role"
-            triggerClassName="w-48"
-            disabled={grant.busy}
-            options={[
-              { label: "Admin", value: "driverush_admin" },
-              { label: "Su", value: "driverush_su" },
-            ]}
-          />
-          <Button
-            type="submit"
-            variant="rush"
-            className="sm:mt-6"
-            isLoading={grant.busy}
-          >
-            Grant
-          </Button>
-        </grant.fetcher.Form>
-      </ServerFormProvider>
-      <ul className="flex flex-col divide-y divide-line rounded-lg border border-line bg-surface">
-        {staff.map((s) => (
-          <StaffRow
-            key={`${s.userId}-${s.role}`}
-            member={s}
-            isMe={s.userId === me}
-          />
-        ))}
-      </ul>
-    </section>
+    <ul className="m-0 flex list-none flex-col divide-y divide-line rounded-lg border border-line bg-surface p-0">
+      {staff.map((s) => (
+        <StaffRow
+          key={`${s.userId}-${s.role}`}
+          member={s}
+          isMe={s.userId === me}
+        />
+      ))}
+    </ul>
   );
 }
 

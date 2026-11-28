@@ -13,13 +13,13 @@
  *   Sponsorship when its cars take turns.
  *   The tab is kept in the address (`?tab=payments`).
  *
- * Changes go through `consoleAction`, as on `/console`.
+ * Drawn inside the console's frame (`layouts/console-layout.tsx`). Changes go through
+ * `consoleAction`, as on every console page.
  */
 import { data, Link } from "react-router";
 
 import { Icon } from "~/components/brand/icon";
 import { ArrowLeftIcon } from "~/components/brand/icons";
-import { SiteNav } from "~/components/brand/site-nav";
 import { Sponsorships } from "~/components/console/console-panels";
 import {
   LiveryList,
@@ -32,21 +32,22 @@ import {
   SetupChecklist,
 } from "~/components/console/school-setup";
 import { STATUS_BADGE, STATUS_LABEL } from "~/components/console/school-status";
-import { NeedsSignIn, NothingHere } from "~/components/school/signed-out";
+import { PageHeader } from "~/components/console/shell";
+import { NothingHere } from "~/components/school/signed-out";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { isStaffRole } from "~/database/auth/roles";
 import { listSchoolEarnings } from "~/database/billing/school";
 import { getConsoleSchool } from "~/database/console/queries";
 import { getRequestClient, requireStaff } from "~/lib/auth/require.server";
 import { consoleAction } from "~/lib/console/action.server";
+import { consoleGate, GATED } from "~/lib/console/gate.server";
 import { kenyanBanks } from "~/lib/payments/banks.server";
 import { paymentsEnabled } from "~/lib/payments/env.server";
 import { useLiveRevalidate } from "~/lib/realtime/use-live-revalidate";
 import { useTabParam } from "~/lib/ui/use-tab-param";
 
-import type { Route } from "./+types/console-school";
+import type { Route } from "./+types/school";
 
 export function meta({ data: loaded }: Route.MetaArgs) {
   const name =
@@ -60,11 +61,10 @@ export function meta({ data: loaded }: Route.MetaArgs) {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { supabase, headers, caller } = await getRequestClient(request);
-  if (!caller.signedIn)
-    return data({ state: "signed-out" as const }, { headers });
-  if (!isStaffRole(caller.role))
-    return data({ state: "not-staff" as const }, { headers });
+  const context = await getRequestClient(request);
+  const gate = await consoleGate(context);
+  const { supabase, headers } = context;
+  if (!gate.ok) return data(GATED, { headers });
   const [school, earnings, banks] = await Promise.all([
     getConsoleSchool(supabase, params.schoolId),
     listSchoolEarnings(supabase, params.schoolId).catch(() => []),
@@ -90,31 +90,16 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function ConsoleSchool({ loaderData }: Route.ComponentProps) {
-  return (
-    <>
-      <SiteNav />
-      <main className="mx-auto min-h-screen w-full max-w-5xl px-5 pb-24 text-ink sm:px-9">
-        {loaderData.state === "signed-out" ? (
-          <NeedsSignIn
-            title="Console"
-            body="For DriveRush staff. Sign in with your email and password."
-          />
-        ) : loaderData.state === "not-staff" ? (
-          <NothingHere
-            title="Staff only"
-            body="This account has no DriveRush staff role, or did not sign in with its password. Staff sign in with a password."
-          />
-        ) : loaderData.state === "missing" ? (
-          <NothingHere
-            title="No such school"
-            body="It may have been removed. Go back to the console's list."
-          />
-        ) : (
-          <SchoolPage {...loaderData} />
-        )}
-      </main>
-    </>
-  );
+  if ("gated" in loaderData) return null;
+  if (loaderData.state === "missing") {
+    return (
+      <NothingHere
+        title="No such school"
+        body="It may have been removed. Go back to the console's list."
+      />
+    );
+  }
+  return <SchoolPage {...loaderData} />;
 }
 
 const SCHOOL_TABS = ["livery", "payments", "sponsorship"] as const;
@@ -129,30 +114,33 @@ function SchoolPage({
   const [tab, setTab] = useTabParam(SCHOOL_TABS);
   useLiveRevalidate([`school:${id}`]);
   return (
-    <div className="flex flex-col gap-6 py-8">
-      <Button variant="ghost" size="sm" asChild className="self-start">
-        <Link to="/console">
+    <>
+      <Button variant="ghost" size="sm" asChild className="-mb-3 self-start">
+        <Link to="/console/schools">
           <Icon icon={ArrowLeftIcon} size={16} />
           All schools
         </Link>
       </Button>
-      <header className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="m-0 font-display text-[28px] font-bold tracking-tight">
+      <PageHeader
+        title={
+          <span className="flex flex-wrap items-center gap-2">
             {name}
-          </h1>
-          <Badge variant={STATUS_BADGE[status]}>{STATUS_LABEL[status]}</Badge>
-        </div>
-        <p className="m-0 text-[14px] text-ink-3">
-          /{slug} ·{" "}
-          {school.ownerEmail
-            ? `Owner ${school.ownerEmail}`
-            : school.invitedOwnerEmail
-              ? `Invited ${school.invitedOwnerEmail}`
-              : "No owner yet"}
-        </p>
+            <Badge variant={STATUS_BADGE[status]}>{STATUS_LABEL[status]}</Badge>
+          </span>
+        }
+        description={
+          <>
+            /{slug} ·{" "}
+            {school.ownerEmail
+              ? `Owner ${school.ownerEmail}`
+              : school.invitedOwnerEmail
+                ? `Invited ${school.invitedOwnerEmail}`
+                : "No owner yet"}
+          </>
+        }
+      >
         <SchoolStatusControl schoolId={id} status={status} />
-      </header>
+      </PageHeader>
 
       <div className="grid gap-4 md:grid-cols-2">
         <SetupChecklist school={school} />
@@ -194,6 +182,6 @@ function SchoolPage({
           />
         </TabsContent>
       </Tabs>
-    </div>
+    </>
   );
 }

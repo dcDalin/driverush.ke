@@ -82,7 +82,7 @@ export function SchoolList({ schools }: { schools: ConsoleSchoolRow[] }) {
   const navigation = useNavigation();
   const loading =
     navigation.state === "loading" &&
-    navigation.location?.pathname === "/console";
+    navigation.location?.pathname === "/console/schools";
   if (schools.length === 0) {
     return (
       <p className="m-0 rounded-lg border border-dashed border-line px-4 py-8 text-center text-[14px] text-ink-3">

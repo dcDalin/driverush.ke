@@ -72,7 +72,8 @@ remix-hook-form, shadcn everywhere. Guides: `docs/forms-and-data.md`,
   keys in `supabase/.env`, see `config.toml`), then email and password. A new
   password account confirms its email with a 6-digit code, and a forgotten
   password is replaced with one; there is no code sign-in in the sheet (owner,
-  2026-11-28). Code emails are `supabase/templates/`; the hosted project needs
+  2026-11-28). Staff roles count on a password or Google session, never a
+  code one (`private.signed_in_for_staff`). Code emails are `supabase/templates/`; the hosted project needs
   the same templates.
 - Pages render as a guest on the server; the session is read in the browser
   (`app/lib/auth/session.ts`, Supabase client loaded lazily). A build without
@@ -86,8 +87,15 @@ remix-hook-form, shadcn everywhere. Guides: `docs/forms-and-data.md`,
   `app/lib/board/paywall.ts` says what is locked (past level 16, a second
   mock test) and `use-paywall.ts` asks it in the game and the level lists,
   only when the build has `VITE_PASSES=on` (the owner's launch switch).
-- `/school/:schoolId` (owners, branch admins), `/console` (staff: schools
-  searched, filtered and paged; "New school") and `/console/schools/:id`
+- `/school/:schoolId` (owners, branch admins). The console (`/console`,
+  staff) is a dashboard like thinkrush's admin: `layouts/console-layout.tsx`
+  (side menu from `lib/console/nav.ts`, top bar) around one page per
+  section (`routes/console/`: overview, schools, payments, staff), built
+  from `components/console/shell.tsx` (`PageHeader`, `Section`, `StatTile`).
+  Create and add forms are modal routes over their list (`schools/new`,
+  `staff/grant`; `components/console/route-modal.tsx`), never a dialog kept
+  in state. Each page's loader opens with `getRequestClient` then
+  `consoleGate`. One school is `/console/schools/:id`
   (set-up checklist, hand-over, livery folder upload, sponsorship,
   payments). A school created with no owner is `setup` (hidden everywhere)
   until handed over. The
@@ -101,7 +109,7 @@ remix-hook-form, shadcn everywhere. Guides: `docs/forms-and-data.md`,
   the bank, staff approve it (`school_request_bank`, `admin_review_bank`). A
   school link is free; a pass unlocks. `/pass`, `/pass/done`,
   `/api/webhooks/paystack` (signature-gated), the dashboard's Passes tab, the
-  console's Payments tabs (every payment, month totals, banks to check). Env:
+  console's Payments page (every payment, month totals, banks to check). Env:
   `PAYSTACK_SECRET_KEY`, `PAYSTACK_WEBHOOK_SECRET`, `VITE_PASSES`.
   `.claude/launch.json` `dev-passes` runs it locally with passes on.
 - Emails DriveRush sends itself (invites, hand-overs, "you've been added",

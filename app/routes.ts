@@ -86,8 +86,25 @@ export default [
   route("api/board-schools", "routes/api/board-schools.ts"),
   route("api/webhooks/paystack", "routes/api/webhooks.paystack.ts"),
   // DriveRush staff: schools, owners and staff roles. Signed in only.
-  route("console", "routes/console.tsx"),
-  route("console/schools/:schoolId", "routes/console-school.tsx"),
+  // A dashboard frame (side menu, top bar) around one page per section;
+  // "new" and "grant" are modal routes drawn over the list that owns them.
+  // Static `new` wins over `:schoolId`.
+  route(
+    "console",
+    "routes/layouts/console-layout.tsx",
+    { id: "console-layout" },
+    [
+      index("routes/console/overview.tsx"),
+      route("schools", "routes/console/schools.tsx", [
+        route("new", "routes/console/school-new.tsx"),
+      ]),
+      route("schools/:schoolId", "routes/console/school.tsx"),
+      route("payments", "routes/console/payments.tsx"),
+      route("staff", "routes/console/staff.tsx", [
+        route("grant", "routes/console/staff-grant.tsx"),
+      ]),
+    ],
+  ),
 
   // Where shared achievement links land (`/s?k=quiz&…`). Deliberately short:
   // the URL travels through WhatsApp forwards. Renders a useful page for any

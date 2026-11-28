@@ -10,7 +10,8 @@ import {
 import {
   action as consoleAction,
   loader as consoleLoader,
-} from "~/routes/console";
+} from "~/routes/console/schools";
+import { loader as frameLoader } from "~/routes/layouts/console-layout";
 
 import { seededBranchId } from "../db/helpers";
 import {
@@ -30,9 +31,17 @@ describe("console", () => {
   it("shows a learner the staff-only page and refuses their posts", async () => {
     const cookie = await signInCookies("amina@learner.test");
     expect(
-      (await run(() => consoleLoader(args(getRequest("/console", cookie)))))
-        .data.state,
+      (await run(() => frameLoader(args(getRequest("/console", cookie))))).data
+        .state,
     ).toBe("not-staff");
+    // The page under the frame gives a non-staff caller nothing either.
+    expect(
+      (
+        await run(() =>
+          consoleLoader(args(getRequest("/console/schools", cookie))),
+        )
+      ).data,
+    ).toEqual({ gated: true });
     const refused = await run(() =>
       consoleAction(
         args(
@@ -76,7 +85,7 @@ describe("console", () => {
       /^\/console\/schools\/[0-9a-f-]{36}$/,
     );
     const { data } = await run(() =>
-      consoleLoader(args(getRequest(`/console?q=${slug}`, cookie))),
+      consoleLoader(args(getRequest(`/console/schools?q=${slug}`, cookie))),
     );
     const row = data.schools.find((s: { slug: string }) => s.slug === slug);
     expect(row?.status).toBe("active");
@@ -105,7 +114,7 @@ describe("console", () => {
     );
     const schoolId = created.headers.get("location")!.split("/").pop()!;
     const { loader: schoolLoader, action: schoolAction } =
-      await import("~/routes/console-school");
+      await import("~/routes/console/school");
     const load = () =>
       run(() =>
         schoolLoader({
@@ -138,7 +147,7 @@ describe("console", () => {
 
   it("refuses the school page's changes to a school owner", async () => {
     const cookie = await signInCookies("owner@heltz.test");
-    const { action: schoolAction } = await import("~/routes/console-school");
+    const { action: schoolAction } = await import("~/routes/console/school");
     const refused = await run(() =>
       schoolAction({
         request: postRequest(

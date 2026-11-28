@@ -1,8 +1,8 @@
 /**
  * DriveRush's money in the console (owner, 2026-11-26): banks owners sent,
  * waiting for a check; this month's and last month's totals; and every
- * payment, searched and filtered in the address (`?tab=payments&pq=&pstatus=
- * &ppage=`, apart from the school list's own `q`, `status` and `page`).
+ * payment, searched and filtered in the address of `/console/payments`
+ * (`?pq=&pstatus=&ppage=`). The overview reuses the banks and the totals.
  */
 import { Link } from "react-router";
 
