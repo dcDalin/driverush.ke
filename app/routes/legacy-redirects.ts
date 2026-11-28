@@ -23,8 +23,7 @@ const TARGETS: Record<string, string> = {
   design: "/",
 };
 
-export function loader({ request }: LoaderFunctionArgs) {
-  const url = new URL(request.url);
+export function loader({ url }: LoaderFunctionArgs) {
   const target =
     EXACT_TARGETS[url.pathname] ??
     TARGETS[url.pathname.split("/")[1] ?? ""] ??

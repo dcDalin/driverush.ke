@@ -52,7 +52,7 @@ export function loader({ params }: Route.LoaderArgs) {
   return { slug: sign.slug };
 }
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   const sign = signPageBySlug(data?.slug);
   if (!sign) {
     return [

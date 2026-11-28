@@ -20,12 +20,12 @@ import {
   makeAccount,
   postRequest,
   remixFields,
+  routeArgs,
   run,
   signInCookies,
 } from "./harness";
 
-const args = (request: Request) =>
-  ({ request, params: {}, context: {} }) as never;
+const args = (request: Request) => routeArgs({ request, params: {} });
 
 describe("console", () => {
   it("shows a learner the staff-only page and refuses their posts", async () => {
@@ -117,27 +117,29 @@ describe("console", () => {
       await import("~/routes/console/school");
     const load = () =>
       run(() =>
-        schoolLoader({
-          request: getRequest(`/console/schools/${schoolId}`, cookie),
-          params: { schoolId },
-          context: {},
-        } as never),
+        schoolLoader(
+          routeArgs({
+            request: getRequest(`/console/schools/${schoolId}`, cookie),
+            params: { schoolId },
+          }),
+        ),
       );
     expect((await load()).data.school.school.status).toBe("setup");
     const handed = await run(() =>
-      schoolAction({
-        request: postRequest(
-          `/console/schools/${schoolId}`,
-          remixFields({
-            intent: "hand-over",
-            schoolId,
-            email: `${slug}@routes.test`,
-          }),
-          cookie,
-        ),
-        params: { schoolId },
-        context: {},
-      } as never),
+      schoolAction(
+        routeArgs({
+          request: postRequest(
+            `/console/schools/${schoolId}`,
+            remixFields({
+              intent: "hand-over",
+              schoolId,
+              email: `${slug}@routes.test`,
+            }),
+            cookie,
+          ),
+          params: { schoolId },
+        }),
+      ),
     );
     expect(handed.data.ok).toBe(true);
     const after = (await load()).data.school;
@@ -149,19 +151,20 @@ describe("console", () => {
     const cookie = await signInCookies("owner@heltz.test");
     const { action: schoolAction } = await import("~/routes/console/school");
     const refused = await run(() =>
-      schoolAction({
-        request: postRequest(
-          "/console/schools/x",
-          remixFields({
-            intent: "hand-over",
-            schoolId: crypto.randomUUID(),
-            email: "x@routes.test",
-          }),
-          cookie,
-        ),
-        params: { schoolId: "x" },
-        context: {},
-      } as never),
+      schoolAction(
+        routeArgs({
+          request: postRequest(
+            "/console/schools/x",
+            remixFields({
+              intent: "hand-over",
+              schoolId: crypto.randomUUID(),
+              email: "x@routes.test",
+            }),
+            cookie,
+          ),
+          params: { schoolId: "x" },
+        }),
+      ),
     );
     expect(refused.status).toBe(403);
   });
@@ -185,19 +188,20 @@ describe("school invites resource route", () => {
       ["topgear", topgearOwner, await seededBranchId("topgear", "Thika Road")],
     ] as const) {
       const added = await run(() =>
-        dashboardAction({
-          request: postRequest(
-            `/school/${idOf(slug)}`,
-            remixFields({
-              intent: "add-student",
-              email,
-              branchId: branch,
-            }),
-            cookie,
-          ),
-          params: { schoolId: idOf(slug) },
-          context: {},
-        } as never),
+        dashboardAction(
+          routeArgs({
+            request: postRequest(
+              `/school/${idOf(slug)}`,
+              remixFields({
+                intent: "add-student",
+                email,
+                branchId: branch,
+              }),
+              cookie,
+            ),
+            params: { schoolId: idOf(slug) },
+          }),
+        ),
       );
       expect(added.data.ok).toBe(true);
     }

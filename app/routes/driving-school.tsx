@@ -83,7 +83,7 @@ function schoolLd(school: DrivingSchoolPage, profile: PublicSchool | null) {
   };
 }
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   const school = data && drivingSchoolBySlug(data.slug);
   if (!school) return [{ title: "Not found · DriveRush Kenya" }];
   const page = guideLd({

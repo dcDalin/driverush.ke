@@ -53,9 +53,8 @@ export function meta() {
 
 const LEVEL = /^[a-z0-9-]{1,60}$/;
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request, url }: Route.LoaderArgs) {
   const { supabase, headers, caller } = await getRequestClient(request);
-  const url = new URL(request.url);
   const level = url.searchParams.get("level") ?? "";
   const back = LEVEL.test(level) && levelById(level) ? level : undefined;
   if (!paymentsEnabled()) return data({ state: "off" as const }, { headers });
@@ -90,7 +89,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   );
 }
 
-export async function action({ request }: Route.ActionArgs) {
+export async function action({ request, url }: Route.ActionArgs) {
   const { supabase, headers } = await requireUser(request);
   const formData = await request.formData();
   if (readFormIntent(formData) !== "buy") {
@@ -107,7 +106,7 @@ export async function action({ request }: Route.ActionArgs) {
       { headers },
     );
   }
-  const started = await beginCheckout(supabase, values, request.url);
+  const started = await beginCheckout(supabase, values, url.href);
   if (started.error !== null) {
     return dataWithError({ ok: false as const }, started.error, { headers });
   }

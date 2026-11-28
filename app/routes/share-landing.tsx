@@ -34,12 +34,12 @@ import { absUrl, SITE } from "~/lib/site";
 
 import type { Route } from "./+types/share-landing";
 
-export function loader({ request }: Route.LoaderArgs) {
-  const params = new URL(request.url).searchParams;
+export function loader({ url }: Route.LoaderArgs) {
+  const params = url.searchParams;
   return { resolved: resolveShare(params) };
 }
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   const resolved = data?.resolved;
   const { title, description } = shareLandingMeta(
     resolved ?? {

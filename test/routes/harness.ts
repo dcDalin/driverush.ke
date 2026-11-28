@@ -4,6 +4,7 @@
  * fills a cookie jar, and the request carries those cookies.
  */
 import { createServerClient } from "@supabase/ssr";
+import { RouterContextProvider } from "react-router";
 import { getToast } from "remix-toast";
 import { inject } from "vitest";
 
@@ -115,4 +116,22 @@ export async function flashOf(headers: Headers): Promise<string> {
     new Request("http://localhost/", { headers: { Cookie: cookie } }),
   );
   return toast?.message ?? "";
+}
+
+/**
+ * The arguments React Router hands a loader or action: the request, the
+ * clean `url` it was made for (`future.v8_passThroughRequests`), and a
+ * fresh router context for middleware to fill.
+ */
+export function routeArgs(args: {
+  request: Request;
+  params?: Record<string, string>;
+}): never {
+  return {
+    params: {},
+    ...args,
+    url: new URL(args.request.url),
+    pattern: "",
+    context: new RouterContextProvider(),
+  } as never;
 }

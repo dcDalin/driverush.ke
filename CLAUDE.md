@@ -1,6 +1,6 @@
 # DriveRush
 
-Built like the thinkrush monorepo, as one app: React Router 7 (loaders,
+Built like the thinkrush monorepo, as one app: React Router 8 (loaders,
 actions, fetchers), Supabase schema first, a typed data layer, zod forms on
 remix-hook-form, shadcn everywhere. Guides: `docs/forms-and-data.md`,
 `docs/ui.md`, `docs/database-access.md`.

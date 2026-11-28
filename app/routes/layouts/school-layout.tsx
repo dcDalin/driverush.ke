@@ -37,7 +37,7 @@ import { schoolNav, schoolPath } from "~/lib/school/nav";
 
 import type { Route } from "./+types/school-layout";
 
-export function meta({ data: loaded }: Route.MetaArgs) {
+export function meta({ loaderData: loaded }: Route.MetaArgs) {
   const name = loaded && loaded.state === "ok" ? loaded.school.name : "School";
   return [
     { title: `${name} | School dashboard | DriveRush` },

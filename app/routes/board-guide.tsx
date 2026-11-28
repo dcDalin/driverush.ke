@@ -42,13 +42,13 @@ const BODIES: Record<BoardGuideId, React.ComponentType> = {
   parking: ParkingBody,
 };
 
-export function loader({ request }: Route.LoaderArgs) {
-  const guide = boardGuideByPath(new URL(request.url).pathname);
+export function loader({ url }: Route.LoaderArgs) {
+  const guide = boardGuideByPath(url.pathname);
   if (!guide) throw new Response("Not found", { status: 404 });
   return { path: guide.path };
 }
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   const guide = data && boardGuideByPath(data.path);
   if (!guide) return [{ title: "Not found · DriveRush Kenya" }];
   return [

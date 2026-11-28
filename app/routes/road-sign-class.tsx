@@ -33,13 +33,13 @@ const ART: Partial<Record<SignCategoryId, React.ReactNode>> = {
   prohibitory: <RoadClosedScene />,
 };
 
-export function loader({ request }: Route.LoaderArgs) {
-  const page = signClassPageByPath(new URL(request.url).pathname);
+export function loader({ url }: Route.LoaderArgs) {
+  const page = signClassPageByPath(url.pathname);
   if (!page) throw new Response("Not found", { status: 404 });
   return { path: page.path };
 }
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   const page = data && signClassPageByPath(data.path);
   if (!page) return [{ title: "Not found · DriveRush Kenya" }];
   return [

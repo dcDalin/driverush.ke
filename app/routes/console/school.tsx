@@ -65,7 +65,7 @@ import { SchoolScopeProvider } from "~/lib/school/use-school";
 
 import type { Route } from "./+types/school";
 
-export function meta({ data: loaded }: Route.MetaArgs) {
+export function meta({ loaderData: loaded }: Route.MetaArgs) {
   const name =
     loaded && "school" in loaded && loaded.school
       ? loaded.school.school.name

@@ -21,6 +21,7 @@ import {
   makeAccount,
   postRequest,
   remixFields,
+  routeArgs,
   run,
   signInCookies,
 } from "./harness";
@@ -122,15 +123,16 @@ async function passes(userId: string) {
 
 async function buy(cookie: string, fields: Record<string, unknown>) {
   return run(() =>
-    passAction({
-      request: postRequest(
-        "/pass",
-        remixFields({ intent: "buy", level: "", ...fields }),
-        cookie,
-      ),
-      params: {},
-      context: {},
-    } as never),
+    passAction(
+      routeArgs({
+        request: postRequest(
+          "/pass",
+          remixFields({ intent: "buy", level: "", ...fields }),
+          cookie,
+        ),
+        params: {},
+      }),
+    ),
   );
 }
 
@@ -140,11 +142,12 @@ const referenceFrom = (location: string | null) =>
 describe("/pass", () => {
   it("asks a guest to sign in", async () => {
     const out = await run(() =>
-      passLoader({
-        request: getRequest("/pass"),
-        params: {},
-        context: {},
-      } as never),
+      passLoader(
+        routeArgs({
+          request: getRequest("/pass"),
+          params: {},
+        }),
+      ),
     );
     expect(out.data.state).toBe("signed-out");
   });
@@ -153,11 +156,12 @@ describe("/pass", () => {
     // Amina: linked to Heltz, paid KES 700 through it (local_demo.sql).
     const cookie = await signInCookies("amina@learner.test");
     const out = await run(() =>
-      passLoader({
-        request: getRequest("/pass", cookie),
-        params: {},
-        context: {},
-      } as never),
+      passLoader(
+        routeArgs({
+          request: getRequest("/pass", cookie),
+          params: {},
+        }),
+      ),
     );
     expect(out.data.state).toBe("ok");
     expect(out.data.offers).toEqual([
@@ -171,11 +175,12 @@ describe("/pass", () => {
     const { email } = await makeAccount("code");
     const cookie = await signInCookies(email);
     const out = await run(() =>
-      passLoader({
-        request: getRequest("/pass?code=heltz", cookie),
-        params: {},
-        context: {},
-      } as never),
+      passLoader(
+        routeArgs({
+          request: getRequest("/pass?code=heltz", cookie),
+          params: {},
+        }),
+      ),
     );
     expect(out.data.codeOffer).toMatchObject({
       school_name: "Heltz Driving Academy",
@@ -227,11 +232,12 @@ describe("paying, the webhook and the return page", () => {
       data: { reference: schoolRef },
     });
     const out = await run(() =>
-      webhook({
-        request: signed(body, "sk_test_wrong"),
-        params: {},
-        context: {},
-      } as never),
+      webhook(
+        routeArgs({
+          request: signed(body, "sk_test_wrong"),
+          params: {},
+        }),
+      ),
     );
     expect(out.status).toBe(401);
     expect((await payment(schoolRef)).status).toBe("pending");
@@ -245,7 +251,7 @@ describe("paying, the webhook and the return page", () => {
     });
     for (let i = 0; i < 2; i++) {
       const out = await run(() =>
-        webhook({ request: signed(body), params: {}, context: {} } as never),
+        webhook(routeArgs({ request: signed(body), params: {} })),
       );
       expect(out.status).toBe(200);
     }
@@ -255,14 +261,15 @@ describe("paying, the webhook and the return page", () => {
 
   it("tells the learner on the return page", async () => {
     const out = await run(() =>
-      doneLoader({
-        request: getRequest(
-          `/pass/done?reference=${schoolRef}&level=drive-straight`,
-          cookie,
-        ),
-        params: {},
-        context: {},
-      } as never),
+      doneLoader(
+        routeArgs({
+          request: getRequest(
+            `/pass/done?reference=${schoolRef}&level=drive-straight`,
+            cookie,
+          ),
+          params: {},
+        }),
+      ),
     );
     expect(out.data).toMatchObject({ state: "paid", back: "drive-straight" });
     expect(out.data.passEndsAt).not.toBeNull();
@@ -275,11 +282,12 @@ describe("paying, the webhook and the return page", () => {
     expect(initialized.at(-1)).not.toHaveProperty("subaccount");
     verdicts.set(ownRef, { status: "abandoned", amount: 100000 });
     const done = await run(() =>
-      doneLoader({
-        request: getRequest(`/pass/done?reference=${ownRef}`, cookie),
-        params: {},
-        context: {},
-      } as never),
+      doneLoader(
+        routeArgs({
+          request: getRequest(`/pass/done?reference=${ownRef}`, cookie),
+          params: {},
+        }),
+      ),
     );
     expect(done.data.state).toBe("failed");
     expect((await payment(ownRef)).status).toBe("failed");
@@ -288,11 +296,12 @@ describe("paying, the webhook and the return page", () => {
   it("shows nobody else's payment", async () => {
     const other = await signInCookies("esther@learner.test");
     const out = await run(() =>
-      doneLoader({
-        request: getRequest(`/pass/done?reference=${schoolRef}`, other),
-        params: {},
-        context: {},
-      } as never),
+      doneLoader(
+        routeArgs({
+          request: getRequest(`/pass/done?reference=${schoolRef}`, other),
+          params: {},
+        }),
+      ),
     );
     expect(out.data.state).toBe("missing");
   });
@@ -303,7 +312,7 @@ describe("paying, the webhook and the return page", () => {
       data: { status: "processed", transaction_reference: schoolRef },
     });
     const out = await run(() =>
-      webhook({ request: signed(body), params: {}, context: {} } as never),
+      webhook(routeArgs({ request: signed(body), params: {} })),
     );
     expect(out.status).toBe(200);
     expect((await payment(schoolRef)).status).toBe("refunded");
@@ -316,7 +325,7 @@ describe("paying, the webhook and the return page", () => {
       data: { reference: "T123456" },
     });
     const out = await run(() =>
-      webhook({ request: signed(body), params: {}, context: {} } as never),
+      webhook(routeArgs({ request: signed(body), params: {} })),
     );
     expect(out.status).toBe(200);
   });

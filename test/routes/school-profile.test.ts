@@ -15,6 +15,7 @@ import {
   getRequest,
   postRequest,
   remixFields,
+  routeArgs,
   run,
   signInCookies,
 } from "./harness";
@@ -36,7 +37,7 @@ beforeAll(async () => {
 
 const path = () => `/school/${schoolId}`;
 const post = (request: Request) =>
-  run(() => action({ request, params: { schoolId }, context: {} } as never));
+  run(() => action(routeArgs({ request, params: { schoolId } })));
 
 const profileFields = remixFields({
   intent: "update-profile",
@@ -185,11 +186,12 @@ describe("the logo upload", () => {
 
   it("shows on the dashboard and to guests through board_schools()", async () => {
     const { data } = await run(() =>
-      loader({
-        request: getRequest(path(), cookies["owner@heltz.test"]),
-        params: { schoolId },
-        context: {},
-      } as never),
+      loader(
+        routeArgs({
+          request: getRequest(path(), cookies["owner@heltz.test"]),
+          params: { schoolId },
+        }),
+      ),
     );
     expect(data.logos.logo).toMatch(
       /\/storage\/v1\/object\/public\/school-media\//,

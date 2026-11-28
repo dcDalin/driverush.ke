@@ -14,6 +14,7 @@ import {
   getRequest,
   postRequest,
   remixFields,
+  routeArgs,
   run,
   signInCookies,
 } from "./harness";
@@ -44,19 +45,21 @@ beforeAll(async () => {
 const path = () => `/school/${schoolId}`;
 const load = (cookie?: string) =>
   run(() =>
-    loader({
-      request: getRequest(path(), cookie),
-      params: { schoolId },
-      context: {},
-    } as never),
+    loader(
+      routeArgs({
+        request: getRequest(path(), cookie),
+        params: { schoolId },
+      }),
+    ),
   );
 const post = (fields: Record<string, string>, cookie?: string) =>
   run(() =>
-    action({
-      request: postRequest(path(), fields, cookie),
-      params: { schoolId },
-      context: {},
-    } as never),
+    action(
+      routeArgs({
+        request: postRequest(path(), fields, cookie),
+        params: { schoolId },
+      }),
+    ),
   );
 
 describe("school dashboard loader", () => {
@@ -136,7 +139,7 @@ describe("school dashboard action", () => {
       headers: { Cookie: cookies["owner@heltz.test"]! },
     });
     const result = await run(() =>
-      action({ request, params: { schoolId }, context: {} } as never),
+      action(routeArgs({ request, params: { schoolId } })),
     );
     expect(result.status).toBe(400);
   });

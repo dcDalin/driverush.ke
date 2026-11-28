@@ -31,6 +31,7 @@ import {
   makeAccount,
   postRequest,
   remixFields,
+  routeArgs,
   run,
   signInCookies,
 } from "./harness";
@@ -120,43 +121,47 @@ describe("a school end to end", () => {
 
   const asSchool = (cookie: string, fields: Record<string, unknown>) =>
     run(() =>
-      dashboardAction({
-        request: postRequest(
-          `/school/${schoolId}`,
-          remixFields(fields),
-          cookie,
-        ),
-        params: { schoolId },
-        context: {},
-      } as never),
+      dashboardAction(
+        routeArgs({
+          request: postRequest(
+            `/school/${schoolId}`,
+            remixFields(fields),
+            cookie,
+          ),
+          params: { schoolId },
+        }),
+      ),
     );
   const loadSchool = (cookie: string) =>
     run(() =>
-      dashboardLoader({
-        request: getRequest(`/school/${schoolId}`, cookie),
-        params: { schoolId },
-        context: {},
-      } as never),
+      dashboardLoader(
+        routeArgs({
+          request: getRequest(`/school/${schoolId}`, cookie),
+          params: { schoolId },
+        }),
+      ),
     );
   const asStaff = (fields: Record<string, unknown>) =>
     run(() =>
-      schoolAction({
-        request: postRequest(
-          `/console/schools/${schoolId}`,
-          remixFields(fields),
-          staffCookie,
-        ),
-        params: { schoolId },
-        context: {},
-      } as never),
+      schoolAction(
+        routeArgs({
+          request: postRequest(
+            `/console/schools/${schoolId}`,
+            remixFields(fields),
+            staffCookie,
+          ),
+          params: { schoolId },
+        }),
+      ),
     );
   const loadStaff = () =>
     run(() =>
-      schoolLoader({
-        request: getRequest(`/console/schools/${schoolId}`, staffCookie),
-        params: { schoolId },
-        context: {},
-      } as never),
+      schoolLoader(
+        routeArgs({
+          request: getRequest(`/console/schools/${schoolId}`, staffCookie),
+          params: { schoolId },
+        }),
+      ),
     );
 
   it("staff set a school up, then hand it over; the owner is emailed", async () => {
@@ -164,20 +169,21 @@ describe("a school end to end", () => {
     owner = await makeAccount("journey-owner");
     ownerCookie = await signInCookies(owner.email);
     const created = await run(() =>
-      consoleAction({
-        request: postRequest(
-          "/console",
-          remixFields({
-            intent: "create-school",
-            name: "Journey Driving School",
-            slug,
-            ownerEmail: "",
-          }),
-          staffCookie,
-        ),
-        params: {},
-        context: {},
-      } as never),
+      consoleAction(
+        routeArgs({
+          request: postRequest(
+            "/console",
+            remixFields({
+              intent: "create-school",
+              name: "Journey Driving School",
+              slug,
+              ownerEmail: "",
+            }),
+            staffCookie,
+          ),
+          params: {},
+        }),
+      ),
     );
     schoolId = created.headers.get("location")!.split("/").pop()!;
     const handed = await asStaff({
@@ -229,15 +235,16 @@ describe("a school end to end", () => {
     // An inline action: plain values, as useInlineAction posts them.
     const resend = () =>
       run(() =>
-        dashboardAction({
-          request: postRequest(
-            `/school/${schoolId}`,
-            { intent: "resend-student", linkId },
-            adminCookie,
-          ),
-          params: { schoolId },
-          context: {},
-        } as never),
+        dashboardAction(
+          routeArgs({
+            request: postRequest(
+              `/school/${schoolId}`,
+              { intent: "resend-student", linkId },
+              adminCookie,
+            ),
+            params: { schoolId },
+          }),
+        ),
       );
 
     // At once: refused, and nothing is sent.
@@ -380,34 +387,36 @@ describe("a school set up for its owner by DriveRush", () => {
   // Staff, through the same route actions the console's modals post to.
   const asStaffInSchool = (fields: Record<string, unknown>) =>
     run(() =>
-      dashboardAction({
-        request: postRequest(
-          `/console/schools/${schoolId}/branches/add`,
-          remixFields(fields),
-          staffCookie,
-        ),
-        params: { schoolId },
-        context: {},
-      } as never),
+      dashboardAction(
+        routeArgs({
+          request: postRequest(
+            `/console/schools/${schoolId}/branches/add`,
+            remixFields(fields),
+            staffCookie,
+          ),
+          params: { schoolId },
+        }),
+      ),
     );
 
   it("staff add its branch and an admin; nobody is emailed yet", async () => {
     staffCookie = await signInCookies("admin@driverush.test");
     const created = await run(() =>
-      consoleAction({
-        request: postRequest(
-          "/console/schools/new",
-          remixFields({
-            intent: "create-school",
-            name: "Held Driving School",
-            slug,
-            ownerEmail: "",
-          }),
-          staffCookie,
-        ),
-        params: {},
-        context: {},
-      } as never),
+      consoleAction(
+        routeArgs({
+          request: postRequest(
+            "/console/schools/new",
+            remixFields({
+              intent: "create-school",
+              name: "Held Driving School",
+              slug,
+              ownerEmail: "",
+            }),
+            staffCookie,
+          ),
+          params: {},
+        }),
+      ),
     );
     schoolId = created.headers.get("location")!.split("/").pop()!;
     expect(
@@ -449,20 +458,21 @@ describe("a school set up for its owner by DriveRush", () => {
 
   it("handing it over emails the held admin, and tells the owner what is done and left", async () => {
     const handed = await run(() =>
-      schoolAction({
-        request: postRequest(
-          `/console/schools/${schoolId}/hand-over`,
-          remixFields({
-            intent: "hand-over",
-            schoolId,
-            email: ownerEmail,
-            keepPrevious: false,
-          }),
-          staffCookie,
-        ),
-        params: { schoolId },
-        context: {},
-      } as never),
+      schoolAction(
+        routeArgs({
+          request: postRequest(
+            `/console/schools/${schoolId}/hand-over`,
+            remixFields({
+              intent: "hand-over",
+              schoolId,
+              email: ownerEmail,
+              keepPrevious: false,
+            }),
+            staffCookie,
+          ),
+          params: { schoolId },
+        }),
+      ),
     );
     expect(handed.data.ok).toBe(true);
     expect(sent(adminEmail).map((e) => e.subject)).toEqual([

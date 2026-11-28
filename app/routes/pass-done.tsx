@@ -35,9 +35,8 @@ export function meta() {
 
 const REFERENCE = /^dr_[A-Za-z0-9_]{1,64}$/;
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request, url }: Route.LoaderArgs) {
   const { supabase, headers, caller } = await getRequestClient(request);
-  const url = new URL(request.url);
   const level = url.searchParams.get("level") ?? "";
   const back = levelById(level) ? level : null;
   const reference =

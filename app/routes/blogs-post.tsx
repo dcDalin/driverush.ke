@@ -44,7 +44,7 @@ function serialisePost(p: BlogPost) {
   return rest;
 }
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   if (!data) {
     // 404 path — give the page a clean, non-indexable head.
     return [

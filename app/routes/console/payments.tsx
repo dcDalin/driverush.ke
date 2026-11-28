@@ -31,12 +31,12 @@ export function meta() {
   ];
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request, url }: Route.LoaderArgs) {
   const context = await getRequestClient(request);
   const gate = await consoleGate(context);
   const { supabase, headers } = context;
   if (!gate.ok) return data(GATED, { headers });
-  const params = Object.fromEntries(new URL(request.url).searchParams);
+  const params = Object.fromEntries(url.searchParams);
   const filters = PaymentFiltersSchema.parse({
     q: params.pq,
     status: params.pstatus,
