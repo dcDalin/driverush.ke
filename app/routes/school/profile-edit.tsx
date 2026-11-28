@@ -13,8 +13,7 @@ import {
 import { ProfileForm } from "~/components/school/profile-panel";
 import { requireUser } from "~/lib/auth/require.server";
 import { schoolAction } from "~/lib/school/action.server";
-import { schoolPath } from "~/lib/school/nav";
-import { useSchool } from "~/lib/school/use-school";
+import { useSchool, useSchoolPath } from "~/lib/school/use-school";
 
 import type { Route } from "./+types/profile-edit";
 
@@ -24,8 +23,9 @@ export async function action({ request, params }: Route.ActionArgs) {
 }
 
 export default function ProfileEdit() {
+  const path = useSchoolPath();
   const d = useSchool();
-  const closeTo = schoolPath(d.school.id, "profile");
+  const closeTo = path("profile");
   if (!d.canManage) return <Navigate to={closeTo} replace />;
   return (
     <RouteModal closeTo={closeTo} label="Profile" size="lg">
@@ -36,7 +36,7 @@ export default function ProfileEdit() {
       <RouteModalBody className="pt-4 pb-6">
         <ProfileForm
           profile={d.profile}
-          action={schoolPath(d.school.id, "profile/edit")}
+          action={path("profile/edit")}
           closeTo={closeTo}
         />
       </RouteModalBody>

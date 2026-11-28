@@ -22,8 +22,7 @@ import {
 import { requireUser } from "~/lib/auth/require.server";
 import { useServerForm } from "~/lib/forms/use-server-form";
 import { schoolAction } from "~/lib/school/action.server";
-import { schoolPath } from "~/lib/school/nav";
-import { useSchool } from "~/lib/school/use-school";
+import { useSchool, useSchoolPath } from "~/lib/school/use-school";
 import { AddAdminSchema } from "~/schemas/school";
 
 import type { Route } from "./+types/admin-add";
@@ -34,9 +33,10 @@ export async function action({ request, params }: Route.ActionArgs) {
 }
 
 export default function AdminAdd() {
+  const path = useSchoolPath();
   const d = useSchool();
-  const here = schoolPath(d.school.id, "team/add");
-  const closeTo = useCloseTo(schoolPath(d.school.id, "team"));
+  const here = path("team/add");
+  const closeTo = useCloseTo(path("team"));
   const onlyBranch = d.branches.length === 1 ? d.branches[0]?.id : undefined;
   const { methods, fetcher, formRef, busy } = useServerForm({
     schema: AddAdminSchema,

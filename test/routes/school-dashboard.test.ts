@@ -92,15 +92,18 @@ describe("school dashboard loader", () => {
     );
   });
 
-  it("sends DriveRush staff to the console: the dashboard is the school's", async () => {
+  it("sends DriveRush staff to the console, and refuses them students", async () => {
     const staff = await signInCookies("admin@driverush.test");
     const { data } = await load(staff);
     expect(data.state).toBe("staff");
     expect(data.schoolId).toBe(schoolId);
     expect(data.students).toBeUndefined();
-    // And their posts are refused before anything is read.
+    // Students are the school's: staff are refused before anything is read.
     const refused = await post(
-      remixFields({ intent: "add-branch", name: "Staff Branch", town: "X" }),
+      remixFields({
+        intent: "release-student",
+        linkId: crypto.randomUUID(),
+      }),
       staff,
     );
     expect(refused.status).toBe(403);

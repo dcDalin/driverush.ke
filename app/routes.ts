@@ -163,9 +163,41 @@ export default [
             route("sponsorship", "routes/console/school-sponsorship.tsx", [
               route("new", "routes/console/school-sponsorship-new.tsx"),
             ]),
-            // A read-only look inside, for support: staff never open the
-            // school's own dashboard.
-            route("inside", "routes/console/school-inside.tsx"),
+            // Helping a school set up (owner, 2026-11-28): the owner's own pages
+            // and modals, as staff, under the console. Students are read only.
+            route("profile", "routes/console/school-profile.tsx", [
+              route("edit", "routes/school/profile-edit.tsx", {
+                id: "console-profile-edit",
+              }),
+              route("logo/:kind", "routes/school/profile-logo.tsx", {
+                id: "console-profile-logo",
+              }),
+              route("branches/:branchId", "routes/school/profile-branch.tsx", {
+                id: "console-profile-branch",
+              }),
+            ]),
+            route("branches", "routes/console/school-branches.tsx", [
+              route("add", "routes/school/branch-add.tsx", {
+                id: "console-branch-add",
+              }),
+              route(":branchId/edit", "routes/school/branch-edit.tsx", {
+                id: "console-branch-edit",
+              }),
+            ]),
+            route("team", "routes/console/school-team.tsx", [
+              route("add", "routes/school/admin-add.tsx", {
+                id: "console-admin-add",
+              }),
+              route(
+                "invites/:inviteId/withdraw",
+                "routes/school/invite-withdraw.tsx",
+                { id: "console-invite-withdraw" },
+              ),
+              route(":memberId/:verb", "routes/school/admin-change.tsx", {
+                id: "console-admin-change",
+              }),
+            ]),
+            route("students", "routes/console/school-students.tsx"),
           ],
         ),
       ]),

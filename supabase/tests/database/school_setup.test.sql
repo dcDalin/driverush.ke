@@ -32,8 +32,8 @@ select is(
   tests.sqlstate_as(pg_temp.w('staff'), format(
     $$select public.school_add_student((select id from public.school_branches where school_id = %L limit 1), 'early@x.test')$$,
     (select id from made))),
-  'P0001',
-  'it takes no students while it is being set up');
+  '42501',
+  'staff set it up, but never add its students');
 select is(
   tests.value_as('anon', $$select count(*) from jsonb_array_elements(public.board_schools()) as e where e ->> 'slug' = 'kilele'$$),
   '0',
@@ -104,9 +104,9 @@ select is(
   'kilele',
   'search finds a school by name or slug');
 select is(
-  tests.value_as(pg_temp.w('staff'), $$select count(*) from public.admin_list_schools(null, 'setup', 'any', 'any', 20, 0)$$),
+  tests.value_as(pg_temp.w('staff'), $$select count(*) from public.admin_list_schools('kilele', 'setup', 'any', 'any', 20, 0)$$),
   '0',
-  'the status filter: nothing is left in setup after the hand-over');
+  'the status filter: the handed-over school is no longer in setup');
 select is(
   tests.value_as(pg_temp.w('staff'), $$select count(*) from public.admin_list_schools(null, 'any', 'any', 'any', 1, 0)$$),
   '1',

@@ -33,7 +33,7 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import type { Json } from "~/database/types";
 import { useServerForm } from "~/lib/forms/use-server-form";
-import { schoolPath } from "~/lib/school/nav";
+import { useSchoolPath } from "~/lib/school/use-school";
 import {
   LOGO_MAX_BYTES,
   LOGO_TYPES,
@@ -136,17 +136,16 @@ function hoursLine(hours: Json | null) {
 }
 
 export function ProfilePanel({
-  schoolId,
   profile,
   logos,
   branches,
 }: {
-  schoolId: string;
   profile: Profile;
   logos: { logo: string | null; logo_mono: string | null };
   branches: Branch[];
 }) {
-  const to = (page: string) => schoolPath(schoolId, `profile/${page}`);
+  const path = useSchoolPath();
+  const to = (page: string) => path(`profile/${page}`);
   const contacts = [
     profile?.phone,
     profile?.whatsapp ? `WhatsApp ${profile.whatsapp}` : null,

@@ -41,7 +41,7 @@ delete process.env.RESEND_API_KEY;
 process.env.STAFF_ALERT_EMAIL = "alerts@driverush.test";
 
 const realFetch = globalThis.fetch;
-const emails: { to: string; subject: string }[] = [];
+const emails: { to: string; subject: string; text: string }[] = [];
 const switchedOff: string[] = [];
 let made = 0;
 
@@ -61,8 +61,13 @@ beforeAll(() => {
         const body = JSON.parse(String(init?.body)) as {
           To: { Email: string }[];
           Subject: string;
+          Text?: string;
         };
-        emails.push({ to: body.To[0]!.Email, subject: body.Subject });
+        emails.push({
+          to: body.To[0]!.Email,
+          subject: body.Subject,
+          text: body.Text ?? "",
+        });
         return json({ ID: "x" });
       }
       if (!url.startsWith("https://api.paystack.co")) {
@@ -361,6 +366,115 @@ describe("a school end to end", () => {
         { user_id: next.id, role: "owner" },
         { user_id: owner.id, role: "admin" },
       ]),
+    );
+  });
+});
+
+describe("a school set up for its owner by DriveRush", () => {
+  const slug = `journey-${crypto.randomUUID().slice(0, 6)}`;
+  let schoolId = "";
+  let staffCookie = "";
+  const adminEmail = `journey-held-${crypto.randomUUID().slice(0, 6)}@routes.test`;
+  const ownerEmail = `journey-new-owner-${crypto.randomUUID().slice(0, 6)}@routes.test`;
+
+  // Staff, through the same route actions the console's modals post to.
+  const asStaffInSchool = (fields: Record<string, unknown>) =>
+    run(() =>
+      dashboardAction({
+        request: postRequest(
+          `/console/schools/${schoolId}/branches/add`,
+          remixFields(fields),
+          staffCookie,
+        ),
+        params: { schoolId },
+        context: {},
+      } as never),
+    );
+
+  it("staff add its branch and an admin; nobody is emailed yet", async () => {
+    staffCookie = await signInCookies("admin@driverush.test");
+    const created = await run(() =>
+      consoleAction({
+        request: postRequest(
+          "/console/schools/new",
+          remixFields({
+            intent: "create-school",
+            name: "Held Driving School",
+            slug,
+            ownerEmail: "",
+          }),
+          staffCookie,
+        ),
+        params: {},
+        context: {},
+      } as never),
+    );
+    schoolId = created.headers.get("location")!.split("/").pop()!;
+    expect(
+      (
+        await asStaffInSchool({
+          intent: "add-branch",
+          name: "Ruiru",
+          town: "Kiambu",
+        })
+      ).data.ok,
+    ).toBe(true);
+    const branch = await serviceClient()
+      .from("school_branches")
+      .select("id")
+      .eq("school_id", schoolId)
+      .single();
+    const added = await asStaffInSchool({
+      intent: "add-admin",
+      email: adminEmail,
+      branchIds: [branch.data!.id],
+    });
+    expect(added.data.ok).toBe(true);
+    expect(sent(adminEmail)).toEqual([]);
+  });
+
+  it("staff may not add its students", async () => {
+    const branch = await serviceClient()
+      .from("school_branches")
+      .select("id")
+      .eq("school_id", schoolId)
+      .single();
+    const refused = await asStaffInSchool({
+      intent: "add-student",
+      email: "never@routes.test",
+      branchId: branch.data!.id,
+    });
+    expect(refused.status).toBe(403);
+  });
+
+  it("handing it over emails the held admin, and tells the owner what is done and left", async () => {
+    const handed = await run(() =>
+      schoolAction({
+        request: postRequest(
+          `/console/schools/${schoolId}/hand-over`,
+          remixFields({
+            intent: "hand-over",
+            schoolId,
+            email: ownerEmail,
+            keepPrevious: false,
+          }),
+          staffCookie,
+        ),
+        params: { schoolId },
+        context: {},
+      } as never),
+    );
+    expect(handed.data.ok).toBe(true);
+    expect(sent(adminEmail).map((e) => e.subject)).toEqual([
+      "You are an admin of Held Driving School on DriveRush",
+    ]);
+    const [toOwner] = sent(ownerEmail);
+    expect(toOwner?.subject).toBe(
+      "You now run Held Driving School on DriveRush",
+    );
+    expect(toOwner?.text).toMatch(/already set up 1 branch and 1 admin/);
+    expect(toOwner?.text).toMatch(
+      /Left for you: your logo, your profile, your bank and your students/,
     );
   });
 });

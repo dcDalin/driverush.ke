@@ -1158,6 +1158,11 @@ as $$
   select private.is_staff() or private.is_school_owner(p_school_id);
 $$;
 
+-- Who may add, move, release or withdraw a student in this branch: the
+-- school's own people (its owner, or an admin of the branch). Not DriveRush
+-- staff (owner, 2026-11-28): staff help a school set up its branches and
+-- team, but its learners are the school's alone. Staff still read them.
+--
 -- Access:  service_role
 -- Guard:   none (the grant is the gate)
 -- Callers: school_add_student, school_release_student, school_cancel_student_invite, school_move_student_branch
@@ -1168,7 +1173,7 @@ stable
 security definer
 set search_path = ''
 as $$
-  select private.is_staff() or private.can_see_branch(p_branch_id);
+  select private.can_see_branch(p_branch_id);
 $$;
 
 -- Whether the caller has (or had) a link with this school, so a learner can
@@ -1196,7 +1201,7 @@ $$;
 -- tagline or about text, and at least one open branch. DriveRush staff hand a
 -- school over with only its name and livery; until its owner fills these in
 -- there is no half-empty school on the site or the board.
--- `app/lib/school/readiness.ts` says the same to the owner and the console.
+-- `app/database/schools/readiness.ts` says the same to the owner and the console.
 --
 -- Access:  anon (evaluated as any caller inside policies, guests included)
 -- Guard:   public (a public fact; no row of schools is returned)

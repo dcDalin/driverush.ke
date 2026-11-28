@@ -45,7 +45,9 @@ const SIZE = {
 /** Where a modal under `base` closes to: the list, with its filters kept. */
 export function useCloseTo(base: string) {
   const { search } = useLocation();
-  return `${base}${search}`;
+  // A base that already carries a search (a school in the console keeps the
+  // schools list's) is used as it is.
+  return base.includes("?") ? base : `${base}${search}`;
 }
 
 export function RouteModal({

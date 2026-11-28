@@ -185,10 +185,65 @@ const ROUTES: Record<string, Entry> = {
     template: "/console/schools/:schoolId/sponsorship",
     path: "/console/schools/:schoolId/sponsorship",
   },
-  "routes/console/school-inside": {
+  "routes/console/school-profile": {
     group: "Console",
-    template: "/console/schools/:schoolId/inside",
-    path: "/console/schools/:schoolId/inside",
+    template: "/console/schools/:schoolId/profile",
+    path: "/console/schools/:schoolId/profile",
+  },
+  "console-profile-edit": {
+    group: "Console",
+    template: "/console/schools/:schoolId/profile/edit",
+    path: "/console/schools/:schoolId/profile/edit",
+  },
+  "console-profile-logo": {
+    group: "Console",
+    template: "/console/schools/:schoolId/profile/logo/:kind",
+    path: "/console/schools/:schoolId/profile/logo/:kind",
+  },
+  "console-profile-branch": {
+    group: "Console",
+    template: "/console/schools/:schoolId/profile/branches/:branchId",
+    path: "/console/schools/:schoolId/profile/branches/:branchId",
+  },
+  "routes/console/school-branches": {
+    group: "Console",
+    template: "/console/schools/:schoolId/branches",
+    path: "/console/schools/:schoolId/branches",
+  },
+  "console-branch-add": {
+    group: "Console",
+    template: "/console/schools/:schoolId/branches/add",
+    path: "/console/schools/:schoolId/branches/add",
+  },
+  "console-branch-edit": {
+    group: "Console",
+    template: "/console/schools/:schoolId/branches/:branchId/edit",
+    path: "/console/schools/:schoolId/branches/:branchId/edit",
+  },
+  "routes/console/school-team": {
+    group: "Console",
+    template: "/console/schools/:schoolId/team",
+    path: "/console/schools/:schoolId/team",
+  },
+  "console-admin-add": {
+    group: "Console",
+    template: "/console/schools/:schoolId/team/add",
+    path: "/console/schools/:schoolId/team/add",
+  },
+  "console-invite-withdraw": {
+    group: "Console",
+    template: "/console/schools/:schoolId/team/invites/:inviteId/withdraw",
+    path: "/console/schools/:schoolId/team/invites/:inviteId/withdraw",
+  },
+  "console-admin-change": {
+    group: "Console",
+    template: "/console/schools/:schoolId/team/:memberId/:verb",
+    path: "/console/schools/:schoolId/team/:memberId/:verb",
+  },
+  "routes/console/school-students": {
+    group: "Console",
+    template: "/console/schools/:schoolId/students",
+    path: "/console/schools/:schoolId/students",
   },
   "routes/console/school-sponsorship-new": {
     group: "Console",

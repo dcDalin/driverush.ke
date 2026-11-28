@@ -10,7 +10,7 @@
 -- ===================================================
 begin;
 
-select plan(35);
+select plan(36);
 
 create temp table w as select tests.make_world() as j;
 create function pg_temp.w(k text) returns text language sql as $$ select j ->> k from w $$;
@@ -23,6 +23,12 @@ create function pg_temp.add(p_who text, p_branch text, p_email text) returns tex
                        format('select public.school_add_student(%L, %L)', pg_temp.w(p_branch), p_email)) $$;
 create function pg_temp.tier(p_user uuid) returns text
   language sql as $$ select tests.value_as(p_user::text, 'select tier from public.my_entitlement()') $$;
+
+-- ── Students are the school's alone ────────────────────────────────────
+select is(
+  tests.sqlstate_as(pg_temp.w('staff'), format('select public.school_add_student(%L, %L)', pg_temp.w('a1'), 'staffadd@example.test')),
+  '42501',
+  'DriveRush staff cannot add a student: only the school''s owner and admins');
 
 -- ── Added before the learner has an account ────────────────────────────
 select isnt(pg_temp.add('admin_a1', 'a1', 'Wanjiru@Example.test'), null, 'a branch admin adds an email with no account');

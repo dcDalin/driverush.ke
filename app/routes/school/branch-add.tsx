@@ -18,8 +18,7 @@ import { InputField, ServerFormProvider } from "~/components/ui/forms/server";
 import { requireUser } from "~/lib/auth/require.server";
 import { useServerForm } from "~/lib/forms/use-server-form";
 import { schoolAction } from "~/lib/school/action.server";
-import { schoolPath } from "~/lib/school/nav";
-import { useSchool } from "~/lib/school/use-school";
+import { useSchoolPath } from "~/lib/school/use-school";
 import { AddBranchSchema } from "~/schemas/school";
 
 import type { Route } from "./+types/branch-add";
@@ -30,9 +29,9 @@ export async function action({ request, params }: Route.ActionArgs) {
 }
 
 export default function BranchAdd() {
-  const d = useSchool();
-  const here = schoolPath(d.school.id, "branches/add");
-  const closeTo = useCloseTo(schoolPath(d.school.id, "branches"));
+  const path = useSchoolPath();
+  const here = path("branches/add");
+  const closeTo = useCloseTo(path("branches"));
   const { methods, fetcher, formRef, busy } = useServerForm({
     schema: AddBranchSchema,
     key: "add-branch",

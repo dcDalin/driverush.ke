@@ -7,6 +7,7 @@
  * `~/database/schools` function as the signed-in person, so row level
  * security and the functions' guards decide what they may do.
  */
+import { isStaffRole } from "~/database/auth/roles";
 import { requestSchoolBank } from "~/database/billing/bank.server";
 import { setPassPrice } from "~/database/billing/school";
 import type { Result } from "~/database/result";
@@ -17,6 +18,8 @@ import {
   getSchool,
   getStudentLink,
   listBranches,
+  listPendingMemberInvites,
+  listSchoolMembers,
 } from "~/database/schools/queries";
 import type { SignedIn } from "~/lib/auth/require.server";
 import {
@@ -49,6 +52,20 @@ import {
   UploadLogoSchema,
 } from "~/schemas/school";
 
+/** What DriveRush staff may change for a school (never students, price or bank). */
+const STAFF_INTENTS = new Set([
+  "add-branch",
+  "update-branch",
+  "update-branch-details",
+  "add-admin",
+  "set-admin-branches",
+  "remove-admin",
+  "cancel-invite",
+  "resend-invite",
+  "update-profile",
+  "upload-logo",
+]);
+
 const DONE = {
   "add-student": "Student added.",
   "add-admin": "Admin added.",
@@ -75,10 +92,13 @@ export async function schoolAction(
   schoolId: string,
   request: Request,
 ) {
-  // The school's own people only: DriveRush staff change a school from the
-  // console (the database would let staff through here; the app does not).
+  // The school's own people, or DriveRush staff helping it set up (owner,
+  // 2026-11-28): staff may add and change branches, the team, the profile
+  // and the logo, from the console. Students, the price and the bank stay
+  // the school's alone (the database refuses staff on students too).
   const myRole = await getMySchoolRole(supabase, schoolId, caller.userId);
-  if (!myRole) {
+  const asStaff = !myRole && isStaffRole(caller.role);
+  if (!myRole && !asStaff) {
     return dataWithError(
       { ok: false as const },
       "Only the school's owner and admins can change it.",
@@ -87,9 +107,19 @@ export async function schoolAction(
   }
   const formData = await request.formData();
   const intent = readFormIntent(formData);
+  if (asStaff && !STAFF_INTENTS.has(intent ?? "")) {
+    return dataWithError(
+      { ok: false as const },
+      "Students, the price and the bank are for the school to change.",
+      { status: 403, headers },
+    );
+  }
+  // While a school is being set up, nobody is emailed: its admins hear
+  // about it when it is handed over (`emailHeldInvites`).
+  const school = await getSchool(supabase, schoolId);
+  const inSetup = school?.status === "setup";
   const origin = originOf(request);
-  const schoolName = async () =>
-    (await getSchool(supabase, schoolId))?.name ?? "Your driving school";
+  const schoolName = async () => school?.name ?? "Your driving school";
 
   const reply = (result: Result<unknown>, message: string) =>
     result.error
@@ -134,7 +164,10 @@ export async function schoolAction(
             v.branchIds,
           );
           // "updated": an admin already, branches changed; nothing to send.
-          if (added.data === "added" || added.data === "invited") {
+          if (
+            !inSetup &&
+            (added.data === "added" || added.data === "invited")
+          ) {
             const branches = await listBranches(supabase, schoolId);
             await tellAdmin(v.email, {
               school: await schoolName(),
@@ -267,7 +300,9 @@ export async function schoolAction(
           { headers },
         );
       }
-      if (!(await canManageSchool(supabase, schoolId, caller))) {
+      if (
+        !(await canManageSchool(supabase, schoolId, caller, { staffToo: true }))
+      ) {
         return dataWithError(
           { ok: false as const },
           "Only the school's owner can change its logo.",
@@ -331,6 +366,13 @@ export async function schoolAction(
       );
     }
     if (v.intent === "resend-invite") {
+      if (inSetup) {
+        return dataWithError(
+          { ok: false as const },
+          "Nothing is sent while the school is being set up: invites go out when it is handed over.",
+          { headers },
+        );
+      }
       const sent = await schools.resendMemberInvite(supabase, v.inviteId);
       if (sent.data) {
         const { email, role, branch_ids, school_name } = sent.data;
@@ -385,11 +427,61 @@ export async function schoolAction(
   }
 }
 
-/** The school's owner: who may change its profile and bank. */
+/**
+ * Who may change the school's logo (the server writes it with the service
+ * role): its owner, or DriveRush staff helping it set up. The bank is
+ * checked separately: the owner only.
+ */
 async function canManageSchool(
   supabase: SignedIn["supabase"],
   schoolId: string,
   caller: SignedIn["caller"],
+  { staffToo = false } = {},
 ) {
+  if (staffToo && isStaffRole(caller.role)) return true;
   return (await getMySchoolRole(supabase, schoolId, caller.userId)) === "owner";
+}
+
+/**
+ * At hand-over of a school that was being set up: email the admins staff
+ * added meanwhile (held until now), each with their branches.
+ */
+export async function emailHeldInvites(
+  supabase: SignedIn["supabase"],
+  schoolId: string,
+  origin: string,
+) {
+  const [school, branches, members, invites] = await Promise.all([
+    getSchool(supabase, schoolId),
+    listBranches(supabase, schoolId),
+    listSchoolMembers(supabase, schoolId),
+    listPendingMemberInvites(supabase, schoolId),
+  ]);
+  const name = school?.name ?? "your driving school";
+  const names = (ids: string[]) =>
+    branches.filter((b) => ids.includes(b.id)).map((b) => b.name);
+  const sends = [
+    ...members
+      .filter((m) => m.role === "admin" && m.email)
+      .map((m) =>
+        tellAdmin(m.email!, {
+          school: name,
+          branches: names(m.branch_ids),
+          result: "added",
+          origin,
+        }),
+      ),
+    ...invites
+      .filter((i) => i.role === "admin")
+      .map((i) =>
+        tellAdmin(i.email, {
+          school: name,
+          branches: names(i.branch_ids),
+          result: "invited",
+          origin,
+        }),
+      ),
+  ];
+  await Promise.all(sends);
+  return sends.length;
 }

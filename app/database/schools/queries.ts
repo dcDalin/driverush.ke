@@ -58,7 +58,9 @@ export async function listBranches(
   return orThrow(
     await supabase
       .from("school_branches")
-      .select("id, name, town, is_active, address, lat, lng, phone, hours")
+      .select(
+        "id, name, town, is_active, address, lat, lng, phone, hours, created_at",
+      )
       .eq("school_id", schoolId)
       .order("name"),
   );

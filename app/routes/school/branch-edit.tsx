@@ -9,8 +9,7 @@ import { InputField, SwitchField } from "~/components/ui/forms/server";
 import { requireUser } from "~/lib/auth/require.server";
 import { useServerForm } from "~/lib/forms/use-server-form";
 import { schoolAction } from "~/lib/school/action.server";
-import { schoolPath } from "~/lib/school/nav";
-import { useSchool } from "~/lib/school/use-school";
+import { useSchool, useSchoolPath } from "~/lib/school/use-school";
 import { UpdateBranchSchema } from "~/schemas/school";
 
 import type { Route } from "./+types/branch-edit";
@@ -21,10 +20,11 @@ export async function action({ request, params }: Route.ActionArgs) {
 }
 
 export default function BranchEdit() {
+  const path = useSchoolPath();
   const d = useSchool();
   const { branchId = "" } = useParams();
-  const closeTo = schoolPath(d.school.id, "branches");
-  const here = schoolPath(d.school.id, `branches/${branchId}/edit`);
+  const closeTo = path("branches");
+  const here = path(`branches/${branchId}/edit`);
   const branch = d.branches.find((b) => b.id === branchId);
   const form = useServerForm({
     schema: UpdateBranchSchema,

@@ -15,6 +15,7 @@ import { fileURLToPath } from "node:url";
 import { assertLocalStack } from "./src/guard";
 import { summary } from "./src/ledger";
 import { sql } from "./src/local";
+import { seedBigSchools } from "./src/steps/big-schools";
 import { seedFixture } from "./src/steps/fixture";
 import { seedLearners } from "./src/steps/learners";
 import { seedMedia } from "./src/steps/media";
@@ -76,10 +77,13 @@ async function main() {
   const media = await step("profiles, liveries, sponsorships", () =>
     seedMedia(ROOT),
   );
+  const big = await step("big schools, and one being set up", () =>
+    seedBigSchools(),
+  );
 
   console.table(summary);
   console.log(
-    `${summary.length} people, ${schools.size + 2} schools, ${rows} progress rows, ` +
+    `${summary.length} people listed, ${schools.size + 2 + big} schools, ${rows} progress rows, ` +
       `${media.uploaded} files uploaded (${media.kept} already in Storage, ` +
       `${media.pruned ?? 0} old ones removed). ` +
       "Every demo account's password: driverush-local-1.",

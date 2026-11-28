@@ -135,16 +135,20 @@ export default function SchoolLayout({ loaderData }: Route.ComponentProps) {
       </>
     );
   }
-  const { school, canManage, passInfo, role } = loaderData;
+  const { school, canManage, passInfo, role, paymentsOn } = loaderData;
+  // Only while passes are on sale: until then there is nothing to be paid.
   const bankNeeded =
-    canManage && !passInfo?.ready && !passInfo?.pending_bank_label;
+    paymentsOn &&
+    canManage &&
+    !passInfo?.ready &&
+    !passInfo?.pending_bank_label;
   return (
     <DashShell
       home={schoolPath(school.id)}
       title={school.name}
       tag="School"
       groups={schoolNav(school.id, { canManage, bankNeeded })}
-      roleLabel={ROLE_LABEL[role]}
+      roleLabel={role === "staff" ? "DriveRush staff" : ROLE_LABEL[role]}
     >
       <Outlet />
     </DashShell>

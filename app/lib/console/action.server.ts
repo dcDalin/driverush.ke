@@ -30,6 +30,7 @@ import {
   makeSubaccount,
   switchOffSubaccount,
 } from "~/lib/payments/subaccounts.server";
+import { emailHeldInvites } from "~/lib/school/action.server";
 import {
   ReviewBankSchema,
   SetPassCodeSchema,
@@ -105,6 +106,7 @@ export async function consoleAction(
   if (intent === "hand-over") {
     const { errors, data: v } = await validateForm(formData, HandOverSchema);
     if (errors || !v) return invalid(errors);
+    const before = await getConsoleSchool(supabase, v.schoolId);
     const result = await consoleDb.handOverSchool(
       supabase,
       v.schoolId,
@@ -112,11 +114,16 @@ export async function consoleAction(
       v.keepPrevious,
     );
     if (result.data) {
-      const school = await getConsoleSchool(supabase, v.schoolId);
+      const firstHandOver = before?.school.status === "setup";
+      // The admins staff added while setting it up hear about it now.
+      const admins = firstHandOver
+        ? await emailHeldInvites(supabase, v.schoolId, origin)
+        : 0;
       await tellOwner(v.email, {
-        school: school?.school.name ?? "your driving school",
+        school: before?.school.name ?? "your driving school",
         result: result.data === "invited" ? "invited" : "added",
         origin,
+        ...(firstHandOver && before ? handOverLists(before.setup, admins) : {}),
       });
     }
     return reply(
@@ -283,4 +290,29 @@ export async function consoleAction(
       );
     }
   }
+}
+
+/** What DriveRush set up before the hand-over, and what is left: for the owner's email. */
+function handOverLists(
+  setup: {
+    logo: boolean;
+    profile: boolean;
+    branches: number;
+    livery: "live" | "draft" | "none";
+  },
+  admins: number,
+) {
+  const done: string[] = [];
+  const left: string[] = [];
+  (setup.logo ? done : left).push("your logo");
+  (setup.profile ? done : left).push("your profile");
+  if (setup.branches > 0)
+    done.push(
+      `${setup.branches} ${setup.branches === 1 ? "branch" : "branches"}`,
+    );
+  else left.push("your first branch");
+  if (admins > 0) done.push(`${admins} ${admins === 1 ? "admin" : "admins"}`);
+  if (setup.livery === "live") done.push("your cars on the board");
+  left.push("your bank", "your students");
+  return { done, left };
 }

@@ -10,8 +10,7 @@ import { CheckboxGroupField } from "~/components/ui/forms/server";
 import { requireUser } from "~/lib/auth/require.server";
 import { useServerForm } from "~/lib/forms/use-server-form";
 import { schoolAction } from "~/lib/school/action.server";
-import { schoolPath } from "~/lib/school/nav";
-import { useSchool } from "~/lib/school/use-school";
+import { useSchool, useSchoolPath } from "~/lib/school/use-school";
 import { SetAdminBranchesSchema } from "~/schemas/school";
 
 import type { Route } from "./+types/admin-change";
@@ -22,10 +21,11 @@ export async function action({ request, params }: Route.ActionArgs) {
 }
 
 export default function AdminChange() {
+  const path = useSchoolPath();
   const d = useSchool();
   const { memberId = "", verb = "" } = useParams();
-  const closeTo = schoolPath(d.school.id, "team");
-  const here = schoolPath(d.school.id, `team/${memberId}/${verb}`);
+  const closeTo = path("team");
+  const here = path(`team/${memberId}/${verb}`);
   const member = d.team.find(
     (m) => m.member_id === memberId && m.role === "admin",
   );

@@ -48,16 +48,33 @@ export function ownerEmail({
   school,
   result,
   origin,
+  done = [],
+  left = [],
 }: {
   school: string;
   result: "added" | "invited";
   origin: string;
+  /** What DriveRush set up before handing it over ("your logo", "3 branches"). */
+  done?: string[];
+  /** What is left for the owner ("your bank", "your students"). */
+  left?: string[];
 }): Message {
+  const list = (items: string[]) =>
+    items.length < 2
+      ? (items[0] ?? "")
+      : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
   return message({
     subject: `You now run ${school} on DriveRush`,
     lines: [
       `DriveRush has made you the owner of ${school}.`,
-      "From your school's dashboard you add branches and admins, add your students, set your pass price and see what you earn.",
+      ...(done.length
+        ? [
+            `We have already set up ${list(done)} for you. Check them, and change anything that is not right.`,
+          ]
+        : []),
+      left.length
+        ? `Left for you: ${list(left)}. Your school's dashboard walks you through each one.`
+        : "From your school's dashboard you add branches and admins, add your students, set your pass price and see what you earn.",
       result === "invited"
         ? "Sign in with this email address, with Google or by creating an account, and the school is yours."
         : "Sign in with this email address to open it.",

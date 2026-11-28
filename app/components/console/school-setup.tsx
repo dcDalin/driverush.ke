@@ -1,13 +1,14 @@
 /**
- * A school's set-up, on its console page, in two parts (owner, 2026-11-28):
+ * A school's set-up, on its console page, as one guided list in the order a
+ * staff member works through it on a call with the school (owner,
+ * 2026-11-28: most schools are not tech savvy and need hand holding):
  *
- *   DriveRush's part   the livery (we make the school's cars) and handing
- *                      the school to its owner. Each step links to where it
- *                      is done, here in the console.
- *   The owner's part   logo, profile, a first branch and the bank, done in
- *                      the school's own dashboard. Staff see how far the
- *                      owner has got, and whether the school is public yet;
- *                      they do not do it for them.
+ *   1. profile and logo   2. branches   3. admins (optional)
+ *   4. livery             5. hand it to its owner
+ *
+ * Each step opens where it is done, here in the console. Then what is left
+ * for the owner (their bank, their students), and whether the school is
+ * public yet. Staff never do students or the price.
  */
 import { Link } from "react-router";
 
@@ -22,6 +23,7 @@ import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import type { ConsoleSchool } from "~/database/console/queries";
 import { useConsoleSchoolPath } from "~/lib/console/use-console-school";
+import { useSchool } from "~/lib/school/use-school";
 
 const EXPIRED = new Intl.DateTimeFormat("en-KE", {
   timeZone: "Africa/Nairobi",
@@ -73,25 +75,83 @@ const list =
 
 export function SetupChecklist({ school }: { school: ConsoleSchool }) {
   const consoleSchoolPath = useConsoleSchoolPath();
+  const inside = useSchool();
   const { setup } = school;
   const id = school.school.id;
   const to = (page: string) => consoleSchoolPath(id, page);
   const owned = Boolean(school.ownerEmail || school.invitedOwnerEmail);
   const inSetup = school.school.status === "setup";
   const live = school.school.status === "active";
+  const admins =
+    inside.team.filter((m) => m.role === "admin").length +
+    inside.invites.filter((i) => i.role === "admin").length;
+  const profileDone = setup.profile && setup.logo;
   return (
     <>
       <Section
-        title="Your part"
-        description="DriveRush makes the school's cars and hands the school to its owner. That is all staff do."
+        title={inSetup ? "Set it up, then hand it over" : "Set-up"}
+        description={
+          inSetup
+            ? "Work through these with the school, on a call if it helps. Nobody is emailed until you hand it over."
+            : "Done with the school. You can still help it change any of these."
+        }
       >
-        <ul className={list}>
+        <ol className={list}>
+          <Step
+            done={profileDone}
+            label="1. Profile and logo"
+            detail={
+              profileDone
+                ? "Filled in."
+                : setup.profile
+                  ? "No logo yet."
+                  : setup.logo
+                    ? "No tagline or about text yet."
+                    : "What learners read about the school, and its logo."
+            }
+            action={{
+              label: profileDone ? "Open profile" : "Fill it in",
+              to: to("profile"),
+            }}
+          />
+          <Step
+            done={setup.branches > 0}
+            label="2. Branches"
+            detail={
+              setup.branches > 0
+                ? `${setup.branches} ${setup.branches === 1 ? "branch" : "branches"}.`
+                : "Students and admins belong to a branch."
+            }
+            action={
+              setup.branches > 0
+                ? { label: "Open branches", to: to("branches") }
+                : { label: "Add a branch", to: to("branches/add") }
+            }
+          />
+          <Step
+            done={admins > 0}
+            label="3. Admins (optional)"
+            detail={
+              admins > 0
+                ? `${admins} ${admins === 1 ? "admin" : "admins"}.`
+                : setup.branches > 0
+                  ? "The people who add students at each branch."
+                  : "After a branch."
+            }
+            action={
+              setup.branches === 0
+                ? undefined
+                : admins > 0
+                  ? { label: "Open team", to: to("team") }
+                  : { label: "Add an admin", to: to("team/add") }
+            }
+          />
           <Step
             done={setup.livery === "live"}
-            label="Livery"
+            label="4. Livery"
             detail={
               setup.livery === "live"
-                ? "Published."
+                ? "Published: the school's cars are on the board."
                 : setup.livery === "draft"
                   ? "A draft is waiting: preview it, then publish."
                   : "Nothing uploaded yet."
@@ -104,7 +164,7 @@ export function SetupChecklist({ school }: { school: ConsoleSchool }) {
           />
           <Step
             done={owned}
-            label="Owner"
+            label="5. Owner"
             detail={
               school.ownerEmail
                 ? `${school.ownerEmail} owns it.`
@@ -112,20 +172,20 @@ export function SetupChecklist({ school }: { school: ConsoleSchool }) {
                   ? `${school.invitedOwnerEmail} is invited: they own it once they sign up.`
                   : school.expiredOwnerInvite
                     ? `The invite to ${school.expiredOwnerInvite.email} expired on ${EXPIRED.format(new Date(school.expiredOwnerInvite.expiredAt))}: hand it over again.`
-                    : "Not handed over yet."
+                    : "Not handed over yet. The owner gets an email saying what is done and what is left."
             }
             action={{
               label: inSetup ? "Hand over" : "Change owner",
               to: to("hand-over"),
             }}
           />
-        </ul>
+        </ol>
       </Section>
 
       <Section
         title={
           <span className="flex flex-wrap items-center gap-2">
-            The owner's part
+            Left for the school
             {live && setup.ready ? (
               <Badge variant="green">public</Badge>
             ) : (
@@ -133,48 +193,32 @@ export function SetupChecklist({ school }: { school: ConsoleSchool }) {
             )}
           </span>
         }
-        description={
-          owned
-            ? "Done by the owner in the school's own dashboard. The school shows on the site and the board once it has a logo, a profile and an open branch."
-            : "Starts once you hand the school over. It shows on the site and the board once its owner has given it a logo, a profile and an open branch."
-        }
+        description="The school's own: staff do not do these. It goes public once it has a logo, a profile and an open branch."
       >
         <ul className={list}>
           <Step
-            done={setup.logo}
-            label="Logo"
-            detail={setup.logo ? "Uploaded." : "None yet."}
-          />
-          <Step
-            done={setup.profile}
-            label="Profile"
-            detail={
-              setup.profile ? "Filled in." : "No tagline or about text yet."
-            }
-          />
-          <Step
-            done={setup.branches > 0}
-            label="Branches"
-            detail={
-              setup.branches > 0
-                ? `${setup.branches} ${setup.branches === 1 ? "branch" : "branches"}.`
-                : "No branch yet: students are added per branch."
-            }
-          />
-          <Step
             done={setup.payments === "live"}
-            label="Bank"
+            label="Its bank"
             detail={
               setup.payments === "live"
                 ? "Taking payments."
                 : setup.payments === "waiting"
                   ? "The owner sent a bank: it is waiting for your check."
-                  : "No bank yet. Not needed to be public."
+                  : "The owner sends it from their dashboard."
             }
             action={
               setup.payments === "waiting"
                 ? { label: "Check the bank", to: to("payments") }
                 : undefined
+            }
+          />
+          <Step
+            done={inside.students.length > 0}
+            label="Its students"
+            detail={
+              inside.students.length > 0
+                ? `${inside.students.length} added.`
+                : "The owner and admins add them by email."
             }
           />
         </ul>

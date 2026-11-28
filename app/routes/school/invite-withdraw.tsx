@@ -7,8 +7,7 @@ import { Navigate, useParams } from "react-router";
 import { ConfirmModal } from "~/components/console/route-modal";
 import { requireUser } from "~/lib/auth/require.server";
 import { schoolAction } from "~/lib/school/action.server";
-import { schoolPath } from "~/lib/school/nav";
-import { useSchool } from "~/lib/school/use-school";
+import { useSchool, useSchoolPath } from "~/lib/school/use-school";
 
 import type { Route } from "./+types/invite-withdraw";
 
@@ -18,14 +17,15 @@ export async function action({ request, params }: Route.ActionArgs) {
 }
 
 export default function InviteWithdraw() {
+  const path = useSchoolPath();
   const d = useSchool();
   const { inviteId = "" } = useParams();
-  const closeTo = schoolPath(d.school.id, "team");
+  const closeTo = path("team");
   const invite = d.invites.find((i) => i.id === inviteId);
   if (!invite) return <Navigate to={closeTo} replace />;
   return (
     <ConfirmModal
-      here={schoolPath(d.school.id, `team/invites/${inviteId}/withdraw`)}
+      here={path(`team/invites/${inviteId}/withdraw`)}
       closeTo={closeTo}
       label="Team"
       title={`Withdraw the invite to ${invite.email}?`}

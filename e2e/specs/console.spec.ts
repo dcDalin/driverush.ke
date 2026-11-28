@@ -81,7 +81,7 @@ test("staff who signed in with a reset code, not their password, are asked to si
   ).toBeVisible();
 });
 
-test("staff look inside a school from the console, never from its dashboard", async ({
+test("staff help a school from the console, never from its dashboard", async ({
   page,
 }) => {
   await page.goto("/guides");
@@ -92,21 +92,20 @@ test("staff look inside a school from the console, never from its dashboard", as
   await expect(page).toHaveURL(/q=heltz/);
   await page.getByRole("link", { name: /Heltz Driving Academy/ }).click();
   const school = page.getByRole("dialog");
-  // Staff's part and the owner's part are told apart, with no way across.
+  const tabs = school.getByRole("navigation", { name: "This school" });
+  // The guided set-up, and what is left for the school, with no way across.
+  await expect(school.getByRole("heading", { name: "Set-up" })).toBeVisible();
   await expect(
-    school.getByRole("heading", { name: "Your part" }),
-  ).toBeVisible();
-  await expect(
-    school.getByRole("heading", { name: /The owner's part/ }),
+    school.getByRole("heading", { name: /Left for the school/ }),
   ).toBeVisible();
   await expect(school.getByRole("link", { name: /dashboard/i })).toHaveCount(0);
 
-  // A read-only look inside.
-  await school.getByRole("link", { name: "Inside" }).click();
-  await expect(page).toHaveURL(/\/inside\?q=heltz$/);
+  // Students are read only.
+  await tabs.getByRole("link", { name: /^Students/ }).click();
+  await expect(page).toHaveURL(/\/students\?q=heltz$/);
   await expect(school.getByText("amina@learner.test")).toBeVisible();
   await expect(
-    school.getByRole("button", { name: /Release|Move|Remove/ }),
+    school.getByRole("link", { name: /Release|Move|Add student/ }),
   ).toHaveCount(0);
 
   // The school's own dashboard turns staff back to the console.
@@ -117,4 +116,51 @@ test("staff look inside a school from the console, never from its dashboard", as
   ).toBeVisible();
   await page.getByRole("link", { name: "Open it in the console" }).click();
   await expect(page).toHaveURL(new RegExp(`/console/schools/${id}$`));
+});
+
+test("staff set a school up: its branches by size, its team, its profile", async ({
+  page,
+}) => {
+  await page.goto("/guides");
+  await signInWithPassword(page, "admin@driverush.test");
+  await page.goto("/console/schools");
+  await page.getByLabel("Search schools").fill("academy");
+  await expect(page).toHaveURL(/q=academy/);
+  await page.getByRole("link", { name: /Kenya Driving Academy/ }).click();
+  const school = page.getByRole("dialog");
+  const tabs = school.getByRole("navigation", { name: "This school" });
+
+  // Branches, the busiest first; a count opens its students, filtered.
+  await tabs.getByRole("link", { name: /^Branches/ }).click();
+  await expect(school.getByText("28 branches")).toBeVisible();
+  await school.locator('a[href*="istatus=active"]').first().click();
+  await expect(page).toHaveURL(
+    /students\?q=academy&ibranch=.+&istatus=active$/,
+  );
+  await expect(
+    school.getByRole("cell", { name: /@kda-learners\.test/ }).first(),
+  ).toBeVisible();
+
+  // The team: an admin's branches open the owner's own modal, as staff.
+  await tabs.getByRole("link", { name: /^Team/ }).click();
+  await school
+    .getByRole("link", { name: "Branches", exact: true })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/team\/[0-9a-f-]{36}\/branches\?q=academy$/);
+  await expect(
+    page.getByRole("dialog", { name: /branches$/ }).getByRole("button", {
+      name: "Save branches",
+    }),
+  ).toBeVisible();
+  await page
+    .getByRole("dialog", { name: /branches$/ })
+    .getByRole("link", { name: "Cancel" })
+    .click();
+  await expect(page).toHaveURL(/\/team\?q=academy$/);
+
+  // The profile, filled in for the school.
+  await tabs.getByRole("link", { name: "Profile" }).click();
+  await school.getByRole("link", { name: "Edit profile" }).click();
+  await expect(page).toHaveURL(/\/profile\/edit\?q=academy$/);
 });

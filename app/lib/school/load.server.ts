@@ -24,6 +24,8 @@ import { paymentsEnabled } from "~/lib/payments/env.server";
 export async function loadSchool(
   { supabase, caller }: RequestContext,
   schoolId: string,
+  /** The console helping a school set up: staff get the school, managing it. */
+  { asStaff = false }: { asStaff?: boolean } = {},
 ) {
   if (!caller.signedIn) return { state: "signed-out" as const };
   const dashboard = await getSchoolDashboard(supabase, {
@@ -33,9 +35,12 @@ export async function loadSchool(
   });
   if (!dashboard) return { state: "not-member" as const };
   const { role, ...school } = dashboard;
-  if (role === "staff") return { state: "staff" as const, schoolId };
-  // The owner alone manages (`getSchoolDashboard` also says yes to staff).
-  const canManage = role === "owner";
+  if (role === "staff" && !asStaff) {
+    return { state: "staff" as const, schoolId };
+  }
+  // The owner manages; so do staff, in the console only (structure, not
+  // students: `schoolAction` and the database hold that line).
+  const canManage = role === "owner" || role === "staff";
   const paymentsOn = paymentsEnabled();
   const [profile, passInfo, earnings, banks] = await Promise.all([
     canManage ? getSchoolProfile(supabase, schoolId) : Promise.resolve(null),

@@ -16,8 +16,7 @@ import {
 } from "~/components/school/profile-panel";
 import { requireUser } from "~/lib/auth/require.server";
 import { schoolAction } from "~/lib/school/action.server";
-import { schoolPath } from "~/lib/school/nav";
-import { useSchool } from "~/lib/school/use-school";
+import { useSchool, useSchoolPath } from "~/lib/school/use-school";
 
 import type { Route } from "./+types/profile-logo";
 
@@ -27,9 +26,10 @@ export async function action({ request, params }: Route.ActionArgs) {
 }
 
 export default function ProfileLogo() {
+  const path = useSchoolPath();
   const d = useSchool();
   const { kind = "" } = useParams();
-  const closeTo = schoolPath(d.school.id, "profile");
+  const closeTo = path("profile");
   if (!d.canManage || !(kind in LOGOS)) {
     return <Navigate to={closeTo} replace />;
   }
@@ -44,7 +44,7 @@ export default function ProfileLogo() {
         <LogoUpload
           kind={which}
           current={d.logos[which]}
-          action={schoolPath(d.school.id, `profile/logo/${which}`)}
+          action={path(`profile/logo/${which}`)}
           closeTo={closeTo}
         />
       </RouteModalBody>

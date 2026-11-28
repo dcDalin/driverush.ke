@@ -87,11 +87,17 @@ remix-hook-form, shadcn everywhere. Guides: `docs/forms-and-data.md`,
   `app/lib/board/paywall.ts` says what is locked (past level 16, a second
   mock test) and `use-paywall.ts` asks it in the game and the level lists,
   only when the build has `VITE_PASSES=on` (the owner's launch switch).
-- Who does what with a school (owner, 2026-11-28): DriveRush staff create
-  it, upload and publish its livery and hand it to its owner, all in the
-  console, and may look inside read-only there (`school-inside.tsx`). They
-  never enter `/school/:schoolId`: its loader answers staff with `staff` and
-  `schoolAction` refuses anyone who is not a member. The owner does the
+- Who does what with a school (owner, 2026-11-28): most schools are not
+  tech savvy, so DriveRush staff set them up from the console: profile and
+  logo, branches, admins, livery, then hand-over (a guided list on the
+  school's Set-up tab). Never students, the price or the bank: the database
+  refuses staff on students (`private.can_manage_branch`) and
+  `schoolAction` allows staff only its `STAFF_INTENTS`. The console reuses
+  the owner's own pages and modals through `SchoolScopeProvider`
+  (`lib/school/use-school.tsx`). Admins staff add while a school is in
+  set-up are emailed at hand-over (`emailHeldInvites`), and the owner's
+  email says what is done and left. Staff never enter `/school/:schoolId`:
+  its loader answers staff with `staff`. The owner does the
   rest, led by "Get your school ready" on their overview. A school is public
   (site, board) only when active with a logo, profile text and an open
   branch: `private.is_active_school`, mirrored by

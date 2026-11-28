@@ -33,9 +33,27 @@ export const consoleSchoolPath = (schoolId: string, page = "") =>
  */
 export function useConsoleSchoolPath() {
   const { search } = useLocation();
+  // Only the list's own params: a tab's own (the Inside filters, `i…`)
+  // stay with that tab.
+  const kept = React.useMemo(() => listSearch(search), [search]);
   return React.useCallback(
     (schoolId: string, page = "") =>
-      `${consoleSchoolPath(schoolId, page)}${search}`,
-    [search],
+      `${consoleSchoolPath(schoolId, page)}${kept}`,
+    [kept],
   );
+}
+
+/** The schools list's address params (`SchoolFiltersSchema`). */
+const LIST_PARAMS = ["q", "status", "livery", "sponsoring", "page"] as const;
+
+/** The schools list's own part of an address's search, `?…` or "". */
+export function listSearch(search: string) {
+  const all = new URLSearchParams(search);
+  const keep = new URLSearchParams();
+  for (const key of LIST_PARAMS) {
+    const value = all.get(key);
+    if (value) keep.set(key, value);
+  }
+  const text = keep.toString();
+  return text ? `?${text}` : "";
 }

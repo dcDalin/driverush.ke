@@ -8,7 +8,7 @@
  *                          students. Each step opens the modal that does it.
  *   Needs you              invites that ran out; for an admin, no branch yet
  *   At a glance            the numbers, each linking into its list
- *   Newest students
+ *   Newest students        (both once there are students, or the list is done)
  */
 import { Link } from "react-router";
 
@@ -73,12 +73,18 @@ function ReadyStep({
   detail,
   to,
   action,
+  waiting = false,
+  check,
 }: {
   done: boolean;
   label: string;
   detail: string;
   to: string;
   action: string;
+  /** It needs an earlier step first: no button yet. */
+  waiting?: boolean;
+  /** Done by DriveRush before the hand-over: a button to check it. */
+  check?: string;
 }) {
   return (
     <li className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
@@ -95,10 +101,10 @@ function ReadyStep({
         <span className="text-[14px] font-semibold">{label}</span>
         <span className="text-[13px] text-ink-3">{detail}</span>
       </span>
-      {done ? null : (
-        <Button asChild size="sm" variant="paper">
+      {waiting || (done && !check) ? null : (
+        <Button asChild size="sm" variant={done ? "ghost" : "paper"}>
           <Link to={to} preventScrollReset>
-            {action}
+            {done ? check : action}
             <Icon icon={ChevronRightIcon} size={14} />
           </Link>
         </Button>
@@ -131,6 +137,15 @@ export default function SchoolOverview() {
     openBranches: d.branches.filter((b) => b.is_active).length,
   });
   const bankDone = Boolean(d.passInfo?.ready) || bankWaiting;
+  // What DriveRush set up before the owner took the school over: said so,
+  // with a way to check it (owner, 2026-11-28: schools get set up for them).
+  const ownerSince = d.team.find((m) => m.role === "owner")?.created_at;
+  const before = (at: string | null | undefined) =>
+    Boolean(at && ownerSince && at <= ownerSince);
+  const byUs = {
+    profile: before(d.profile?.updated_at),
+    branches: d.branches.filter((b) => before(b.created_at)).length,
+  };
   const steps = [
     ready.logo,
     ready.profile,
@@ -197,33 +212,46 @@ export default function SchoolOverview() {
               label="Upload your logo"
               detail={
                 ready.logo
-                  ? "Uploaded."
+                  ? byUs.profile
+                    ? "Added by DriveRush. Check it is the right one."
+                    : "Uploaded."
                   : "Shown beside your name, and on your cars' credits."
               }
-              to={to("profile/logo/logo")}
+              to={
+                ready.logo && byUs.profile
+                  ? to("profile")
+                  : to("profile/logo/logo")
+              }
               action="Upload"
+              check={byUs.profile ? "Check it" : undefined}
             />
             <ReadyStep
               done={ready.profile}
               label="Describe your school"
               detail={
                 ready.profile
-                  ? "Filled in."
+                  ? byUs.profile
+                    ? "Written by DriveRush with you. Check it reads right."
+                    : "Filled in."
                   : "A tagline, what you teach and how to reach you."
               }
               to={to("profile/edit")}
               action="Write it"
+              check={byUs.profile ? "Check it" : undefined}
             />
             <ReadyStep
               done={ready.branch}
               label="Add your first branch"
               detail={
                 ready.branch
-                  ? `${openBranches.length} open.`
+                  ? byUs.branches
+                    ? `DriveRush added ${byUs.branches === 1 ? "1 branch" : `${byUs.branches} branches`}. Check the names and towns.`
+                    : `${openBranches.length} open.`
                   : "Students and admins belong to a branch."
               }
-              to={to("branches/add")}
+              to={byUs.branches ? to("branches") : to("branches/add")}
               action="Add branch"
+              check={byUs.branches ? "Check them" : undefined}
             />
             {d.paymentsOn ? (
               <ReadyStep
@@ -250,8 +278,9 @@ export default function SchoolOverview() {
                     ? "After your first branch."
                     : "By email. Each one gets a link."
               }
-              to={noBranch ? to("branches/add") : to("students/add")}
-              action={noBranch ? "Add branch first" : "Add student"}
+              to={to("students/add")}
+              action="Add student"
+              waiting={noBranch}
             />
           </ul>
         </Section>
@@ -294,85 +323,90 @@ export default function SchoolOverview() {
         </Section>
       )}
 
-      <Section title="At a glance">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatTile
-            label="Students"
-            icon={LearnerIcon}
-            value={active.length}
-            note="With you this month"
-            to={`${to("students")}?sstatus=active`}
-          />
-          <StatTile
-            label="With a pass"
-            icon={StarIcon}
-            value={paid}
-            note={`${active.length - paid} without one yet`}
-            to={`${to("students")}?sstatus=paid`}
-          />
-          <StatTile
-            label="Waiting to join"
-            icon={LearnerIcon}
-            value={waiting}
-            note="Invited, not signed in yet"
-            to={`${to("students")}?sstatus=pending`}
-          />
-          <StatTile
-            label="Earned this month"
-            icon={WalletIcon}
-            value={kes(earned.kes)}
-            note={`${earned.learners} ${earned.learners === 1 ? "learner" : "learners"} paid through you`}
-            to={to("passes")}
-          />
-        </div>
-      </Section>
+      {/* A brand-new school has no numbers yet: the checklist is the page. */}
+      {d.students.length === 0 && gettingReady ? null : (
+        <>
+          <Section title="At a glance">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <StatTile
+                label="Students"
+                icon={LearnerIcon}
+                value={active.length}
+                note="With you this month"
+                to={`${to("students")}?sstatus=active`}
+              />
+              <StatTile
+                label="With a pass"
+                icon={StarIcon}
+                value={paid}
+                note={`${active.length - paid} without one yet`}
+                to={`${to("students")}?sstatus=paid`}
+              />
+              <StatTile
+                label="Waiting to join"
+                icon={LearnerIcon}
+                value={waiting}
+                note="Invited, not signed in yet"
+                to={`${to("students")}?sstatus=pending`}
+              />
+              <StatTile
+                label="Earned this month"
+                icon={WalletIcon}
+                value={kes(earned.kes)}
+                note={`${earned.learners} ${earned.learners === 1 ? "learner" : "learners"} paid through you`}
+                to={to("passes")}
+              />
+            </div>
+          </Section>
 
-      <Section
-        title="Newest students"
-        actions={
-          <Button asChild variant="quiet-rush" size="sm" className="px-0">
-            <Link to={to("students")} prefetch="intent">
-              All students
-              <Icon icon={ArrowRightIcon} size={14} />
-            </Link>
-          </Button>
-        }
-      >
-        {latest.length === 0 ? (
-          <p className="m-0 rounded-lg border border-dashed border-line px-4 py-5 text-[14px] text-ink-3">
-            No students yet. Add this week's class by email: each one gets an
-            email with a link.
-          </p>
-        ) : (
-          <ul className="m-0 flex list-none flex-col divide-y divide-line rounded-lg border border-line bg-surface p-0">
-            {latest.map((s) => (
-              <li
-                key={s.id}
-                className="flex flex-wrap items-center justify-between gap-2 px-4 py-3"
-              >
-                <span className="min-w-0">
-                  <span className="block truncate font-semibold">
-                    {s.name ?? s.email}
-                  </span>
-                  <span className="block truncate text-[13px] text-ink-3">
-                    {s.name ? `${s.email} · ` : ""}
-                    {branchName(s.branchId)}
-                  </span>
-                </span>
-                {s.inviteExpired ? (
-                  <Badge variant="outline">Invite expired</Badge>
-                ) : s.status === "pending" ? (
-                  <Badge variant="amber">Waiting for them</Badge>
-                ) : s.status === "active" ? (
-                  <Badge variant="green">With you</Badge>
-                ) : (
-                  <Badge variant="outline">Month over</Badge>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
+          <Section
+            title="Newest students"
+            actions={
+              <Button asChild variant="quiet-rush" size="sm" className="px-0">
+                <Link to={to("students")} prefetch="intent">
+                  All students
+                  <Icon icon={ArrowRightIcon} size={14} />
+                </Link>
+              </Button>
+            }
+          >
+            {latest.length === 0 ? (
+              <p className="m-0 rounded-lg border border-dashed border-line px-4 py-5 text-[14px] text-ink-3">
+                No students yet. Add this week's class by email: each one gets
+                an email with a link.
+              </p>
+            ) : (
+              <ul className="m-0 flex list-none flex-col divide-y divide-line rounded-lg border border-line bg-surface p-0">
+                {latest.map((s) => (
+                  <li
+                    key={s.id}
+                    className="flex flex-wrap items-center justify-between gap-2 px-4 py-3"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate font-semibold">
+                        {s.name ?? s.email}
+                      </span>
+                      <span className="block truncate text-[13px] text-ink-3">
+                        {s.name ? `${s.email} · ` : ""}
+                        {branchName(s.branchId)}
+                      </span>
+                    </span>
+                    {s.inviteExpired ? (
+                      <Badge variant="outline">Invite expired</Badge>
+                    ) : s.status === "pending" ? (
+                      <Badge variant="amber">Waiting for them</Badge>
+                    ) : s.status === "active" ? (
+                      <Badge variant="green">With you</Badge>
+                    ) : (
+                      <Badge variant="outline">Month over</Badge>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
+        </>
+      )}
     </>
   );
 }

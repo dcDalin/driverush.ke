@@ -340,10 +340,19 @@ export function RouteTabs({
   label: string;
   tabs: RouteTab[];
 }) {
+  // On a phone the tabs scroll sideways: keep the open one in sight.
+  const navRef = React.useRef<HTMLElement>(null);
+  const { pathname } = useLocation();
+  React.useEffect(() => {
+    navRef.current
+      ?.querySelector<HTMLElement>("[aria-current=page]")
+      ?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [pathname]);
   return (
     <nav
+      ref={navRef}
       aria-label={label}
-      className="-mx-4 overflow-x-auto border-b border-line px-4 [scrollbar-width:none] sm:mx-0 sm:px-0"
+      className="-mx-4 shrink-0 overflow-x-auto border-b border-line px-4 [scrollbar-width:none] sm:mx-0 sm:px-0"
     >
       <ul className="m-0 flex list-none gap-1 p-0">
         {tabs.map((tab) => (

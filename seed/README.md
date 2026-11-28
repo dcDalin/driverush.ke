@@ -30,6 +30,24 @@ npm run seed:typecheck      # this folder's own typecheck (needs db:sync first)
 and auth users without re-running migrations, so it takes about 6 seconds,
 not the 30 or more of `db:reset`.
 
+## Big schools
+
+`db:seed` also makes schools at the size real chains reach, so the console
+and the school dashboard can be tried with long lists
+(`src/data/big-schools.ts`):
+
+| School                | Owner              | Branches | Admins            | Students                               |
+| --------------------- | ------------------ | -------- | ----------------- | -------------------------------------- |
+| Kenya Driving Academy | `owner@kda.test`   | 28       | 42 (18 signed up) | 500 (160 with the school, 340 waiting) |
+| Rocky Driving School  | `owner@rocky.test` | 14       | 20 (8 signed up)  | 250 (80 with the school, 170 waiting)  |
+| Upendo Driving School | none yet           | 2        | 2 invited         | none                                   |
+
+Upendo is being set up by DriveRush and not handed over: staff added its
+profile text, branches and admins, so the console's guided set-up shows it
+half done. Its admins are not emailed until it is handed over. The big
+schools have no logo, so they are not public: their owners see "Get your
+school ready".
+
 ## Your own su
 
 The repo is public, so your address is never committed. Put it in

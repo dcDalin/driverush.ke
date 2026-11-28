@@ -28,12 +28,7 @@ export default function SchoolProfile() {
         title="Profile"
         description="Your school's page on DriveRush: what learners read before they choose you. Your cars on the board are made by DriveRush from your real ones: ask us to change them."
       />
-      <ProfilePanel
-        schoolId={d.school.id}
-        profile={d.profile}
-        logos={d.logos}
-        branches={d.branches}
-      />
+      <ProfilePanel profile={d.profile} logos={d.logos} branches={d.branches} />
       <Outlet />
     </>
   );
