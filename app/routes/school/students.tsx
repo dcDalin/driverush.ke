@@ -1,8 +1,8 @@
 /**
  * `/school/:schoolId/students`: everyone the school has added, in the
  * branches the person works in, with their progress and pass. Search and
- * filters live in the address. "Add student" is a modal route over the list
- * (`students/add`), drawn through the `<Outlet />`.
+ * filters live in the address. "Add student" (`students/add`) and each change to a student
+ * (`students/:linkId/move|release|withdraw`) are modal routes over the list, drawn through the `<Outlet />`.
  */
 import { Link, Outlet, useLocation } from "react-router";
 
@@ -54,6 +54,7 @@ export default function SchoolStudents() {
         </p>
       )}
       <StudentsPanel
+        schoolId={d.school.id}
         students={d.students}
         branches={d.branches}
         myBranchIds={d.myBranchIds}

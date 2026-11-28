@@ -8,19 +8,22 @@
  * - Profile: tagline, about, contacts, social links, brand colours.
  * - Each branch's address, map pin, phone and opening hours.
  *
+ * The page (`ProfilePanel`) shows what is saved and links; each form opens
+ * in its own modal route (`profile/edit`, `profile/logo/:kind`,
+ * `profile/branches/:branchId`), posts to it (`action`) and closes back
+ * (`closeTo`) once saved.
+ *
  * The board's own look (car paint, roof board, posters) is made by DriveRush
  * and published from the console; this panel never changes it.
  */
 import * as React from "react";
-import { useFetcher } from "react-router";
+import { Link, useFetcher } from "react-router";
 import { HoneypotInputs } from "remix-utils/honeypot/react";
 
+import { Icon } from "~/components/brand/icon";
+import { EditIcon } from "~/components/brand/icons";
+import { useCloseWhenDone } from "~/components/console/route-modal";
 import { Button } from "~/components/ui/button";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "~/components/ui/collapsible";
 import {
   InputField,
   ServerFormProvider,
@@ -30,6 +33,7 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import type { Json } from "~/database/types";
 import { useServerForm } from "~/lib/forms/use-server-form";
+import { schoolPath } from "~/lib/school/nav";
 import {
   LOGO_MAX_BYTES,
   LOGO_TYPES,
@@ -59,47 +63,171 @@ type Branch = {
   hours: Json | null;
 };
 
+export type SchoolProfile = Profile;
+export type ProfileBranch = Branch;
+
+export const LOGOS = {
+  logo: {
+    label: "Logo",
+    hint: "In colour, on a clear background. Shown beside your name.",
+    dark: false,
+  },
+  logo_mono: {
+    label: "White logo",
+    hint: "All white, on a clear background. Engraved on the board's brass plates.",
+    dark: true,
+  },
+} as const;
+
+export type LogoKind = keyof typeof LOGOS;
+
+function EditLink({ to, children }: { to: string; children: React.ReactNode }) {
+  return (
+    <Button asChild size="sm" variant="paper" className="shrink-0">
+      <Link to={to} preventScrollReset>
+        <Icon icon={EditIcon} size={14} />
+        {children}
+      </Link>
+    </Button>
+  );
+}
+
+function LogoBox({ current, dark }: { current: string | null; dark: boolean }) {
+  return (
+    <div
+      className={
+        dark
+          ? "flex h-20 items-center justify-center rounded-md bg-kenya-black p-3"
+          : "flex h-20 items-center justify-center rounded-md border border-line bg-white p-3"
+      }
+    >
+      {current ? (
+        <img
+          src={current}
+          alt=""
+          className="max-h-full max-w-full object-contain"
+        />
+      ) : (
+        <span
+          className={
+            dark ? "text-[13px] text-white/70" : "text-[13px] text-ink-3"
+          }
+        >
+          None yet
+        </span>
+      )}
+    </div>
+  );
+}
+
+const HOURS_DAYS = [
+  ["mon", "Weekdays"],
+  ["sat", "Sat"],
+  ["sun", "Sun"],
+] as const;
+
+/** "Weekdays 08:00 to 17:00 · Sat 08:00 to 13:00", or null with none set. */
+function hoursLine(hours: Json | null) {
+  const parts = HOURS_DAYS.flatMap(([day, label]) => {
+    const open = dayOf(hours, day);
+    return open ? [`${label} ${open.open} to ${open.close}`] : [];
+  });
+  return parts.length ? parts.join(" · ") : null;
+}
+
 export function ProfilePanel({
+  schoolId,
   profile,
   logos,
   branches,
 }: {
+  schoolId: string;
   profile: Profile;
   logos: { logo: string | null; logo_mono: string | null };
   branches: Branch[];
 }) {
+  const to = (page: string) => schoolPath(schoolId, `profile/${page}`);
+  const contacts = [
+    profile?.phone,
+    profile?.whatsapp ? `WhatsApp ${profile.whatsapp}` : null,
+    profile?.email,
+    profile?.website_url,
+  ].filter(Boolean);
   return (
-    <section id="profile" className="flex scroll-mt-20 flex-col gap-4">
-      <h2 className="font-display text-[20px] font-bold">Profile</h2>
-      <p className="m-0 max-w-2xl text-[14px] text-ink-2">
-        What learners read about your school on DriveRush. Your cars on the
-        board are made by DriveRush from your real ones: ask us to change them.
-      </p>
+    <section id="profile" className="flex scroll-mt-20 flex-col gap-6">
+      <h2 className="sr-only">Profile</h2>
       <div className="grid gap-3 sm:grid-cols-2">
-        <LogoUpload
-          kind="logo"
-          label="Logo"
-          hint="In colour, on a clear background. Shown beside your name."
-          current={logos.logo}
-        />
-        <LogoUpload
-          kind="logo_mono"
-          label="White logo"
-          hint="All white, on a clear background. Engraved on the board's brass plates."
-          current={logos.logo_mono}
-          dark
-        />
+        {(Object.keys(LOGOS) as LogoKind[]).map((kind) => (
+          <div
+            key={kind}
+            className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4"
+          >
+            <LogoBox current={logos[kind]} dark={LOGOS[kind].dark} />
+            <div className="flex items-start justify-between gap-3">
+              <p className="m-0 text-[13px] text-ink-3">
+                <strong className="block text-[14px] text-ink">
+                  {LOGOS[kind].label}
+                </strong>
+                {LOGOS[kind].hint}
+              </p>
+              <EditLink to={to(`logo/${kind}`)}>
+                {logos[kind] ? "Change" : "Upload"}
+              </EditLink>
+            </div>
+          </div>
+        ))}
       </div>
-      <ProfileForm profile={profile} />
+
+      <div className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4">
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="m-0 text-[15px] font-semibold">About your school</h3>
+          <EditLink to={to("edit")}>Edit profile</EditLink>
+        </div>
+        {profile?.tagline || profile?.about ? (
+          <>
+            {profile.tagline ? (
+              <p className="m-0 text-[15px] font-semibold">{profile.tagline}</p>
+            ) : null}
+            {profile.about ? (
+              <p className="m-0 line-clamp-4 text-[14px] whitespace-pre-line text-ink-2">
+                {profile.about}
+              </p>
+            ) : null}
+          </>
+        ) : (
+          <p className="m-0 text-[14px] text-ink-3">
+            No tagline or about text yet. Learners read this before they choose
+            a school.
+          </p>
+        )}
+        <p className="m-0 text-[13px] text-ink-3">
+          {contacts.length ? contacts.join(" · ") : "No contacts yet."}
+        </p>
+      </div>
+
       {branches.length > 0 && (
         <div className="flex flex-col gap-2">
-          <h3 className="text-[15px] font-semibold">Branch details</h3>
+          <h3 className="m-0 text-[15px] font-semibold">Branch details</h3>
           <ul className="m-0 flex list-none flex-col divide-y divide-line rounded-lg border border-line bg-surface p-0">
             {branches.map((b) => (
-              <BranchDetails
-                key={`${b.id}:${b.address}:${b.phone}:${JSON.stringify(b.hours)}`}
-                branch={b}
-              />
+              <li
+                key={b.id}
+                className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
+              >
+                <span className="min-w-0">
+                  <span className="block font-semibold">{b.name}</span>
+                  <span className="block text-[13px] text-ink-3">
+                    {[
+                      b.address ?? "No address yet",
+                      b.phone,
+                      hoursLine(b.hours),
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
+                </span>
+                <EditLink to={to(`branches/${b.id}`)}>Edit details</EditLink>
+              </li>
             ))}
           </ul>
         </div>
@@ -108,32 +236,30 @@ export function ProfilePanel({
   );
 }
 
-function LogoUpload({
+export function LogoUpload({
   kind,
-  label,
-  hint,
   current,
-  dark = false,
+  action,
+  closeTo,
 }: {
-  kind: "logo" | "logo_mono";
-  label: string;
-  hint: string;
+  kind: LogoKind;
   current: string | null;
-  dark?: boolean;
+  action: string;
+  closeTo: string;
 }) {
+  const { label, hint, dark } = LOGOS[kind];
   const fetcher = useFetcher<{ ok: boolean }>({ key: `upload-logo:${kind}` });
   const busy = fetcher.state !== "idle";
   const [problem, setProblem] = React.useState<string | null>(null);
   const formRef = React.useRef<HTMLFormElement>(null);
-  React.useEffect(() => {
-    if (fetcher.state === "idle" && fetcher.data?.ok) formRef.current?.reset();
-  }, [fetcher.state, fetcher.data]);
+  useCloseWhenDone(fetcher, closeTo);
   return (
     <fetcher.Form
       ref={formRef}
       method="post"
+      action={action}
       encType="multipart/form-data"
-      className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4"
+      className="flex flex-col gap-3"
       onSubmit={(event) => {
         const file = new FormData(event.currentTarget).get("file");
         const bad =
@@ -151,29 +277,7 @@ function LogoUpload({
       <HoneypotInputs />
       <input type="hidden" name="intent" value="upload-logo" />
       <input type="hidden" name="kind" value={kind} />
-      <div
-        className={
-          dark
-            ? "flex h-20 items-center justify-center rounded-md bg-kenya-black p-3"
-            : "flex h-20 items-center justify-center rounded-md border border-line bg-white p-3"
-        }
-      >
-        {current ? (
-          <img
-            src={current}
-            alt=""
-            className="max-h-full max-w-full object-contain"
-          />
-        ) : (
-          <span
-            className={
-              dark ? "text-[13px] text-white/70" : "text-[13px] text-ink-3"
-            }
-          >
-            None yet
-          </span>
-        )}
-      </div>
+      <LogoBox current={current} dark={dark} />
       <div className="flex flex-col gap-1.5">
         <Label htmlFor={`file-${kind}`}>{label}</Label>
         <Input
@@ -191,8 +295,7 @@ function LogoUpload({
       </div>
       <Button
         type="submit"
-        size="sm"
-        variant="paper"
+        variant="rush"
         className="self-start"
         isLoading={busy}
       >
@@ -208,10 +311,19 @@ function socialOf(socials: Json, network: string) {
     : "";
 }
 
-function ProfileForm({ profile }: { profile: Profile }) {
+export function ProfileForm({
+  profile,
+  action,
+  closeTo,
+}: {
+  profile: Profile;
+  action: string;
+  closeTo: string;
+}) {
   const { methods, fetcher, formRef, busy } = useServerForm({
     schema: UpdateProfileSchema,
     key: "update-profile",
+    action,
     defaultValues: {
       intent: "update-profile",
       tagline: profile?.tagline ?? "",
@@ -229,14 +341,16 @@ function ProfileForm({ profile }: { profile: Profile }) {
       brandInk: profile?.brand_ink ?? "",
     },
   });
+  useCloseWhenDone(fetcher, closeTo);
   return (
     <ServerFormProvider methods={methods}>
       <fetcher.Form
         ref={formRef}
         method="post"
+        action={action}
         onSubmit={methods.handleSubmit}
         noValidate
-        className="grid gap-3 rounded-lg border border-line bg-surface p-4 sm:grid-cols-2"
+        className="grid gap-3 sm:grid-cols-2"
       >
         <HoneypotInputs />
         <InputField
@@ -354,13 +468,22 @@ function dayOf(hours: Json | null, day: string): Day {
     : null;
 }
 
-function BranchDetails({ branch }: { branch: Branch }) {
+export function BranchDetails({
+  branch,
+  action,
+  closeTo,
+}: {
+  branch: Branch;
+  action: string;
+  closeTo: string;
+}) {
   const weekday = dayOf(branch.hours, "mon");
   const sat = dayOf(branch.hours, "sat");
   const sun = dayOf(branch.hours, "sun");
   const { methods, fetcher, formRef, busy } = useServerForm({
     schema: UpdateBranchDetailsSchema,
     key: `branch-details:${branch.id}`,
+    action,
     defaultValues: {
       intent: "update-branch-details",
       branchId: branch.id,
@@ -376,93 +499,71 @@ function BranchDetails({ branch }: { branch: Branch }) {
       sunClose: sun?.close ?? "",
     },
   });
+  useCloseWhenDone(fetcher, closeTo);
   return (
-    <li>
-      <Collapsible>
-        <CollapsibleTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            className="w-full justify-between rounded-none px-4 py-3"
-          >
-            <span className="font-semibold">{branch.name}</span>
-            <span className="text-[13px] font-normal text-ink-3">
-              {branch.address ?? "No address yet"}
-            </span>
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <ServerFormProvider methods={methods}>
-            <fetcher.Form
-              ref={formRef}
-              method="post"
-              onSubmit={methods.handleSubmit}
-              noValidate
-              className="grid gap-3 px-4 pb-4 sm:grid-cols-2"
-            >
-              <HoneypotInputs />
-              <InputField
-                name="address"
-                label="Address"
-                className="sm:col-span-2"
-                disabled={busy}
-                inputProps={{ placeholder: "Moi Avenue, opposite the bank" }}
-              />
-              <InputField
-                name="lat"
-                label="Map pin: latitude"
-                description="From Google Maps: press on the place, copy the first number."
-                disabled={busy}
-                inputProps={{ inputMode: "decimal", placeholder: "-1.2841" }}
-              />
-              <InputField
-                name="lng"
-                label="Map pin: longitude"
-                disabled={busy}
-                inputProps={{ inputMode: "decimal", placeholder: "36.8233" }}
-              />
-              <InputField
-                name="phone"
-                label="Branch phone"
-                disabled={busy}
-                inputProps={{ type: "tel", inputMode: "tel" }}
-              />
-              <span className="hidden sm:block" />
-              <HoursRow
-                label="Monday to Friday"
-                open="weekdaysOpen"
-                close="weekdaysClose"
-                busy={busy}
-              />
-              <HoursRow
-                label="Saturday"
-                open="satOpen"
-                close="satClose"
-                busy={busy}
-              />
-              <HoursRow
-                label="Sunday"
-                open="sunOpen"
-                close="sunClose"
-                busy={busy}
-              />
-              <p className="m-0 self-end text-[12.5px] text-ink-3 sm:col-span-2">
-                Leave a day's times empty when the branch is closed.
-              </p>
-              <Button
-                type="submit"
-                size="sm"
-                variant="paper"
-                className="self-start"
-                isLoading={busy}
-              >
-                Save branch details
-              </Button>
-            </fetcher.Form>
-          </ServerFormProvider>
-        </CollapsibleContent>
-      </Collapsible>
-    </li>
+    <ServerFormProvider methods={methods}>
+      <fetcher.Form
+        ref={formRef}
+        method="post"
+        action={action}
+        onSubmit={methods.handleSubmit}
+        noValidate
+        className="grid gap-3 sm:grid-cols-2"
+      >
+        <HoneypotInputs />
+        <InputField
+          name="address"
+          label="Address"
+          className="sm:col-span-2"
+          disabled={busy}
+          inputProps={{ placeholder: "Moi Avenue, opposite the bank" }}
+        />
+        <InputField
+          name="lat"
+          label="Map pin: latitude"
+          description="From Google Maps: press on the place, copy the first number."
+          disabled={busy}
+          inputProps={{ inputMode: "decimal", placeholder: "-1.2841" }}
+        />
+        <InputField
+          name="lng"
+          label="Map pin: longitude"
+          disabled={busy}
+          inputProps={{ inputMode: "decimal", placeholder: "36.8233" }}
+        />
+        <InputField
+          name="phone"
+          label="Branch phone"
+          disabled={busy}
+          inputProps={{ type: "tel", inputMode: "tel" }}
+        />
+        <span className="hidden sm:block" />
+        <HoursRow
+          label="Monday to Friday"
+          open="weekdaysOpen"
+          close="weekdaysClose"
+          busy={busy}
+        />
+        <HoursRow
+          label="Saturday"
+          open="satOpen"
+          close="satClose"
+          busy={busy}
+        />
+        <HoursRow label="Sunday" open="sunOpen" close="sunClose" busy={busy} />
+        <p className="m-0 self-end text-[12.5px] text-ink-3 sm:col-span-2">
+          Leave a day's times empty when the branch is closed.
+        </p>
+        <Button
+          type="submit"
+          variant="rush"
+          className="self-start"
+          isLoading={busy}
+        >
+          Save branch details
+        </Button>
+      </fetcher.Form>
+    </ServerFormProvider>
   );
 }
 

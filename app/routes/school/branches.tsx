@@ -42,7 +42,7 @@ export default function SchoolBranches() {
           </Button>
         }
       />
-      <BranchesPanel branches={d.branches} />
+      <BranchesPanel schoolId={d.school.id} branches={d.branches} />
       <Outlet />
     </>
   );

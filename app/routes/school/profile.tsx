@@ -3,6 +3,8 @@
  * school, the logos (uploaded through the server to Supabase Storage) and
  * each branch's address, map pin, phone and hours.
  */
+import { Outlet } from "react-router";
+
 import { PageHeader } from "~/components/console/shell";
 import { ProfilePanel } from "~/components/school/profile-panel";
 import { NothingHere } from "~/components/school/signed-out";
@@ -24,9 +26,15 @@ export default function SchoolProfile() {
     <>
       <PageHeader
         title="Profile"
-        description="Your school's page on DriveRush: what learners read before they choose you."
+        description="Your school's page on DriveRush: what learners read before they choose you. Your cars on the board are made by DriveRush from your real ones: ask us to change them."
       />
-      <ProfilePanel profile={d.profile} logos={d.logos} branches={d.branches} />
+      <ProfilePanel
+        schoolId={d.school.id}
+        profile={d.profile}
+        logos={d.logos}
+        branches={d.branches}
+      />
+      <Outlet />
     </>
   );
 }

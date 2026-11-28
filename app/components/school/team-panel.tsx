@@ -5,19 +5,14 @@
  * Everyone added is emailed a link to the dashboard. "Add admin" is the
  * `team/add` modal route.
  */
-import { HoneypotInputs } from "remix-utils/honeypot/react";
+import { Link } from "react-router";
 
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import {
-  CheckboxGroupField,
-  ServerFormProvider,
-} from "~/components/ui/forms/server";
 import type { SchoolDashboard } from "~/database/schools/dashboard";
 import { useInlineAction } from "~/lib/forms/use-inline-action";
-import { useServerForm } from "~/lib/forms/use-server-form";
+import { schoolPath } from "~/lib/school/nav";
 import { MAX_SENDS } from "~/lib/school/student-filters";
-import { SetAdminBranchesSchema } from "~/schemas/school";
 
 type Branch = { id: string; name: string };
 type Member = SchoolDashboard["team"][number];
@@ -31,10 +26,12 @@ const SINCE = new Intl.DateTimeFormat("en-KE", {
 });
 
 export function TeamPanel({
+  schoolId,
   team,
   invites,
   branches,
 }: {
+  schoolId: string;
   team: Member[];
   invites: Invite[];
   branches: Branch[];
@@ -42,7 +39,6 @@ export function TeamPanel({
   const admins =
     team.filter((m) => m.role === "admin").length +
     invites.filter((i) => i.role === "admin").length;
-  const options = branches.map((b) => ({ label: b.name, value: b.id }));
   const names = (ids: string[]) =>
     ids
       .map((id) => branches.find((b) => b.id === id)?.name)
@@ -59,12 +55,17 @@ export function TeamPanel({
           <MemberItem
             key={`${m.member_id}:${m.branch_ids.join(",")}`}
             member={m}
-            options={options}
             branchNames={names(m.branch_ids)}
+            schoolId={schoolId}
           />
         ))}
         {invites.map((i) => (
-          <InviteItem key={i.id} invite={i} branchNames={names(i.branch_ids)} />
+          <InviteItem
+            key={i.id}
+            invite={i}
+            branchNames={names(i.branch_ids)}
+            schoolId={schoolId}
+          />
         ))}
       </ul>
     </section>
@@ -73,86 +74,44 @@ export function TeamPanel({
 
 function MemberItem({
   member,
-  options,
   branchNames,
+  schoolId,
 }: {
   member: Member;
-  options: { label: string; value: string }[];
   branchNames: string;
+  schoolId: string;
 }) {
-  const remove = useInlineAction(`member:${member.member_id}`);
-  const branches = useServerForm({
-    schema: SetAdminBranchesSchema,
-    key: `admin-branches:${member.member_id}`,
-    defaultValues: {
-      intent: "set-admin-branches",
-      memberId: member.member_id,
-      branchIds: member.branch_ids,
-    },
-  });
+  const ask = (verb: "branches" | "remove") =>
+    schoolPath(schoolId, `team/${member.member_id}/${verb}`);
   return (
-    <li
-      className="flex flex-col gap-2 px-4 py-3"
-      aria-busy={remove.busy || undefined}
-    >
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="font-semibold">
-          {member.full_name ?? member.email}
-        </span>
-        <Badge variant={member.role === "owner" ? "ink" : "outline"}>
-          {member.role}
-        </Badge>
+    <li className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+      <div className="min-w-0">
+        <p className="m-0 flex flex-wrap items-center gap-2">
+          <span className="font-semibold">
+            {member.full_name ?? member.email}
+          </span>
+          <Badge variant={member.role === "owner" ? "ink" : "outline"}>
+            {member.role}
+          </Badge>
+        </p>
+        <p className="m-0 text-[13px] text-ink-3">
+          {member.full_name ? `${member.email} · ` : ""}
+          {member.role === "owner"
+            ? "every branch"
+            : branchNames || "no branch yet"}
+        </p>
       </div>
-      <p className="text-[13px] text-ink-3">
-        {member.full_name ? member.email : ""}
-        {member.role === "owner"
-          ? " · every branch"
-          : branchNames
-            ? ` · ${branchNames}`
-            : ""}
-      </p>
       {member.role === "admin" && (
-        <div className="flex flex-wrap items-start gap-3">
-          <ServerFormProvider methods={branches.methods}>
-            <branches.fetcher.Form
-              ref={branches.formRef}
-              method="post"
-              onSubmit={branches.methods.handleSubmit}
-              noValidate
-              className="flex flex-col gap-2"
-            >
-              <HoneypotInputs />
-              <CheckboxGroupField
-                name="branchIds"
-                label="Branches"
-                options={options}
-                disabled={branches.busy}
-              />
-              <Button
-                type="submit"
-                size="sm"
-                variant="paper"
-                className="self-start"
-                isLoading={branches.busy}
-              >
-                Save branches
-              </Button>
-            </branches.fetcher.Form>
-          </ServerFormProvider>
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            disabled={remove.busy}
-            isLoading={remove.pending === "remove-admin"}
-            onClick={() =>
-              remove.submit({
-                intent: "remove-admin",
-                memberId: member.member_id,
-              })
-            }
-          >
-            Remove
+        <div className="flex flex-wrap gap-2">
+          <Button asChild size="sm" variant="paper">
+            <Link to={ask("branches")} preventScrollReset>
+              Change branches
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="ghost">
+            <Link to={ask("remove")} preventScrollReset>
+              Remove
+            </Link>
           </Button>
         </div>
       )}
@@ -163,9 +122,11 @@ function MemberItem({
 function InviteItem({
   invite,
   branchNames,
+  schoolId,
 }: {
   invite: Invite;
   branchNames: string;
+  schoolId: string;
 }) {
   const { busy, pending, submit } = useInlineAction(`invite:${invite.id}`);
   return (
@@ -199,17 +160,13 @@ function InviteItem({
         >
           {invite.expired ? "Send again" : "Email again"}
         </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          disabled={busy}
-          isLoading={pending === "cancel-invite"}
-          onClick={() =>
-            submit({ intent: "cancel-invite", inviteId: invite.id })
-          }
-        >
-          Withdraw
+        <Button asChild size="sm" variant="ghost">
+          <Link
+            to={schoolPath(schoolId, `team/invites/${invite.id}/withdraw`)}
+            preventScrollReset
+          >
+            Withdraw
+          </Link>
         </Button>
       </div>
     </li>

@@ -92,8 +92,10 @@ remix-hook-form, shadcn everywhere. Guides: `docs/forms-and-data.md`,
   everything once (`lib/school/load.server.ts`), the pages under it
   (`routes/school/`: overview, students, passes, team, branches, profile)
   have no loader and read it through `useSchool()`, every action hands to
-  `lib/school/action.server.ts`, and the add forms are modal routes
-  (`students/add`, `team/add`, `branches/add`). The console (`/console`,
+  `lib/school/action.server.ts`. Pages show and link; every change is a
+  modal route over its page (adds, a student's move/release/withdraw, an
+  admin's branches/remove, a branch's edit, the price, the bank, the
+  profile, a logo, a branch's details). Only "Email again" is one tap. The console (`/console`,
   staff) is a dashboard like thinkrush's admin: `layouts/console-layout.tsx`
   (side menu from `lib/console/nav.ts`, top bar) around one page per
   section (`routes/console/`: overview, schools, payments, staff), built

@@ -98,3 +98,52 @@ test("an owner reaches their school from the account menu, finds a student and s
   ).toBeVisible();
   await expect(page.getByText(/^Paid to/)).toBeVisible();
 });
+
+test("an owner's changes open as modals over their list and close back", async ({
+  page,
+}) => {
+  await page.goto("/guides");
+  await signInWithPassword(page, "owner@heltz.test");
+  await page.goto("/school");
+  const menu = page.getByRole("navigation", { name: "School" });
+
+  // A branch: saved as it is, so the seed stays the same.
+  await menu.getByRole("link", { name: "Branches" }).click();
+  await page.getByRole("link", { name: "Edit" }).first().click();
+  await expect(page).toHaveURL(/\/branches\/[0-9a-f-]{36}\/edit$/);
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Save branch" })
+    .click();
+  await expect(page.getByText("Branch saved.")).toBeVisible();
+  await expect(page).toHaveURL(/\/branches$/);
+
+  // An admin's branches, the same way.
+  await menu.getByRole("link", { name: "Team" }).click();
+  await page.getByRole("link", { name: "Change branches" }).first().click();
+  await expect(page).toHaveURL(/\/team\/[0-9a-f-]{36}\/branches$/);
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Save branches" })
+    .click();
+  await expect(page.getByText("Branches saved.")).toBeVisible();
+  await expect(page).toHaveURL(/\/team$/);
+
+  // Moving a student asks first; Cancel goes back with the filters kept.
+  await menu.getByRole("link", { name: "Students" }).click();
+  await page.getByLabel("Search by name or email").fill("amina");
+  await expect(page).toHaveURL(/sq=amina/);
+  await page.getByRole("link", { name: "Move" }).click();
+  const move = page.getByRole("dialog");
+  await expect(move.getByRole("heading", { name: /^Move / })).toBeVisible();
+  await move.getByRole("link", { name: "Cancel" }).click();
+  await expect(page).toHaveURL(/\/students\?sq=amina$/);
+
+  // The profile is a summary; its form is a modal.
+  await menu.getByRole("link", { name: "Profile" }).click();
+  await page.getByRole("link", { name: "Edit profile" }).click();
+  await expect(page).toHaveURL(/\/profile\/edit$/);
+  await expect(
+    page.getByRole("dialog").getByRole("button", { name: "Save profile" }),
+  ).toBeVisible();
+});

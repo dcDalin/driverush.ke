@@ -87,17 +87,32 @@ export default [
     { id: "school-layout" },
     [
       index("routes/school/overview.tsx"),
+      // Pages show and link; every change is a modal route over its page.
       route("students", "routes/school/students.tsx", [
         route("add", "routes/school/student-add.tsx"),
+        route(":linkId/:verb", "routes/school/student-change.tsx"),
       ]),
-      route("passes", "routes/school/passes.tsx"),
+      route("passes", "routes/school/passes.tsx", [
+        route("price", "routes/school/pass-price.tsx"),
+        route("bank", "routes/school/pass-bank.tsx"),
+      ]),
       route("team", "routes/school/team.tsx", [
         route("add", "routes/school/admin-add.tsx"),
+        route(
+          "invites/:inviteId/withdraw",
+          "routes/school/invite-withdraw.tsx",
+        ),
+        route(":memberId/:verb", "routes/school/admin-change.tsx"),
       ]),
       route("branches", "routes/school/branches.tsx", [
         route("add", "routes/school/branch-add.tsx"),
+        route(":branchId/edit", "routes/school/branch-edit.tsx"),
       ]),
-      route("profile", "routes/school/profile.tsx"),
+      route("profile", "routes/school/profile.tsx", [
+        route("edit", "routes/school/profile-edit.tsx"),
+        route("logo/:kind", "routes/school/profile-logo.tsx"),
+        route("branches/:branchId", "routes/school/profile-branch.tsx"),
+      ]),
     ],
   ),
   // Resource routes for fetchers (no page of their own).

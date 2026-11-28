@@ -46,7 +46,12 @@ export default function SchoolTeam() {
           ) : null
         }
       />
-      <TeamPanel team={d.team} invites={d.invites} branches={d.branches} />
+      <TeamPanel
+        schoolId={d.school.id}
+        team={d.team}
+        invites={d.invites}
+        branches={d.branches}
+      />
       <Outlet />
     </>
   );

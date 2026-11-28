@@ -6,7 +6,7 @@
  * &spage=`), so a reload or a shared link keeps the view. A
  * student's progress and pass show while their month runs.
  */
-import * as React from "react";
+import { Link, useLocation } from "react-router";
 
 import { FilterBar } from "~/components/list/filter-bar";
 import { FilterSelect } from "~/components/list/filter-select";
@@ -14,15 +14,9 @@ import { PaginationBar } from "~/components/list/pagination-bar";
 import { SearchInput } from "~/components/list/search-input";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
 import type { StudentRow } from "~/database/schools/dashboard";
 import { useInlineAction } from "~/lib/forms/use-inline-action";
+import { schoolPath } from "~/lib/school/nav";
 import {
   ALL,
   filterStudents,
@@ -40,10 +34,12 @@ const DATE = new Intl.DateTimeFormat("en-KE", {
   year: "numeric",
 });
 export function StudentsPanel({
+  schoolId,
   students,
   branches,
   myBranchIds,
 }: {
+  schoolId: string;
   students: StudentRow[];
   branches: Branch[];
   myBranchIds: string[];
@@ -119,7 +115,8 @@ export function StudentsPanel({
                 key={s.id}
                 student={s}
                 branchName={name(s.branchId)}
-                moveTo={open.filter((b) => b.id !== s.branchId)}
+                canMove={open.some((b) => b.id !== s.branchId)}
+                schoolId={schoolId}
               />
             ))}
           </ul>
@@ -139,14 +136,20 @@ export function StudentsPanel({
 function StudentItem({
   student,
   branchName,
-  moveTo,
+  canMove,
+  schoolId,
 }: {
   student: StudentRow;
   branchName: string;
-  moveTo: Branch[];
+  /** Another open branch exists to move them to. */
+  canMove: boolean;
+  schoolId: string;
 }) {
   const { pending, busy, submit } = useInlineAction(`student:${student.id}`);
-  const [target, setTarget] = React.useState(moveTo[0]?.id ?? "");
+  const { search } = useLocation();
+  // Each change asks first, in a modal route over this list (filters kept).
+  const ask = (verb: "move" | "release" | "withdraw") =>
+    `${schoolPath(schoolId, `students/${student.id}/${verb}`)}${search}`;
   const s = student.summary;
   return (
     <li
@@ -204,54 +207,18 @@ function StudentItem({
         </div>
       </div>
       <div className="flex flex-wrap gap-2">
-        {moveTo.length > 0 && student.status !== "ended" && (
-          <div className="flex gap-2">
-            <Select value={target} onValueChange={setTarget} disabled={busy}>
-              <SelectTrigger
-                size="sm"
-                className="w-36"
-                aria-label="Move to branch"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {moveTo.map((b) => (
-                  <SelectItem key={b.id} value={b.id}>
-                    {b.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              type="button"
-              size="sm"
-              variant="paper"
-              disabled={busy || !target}
-              isLoading={pending === "move-student"}
-              onClick={() =>
-                submit({
-                  intent: "move-student",
-                  linkId: student.id,
-                  branchId: target,
-                })
-              }
-            >
+        {canMove && student.status !== "ended" && (
+          <Button asChild size="sm" variant="paper">
+            <Link to={ask("move")} preventScrollReset>
               Move
-            </Button>
-          </div>
+            </Link>
+          </Button>
         )}
         {student.status === "active" && (
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            disabled={busy}
-            isLoading={pending === "release-student"}
-            onClick={() =>
-              submit({ intent: "release-student", linkId: student.id })
-            }
-          >
-            Release
+          <Button asChild size="sm" variant="ghost">
+            <Link to={ask("release")} preventScrollReset>
+              Release
+            </Link>
           </Button>
         )}
         {student.status === "pending" && (
@@ -274,17 +241,10 @@ function StudentItem({
           </Button>
         )}
         {student.status === "pending" && (
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            disabled={busy}
-            isLoading={pending === "cancel-student"}
-            onClick={() =>
-              submit({ intent: "cancel-student", linkId: student.id })
-            }
-          >
-            Withdraw
+          <Button asChild size="sm" variant="ghost">
+            <Link to={ask("withdraw")} preventScrollReset>
+              Withdraw
+            </Link>
           </Button>
         )}
       </div>

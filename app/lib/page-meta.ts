@@ -236,6 +236,51 @@ const ROUTES: Record<string, Entry> = {
     template: "/school/:schoolId/branches/add",
     path: "/school/:schoolId/branches/add",
   },
+  "routes/school/student-change": {
+    group: "School dashboard",
+    template: "/school/:schoolId/students/:linkId/:verb",
+    path: "/school/:schoolId/students/:linkId/:verb",
+  },
+  "routes/school/pass-price": {
+    group: "School dashboard",
+    template: "/school/:schoolId/passes/price",
+    path: "/school/:schoolId/passes/price",
+  },
+  "routes/school/pass-bank": {
+    group: "School dashboard",
+    template: "/school/:schoolId/passes/bank",
+    path: "/school/:schoolId/passes/bank",
+  },
+  "routes/school/invite-withdraw": {
+    group: "School dashboard",
+    template: "/school/:schoolId/team/invites/:inviteId/withdraw",
+    path: "/school/:schoolId/team/invites/:inviteId/withdraw",
+  },
+  "routes/school/admin-change": {
+    group: "School dashboard",
+    template: "/school/:schoolId/team/:memberId/:verb",
+    path: "/school/:schoolId/team/:memberId/:verb",
+  },
+  "routes/school/branch-edit": {
+    group: "School dashboard",
+    template: "/school/:schoolId/branches/:branchId/edit",
+    path: "/school/:schoolId/branches/:branchId/edit",
+  },
+  "routes/school/profile-edit": {
+    group: "School dashboard",
+    template: "/school/:schoolId/profile/edit",
+    path: "/school/:schoolId/profile/edit",
+  },
+  "routes/school/profile-logo": {
+    group: "School dashboard",
+    template: "/school/:schoolId/profile/logo/:kind",
+    path: "/school/:schoolId/profile/logo/:kind",
+  },
+  "routes/school/profile-branch": {
+    group: "School dashboard",
+    template: "/school/:schoolId/profile/branches/:branchId",
+    path: "/school/:schoolId/profile/branches/:branchId",
+  },
   "routes/school/profile": {
     group: "School dashboard",
     template: "/school/:schoolId/profile",

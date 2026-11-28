@@ -3,6 +3,8 @@
  * to hand out; the owner sets the price and sends the bank (DriveRush checks
  * it). Then what the school earned (an admin sees their branches).
  */
+import { Outlet } from "react-router";
+
 import { PageHeader } from "~/components/console/shell";
 import { EarningsPanel, PassPanel } from "~/components/school/pass-panel";
 import { requireUser } from "~/lib/auth/require.server";
@@ -26,14 +28,15 @@ export default function SchoolPasses() {
       />
       <div className="flex flex-col gap-10">
         <PassPanel
+          schoolId={d.school.id}
           schoolName={d.school.name}
           info={d.passInfo}
           canManage={d.canManage}
           paymentsOn={d.paymentsOn}
-          banks={d.banks}
         />
         <EarningsPanel rows={d.earnings} ready={d.passInfo?.ready ?? false} />
       </div>
+      <Outlet />
     </>
   );
 }

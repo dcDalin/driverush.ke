@@ -5,9 +5,12 @@
  * (the owner sends it, DriveRush checks it), and what the school earned.
  * Paystack pays the school's share to its bank itself, two working days after
  * each payment, less Paystack's fee, so there is no balance to withdraw.
+ *
+ * The page shows and links; the price and the bank are changed in their own
+ * modal routes (`passes/price`, `passes/bank`).
  */
 import * as React from "react";
-import { HoneypotInputs } from "remix-utils/honeypot/react";
+import { Link } from "react-router";
 
 import { kes } from "~/components/account/pass-offers";
 import { Icon } from "~/components/brand/icon";
@@ -27,30 +30,26 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
-import { InputField, ServerFormProvider } from "~/components/ui/forms/server";
 import {
   type EarningRow,
   earningsTotals,
   type SchoolPassInfo,
 } from "~/database/billing/school";
-import { useServerForm } from "~/lib/forms/use-server-form";
+import { schoolPath } from "~/lib/school/nav";
 import { SITE } from "~/lib/site";
-import { RequestBankSchema, SetPassPriceSchema } from "~/schemas/billing";
-
-import { BankFields } from "./bank-fields";
 
 export function PassPanel({
+  schoolId,
   schoolName,
   info,
   canManage,
   paymentsOn,
-  banks,
 }: {
+  schoolId: string;
   schoolName: string;
   info: SchoolPassInfo | null;
   canManage: boolean;
   paymentsOn: boolean;
-  banks: { name: string; code: string }[];
 }) {
   const ready = Boolean(info?.ready);
   return (
@@ -84,12 +83,14 @@ export function PassPanel({
             {kes(info.driverush_share_kes)}.
           </p>
           {canManage ? (
-            <PriceForm
-              key={info.price_kes}
-              price={info.price_kes}
-              share={info.driverush_share_kes}
-              min={info.min_price_kes}
-            />
+            <Button asChild size="sm" variant="paper" className="self-start">
+              <Link
+                to={schoolPath(schoolId, "passes/price")}
+                preventScrollReset
+              >
+                Change price
+              </Link>
+            </Button>
           ) : null}
         </div>
       ) : !canManage ? (
@@ -99,25 +100,23 @@ export function PassPanel({
         </p>
       ) : null}
       {canManage ? (
-        <BankCard info={info} banks={banks} paymentsOn={paymentsOn} />
+        <BankCard schoolId={schoolId} info={info} paymentsOn={paymentsOn} />
       ) : null}
     </section>
   );
 }
 
 function BankCard({
+  schoolId,
   info,
-  banks,
   paymentsOn,
 }: {
+  schoolId: string;
   info: SchoolPassInfo | null;
-  banks: { name: string; code: string }[];
   paymentsOn: boolean;
 }) {
-  const [changing, setChanging] = React.useState(false);
   const live = info?.ready ? info.bank_label : null;
   const waiting = info?.pending_bank_label ?? null;
-  const showForm = !waiting && (!live || changing);
   return (
     <Card>
       <CardHeader>
@@ -161,78 +160,20 @@ function BankCard({
             </AlertBody>
           </Alert>
         ) : null}
-        {!paymentsOn ? null : showForm ? (
-          banks.length === 0 ? (
-            <p className="m-0 text-[14px] text-ink-3">
-              The bank list did not load. Reload to try again.
-            </p>
-          ) : (
-            <BankForm
-              onDone={() => setChanging(false)}
-              banks={banks}
-              replacing={Boolean(live)}
-            />
-          )
-        ) : live && !waiting ? (
+        {paymentsOn && !waiting ? (
           <Button
-            type="button"
-            variant="paper"
-            size="sm"
+            asChild
+            variant={live ? "paper" : "rush"}
+            size={live ? "sm" : "default"}
             className="self-start"
-            onClick={() => setChanging(true)}
           >
-            Change bank
+            <Link to={schoolPath(schoolId, "passes/bank")} preventScrollReset>
+              {live ? "Change bank" : "Add your bank"}
+            </Link>
           </Button>
         ) : null}
       </CardContent>
     </Card>
-  );
-}
-
-function BankForm({
-  banks,
-  replacing,
-  onDone,
-}: {
-  banks: { name: string; code: string }[];
-  replacing: boolean;
-  onDone: () => void;
-}) {
-  const form = useServerForm({
-    schema: RequestBankSchema,
-    key: "request-bank",
-    resetOnSuccess: true,
-    defaultValues: {
-      intent: "request-bank" as const,
-      bankCode: "",
-      accountNumber: "",
-      accountName: "",
-    },
-  });
-  React.useEffect(() => {
-    if (form.fetcher.state === "idle" && form.fetcher.data?.ok) onDone();
-  }, [form.fetcher.state, form.fetcher.data, onDone]);
-  return (
-    <ServerFormProvider methods={form.methods}>
-      <form.fetcher.Form
-        ref={form.formRef}
-        method="post"
-        onSubmit={form.methods.handleSubmit}
-        noValidate
-        className="flex flex-col gap-3"
-      >
-        <HoneypotInputs />
-        <BankFields banks={banks} disabled={form.busy} />
-        <Button
-          type="submit"
-          variant="rush"
-          className="self-start"
-          isLoading={form.busy}
-        >
-          {replacing ? "Send the new bank" : "Send to DriveRush"}
-        </Button>
-      </form.fetcher.Form>
-    </ServerFormProvider>
   );
 }
 
@@ -289,63 +230,6 @@ function CodeAndLink({
         </div>
       ) : null}
     </div>
-  );
-}
-
-function PriceForm({
-  price,
-  share,
-  min,
-}: {
-  price: number;
-  share: number;
-  min: number;
-}) {
-  const { methods, fetcher, formRef, busy } = useServerForm({
-    schema: SetPassPriceSchema,
-    key: "set-pass-price",
-    defaultValues: { intent: "set-pass-price" as const, priceKes: price },
-  });
-  const typed = Number(methods.watch("priceKes"));
-  const earns = Number.isFinite(typed) && typed >= min ? typed - share : null;
-  return (
-    <ServerFormProvider methods={methods}>
-      <fetcher.Form
-        ref={formRef}
-        method="post"
-        onSubmit={methods.handleSubmit}
-        noValidate
-        className="flex flex-col gap-3 sm:flex-row sm:items-start"
-      >
-        <HoneypotInputs />
-        <InputField
-          name="priceKes"
-          label="Price for your learners (KES)"
-          description={
-            earns !== null
-              ? `You earn ${kes(earns)} per learner, less Paystack's fee. At least ${kes(min)}.`
-              : `At least ${kes(min)}: DriveRush keeps ${kes(share)}.`
-          }
-          className="sm:w-72"
-          disabled={busy}
-          inputProps={{
-            type: "number",
-            inputMode: "numeric",
-            min,
-            step: 1,
-          }}
-        />
-        <Button
-          type="submit"
-          size="sm"
-          variant="paper"
-          isLoading={busy}
-          className="sm:mt-6"
-        >
-          Save price
-        </Button>
-      </fetcher.Form>
-    </ServerFormProvider>
   );
 }
 
