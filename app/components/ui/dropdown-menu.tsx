@@ -3,8 +3,8 @@
  * radius, items a thumb high, and the house check and chevron instead of an
  * icon pack. Arrow keys move through the items and Escape closes it.
  */
-import * as React from "react";
 import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui";
+import type * as React from "react";
 
 import { Icon } from "~/components/brand/icon";
 import { CheckIcon, ChevronRightIcon } from "~/components/brand/icons";
@@ -47,7 +47,7 @@ function DropdownMenuContent({
         sideOffset={sideOffset}
         className={cn(
           "z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border border-line bg-popover p-1 text-popover-foreground shadow-md",
-          "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+          "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
           className,
         )}
         {...props}
@@ -129,7 +129,7 @@ function DropdownMenuLabel({
       data-slot="dropdown-menu-label"
       data-inset={inset}
       className={cn(
-        "px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-3 data-[inset]:pl-8",
+        "px-2.5 py-1.5 text-[11px] font-semibold tracking-wider text-ink-3 uppercase data-[inset]:pl-8",
         className,
       )}
       {...props}
@@ -170,7 +170,7 @@ function DropdownMenuSubTrigger({
       data-inset={inset}
       className={cn(
         "flex min-h-11 cursor-pointer items-center gap-2.5 rounded-sm px-2.5 text-[14px] font-semibold outline-hidden select-none",
-        "focus:bg-paper-2 data-[state=open]:bg-paper-2 data-[inset]:pl-8",
+        "focus:bg-paper-2 data-[inset]:pl-8 data-[state=open]:bg-paper-2",
         className,
       )}
       {...props}
@@ -190,7 +190,7 @@ function DropdownMenuSubContent({
       data-slot="dropdown-menu-sub-content"
       className={cn(
         "z-50 min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-md border border-line bg-popover p-1 text-popover-foreground shadow-lg",
-        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+        "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
         className,
       )}
       {...props}
@@ -200,15 +200,15 @@ function DropdownMenuSubContent({
 
 export {
   DropdownMenu,
-  DropdownMenuPortal,
-  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuGroup,
-  DropdownMenuLabel,
   DropdownMenuItem,
-  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuPortal,
   DropdownMenuSeparator,
   DropdownMenuSub,
-  DropdownMenuSubTrigger,
   DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
 };

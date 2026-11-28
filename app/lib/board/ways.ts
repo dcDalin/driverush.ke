@@ -15,14 +15,14 @@
  * ways that differ only in that are one way.
  */
 import {
-  network,
-  planRoute,
-  routeOf,
-  shortest,
   type Maneuver,
   type NetEdge,
+  network,
   type Plan,
+  planRoute,
   type Route,
+  routeOf,
+  shortest,
 } from "./network";
 
 /**

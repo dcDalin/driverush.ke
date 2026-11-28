@@ -6,22 +6,21 @@
  */
 import * as React from "react";
 
+import { SponsorReadyCard } from "~/components/board/sponsor-credit";
+import { Icon } from "~/components/brand/icon";
+import { CheckIcon } from "~/components/brand/icons";
 import {
   COURSE_LEVELS,
-  UNITS,
   doneCount,
+  type Level,
   levelDone,
   readiness,
   unitOf,
-  type Level,
+  UNITS,
 } from "~/lib/board/curriculum";
-import { useBoardStore } from "~/lib/board-store";
 import { useVisitSponsor } from "~/lib/board/sponsor-visit";
+import { useBoardStore } from "~/lib/board-store";
 import { cn } from "~/lib/utils";
-
-import { Icon } from "~/components/brand/icon";
-import { CheckIcon } from "~/components/brand/icons";
-import { SponsorReadyCard } from "~/components/board/sponsor-credit";
 
 // Only a learner who finishes the course ever downloads it.
 const Confetti = React.lazy(() =>
@@ -60,7 +59,7 @@ export function LevelCheer({
     return (
       <p
         className={cn(
-          "m-0 font-mono text-[10.5px] font-bold uppercase tracking-widest opacity-70",
+          "m-0 font-mono text-[10.5px] font-bold tracking-widest uppercase opacity-70",
           className,
         )}
       >
@@ -88,7 +87,7 @@ export function LevelCheer({
         <Icon icon={CheckIcon} size={18} />
       </span>
       <span className="min-w-0">
-        <span className="block text-[15px] font-bold leading-snug">
+        <span className="block text-[15px] leading-snug font-bold">
           {whole ? "Course done." : `Unit ${n} done: ${unit.title}.`}
         </span>
         {whole && (
@@ -97,7 +96,7 @@ export function LevelCheer({
             tasks from all of it.
           </span>
         )}
-        <span className="mt-1 block font-mono text-[10.5px] font-bold uppercase tracking-widest opacity-70">
+        <span className="mt-1 block font-mono text-[10.5px] font-bold tracking-widest uppercase opacity-70">
           {count}
         </span>
       </span>

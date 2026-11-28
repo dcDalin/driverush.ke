@@ -29,8 +29,8 @@ describe("find it on the board", () => {
 
   it("puts the roundabout's pin on its lanes, not on the island", () => {
     const [ring, island] = findSpots(levelById("roundabout-parts")!);
-    expect(Math.hypot(island.x, island.z)).toBeLessThan(1);
-    expect(Math.hypot(ring.x, ring.z)).toBeGreaterThan(13);
+    expect(Math.hypot(island!.x, island!.z)).toBeLessThan(1);
+    expect(Math.hypot(ring!.x, ring!.z)).toBeGreaterThan(13);
   });
 
   it("asks nothing where two things sit on top of each other", () => {

@@ -2,8 +2,8 @@ import * as React from "react";
 
 import {
   computeRegionTransform,
-  IDENTITY_REGION_TRANSFORM,
   type FocusRegion,
+  IDENTITY_REGION_TRANSFORM,
 } from "~/lib/image-focus";
 import { cn } from "~/lib/utils";
 
@@ -161,7 +161,7 @@ function CameraStage({
           src={imageSrc}
           alt=""
           draggable={false}
-          className="absolute inset-0 h-full w-full select-none object-contain"
+          className="absolute inset-0 h-full w-full object-contain select-none"
         />
       </div>
     );
@@ -257,7 +257,7 @@ function CameraStage({
 
       {/* dim + blur everything except the focused sign */}
       {rect && landed && (
-        <div className="dr-settle absolute inset-0 pointer-events-none">
+        <div className="dr-settle pointer-events-none absolute inset-0">
           <div
             style={veil({
               left: 0,
@@ -337,7 +337,7 @@ function ClassicStage({
   return (
     <div
       className={cn(
-        "relative w-full overflow-hidden border border-line bg-ink rounded-lg",
+        "relative w-full overflow-hidden rounded-lg border border-line bg-ink",
         aspectClassName,
         className,
       )}
@@ -356,7 +356,7 @@ function ClassicStage({
             src={imageSrc}
             alt=""
             draggable={false}
-            className="block max-h-full w-auto max-w-full select-none object-contain"
+            className="block max-h-full w-auto max-w-full object-contain select-none"
           />
           {veiled && region && (
             <>

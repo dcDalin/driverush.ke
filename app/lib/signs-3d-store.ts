@@ -18,33 +18,27 @@ import {
   type StateStorage,
 } from "zustand/middleware";
 
+import { analytics } from "./analytics";
+import { missTip } from "./miss-tips";
+import {
+  applyGrade,
+  boxOf,
+  type GradeResult,
+  isMastered,
+  type SignProgress,
+} from "./pelican-progress";
+import { bumpPracticeStreak } from "./practice-streak";
 import {
   orderSigns,
   type Sign3D,
-  type Signs3DData,
   type SignCategoryId,
+  type Signs3DData,
 } from "./signs-3d";
 import {
   DEFAULT_SIGNS_3D_SETTINGS,
   normalizeSettings,
   type Signs3DUserSettings,
 } from "./signs-3d-settings";
-import {
-  applyGrade,
-  boxOf,
-  isMastered,
-  type GradeResult,
-  type SignProgress,
-} from "./pelican-progress";
-import { analytics } from "./analytics";
-import { missTip } from "./miss-tips";
-import { bumpPracticeStreak } from "./practice-streak";
-import {
-  defaultScope,
-  pickRound,
-  runTally,
-  type RunScope,
-} from "./trainer-rounds";
 import {
   BUZZ,
   buzz,
@@ -55,6 +49,12 @@ import {
   warmSfx,
   warmVoice,
 } from "./sounds";
+import {
+  defaultScope,
+  pickRound,
+  type RunScope,
+  runTally,
+} from "./trainer-rounds";
 
 // ---------------------------------------------------------------------------
 // module-scope engine bits (one trainer instance — fine to keep these here)
@@ -97,7 +97,10 @@ function buildQueue(
   }
   if (scope.kind === "drill") {
     const ids = new Set(scope.ids);
-    return ordered((board?.signs ?? []).filter((r) => ids.has(r.id)), s);
+    return ordered(
+      (board?.signs ?? []).filter((r) => ids.has(r.id)),
+      s,
+    );
   }
   const pool = practiceSigns(board, scope.categories ?? s.categories);
   return pickRound(ordered(pool, s), progress);
@@ -110,7 +113,9 @@ const warmedModels = new Set<string>();
 function warmModel(url: string) {
   if (typeof window === "undefined" || warmedModels.has(url)) return;
   warmedModels.add(url);
-  void fetch(url, { cache: "force-cache" }).catch(() => warmedModels.delete(url));
+  void fetch(url, { cache: "force-cache" }).catch(() =>
+    warmedModels.delete(url),
+  );
 }
 
 /** Buffer the next few signs, so a sign rarely has to load while you wait. */

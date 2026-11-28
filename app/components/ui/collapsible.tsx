@@ -1,6 +1,6 @@
 /** shadcn's Collapsible: a trigger that shows and hides what follows it. */
-import type * as React from "react";
 import { Collapsible as CollapsiblePrimitive } from "radix-ui";
+import type * as React from "react";
 
 function Collapsible({
   ...props
@@ -30,4 +30,4 @@ function CollapsibleContent({
   );
 }
 
-export { Collapsible, CollapsibleTrigger, CollapsibleContent };
+export { Collapsible, CollapsibleContent, CollapsibleTrigger };

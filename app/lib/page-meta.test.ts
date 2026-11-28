@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import routes from "~/routes";
+
 import {
   cleanPath,
   LABELLED_ROUTE_IDS,
@@ -23,8 +24,9 @@ function routeIds(entries: RouteEntry[]): { id: string; file: string }[] {
   ]);
 }
 
-/** Routes with no page: redirects, files, layouts. */
-const NOT_PAGES = /legacy-redirects|sitemap-xml|llms-txt|layouts\//;
+/** Routes with no page: redirects, files, layouts, and the routes/api fetchers. */
+const NOT_PAGES =
+  /legacy-redirects|sitemap-xml|llms-txt|layouts\/|routes\/api\//;
 
 describe("pageMeta", () => {
   const pages = routeIds(routes as RouteEntry[]).filter(
@@ -90,7 +92,7 @@ describe("pageMetaForPath", () => {
     .filter((r) => !r.file.startsWith("routes/tools/"))
     .map((r) => ({
       id: r.id ?? r.file.replace(/\.[^.]+$/, ""),
-      url: "/" + r.path!.replace(/:[^/]+/g, "sample"),
+      url: `/${r.path!.replace(/:[^/]+/g, "sample")}`,
     }));
 
   it("labels every page by its path as its route id does", () => {

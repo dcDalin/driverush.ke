@@ -1,4 +1,5 @@
 import * as React from "react";
+
 import { Icon } from "~/components/brand/icon";
 import {
   ChevronLeftIcon,
@@ -7,17 +8,15 @@ import {
   PauseIcon,
   PlayIcon,
 } from "~/components/brand/icons";
-
+import { ImageFocusStage } from "~/components/brand/image-focus-stage";
+import { Button } from "~/components/ui/button";
 import {
   computeRegionTransform,
-  getSignCategory,
-  orderRegions,
   type FocusRegion,
+  getSignCategory,
   type ImageFocusData,
+  orderRegions,
 } from "~/lib/image-focus";
-
-import { Button } from "~/components/ui/button";
-import { ImageFocusStage } from "~/components/brand/image-focus-stage";
 
 type Phase = "full" | "focused" | "revealed";
 
@@ -158,7 +157,7 @@ export function FocusPreview({
 
   if (order.length === 0) {
     return (
-      <div className="flex aspect-video items-center justify-center border border-line bg-paper-3 text-center font-sans text-[11px] uppercase tracking-wider text-ink-3 rounded-lg font-medium">
+      <div className="flex aspect-video items-center justify-center rounded-lg border border-line bg-paper-3 text-center font-sans text-[11px] font-medium tracking-wider text-ink-3 uppercase">
         Add a region to preview the trainer
       </div>
     );
@@ -183,13 +182,13 @@ export function FocusPreview({
         {phase === "revealed" && region && (
           <div className="absolute inset-x-0 bottom-0 z-10 border-t border-line bg-surface/95 px-4 py-3 backdrop-blur-sm">
             <div className="mx-auto max-w-2xl">
-              <span className="flex flex-wrap items-center gap-x-2 font-sans text-[10px] uppercase tracking-wider text-ink-3 font-medium">
+              <span className="flex flex-wrap items-center gap-x-2 font-sans text-[10px] font-medium tracking-wider text-ink-3 uppercase">
                 <span className="text-ink-2">
                   {cat?.emoji} {cat?.label}
                 </span>
                 {region.code && <span>· {region.code}</span>}
               </span>
-              <p className="m-0 mt-0.5 font-display text-[clamp(18px,3vw,26px)] font-semibold leading-tight tracking-tight text-ink">
+              <p className="m-0 mt-0.5 font-display text-[clamp(18px,3vw,26px)] leading-tight font-semibold tracking-tight text-ink">
                 {region.name || "(unnamed)"}
               </p>
               {region.note && (
@@ -201,7 +200,7 @@ export function FocusPreview({
           </div>
         )}
 
-        <span className="absolute left-2 top-2 z-10 bg-ink px-1.5 py-0.5 font-sans text-[10px] font-semibold uppercase tracking-wider text-paper">
+        <span className="absolute top-2 left-2 z-10 bg-ink px-1.5 py-0.5 font-sans text-[10px] font-semibold tracking-wider text-paper uppercase">
           {currentIndex + 1} / {order.length}
         </span>
       </div>
@@ -214,16 +213,10 @@ export function FocusPreview({
           onClick={() => goToOrderIndex(currentIndex - 1)}
           aria-label="Previous region"
         >
-          <Icon
-            icon={ChevronLeftIcon}
-            size={14}
-          />
+          <Icon icon={ChevronLeftIcon} size={14} />
         </Button>
         <Button variant="ink" size="sm" onClick={togglePlay}>
-          <Icon
-            icon={playing ? PauseIcon : PlayIcon}
-            size={14}
-          />
+          <Icon icon={playing ? PauseIcon : PlayIcon} size={14} />
           {playing ? "Pause" : "Play"}
         </Button>
         <Button
@@ -232,10 +225,7 @@ export function FocusPreview({
           onClick={() => goToOrderIndex(currentIndex + 1)}
           aria-label="Next region"
         >
-          <Icon
-            icon={ChevronRightIcon}
-            size={14}
-          />
+          <Icon icon={ChevronRightIcon} size={14} />
         </Button>
 
         <span className="mx-1 h-5 w-px bg-line" />
@@ -245,10 +235,7 @@ export function FocusPreview({
           size="sm"
           onClick={() => setPhase((p) => (p === "full" ? "focused" : "full"))}
         >
-          <Icon
-            icon={FocusIcon}
-            size={14}
-          />
+          <Icon icon={FocusIcon} size={14} />
           {phase === "full" ? "Zoom in" : "Show full"}
         </Button>
         <Button
@@ -262,7 +249,7 @@ export function FocusPreview({
           {phase === "revealed" ? "Hide name" : "Reveal name"}
         </Button>
 
-        <span className="ml-auto truncate font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
+        <span className="ml-auto truncate font-sans text-[10.5px] font-medium tracking-wider text-ink-3 uppercase">
           zoom ≈ {transform.scale.toFixed(2)}× · {region?.name || "—"}
         </span>
       </div>

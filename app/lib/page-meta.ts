@@ -110,6 +110,242 @@ const ROUTES: Record<string, Entry> = {
     path: "/blogs/:slug",
   },
   "routes/share-landing": { group: "Share landing", path: "/s" },
+  "routes/auth-callback": { group: "Account", path: "/auth/callback" },
+  "routes/pass": { group: "Pass", path: "/pass" },
+  "routes/pass-done": { group: "Pass", path: "/pass/done" },
+  "routes/school-home": { group: "School dashboard", path: "/school" },
+  "routes/console/overview": { group: "Console", path: "/console" },
+  "routes/console/schools": { group: "Console", path: "/console/schools" },
+  "routes/console/school-new": {
+    group: "Console",
+    path: "/console/schools/new",
+  },
+  "console-school": {
+    group: "Console",
+    template: "/console/schools/:schoolId",
+    path: "/console/schools/:schoolId",
+  },
+  "routes/console/school-setup": {
+    group: "Console",
+    template: "/console/schools/:schoolId",
+    path: "/console/schools/:schoolId",
+  },
+  "routes/console/school-setup-index": {
+    group: "Console",
+    template: "/console/schools/:schoolId",
+    path: "/console/schools/:schoolId",
+  },
+  "routes/console/school-hand-over": {
+    group: "Console",
+    template: "/console/schools/:schoolId/hand-over",
+    path: "/console/schools/:schoolId/hand-over",
+  },
+  "routes/console/school-status": {
+    group: "Console",
+    template: "/console/schools/:schoolId/status",
+    path: "/console/schools/:schoolId/status",
+  },
+  "routes/console/school-livery": {
+    group: "Console",
+    template: "/console/schools/:schoolId/livery",
+    path: "/console/schools/:schoolId/livery",
+  },
+  "routes/console/school-livery-upload": {
+    group: "Console",
+    template: "/console/schools/:schoolId/livery/upload",
+    path: "/console/schools/:schoolId/livery/upload",
+  },
+  "routes/console/school-livery-confirm": {
+    group: "Console",
+    template: "/console/schools/:schoolId/livery/:liveryId/:verb",
+    path: "/console/schools/:schoolId/livery/:liveryId/:verb",
+  },
+  "routes/console/school-payments": {
+    group: "Console",
+    template: "/console/schools/:schoolId/payments",
+    path: "/console/schools/:schoolId/payments",
+  },
+  "routes/console/school-bank-review": {
+    group: "Console",
+    template: "/console/schools/:schoolId/payments/review/:decision",
+    path: "/console/schools/:schoolId/payments/review/:decision",
+  },
+  "routes/console/school-code": {
+    group: "Console",
+    template: "/console/schools/:schoolId/payments/code",
+    path: "/console/schools/:schoolId/payments/code",
+  },
+  "routes/console/school-bank": {
+    group: "Console",
+    template: "/console/schools/:schoolId/payments/bank",
+    path: "/console/schools/:schoolId/payments/bank",
+  },
+  "routes/console/school-sponsorship": {
+    group: "Console",
+    template: "/console/schools/:schoolId/sponsorship",
+    path: "/console/schools/:schoolId/sponsorship",
+  },
+  "routes/console/school-profile": {
+    group: "Console",
+    template: "/console/schools/:schoolId/profile",
+    path: "/console/schools/:schoolId/profile",
+  },
+  "console-profile-edit": {
+    group: "Console",
+    template: "/console/schools/:schoolId/profile/edit",
+    path: "/console/schools/:schoolId/profile/edit",
+  },
+  "console-profile-logo": {
+    group: "Console",
+    template: "/console/schools/:schoolId/profile/logo/:kind",
+    path: "/console/schools/:schoolId/profile/logo/:kind",
+  },
+  "console-profile-branch": {
+    group: "Console",
+    template: "/console/schools/:schoolId/profile/branches/:branchId",
+    path: "/console/schools/:schoolId/profile/branches/:branchId",
+  },
+  "routes/console/school-branches": {
+    group: "Console",
+    template: "/console/schools/:schoolId/branches",
+    path: "/console/schools/:schoolId/branches",
+  },
+  "console-branch-add": {
+    group: "Console",
+    template: "/console/schools/:schoolId/branches/add",
+    path: "/console/schools/:schoolId/branches/add",
+  },
+  "console-branch-edit": {
+    group: "Console",
+    template: "/console/schools/:schoolId/branches/:branchId/edit",
+    path: "/console/schools/:schoolId/branches/:branchId/edit",
+  },
+  "routes/console/school-team": {
+    group: "Console",
+    template: "/console/schools/:schoolId/team",
+    path: "/console/schools/:schoolId/team",
+  },
+  "console-admin-add": {
+    group: "Console",
+    template: "/console/schools/:schoolId/team/add",
+    path: "/console/schools/:schoolId/team/add",
+  },
+  "console-invite-withdraw": {
+    group: "Console",
+    template: "/console/schools/:schoolId/team/invites/:inviteId/withdraw",
+    path: "/console/schools/:schoolId/team/invites/:inviteId/withdraw",
+  },
+  "console-admin-change": {
+    group: "Console",
+    template: "/console/schools/:schoolId/team/:memberId/:verb",
+    path: "/console/schools/:schoolId/team/:memberId/:verb",
+  },
+  "routes/console/school-students": {
+    group: "Console",
+    template: "/console/schools/:schoolId/students",
+    path: "/console/schools/:schoolId/students",
+  },
+  "routes/console/school-sponsorship-new": {
+    group: "Console",
+    template: "/console/schools/:schoolId/sponsorship/new",
+    path: "/console/schools/:schoolId/sponsorship/new",
+  },
+  "routes/console/payments": { group: "Console", path: "/console/payments" },
+  "routes/console/staff": { group: "Console", path: "/console/staff" },
+  "routes/console/staff-grant": {
+    group: "Console",
+    path: "/console/staff/grant",
+  },
+  "routes/school/overview": {
+    group: "School dashboard",
+    template: "/school/:schoolId",
+    path: "/school/:schoolId",
+  },
+  "routes/school/students": {
+    group: "School dashboard",
+    template: "/school/:schoolId/students",
+    path: "/school/:schoolId/students",
+  },
+  "routes/school/student-add": {
+    group: "School dashboard",
+    template: "/school/:schoolId/students/add",
+    path: "/school/:schoolId/students/add",
+  },
+  "routes/school/passes": {
+    group: "School dashboard",
+    template: "/school/:schoolId/passes",
+    path: "/school/:schoolId/passes",
+  },
+  "routes/school/team": {
+    group: "School dashboard",
+    template: "/school/:schoolId/team",
+    path: "/school/:schoolId/team",
+  },
+  "routes/school/admin-add": {
+    group: "School dashboard",
+    template: "/school/:schoolId/team/add",
+    path: "/school/:schoolId/team/add",
+  },
+  "routes/school/branches": {
+    group: "School dashboard",
+    template: "/school/:schoolId/branches",
+    path: "/school/:schoolId/branches",
+  },
+  "routes/school/branch-add": {
+    group: "School dashboard",
+    template: "/school/:schoolId/branches/add",
+    path: "/school/:schoolId/branches/add",
+  },
+  "routes/school/student-change": {
+    group: "School dashboard",
+    template: "/school/:schoolId/students/:linkId/:verb",
+    path: "/school/:schoolId/students/:linkId/:verb",
+  },
+  "routes/school/pass-price": {
+    group: "School dashboard",
+    template: "/school/:schoolId/passes/price",
+    path: "/school/:schoolId/passes/price",
+  },
+  "routes/school/pass-bank": {
+    group: "School dashboard",
+    template: "/school/:schoolId/passes/bank",
+    path: "/school/:schoolId/passes/bank",
+  },
+  "routes/school/invite-withdraw": {
+    group: "School dashboard",
+    template: "/school/:schoolId/team/invites/:inviteId/withdraw",
+    path: "/school/:schoolId/team/invites/:inviteId/withdraw",
+  },
+  "routes/school/admin-change": {
+    group: "School dashboard",
+    template: "/school/:schoolId/team/:memberId/:verb",
+    path: "/school/:schoolId/team/:memberId/:verb",
+  },
+  "routes/school/branch-edit": {
+    group: "School dashboard",
+    template: "/school/:schoolId/branches/:branchId/edit",
+    path: "/school/:schoolId/branches/:branchId/edit",
+  },
+  "routes/school/profile-edit": {
+    group: "School dashboard",
+    template: "/school/:schoolId/profile/edit",
+    path: "/school/:schoolId/profile/edit",
+  },
+  "routes/school/profile-logo": {
+    group: "School dashboard",
+    template: "/school/:schoolId/profile/logo/:kind",
+    path: "/school/:schoolId/profile/logo/:kind",
+  },
+  "routes/school/profile-branch": {
+    group: "School dashboard",
+    template: "/school/:schoolId/profile/branches/:branchId",
+    path: "/school/:schoolId/profile/branches/:branchId",
+  },
+  "routes/school/profile": {
+    group: "School dashboard",
+    template: "/school/:schoolId/profile",
+    path: "/school/:schoolId/profile",
+  },
 };
 
 /** Labels for the page whose deepest matched route is `routeId`. */
@@ -135,7 +371,7 @@ const BY_PATH = Object.values(ROUTES)
   .map((entry) => ({
     entry,
     re: new RegExp(
-      "^" + entry.path.replace(/:[^/]+/g, "[^/]+").replace(/\//g, "\\/") + "$",
+      `^${entry.path.replace(/:[^/]+/g, "[^/]+").replace(/\//g, "\\/")}$`,
     ),
   }))
   .sort(
@@ -168,7 +404,7 @@ export const LABELLED_ROUTE_IDS = Object.keys(ROUTES);
  * other key (`ttclid`, `fbclid`, share payloads, `ga_debug`) is dropped, so
  * one page doesn't fragment into hundreds of rows in GA reports.
  */
-const KEEP_PARAMS = new Set([
+export const KEEP_PARAMS: ReadonlySet<string> = new Set([
   "utm_source",
   "utm_medium",
   "utm_campaign",

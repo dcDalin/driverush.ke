@@ -1,5 +1,6 @@
 import * as React from "react";
 import { toast } from "sonner";
+
 import { Icon } from "~/components/brand/icon";
 import {
   ArrowOutIcon,
@@ -7,18 +8,6 @@ import {
   LinkIcon,
   RefreshIcon,
 } from "~/components/brand/icons";
-
-import type { Route } from "./+types/share";
-
-import { SITE } from "~/lib/site";
-import {
-  UTM_CAMPAIGNS,
-  UTM_CHANNELS,
-  type UtmChannel,
-  addUtm,
-  utmSlug,
-} from "~/lib/utm";
-
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -29,6 +18,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
+import { SITE } from "~/lib/site";
+import {
+  addUtm,
+  UTM_CAMPAIGNS,
+  UTM_CHANNELS,
+  type UtmChannel,
+  utmSlug,
+} from "~/lib/utm";
+
+import type { Route } from "./+types/share";
 
 export function meta(_: Route.MetaArgs) {
   return [
@@ -55,7 +54,7 @@ const CHANNEL_OPTIONS: { value: UtmChannel | "custom"; label: string }[] = [
   { value: "custom", label: "Custom…" },
 ];
 
-const DEFAULT_URL = SITE.url.replace(/\/$/, "") + "/";
+const DEFAULT_URL = `${SITE.url.replace(/\/$/, "")}/`;
 
 export default function ShareBuilder() {
   const [url, setUrl] = React.useState(DEFAULT_URL);
@@ -121,7 +120,7 @@ export default function ShareBuilder() {
     <div>
       <header className="border-b border-line pb-6">
         <span className="eyebrow text-ink">Internal · campaigns</span>
-        <h1 className="m-0 mt-3 font-display text-[clamp(32px,5vw,52px)] font-semibold leading-[0.95] tracking-tighter">
+        <h1 className="m-0 mt-3 font-display text-[clamp(32px,5vw,52px)] leading-[0.95] font-semibold tracking-tighter">
           Share <span className="text-rush">builder</span>
         </h1>
         <p className="mt-4 max-w-2xl font-serif text-[clamp(16px,2vw,20px)] leading-tight text-ink-2">
@@ -224,22 +223,19 @@ export default function ShareBuilder() {
 
           <div className="flex flex-wrap gap-2 pt-1">
             <Button variant="paper" size="sm" onClick={handleReset}>
-              <Icon
-                icon={RefreshIcon}
-                size={14}
-              />
+              <Icon icon={RefreshIcon} size={14} />
               Reset
             </Button>
           </div>
         </section>
 
         {/* Preview */}
-        <section className="grid gap-4 self-start border border-line bg-surface p-6 shadow-stamp lg:sticky lg:top-6 rounded-lg">
-          <div className="flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+        <section className="grid gap-4 self-start rounded-lg border border-line bg-surface p-6 shadow-stamp lg:sticky lg:top-6">
+          <div className="flex items-center gap-2 font-mono text-[10.5px] tracking-widest text-ink-3 uppercase">
             <Icon icon={LinkIcon} size={13} />
             Tagged link
           </div>
-          <div className="break-all border border-line bg-paper-3 p-4 font-mono text-[12.5px] leading-relaxed text-ink rounded-lg">
+          <div className="rounded-lg border border-line bg-paper-3 p-4 font-mono text-[12.5px] leading-relaxed break-all text-ink">
             {ready ? tagged : "Fill in URL, source, and medium to preview…"}
           </div>
           <div className="flex flex-wrap gap-2.5">
@@ -249,10 +245,7 @@ export default function ShareBuilder() {
               onClick={handleCopy}
               disabled={!ready}
             >
-              <Icon
-                icon={CopyIcon}
-                size={16}
-              />
+              <Icon icon={CopyIcon} size={16} />
               Copy link
             </Button>
             <Button variant="paper" size="lg" asChild disabled={!ready}>
@@ -262,14 +255,11 @@ export default function ShareBuilder() {
                 rel="noreferrer noopener"
               >
                 Open
-                <Icon
-                  icon={ArrowOutIcon}
-                  size={16}
-                />
+                <Icon icon={ArrowOutIcon} size={16} />
               </a>
             </Button>
           </div>
-          <p className="font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+          <p className="font-mono text-[10.5px] tracking-widest text-ink-3 uppercase">
             Tip · keep utm_campaign stable across a single push so GA reports
             don't fragment.
           </p>
@@ -290,7 +280,7 @@ function Field({
 }) {
   return (
     <div className="grid gap-1.5">
-      <Label className="font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+      <Label className="font-mono text-[10.5px] tracking-widest text-ink-3 uppercase">
         {label}
       </Label>
       {children}

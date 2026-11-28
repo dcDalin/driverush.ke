@@ -6,7 +6,7 @@
  */
 import { blockById } from "./blocks";
 import type { Level, SlideRef } from "./curriculum";
-import { BOARD_FEATURES, featurePin, type BoardFeature } from "./features";
+import { BOARD_FEATURES, type BoardFeature, featurePin } from "./features";
 import type { Box } from "./full-board";
 import { ROUTE_RULES } from "./lessons";
 
@@ -74,7 +74,10 @@ export function findSpots(level: Level): FindSpot[] {
   if (spots.length < 2) return [];
   for (let a = 0; a < spots.length; a += 1) {
     for (let b = a + 1; b < spots.length; b += 1) {
-      const gap = Math.hypot(spots[a].x - spots[b].x, spots[a].z - spots[b].z);
+      const gap = Math.hypot(
+        spots[a]!.x - spots[b]!.x,
+        spots[a]!.z - spots[b]!.z,
+      );
       if (gap < FIND_APART) return [];
     }
   }

@@ -1,0 +1,130 @@
+/**
+ * Everything a school's dashboard shows, in one call for its loader and one
+ * round trip to the database: the school, the caller's place in it,
+ * branches, team, invites and students (each with a progress summary while
+ * their month runs). Null when the school does not exist or the caller has
+ * no place in it.
+ */
+import { isStaffRole } from "../auth/roles";
+import type { AppRole, SchoolRole, TypedSupabaseClient } from "../types";
+import { type ProgressSummary, summarizeProgress } from "./progress-summary";
+import {
+  getSchool,
+  listBranches,
+  listOpenStudentLinks,
+  listPendingMemberInvites,
+  listSchoolMembers,
+  listStudentProgress,
+} from "./queries";
+
+export type StudentRow = {
+  id: string;
+  email: string;
+  name: string | null;
+  branchId: string;
+  status: "pending" | "active" | "ended";
+  endsAt: string | null;
+  addedAt: string | null;
+  /** A waiting invite past its 30 days: send it again to renew it. */
+  inviteExpired: boolean;
+  /** How many times the invite has been sent (at most 5), and when last. */
+  sentCount: number;
+  lastSentAt: string;
+  summary: ProgressSummary | null;
+  /** The learner's pass running now or next (null: none). */
+  passEndsAt: string | null;
+  /** Whether a running pass was bought through this school. */
+  passThroughSchool: boolean;
+};
+
+export type DashboardRole = SchoolRole | "staff";
+
+/** A settled read's answer, or its error raised. */
+function valueOf<T>(read: PromiseSettledResult<T>): T {
+  if (read.status === "rejected") throw read.reason;
+  return read.value;
+}
+
+export async function getSchoolDashboard(
+  supabase: TypedSupabaseClient,
+  {
+    schoolId,
+    userId,
+    role,
+  }: { schoolId: string; userId: string; role: AppRole },
+  now = Date.now(),
+) {
+  // One round trip: everything at once. A stranger to the school sees no
+  // school (row level security) and is refused the rest, so those errors
+  // count only once the school is known to be theirs to see. The pending
+  // invites are for the owner and staff only; anyone else's are dropped
+  // below.
+  const [schoolRead, ...rest] = await Promise.allSettled([
+    getSchool(supabase, schoolId),
+    listBranches(supabase, schoolId),
+    listSchoolMembers(supabase, schoolId),
+    listOpenStudentLinks(supabase, schoolId),
+    listStudentProgress(supabase, schoolId),
+    listPendingMemberInvites(supabase, schoolId).catch(() => []),
+  ] as const);
+  const school = valueOf(schoolRead);
+  if (!school) return null;
+  const [branches, team, links, progress, pendingInvites] = [
+    valueOf(rest[0]),
+    valueOf(rest[1]),
+    valueOf(rest[2]),
+    valueOf(rest[3]),
+    valueOf(rest[4]),
+  ];
+
+  const me = team.find((m) => m.user_id === userId);
+  const staff = isStaffRole(role);
+  if (!me && !staff) return null;
+  const myRole: DashboardRole = me?.role ?? "staff";
+  const canManage = myRole === "owner" || staff;
+  const invites = (canManage ? pendingInvites : []).map((invite) => ({
+    ...invite,
+    expired: Date.parse(invite.expires_at) <= now,
+  }));
+
+  const byLink = new Map(progress.map((row) => [row.link_id, row]));
+  const students: StudentRow[] = links.map((link) => {
+    const current =
+      link.status === "active" &&
+      link.ends_at !== null &&
+      Date.parse(link.ends_at) > now;
+    const row = byLink.get(link.id);
+    return {
+      id: link.id,
+      email: link.email,
+      name: row?.full_name ?? null,
+      branchId: link.branch_id,
+      status:
+        link.status === "pending" ? "pending" : current ? "active" : "ended",
+      endsAt: link.ends_at,
+      addedAt: link.added_at,
+      inviteExpired:
+        link.status === "pending" && Date.parse(link.expires_at) <= now,
+      sentCount: link.sent_count,
+      lastSentAt: link.last_sent_at,
+      summary: row ? summarizeProgress(row.progress) : null,
+      passEndsAt: row?.pass_ends_at ?? null,
+      passThroughSchool: row?.pass_through_school ?? false,
+    };
+  });
+
+  return {
+    school,
+    role: myRole,
+    canManage,
+    myBranchIds: canManage ? branches.map((b) => b.id) : (me?.branch_ids ?? []),
+    branches,
+    team,
+    invites,
+    students,
+  };
+}
+
+export type SchoolDashboard = NonNullable<
+  Awaited<ReturnType<typeof getSchoolDashboard>>
+>;

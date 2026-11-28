@@ -6,6 +6,7 @@
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
+
 import { NodeIO } from "@gltf-transform/core";
 import { ALL_EXTENSIONS } from "@gltf-transform/extensions";
 import { dequantize } from "@gltf-transform/functions";
@@ -57,7 +58,7 @@ async function paintOf(car: string) {
     .getRoot()
     .listNodes()
     .find((n) => n.getName() === "paint");
-  return paint!.getMesh()!.listPrimitives()[0];
+  return paint!.getMesh()!.listPrimitives()[0]!;
 }
 
 describe.each(BOARD_CARS.map((c) => c.id))("the %s's wrap template", (car) => {
@@ -71,7 +72,7 @@ describe.each(BOARD_CARS.map((c) => c.id))("the %s's wrap template", (car) => {
     const count = idx ? idx.getCount() : uv!.getCount();
     const at = (i: number) => {
       const [u, v] = uv!.getElement(idx ? idx.getScalar(i) : i, [0, 0]);
-      return [u * layout.atlas.width, v * layout.atlas.height];
+      return [u * layout.atlas.width, v * layout.atlas.height] as const;
     };
     const slack = 1.5; // pixels, for the stored UVs' rounding
     const views = Object.values(layout.views);
@@ -94,8 +95,8 @@ describe.each(BOARD_CARS.map((c) => c.id))("the %s's wrap template", (car) => {
 
   it("has landmarks a design can rely on", () => {
     const L = layout.landmarks;
-    const [, ymin, zmin] = layout.box.min;
-    const [, ymax, zmax] = layout.box.max;
+    const [, ymin, zmin] = layout.box.min as [number, number, number];
+    const [, ymax, zmax] = layout.box.max as [number, number, number];
     // the window line sits between the sill and the roof
     expect(L.sill).toBeGreaterThanOrEqual(ymin);
     expect(L.belt).toBeGreaterThan(L.sill + 0.3);

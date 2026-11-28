@@ -53,7 +53,6 @@ export const DEFAULT_PELICAN_SETTINGS: PelicanUserSettings = {
   selfGrading: true,
 };
 
-
 /** Merge a (possibly partial / untrusted) object onto the defaults. */
 export function normalizeSettings(
   raw: Partial<PelicanUserSettings> | null | undefined,

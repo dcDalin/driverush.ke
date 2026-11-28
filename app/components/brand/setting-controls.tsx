@@ -1,9 +1,7 @@
-import * as React from "react";
+import type * as React from "react";
+
 import { Icon } from "~/components/brand/icon";
 import type { IconDef } from "~/components/brand/icons";
-
-import { cn } from "~/lib/utils";
-
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import {
@@ -16,6 +14,7 @@ import {
 import { Slider } from "~/components/ui/slider";
 import { Switch } from "~/components/ui/switch";
 import { Toggle } from "~/components/ui/toggle";
+import { cn } from "~/lib/utils";
 
 /**
  * Shared brutalist settings widgets — used by `/tools/image-coords`'s playback
@@ -44,17 +43,17 @@ export function SettingSection({
 }) {
   return (
     <section
-      className={cn("border border-line bg-surface rounded-lg", className)}
+      className={cn("rounded-lg border border-line bg-surface", className)}
       data-disabled={disabled || undefined}
     >
       <header className="flex items-start justify-between gap-3 border-b border-line bg-paper-3 px-3.5 py-2.5">
         <div className="min-w-0">
-          <h3 className="flex items-center gap-2 font-display text-[12px] font-bold uppercase tracking-wider text-ink">
+          <h3 className="flex items-center gap-2 font-display text-[12px] font-bold tracking-wider text-ink uppercase">
             {icon && <Icon icon={icon} size={14} />}
             {title}
           </h3>
           {description && (
-            <p className="mt-0.5 font-sans text-[9.5px] uppercase tracking-wider text-ink-3 font-medium">
+            <p className="mt-0.5 font-sans text-[9.5px] font-medium tracking-wider text-ink-3 uppercase">
               {description}
             </p>
           )}
@@ -92,18 +91,18 @@ export function ToggleRow({
   return (
     <label
       className={cn(
-        "flex cursor-pointer items-center justify-between gap-3 border border-line bg-surface px-3 py-2.5 rounded-lg",
+        "flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-line bg-surface px-3 py-2.5",
         disabled && "pointer-events-none opacity-40",
       )}
     >
       <span className="flex min-w-0 items-start gap-2.5">
         {icon && (
-          <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center border border-line bg-paper-3 text-ink rounded-md">
+          <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border border-line bg-paper-3 text-ink">
             <Icon icon={icon} size={14} />
           </span>
         )}
         <span className="min-w-0">
-          <span className="block font-display text-[11.5px] font-bold uppercase tracking-wider text-ink-2">
+          <span className="block font-display text-[11.5px] font-bold tracking-wider text-ink-2 uppercase">
             {label}
           </span>
           {description && (
@@ -243,7 +242,7 @@ export function NumberRow({
       <Label>
         {label}
         {hint && (
-          <span className="ml-1.5 font-mono text-[9.5px] font-normal normal-case tracking-normal text-ink-3">
+          <span className="ml-1.5 font-mono text-[9.5px] font-normal tracking-normal text-ink-3 normal-case">
             {hint}
           </span>
         )}
@@ -285,7 +284,7 @@ export function ChipToggle({
       disabled={disabled}
       onPressedChange={onToggle}
       className={cn(
-        "h-auto min-w-0 rounded-lg px-2.5 py-1 text-[10.5px] uppercase tracking-wider",
+        "h-auto min-w-0 rounded-lg px-2.5 py-1 text-[10.5px] tracking-wider uppercase",
         "text-ink-3 hover:bg-paper-3 hover:text-ink data-[state=on]:hover:bg-ink data-[state=on]:hover:text-paper",
         "disabled:opacity-40",
       )}

@@ -17,28 +17,18 @@
  */
 import * as React from "react";
 import { toast } from "sonner";
+
 import { Icon } from "~/components/brand/icon";
 import type { IconDef } from "~/components/brand/icons";
 import {
   CopyIcon,
   DownloadIcon,
   FacebookIcon,
-  XIcon,
   ShareIcon,
   TelegramIcon,
   WhatsappIcon,
+  XIcon,
 } from "~/components/brand/icons";
-
-import { analytics } from "~/lib/analytics";
-import {
-  buildShareLink,
-  SHARE_TARGETS,
-  taggedShareUrl,
-  type SharePayload,
-} from "~/lib/share";
-import { renderSharePicture } from "~/lib/share-picture";
-import { cn } from "~/lib/utils";
-
 import { Button } from "~/components/ui/button";
 import {
   Dialog,
@@ -48,6 +38,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
+import { analytics } from "~/lib/analytics";
+import {
+  buildShareLink,
+  SHARE_TARGETS,
+  type SharePayload,
+  taggedShareUrl,
+} from "~/lib/share";
+import { renderSharePicture } from "~/lib/share-picture";
+import { cn } from "~/lib/utils";
 
 const TARGET_ICONS: Record<string, IconDef> = {
   whatsapp: WhatsappIcon,
@@ -204,7 +203,7 @@ export function ShareButton({
           </DialogHeader>
           <DialogBody>
             {scored && (
-              <div className="mb-4 mt-1 grid gap-2.5">
+              <div className="mt-1 mb-4 grid gap-2.5">
                 <div className="mx-auto aspect-[4/5] h-[min(30dvh,250px)] overflow-hidden rounded-soft bg-ink/10">
                   {picture && (
                     <img
@@ -246,7 +245,7 @@ export function ShareButton({
                     </>
                   )}
                 </p>
-                <p className="m-0 mt-1.5 font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
+                <p className="m-0 mt-1.5 font-sans text-[11px] font-medium tracking-wider text-ink-3 uppercase">
                   Or send the link
                 </p>
               </div>
@@ -271,11 +270,12 @@ export function ShareButton({
                   className={cn(
                     "inline-flex items-center gap-2.5 rounded-soft border border-ink/25 bg-surface px-4 py-3",
                     "font-display text-[13px] font-bold tracking-tight text-ink",
-                    "outline-none transition-colors hover:border-ink/60 hover:bg-paper-2",
+                    "transition-colors outline-none hover:border-ink/60 hover:bg-paper-2",
                     "focus-visible:border-ink/60 focus-visible:bg-paper-2 active:translate-y-px",
                   )}
                 >
-                  <Icon icon={TARGET_ICONS[t.id]} size={18} />
+                  {/* SHARE_TARGETS lists only the channels with an icon */}
+                  <Icon icon={TARGET_ICONS[t.id]!} size={18} />
                   {t.label}
                 </a>
               ))}

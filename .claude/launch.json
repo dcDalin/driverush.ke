@@ -8,7 +8,7 @@
         "run",
         "dev"
       ],
-      "port": 5173
+      "port": 5730
     },
     {
       "name": "dev-alt",
@@ -18,43 +18,43 @@
         "dev",
         "--",
         "--port",
-        "5180",
+        "5731",
         "--strictPort"
       ],
-      "port": 5180
+      "port": 5731
     },
     {
       "name": "built",
       "runtimeExecutable": "env",
       "runtimeArgs": [
-        "PORT=5190",
+        "PORT=5740",
         "npm",
         "run",
         "start"
       ],
-      "port": 5190
+      "port": 5740
     },
     {
       "name": "built-alt",
       "runtimeExecutable": "env",
       "runtimeArgs": [
-        "PORT=5191",
+        "PORT=5741",
         "npm",
         "run",
         "start"
       ],
-      "port": 5191
+      "port": 5741
     },
     {
       "name": "built-3",
       "runtimeExecutable": "env",
       "runtimeArgs": [
-        "PORT=5197",
+        "PORT=5742",
         "npm",
         "run",
         "start"
       ],
-      "port": 5197
+      "port": 5742
     },
     {
       "name": "dev-cars",
@@ -64,10 +64,26 @@
         "dev",
         "--",
         "--port",
-        "5183",
+        "5732",
         "--strictPort"
       ],
-      "port": 5183
+      "port": 5732
+    },
+    {
+      "name": "dev-passes",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "VITE_PASSES=on",
+        "PAYSTACK_SECRET_KEY=sk_test_localpreview",
+        "npm",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5731",
+        "--strictPort"
+      ],
+      "port": 5731
     }
   ]
 }

@@ -19,7 +19,7 @@ export function SignCredit({
     <span className={cn("inline-flex items-center gap-2.5", className)}>
       <span
         className={cn(
-          "font-sans text-[10.5px] uppercase tracking-wider font-medium",
+          "font-sans text-[10.5px] font-medium tracking-wider uppercase",
           onInk ? "text-paper/80" : "text-ink-3",
         )}
       >

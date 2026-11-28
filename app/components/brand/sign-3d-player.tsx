@@ -1,46 +1,44 @@
+import { AnimatePresence, motion, type Variants } from "framer-motion";
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion, type Variants } from "framer-motion";
+import { useShallow } from "zustand/react/shallow";
+
 import { Icon } from "~/components/brand/icon";
 import {
+  CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   CloseIcon,
-  SettingsIcon,
   DragIcon,
   PauseIcon,
   PlayIcon,
   RefreshIcon,
-  CheckIcon,
+  SettingsIcon,
   SoundIcon,
 } from "~/components/brand/icons";
-import { useShallow } from "zustand/react/shallow";
-
-import { getSignCategory } from "~/lib/signs-3d";
-import { ease, transition } from "~/lib/motion";
-import { isMastered, signCounts } from "~/lib/pelican-progress";
-import { runTally, type RunScope } from "~/lib/trainer-rounds";
-import {
-  getPracticeSigns,
-  selectCanResume,
-  useSigns3DStore,
-} from "~/lib/signs-3d-store";
-import { missTip } from "~/lib/miss-tips";
-import { cn } from "~/lib/utils";
-
+import { MissTip } from "~/components/brand/miss-tip";
+import { RevealCountdown } from "~/components/brand/reveal-countdown";
+import { Sign3DViewer } from "~/components/brand/sign-3d-viewer";
+import { TrainerReadyPanel } from "~/components/brand/trainer-ready-panel";
+import { TrainerResultCard } from "~/components/brand/trainer-result-card";
 import { Button } from "~/components/ui/button";
-import { Progress } from "~/components/ui/progress";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetTitle,
 } from "~/components/ui/sheet";
-import { RevealCountdown } from "~/components/brand/reveal-countdown";
-import { TrainerReadyPanel } from "~/components/brand/trainer-ready-panel";
-import { TrainerResultCard } from "~/components/brand/trainer-result-card";
-import { MissTip } from "~/components/brand/miss-tip";
-import { Sign3DViewer } from "~/components/brand/sign-3d-viewer";
+import { missTip } from "~/lib/miss-tips";
+import { ease, transition } from "~/lib/motion";
+import { isMastered, signCounts } from "~/lib/pelican-progress";
+import { getSignCategory } from "~/lib/signs-3d";
+import {
+  getPracticeSigns,
+  selectCanResume,
+  useSigns3DStore,
+} from "~/lib/signs-3d-store";
+import { type RunScope, runTally } from "~/lib/trainer-rounds";
+import { cn } from "~/lib/utils";
 
 const STREAK_CALLOUTS = new Set([3, 5, 10]);
 
@@ -154,7 +152,7 @@ export function Sign3DPlayer({
     return (
       <div
         className={cn(
-          "flex aspect-video w-full items-center justify-center border-2 border-dashed border-ink bg-paper-3 text-center font-mono text-[11px] uppercase tracking-widest text-ink-3",
+          "flex aspect-video w-full items-center justify-center border-2 border-dashed border-ink bg-paper-3 text-center font-mono text-[11px] tracking-widest text-ink-3 uppercase",
           className,
         )}
       >
@@ -245,7 +243,7 @@ export function Sign3DPlayer({
 
       {/* top bar */}
       <motion.div
-        className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-1.5 px-3 pb-2 pt-4"
+        className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-1.5 px-3 pt-4 pb-2"
         initial={{ y: -12, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ ...transition.enter, delay: 0.1 }}
@@ -260,7 +258,7 @@ export function Sign3DPlayer({
           <Icon icon={CloseIcon} size={14} />
           Exit
         </Button>
-        <span className="whitespace-nowrap bg-ink/70 px-2 py-0.5 font-mono text-[10px] font-bold tracking-wider tabular-nums text-paper">
+        <span className="bg-ink/70 px-2 py-0.5 font-mono text-[10px] font-bold tracking-wider whitespace-nowrap text-paper tabular-nums">
           {settings.selfGrading
             ? `${tally.recalled} / ${tally.signsTotal}${s.runMissCount > 0 ? ` · ✗${s.runMissCount}` : ""}${s.runStreak >= 2 ? ` · ${s.runStreak} in a row` : ""}`
             : `${pos + 1} / ${s.queue.length}`}
@@ -272,10 +270,7 @@ export function Sign3DPlayer({
           aria-label="Settings"
           className="pointer-events-auto"
         >
-          <Icon
-            icon={SettingsIcon}
-            size={14}
-          />
+          <Icon icon={SettingsIcon} size={14} />
         </Button>
       </motion.div>
 
@@ -286,7 +281,7 @@ export function Sign3DPlayer({
           aria-live="polite"
           className="dr-flash pointer-events-none absolute inset-x-0 top-16 z-20 flex justify-center"
         >
-          <span className="border-2 border-ink bg-kenya-green px-3 py-1 font-display text-[15px] font-extrabold uppercase tracking-tight text-kenya-green-foreground shadow-stamp-xs">
+          <span className="border-2 border-ink bg-kenya-green px-3 py-1 font-display text-[15px] font-extrabold tracking-tight text-kenya-green-foreground uppercase shadow-stamp-xs">
             {s.runStreak} in a row
           </span>
         </div>
@@ -310,7 +305,7 @@ export function Sign3DPlayer({
               Reveal answer
             </Button>
           )}
-          <span className="inline-flex items-center gap-1.5 bg-ink/60 px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest text-paper/80">
+          <span className="inline-flex items-center gap-1.5 bg-ink/60 px-2.5 py-1 font-mono text-[10px] tracking-widest text-paper/80 uppercase">
             <Icon icon={DragIcon} size={13} />
             Drag to look around
           </span>
@@ -335,20 +330,14 @@ export function Sign3DPlayer({
               disabled={pos === 0}
               aria-label="Previous sign"
             >
-              <Icon
-                icon={ChevronLeftIcon}
-                size={14}
-              />
+              <Icon icon={ChevronLeftIcon} size={14} />
             </Button>
             <Button
               variant="paper"
               size="sm"
               onClick={() => (running ? s.pause() : s.resume())}
             >
-              <Icon
-                icon={running ? PauseIcon : PlayIcon}
-                size={14}
-              />
+              <Icon icon={running ? PauseIcon : PlayIcon} size={14} />
               {running ? "Pause" : "Resume"}
             </Button>
             <Button
@@ -357,10 +346,7 @@ export function Sign3DPlayer({
               onClick={() => s.start(s.runScope)}
               aria-label="Restart"
             >
-              <Icon
-                icon={RefreshIcon}
-                size={14}
-              />
+              <Icon icon={RefreshIcon} size={14} />
             </Button>
             <Button
               variant="paper"
@@ -369,10 +355,7 @@ export function Sign3DPlayer({
               aria-label="Skip / next sign"
             >
               Skip
-              <Icon
-                icon={ChevronRightIcon}
-                size={14}
-              />
+              <Icon icon={ChevronRightIcon} size={14} />
             </Button>
           </motion.div>
         )}
@@ -395,10 +378,7 @@ export function Sign3DPlayer({
               transition={{ ...transition.enter, delay: 0.04 }}
             >
               <Button variant="paper" size="lg" onClick={() => s.resume()}>
-                <Icon
-                  icon={PlayIcon}
-                  size={18}
-                />
+                <Icon icon={PlayIcon} size={18} />
                 Resume
               </Button>
             </motion.div>
@@ -430,7 +410,9 @@ export function Sign3DPlayer({
             }}
             onDrill={() => s.start({ kind: "drill", ids: s.runMissed })}
             onNext={() =>
-              s.start(s.runScope.kind === "chart" ? { kind: "chart" } : undefined)
+              s.start(
+                s.runScope.kind === "chart" ? { kind: "chart" } : undefined,
+              )
             }
             onResetMastery={() => useSigns3DStore.getState().resetProgress()}
             onExit={() => s.exit()}
@@ -439,10 +421,7 @@ export function Sign3DPlayer({
       </AnimatePresence>
 
       {/* answer bottom sheet */}
-      <Sheet
-        open={phase === "revealed" || phase === "missed"}
-        modal={false}
-      >
+      <Sheet open={phase === "revealed" || phase === "missed"} modal={false}>
         <SheetContent
           side="bottom"
           hideOverlay
@@ -461,17 +440,15 @@ export function Sign3DPlayer({
               className="mx-auto w-full max-w-2xl space-y-3 p-4 sm:p-5"
             >
               <motion.div variants={ANSWER_HEADLINE}>
-                <SheetTitle className="m-0 font-display text-[clamp(22px,4.5vw,32px)] font-extrabold uppercase leading-[0.95] tracking-tight text-ink">
+                <SheetTitle className="m-0 font-display text-[clamp(22px,4.5vw,32px)] leading-[0.95] font-extrabold tracking-tight text-ink uppercase">
                   {sign.name || "(unnamed sign)"}
                 </SheetTitle>
               </motion.div>
               <motion.div
                 variants={ANSWER_ITEM}
-                className="flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[10px] uppercase tracking-widest text-ink-3"
+                className="flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[10px] tracking-widest text-ink-3 uppercase"
               >
-                <span className="text-ink-2">
-                  {cat?.label}
-                </span>
+                <span className="text-ink-2">{cat?.label}</span>
                 {sign.code && <span>· {sign.code}</span>}
               </motion.div>
               <motion.div variants={ANSWER_ITEM}>
@@ -492,10 +469,7 @@ export function Sign3DPlayer({
                     size="sm"
                     onClick={() => s.replaySignAudio()}
                   >
-                    <Icon
-                      icon={SoundIcon}
-                      size={14}
-                    />
+                    <Icon icon={SoundIcon} size={14} />
                     Replay sound
                   </Button>
                 </motion.div>
@@ -512,7 +486,7 @@ export function Sign3DPlayer({
                     Next sign
                     <Icon icon={ChevronRightIcon} size={14} />
                   </Button>
-                  <p className="font-mono text-[10px] uppercase tracking-widest text-ink-3">
+                  <p className="font-mono text-[10px] tracking-widest text-ink-3 uppercase">
                     It comes back later this run.
                   </p>
                 </motion.div>
@@ -524,10 +498,7 @@ export function Sign3DPlayer({
                       className="flex-1"
                       onClick={() => s.gradeAndNext("knew")}
                     >
-                      <Icon
-                        icon={CheckIcon}
-                        size={14}
-                      />
+                      <Icon icon={CheckIcon} size={14} />
                       Knew it
                     </Button>
                     <Button
@@ -535,14 +506,11 @@ export function Sign3DPlayer({
                       className="flex-1"
                       onClick={() => s.gradeAndNext("missed")}
                     >
-                      <Icon
-                        icon={CloseIcon}
-                        size={14}
-                      />
+                      <Icon icon={CloseIcon} size={14} />
                       Missed it
                     </Button>
                   </div>
-                  <p className="font-mono text-[10px] uppercase tracking-widest text-ink-3">
+                  <p className="font-mono text-[10px] tracking-widest text-ink-3 uppercase">
                     Missed signs come back later this run.
                     {isMastered(s.progress, sign.id) ? " · known ✓" : ""}
                   </p>
@@ -550,10 +518,7 @@ export function Sign3DPlayer({
               ) : (
                 <motion.div variants={ANSWER_ITEM} className="flex gap-2 pt-1">
                   <Button variant="paper" onClick={() => s.prev()}>
-                    <Icon
-                      icon={ChevronLeftIcon}
-                      size={14}
-                    />
+                    <Icon icon={ChevronLeftIcon} size={14} />
                     Prev
                   </Button>
                   <Button
@@ -562,10 +527,7 @@ export function Sign3DPlayer({
                     onClick={() => s.next()}
                   >
                     Next
-                    <Icon
-                      icon={ChevronRightIcon}
-                      size={14}
-                    />
+                    <Icon icon={ChevronRightIcon} size={14} />
                   </Button>
                 </motion.div>
               )}

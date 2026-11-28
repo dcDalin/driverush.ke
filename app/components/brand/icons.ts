@@ -43,7 +43,7 @@ export const ArrowRightIcon: IconDef = {
 export const ArrowLeftIcon: IconDef = { s: "M20 12H5M10.5 6.5L5 12l5.5 5.5" };
 export const ArrowOutIcon: IconDef = { s: "M7 17L17 7M9 7h8v8" };
 export const GoIcon: IconDef = {
-  s: circle(12, 12, 9) + "M8 12h7.5M12.5 9l3 3-3 3",
+  s: `${circle(12, 12, 9)}M8 12h7.5M12.5 9l3 3-3 3`,
   b: circle(12, 12, 9),
   sign: "mandatory",
 };
@@ -88,6 +88,16 @@ export const ShareIcon: IconDef = {
 export const DownloadIcon: IconDef = {
   s: "M12 3.5V15M7 10.5l5 5 5-5M4.5 20h15",
 };
+export const UploadIcon: IconDef = {
+  s: "M12 15.5V4M7 8.5l5-5 5 5M4.5 20h15",
+};
+export const SearchIcon: IconDef = {
+  s: `${circle(10.5, 10.5, 6)}M15 15l5 5`,
+};
+export const FolderIcon: IconDef = {
+  s: "M3.5 6.5h6l2 2.5h9v9.5h-17z",
+  b: "M3.5 6.5h6l2 2.5h9v9.5h-17z",
+};
 export const SaveIcon: IconDef = {
   s: "M4.5 4.5h12l3 3v12h-15zM8 4.5v4.5h7V4.5M7.5 19.5V14h9v5.5",
   b: "M4.5 4.5h12l3 3v12h-15z",
@@ -125,11 +135,11 @@ export const GridIcon: IconDef = {
   b: "M4.5 4.5h6v6h-6z",
 };
 export const SettingsIcon: IconDef = {
-  s:
-    "M4 7h3M11 7h9M4 12h9M17 12h3M4 17h5M13 17h7" +
-    circle(9, 7, 2) +
-    circle(15, 12, 2) +
-    circle(11, 17, 2),
+  s: `M4 7h3M11 7h9M4 12h9M17 12h3M4 17h5M13 17h7${circle(9, 7, 2)}${circle(
+    15,
+    12,
+    2,
+  )}${circle(11, 17, 2)}`,
   b: circle(9, 7, 2) + circle(15, 12, 2) + circle(11, 17, 2),
 };
 export const MailIcon: IconDef = {
@@ -151,7 +161,7 @@ export const PauseIcon: IconDef = {
   b: "M7 5h3.5v14H7zM13.5 5H17v14h-3.5z",
 };
 export const PlayRoundIcon: IconDef = {
-  s: circle(12, 12, 9.5) + "M10 8.3l5.5 3.7-5.5 3.7z",
+  s: `${circle(12, 12, 9.5)}M10 8.3l5.5 3.7-5.5 3.7z`,
   b: circle(12, 12, 9.5),
 };
 export const SoundIcon: IconDef = {
@@ -159,9 +169,11 @@ export const SoundIcon: IconDef = {
   b: "M4 9.5h3.5L13 5v14l-5.5-4.5H4z",
 };
 export const SunIcon: IconDef = {
-  s:
-    circle(12, 12, 4) +
-    "M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4",
+  s: `${circle(
+    12,
+    12,
+    4,
+  )}M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4`,
   b: circle(12, 12, 4),
 };
 export const MoonIcon: IconDef = {
@@ -186,12 +198,12 @@ export const InfoIcon: IconDef = {
   sign: "info",
 };
 export const NoIcon: IconDef = {
-  s: circle(12, 12, 9) + "M5.6 5.6l12.8 12.8",
+  s: `${circle(12, 12, 9)}M5.6 5.6l12.8 12.8`,
   b: circle(12, 12, 9),
   sign: "no",
 };
 export const DoneIcon: IconDef = {
-  s: circle(12, 12, 9) + "M8 12.3l2.8 2.8L16.2 9.6",
+  s: `${circle(12, 12, 9)}M8 12.3l2.8 2.8L16.2 9.6`,
   b: circle(12, 12, 9),
   sign: "done",
 };
@@ -203,18 +215,20 @@ export const FinishIcon: IconDef = {
 
 // Road (ours alone)
 export const TrafficLightIcon: IconDef = {
-  s:
-    "M7 2.5h10v19H7z" +
-    circle(12, 7, 1.8) +
-    circle(12, 12, 1.8) +
-    circle(12, 17, 1.8),
+  s: `M7 2.5h10v19H7z${circle(12, 7, 1.8)}${circle(
+    12,
+    12,
+    1.8,
+  )}${circle(12, 17, 1.8)}`,
   b: "M7 2.5h10v19H7z",
   sign: "traffic-light",
 };
 export const PelicanIcon: IconDef = {
-  s:
-    circle(8, 6.5, 2.5) +
-    "M10.4 5.8L21 8.2M10.2 8Q15.5 13.5 21 8.2M6.2 8.3C4.8 10.8 5.4 13.2 8 14.5H17C17 18.2 14 21 10 21C6.2 21 3.5 18.6 3.5 15.6",
+  s: `${circle(
+    8,
+    6.5,
+    2.5,
+  )}M10.4 5.8L21 8.2M10.2 8Q15.5 13.5 21 8.2M6.2 8.3C4.8 10.8 5.4 13.2 8 14.5H17C17 18.2 14 21 10 21C6.2 21 3.5 18.6 3.5 15.6`,
   b: "M10.4 5.8L21 8.2Q15.5 13.5 10.2 8z",
   f: circle(8, 6.2, 0.8),
   sign: "pelican",
@@ -234,7 +248,7 @@ export const CalendarIcon: IconDef = {
   b: "M5 6h14v14H5z",
 };
 export const PinIcon: IconDef = {
-  s: "M12 21.5s-7-6-7-12a7 7 0 0 1 14 0c0 6-7 12-7 12z" + circle(12, 9.5, 2.5),
+  s: `M12 21.5s-7-6-7-12a7 7 0 0 1 14 0c0 6-7 12-7 12z${circle(12, 9.5, 2.5)}`,
   b: "M12 21.5s-7-6-7-12a7 7 0 0 1 14 0c0 6-7 12-7 12z",
   sign: "info",
 };
@@ -244,10 +258,30 @@ export const LearnerIcon: IconDef = {
   sign: "learner",
 };
 
+// The console's side menu
+export const SchoolIcon: IconDef = {
+  s: "M4 20V9l8-5 8 5v11zM9.5 20v-6h5v6M3 20h18",
+  b: "M4 20V9l8-5 8 5v11z",
+};
+export const WalletIcon: IconDef = {
+  s: "M4 7h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4zM4 7V6a2 2 0 0 1 2-2h10v3M15.5 13h1",
+  b: "M4 7h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4z",
+};
+export const PeopleIcon: IconDef = {
+  s: `${circle(9, 8, 3)}M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 5.2a3 3 0 0 1 0 5.6M17.5 14.4c2 .9 3.5 3 3.5 5.6`,
+};
+export const SignOutIcon: IconDef = {
+  s: "M10 4H5v16h5M15 8l4 4-4 4M19 12H9",
+};
+
 // Platforms keep their own marks (Simple Icons, CC0).
 export const WhatsappIcon: IconDef = {
   brand:
     "M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z",
+};
+export const GoogleIcon: IconDef = {
+  brand:
+    "M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z",
 };
 export const TelegramIcon: IconDef = {
   brand:

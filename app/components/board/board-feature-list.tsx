@@ -6,6 +6,7 @@
 import { Link } from "react-router";
 
 import { BOARD_FEATURES } from "~/lib/board/features";
+import { linkPrefetch } from "~/lib/ui/link-prefetch";
 
 export function BoardFeatureList() {
   return (
@@ -16,7 +17,7 @@ export function BoardFeatureList() {
           id={feature.id}
           className="scroll-mt-20 border-l-2 border-rush pl-4"
         >
-          <dt className="font-display text-[15px] font-extrabold uppercase leading-tight tracking-tight text-ink">
+          <dt className="font-display text-[15px] leading-tight font-extrabold tracking-tight text-ink uppercase">
             {feature.name}
           </dt>
           <dd className="m-0 mt-1 text-[15.5px] leading-relaxed text-ink-2">
@@ -24,7 +25,7 @@ export function BoardFeatureList() {
             {feature.sign && (
               <>
                 {" "}
-                <Link to={feature.sign.to}>
+                <Link prefetch={linkPrefetch()} to={feature.sign.to}>
                   The {feature.sign.label} sign
                 </Link>
                 .

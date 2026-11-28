@@ -49,7 +49,7 @@ describe("board store analytics", () => {
     const round = sent.find((e) => e.name === "boardStarted");
     expect(round?.args).toMatchObject({ scope: "round", mock: true });
     sent.length = 0;
-    const one = useBoardStore.getState().queue[0].id;
+    const one = useBoardStore.getState().queue[0]!.id;
     start([one]);
     expect(sent.find((e) => e.name === "boardStarted")?.args).toMatchObject({
       scope: "drill",

@@ -38,11 +38,14 @@
  * The path assist made those changes for them, which is what learners said
  * felt like the car steering itself.
  */
+import { appendFileSync } from "node:fs";
+
 import { beforeAll, beforeEach, describe, it } from "vitest";
 
 import { useBoardStore } from "../board-store";
 import { ALL_LEVELS } from "./curriculum";
 import { bearingOf, wrapPi } from "./geometry";
+import { locate } from "./geometry";
 import { challengeRoute } from "./lessons";
 import {
   assistState,
@@ -53,7 +56,6 @@ import {
   tick,
   view,
 } from "./runtime";
-import { locate } from "./geometry";
 
 const STEP = 1 / 60;
 const DEG = Math.PI / 180;
@@ -127,7 +129,7 @@ export function driveWith(id: string, thumb: Thumb, seed: number): RunResult {
   const r = rng(seed * 104729 + 7);
   useBoardStore.getState().startLevel(id);
   const first = useBoardStore.getState();
-  const route = challengeRoute(first.queue[first.pos]);
+  const route = challengeRoute(first.queue[first.pos]!);
   const out: RunResult = {
     level: id,
     seed,
@@ -145,14 +147,14 @@ export function driveWith(id: string, thumb: Thumb, seed: number): RunResult {
     .filter((s) => s.control === "stop")
     .map((s) => s.from);
   const points: { x: number; z: number; d: number; back: boolean }[] = [
-    { ...route.points[0], d: 0, back: reverse(0) },
+    { ...route.points[0]!, d: 0, back: reverse(0) },
   ];
   for (let k = 1; k < route.points.length; k += 1) {
-    const a = route.points[k - 1];
-    const b = route.points[k];
+    const a = route.points[k - 1]!;
+    const b = route.points[k]!;
     const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / 0.5));
     for (let j = 1; j <= n; j += 1) {
-      const d = route.at[k - 1] + ((route.at[k] - route.at[k - 1]) * j) / n;
+      const d = route.at[k - 1]! + ((route.at[k]! - route.at[k - 1]!) * j) / n;
       points.push({
         x: a.x + ((b.x - a.x) * j) / n,
         z: a.z + ((b.z - a.z) * j) / n,
@@ -181,42 +183,42 @@ export function driveWith(id: string, thumb: Thumb, seed: number): RunResult {
     if (useBoardStore.getState().phase !== "driving") break;
     let gap = Infinity;
     for (let k = at; k < Math.min(points.length, at + 60); k += 1) {
-      const d = Math.hypot(points[k].x - car.x, points[k].z - car.z);
+      const d = Math.hypot(points[k]!.x - car.x, points[k]!.z - car.z);
       if (d < gap) {
         gap = d;
         at = k;
       }
     }
-    const back = points[at].back;
+    const back = points[at]!.back;
     let aim = at;
     let run = 0;
     const look = back ? 2.5 : thumb.look;
     while (
       aim < points.length - 1 &&
       run < look &&
-      points[aim + 1].back === back
+      points[aim + 1]!.back === back
     ) {
       run += Math.hypot(
-        points[aim + 1].x - points[aim].x,
-        points[aim + 1].z - points[aim].z,
+        points[aim + 1]!.x - points[aim]!.x,
+        points[aim + 1]!.z - points[aim]!.z,
       );
       aim += 1;
     }
     if (aim === at) aim = Math.min(points.length - 1, at + 4);
-    let rest = points[points.length - 1].d - points[at].d < 1.5 && gap < 2;
+    let rest = points[points.length - 1]!.d - points[at]!.d < 1.5 && gap < 2;
     for (const line of stops) {
       if (stopped.has(line)) continue;
-      const ahead = line - points[at].d;
+      const ahead = line - points[at]!.d;
       if (ahead < 2.2 && ahead > -1) {
         rest = true;
         if (Math.abs(car.speed) < 0.05) stopped.add(line);
       }
     }
     // aiming beside the route: to its left (positive) or right
-    let ax = points[aim].x;
-    let az = points[aim].z;
+    let ax = points[aim]!.x;
+    let az = points[aim]!.z;
     if (thumb.beside && aim > 0) {
-      const p = points[aim - 1];
+      const p = points[aim - 1]!;
       const dx = ax - p.x;
       const dz = az - p.z;
       const len = Math.hypot(dx, dz) || 1;
@@ -226,7 +228,7 @@ export function driveWith(id: string, thumb: Thumb, seed: number): RunResult {
     }
     const want = bearingOf(ax - car.x, az - car.z);
     seen.push(want);
-    const late = seen.length > lag ? seen[seen.length - 1 - lag] : seen[0];
+    const late = seen.length > lag ? seen[seen.length - 1 - lag]! : seen[0]!;
     // a slow random wander, about `wander` across
     wander += (-wander * 1.5 + (r() - 0.5) * 2 * thumb.wander * 4) * STEP;
     let knob = late + wander;
@@ -304,7 +306,7 @@ export function driveWith(id: string, thumb: Thumb, seed: number): RunResult {
       : after.phase;
   out.smalls = after.faults;
   out.trace = trace;
-  out.end = `${car.x.toFixed(1)},${car.z.toFixed(1)} h${((car.heading * 180) / Math.PI).toFixed(0)} v${car.speed.toFixed(1)} at ${points[at].d.toFixed(0)}/${route.length.toFixed(0)}`;
+  out.end = `${car.x.toFixed(1)},${car.z.toFixed(1)} h${((car.heading * 180) / Math.PI).toFixed(0)} v${car.speed.toFixed(1)} at ${points[at]!.d.toFixed(0)}/${route.length.toFixed(0)}`;
   return out;
 }
 
@@ -391,7 +393,7 @@ describe.runIf(RUN)("assist bench", () => {
       };
       const text = JSON.stringify(report);
       if (OUT) {
-        require("node:fs").appendFileSync(OUT, text + "\n");
+        appendFileSync(OUT, `${text}\n`);
       } else {
         console.log(text);
       }

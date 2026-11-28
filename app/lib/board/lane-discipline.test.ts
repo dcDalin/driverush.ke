@@ -13,15 +13,15 @@ import { challengeById, type TurnChallenge } from "./challenges";
 import { U_TURN_GAPS } from "./full-board";
 import {
   ARMS,
-  SOLID_ZONE,
   dirOf,
   laneOffset,
   lanePoint,
   ringRadius,
+  SOLID_ZONE,
 } from "./geometry";
 import { challengeRoute } from "./lessons";
 import { poseAt } from "./network";
-import { createRef, refStep, type Fault, type RefState } from "./referee";
+import { createRef, type Fault, type RefState, refStep } from "./referee";
 import { createRouteRef, createWayTrack, routeRefStep } from "./route-referee";
 import { car, loadPhysics, stick, tick } from "./runtime";
 import { WARMUP_LEVEL_ID } from "./warmup";
@@ -215,7 +215,7 @@ describe("the roundabout is gone round in one lane", () => {
 });
 
 describe("turning back through a gap in the reserve", () => {
-  const gap = U_TURN_GAPS[0];
+  const gap = U_TURN_GAPS[0]!;
   const middle = (gap.from + gap.to) / 2;
   const inGap = { x: -1.5, z: -middle };
   const back: TurnChallenge = {

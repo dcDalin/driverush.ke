@@ -1,7 +1,10 @@
-import { Link, isRouteErrorResponse, useRouteError } from "react-router";
+import { isRouteErrorResponse, Link } from "react-router";
 
-import type { Route } from "./+types/blogs-post";
-
+import { BlogPostLayout } from "~/components/brand/blog-post-layout";
+import { Rail } from "~/components/brand/rail";
+import { Button } from "~/components/ui/button";
+import { getPostBySlug, getRelatedPosts } from "~/lib/blog";
+import { BLOG_BODIES, BLOG_KEYWORDS, blogFile } from "~/lib/blog-page";
 import {
   absUrl,
   breadcrumbLd,
@@ -10,42 +13,37 @@ import {
   SITE,
   siteWideMeta,
 } from "~/lib/site";
-import {
-  BLOG_KEYWORDS,
-  getPostBySlug,
-  getRelatedPosts,
-  type BlogPost,
-} from "~/lib/blog";
 
-import { BlogPostLayout } from "~/components/brand/blog-post-layout";
-import { Button } from "~/components/ui/button";
-import { Rail } from "~/components/brand/rail";
+import type { Route } from "./+types/blogs-post";
 
 /**
- * Loader runs on the server (and on client navigations). It resolves the post
- * by slug, throws a 404 Response if unknown, and hands the route component a
- * plain object the renderer can use. The MDX component itself can't be
- * serialised across the loader boundary, so we resolve it again inside the
- * component using the same slug — both calls hit the in-memory manifest.
+ * Resolves the post by slug (a 404 if unknown) and loads its text, so the
+ * page renders whole on the server and in the prerender. The post's data
+ * rides in `loaderData`; its MDX body loads on this page only.
  */
 export async function loader({ params }: Route.LoaderArgs) {
   const post = getPostBySlug(params.slug);
   if (!post) {
     throw new Response("Not found", { status: 404 });
   }
-  const related = getRelatedPosts(post.slug, 3);
-  return {
-    post: serialisePost(post),
-    related: related.map(serialisePost),
-  };
+  await BLOG_BODIES.load(blogFile(post.slug));
+  return { post, related: getRelatedPosts(post.slug, 3) };
 }
 
-function serialisePost(p: BlogPost) {
-  const { Component: _Component, ...rest } = p;
-  return rest;
+/** On a move from another page: the post's text arrives with its data. */
+export async function clientLoader({
+  params,
+  serverLoader,
+}: Route.ClientLoaderArgs) {
+  const file = blogFile(params.slug);
+  const [data] = await Promise.all([
+    serverLoader(),
+    BLOG_BODIES.files.includes(file) ? BLOG_BODIES.load(file) : undefined,
+  ]);
+  return data;
 }
 
-export function meta({ data, params }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   if (!data) {
     // 404 path — give the page a clean, non-indexable head.
     return [
@@ -120,18 +118,11 @@ export function meta({ data, params }: Route.MetaArgs) {
   ];
 }
 
-export default function BlogPostRoute({ params }: Route.ComponentProps) {
-  // The post component lives in the in-memory manifest; resolve it here since
-  // it can't ride along on the loader's serialisable response.
-  const post = getPostBySlug(params.slug);
-  if (!post) {
-    return <PostMissing />;
-  }
-  const related = getRelatedPosts(post.slug, 3);
-  const PostBody = post.Component;
+export default function BlogPostRoute({ loaderData }: Route.ComponentProps) {
+  const { post, related } = loaderData;
   return (
     <BlogPostLayout post={post} related={related}>
-      <PostBody />
+      <BLOG_BODIES.Body file={blogFile(post.slug)} />
     </BlogPostLayout>
   );
 }
@@ -141,7 +132,7 @@ function PostMissing() {
     <main className="min-h-screen bg-paper text-ink">
       <Rail />
       <div className="mx-auto w-full max-w-2xl px-5 py-24 text-center sm:px-9">
-        <p className="m-0 mb-3 font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
+        <p className="m-0 mb-3 font-sans text-[11px] font-medium tracking-wider text-ink-3 uppercase">
           404 · post not found
         </p>
         <h1 className="m-0 mb-5 font-display text-4xl font-semibold tracking-tight text-ink sm:text-5xl">
@@ -158,8 +149,7 @@ function PostMissing() {
   );
 }
 
-export function ErrorBoundary() {
-  const error = useRouteError();
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   if (isRouteErrorResponse(error) && error.status === 404) {
     return <PostMissing />;
   }

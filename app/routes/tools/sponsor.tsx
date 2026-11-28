@@ -3,25 +3,25 @@
  * and on the car (with the board camera's own views), its logo on the brass
  * plate and painted on the board, and the lines and card that name it.
  *
- * `?id=<school>` picks the school. See `~/lib/board/sponsors` for how to add one.
+ * `?id=<school>` picks the school. See `~/lib/board/school-catalog` for how to add one.
  */
 import * as React from "react";
 import { Link, useSearchParams } from "react-router";
 
-import type { Route } from "./+types/sponsor";
-
-import { fullBoardSvg } from "~/lib/board/full-board";
-import { BOARD_CARS, sizeOf, type BoardCarId } from "~/lib/board/cars";
-import { SPONSORS, sponsorById } from "~/lib/board/sponsors";
-import { cn } from "~/lib/utils";
-
-import { Button } from "~/components/ui/button";
-import { Checkbox } from "~/components/ui/checkbox";
+import type { CarView } from "~/components/board/sponsor-car-canvas";
 import {
   SponsorCredit,
   SponsorReadyCard,
 } from "~/components/board/sponsor-credit";
-import type { CarView } from "~/components/board/sponsor-car-canvas";
+import { Button } from "~/components/ui/button";
+import { Checkbox } from "~/components/ui/checkbox";
+import { BOARD_CARS, type BoardCarId, sizeOf } from "~/lib/board/cars";
+import { fullBoardSvg } from "~/lib/board/full-board";
+import { useLiveryPreview } from "~/lib/board/livery-preview";
+import { sponsorById, useCatalog } from "~/lib/board/school-catalog";
+import { cn } from "~/lib/utils";
+
+import type { Route } from "./+types/sponsor";
 
 const SponsorCarCanvas = React.lazy(
   () => import("~/components/board/sponsor-car-canvas"),
@@ -105,8 +105,13 @@ function PlatePreview({ logo }: { logo: string }) {
 
 export default function SponsorTool() {
   const [params, setParams] = useSearchParams();
-  const sponsor = sponsorById(params.get("id")) ?? SPONSORS[0] ?? null;
-  const [view, setView] = React.useState(VIEWS[2].view);
+  const schools = useCatalog();
+  const preview = useLiveryPreview();
+  const sponsor =
+    preview.state === "ready"
+      ? preview.sponsor
+      : (sponsorById(params.get("id"), schools) ?? schools[0] ?? null);
+  const [view, setView] = React.useState(VIEWS[2]!.view);
   const [overlay, setOverlay] = React.useState(false);
   const [car, setCar] = React.useState<BoardCarId>("saloon");
   // The wheels turning and steering, to check them on each car.
@@ -123,7 +128,13 @@ export default function SponsorTool() {
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
 
-  if (!sponsor) return <p>No schools in `app/lib/board/sponsors.ts` yet.</p>;
+  if (!sponsor)
+    return (
+      <p>
+        No schools yet: publish one (`npm run livery:publish &lt;slug&gt;`), or
+        seed the local database (`npm run db:seed`).
+      </p>
+    );
   const paint = sponsor.livery?.cars[car];
   const wrapFull = paint?.hi;
   const template = `/assets/board/sponsors/${car}-template.svg`;
@@ -132,17 +143,20 @@ export default function SponsorTool() {
     <div>
       <header className="border-b border-line pb-6">
         <span className="eyebrow text-ink">Internal · sponsors</span>
-        <h1 className="m-0 mt-3 font-display text-[clamp(32px,5vw,52px)] font-semibold leading-[0.95] tracking-tighter">
+        <h1 className="m-0 mt-3 font-display text-[clamp(32px,5vw,52px)] leading-[0.95] font-semibold tracking-tighter">
           {sponsor.school}
         </h1>
         <p className="mt-3 max-w-2xl text-[15px] leading-snug text-ink-2">
+          {preview.state === "ready"
+            ? "Previewing this livery (staff only). "
+            : ""}
           {sponsor.live
-            ? "Live: learners can be given this school."
-            : "Not live: only shown with ?sponsor=" + sponsor.id + "."}{" "}
-          Check every part below before setting it live.
+            ? "Sponsoring: guests and free learners are shown this school."
+            : `Not sponsoring: only shown with ?sponsor=${sponsor.id} and to its own learners.`}{" "}
+          Check every part below before publishing it.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
-          {SPONSORS.map((s) => (
+          {schools.map((s) => (
             <Button
               key={s.id}
               variant={s.id === sponsor.id ? "ink" : "paper"}
@@ -162,7 +176,7 @@ export default function SponsorTool() {
       {sponsor.livery && (
         <>
           <div className="mt-6 flex flex-wrap items-center gap-2">
-            <span className="font-mono text-[11px] uppercase tracking-widest text-ink-3">
+            <span className="font-mono text-[11px] tracking-widest text-ink-3 uppercase">
               Car
             </span>
             {BOARD_CARS.map((c) => (
@@ -188,7 +202,7 @@ export default function SponsorTool() {
               />
               Show the template over it
             </label>
-            <div className="relative w-full max-w-4xl border border-line rounded-lg">
+            <div className="relative w-full max-w-4xl rounded-lg border border-line">
               <img
                 src={wrapFull}
                 alt="The car's paint, flat"
@@ -243,7 +257,7 @@ export default function SponsorTool() {
                 Steer left and right
               </label>
             </div>
-            <div className="aspect-[4/3] w-full max-w-3xl border border-line sm:aspect-[16/9] rounded-lg">
+            <div className="aspect-[4/3] w-full max-w-3xl rounded-lg border border-line sm:aspect-[16/9]">
               {mounted && (
                 <React.Suspense fallback={null}>
                   <SponsorCarCanvas
@@ -275,13 +289,13 @@ export default function SponsorTool() {
       >
         <div className="grid gap-4 md:grid-cols-[2fr_3fr]">
           <div
-            className="border border-line [&>svg]:block [&>svg]:h-auto [&>svg]:w-full rounded-lg"
+            className="rounded-lg border border-line [&>svg]:block [&>svg]:h-auto [&>svg]:w-full"
             dangerouslySetInnerHTML={{
               __html: fullBoardSvg({ sponsorLogo: sponsor.logo.mono }),
             }}
           />
           <div
-            className="border border-line [&>svg]:block [&>svg]:h-auto [&>svg]:w-full rounded-lg"
+            className="rounded-lg border border-line [&>svg]:block [&>svg]:h-auto [&>svg]:w-full"
             dangerouslySetInnerHTML={{
               __html: fullBoardSvg({
                 sponsorLogo: sponsor.logo.mono,
@@ -295,7 +309,7 @@ export default function SponsorTool() {
       <Section title="On screen">
         <div className="grid max-w-3xl gap-4 sm:grid-cols-2">
           <div className="flex min-h-40 flex-col items-center justify-end gap-3 rounded-md bg-[#101114] p-4">
-            <span className="font-mono text-[11px] uppercase tracking-widest text-white/60">
+            <span className="font-mono text-[11px] tracking-widest text-white/60 uppercase">
               Under the loader
             </span>
             <SponsorCredit
@@ -306,7 +320,7 @@ export default function SponsorTool() {
             />
           </div>
           <div className="flex flex-col gap-3 rounded-md border border-line p-4">
-            <span className="font-mono text-[11px] uppercase tracking-widest text-ink-3">
+            <span className="font-mono text-[11px] tracking-widest text-ink-3 uppercase">
               Settings, Your car
             </span>
             <SponsorCredit sponsor={sponsor} lead="Car by" place="credit" />

@@ -1,13 +1,13 @@
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { useBoardStore } from "../board-store";
-import { COURSE_LEVELS } from "./curriculum";
 import type { CarState } from "./car";
-import { bearingOf, locate, wrapPi, type ArmId } from "./geometry";
+import type { TurnChallenge } from "./challenges";
+import { COURSE_LEVELS } from "./curriculum";
+import { type ArmId, bearingOf, locate, wrapPi } from "./geometry";
+import { queueCars, queueGoal } from "./lane-queue";
 import { network } from "./network";
 import { createRails, rails } from "./rails";
-import { queueCars, queueGoal } from "./lane-queue";
-import type { TurnChallenge } from "./challenges";
 import {
   beginChallenge,
   car,
@@ -64,8 +64,8 @@ function driveHome(
   const line = one.option.route.points;
   const points = [line[0]];
   for (let k = 1; k < line.length; k += 1) {
-    const a = line[k - 1];
-    const b = line[k];
+    const a = line[k - 1]!;
+    const b = line[k]!;
     const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / 0.5));
     for (let j = 1; j <= n; j += 1) {
       points.push({
@@ -89,13 +89,13 @@ function driveHome(
       at.along > (goal.alongMin + goal.alongMax) / 2 - 1;
     let near = along;
     for (let k = along + 1; k < Math.min(points.length, along + 40); k += 1) {
-      const d = Math.hypot(points[k].x - car.x, points[k].z - car.z);
-      if (d < Math.hypot(points[near].x - car.x, points[near].z - car.z)) {
+      const d = Math.hypot(points[k]!.x - car.x, points[k]!.z - car.z);
+      if (d < Math.hypot(points[near]!.x - car.x, points[near]!.z - car.z)) {
         near = k;
       }
     }
     along = near;
-    const aim = points[Math.min(points.length - 1, near + 12)];
+    const aim = points[Math.min(points.length - 1, near + 12)]!;
     // a thumb can be held a steady `bias` degrees off, and wobble about it
     const t = i / 60;
     const shake =
@@ -298,8 +298,8 @@ function onWay(id: string, from: number): CarState {
   const along = from >= 0 ? from : edge.length + from;
   let gone = 0;
   for (let i = 1; i < edge.points.length; i += 1) {
-    const a = edge.points[i - 1];
-    const b = edge.points[i];
+    const a = edge.points[i - 1]!;
+    const b = edge.points[i]!;
     gone += Math.hypot(b.x - a.x, b.z - a.z);
     if (gone >= along) {
       return {

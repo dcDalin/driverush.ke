@@ -1,6 +1,19 @@
 /**
- * The Board page's working part: the picture, one button that starts the
- * course or carries on with it, and the units. Each unit links to its levels
+ * The course, in two parts (owner, 2026-11-28: home says what is next, the
+ * Board page is the course's map):
+ *
+ *   CourseCard   the picture, one button that starts the course or carries
+ *                on with it, and how far along the learner is. `full` adds
+ *                their numbers (board ready, days in a row, today), the test
+ *                date card and "add to home screen": that is the home page
+ *                of a learner who has started. The Board page keeps it slim.
+ *   BoardLevels  the Board page's working part: the slim card, then the
+ *                units, the mock test and "Explore the board".
+ *
+ * Today's drive and Free drive sit on home only (and in the game's More
+ * menu): the Board page had seven ways to drive at once.
+ *
+ * The units: Each unit links to its levels
  * on the levels page (`level-picker.tsx`), where any level can be picked by
  * its picture. All of it is in the server's HTML. What is done, and which
  * level is next, is filled in from this browser's saved progress once the
@@ -9,50 +22,48 @@
 import * as React from "react";
 import { Link } from "react-router";
 
-import {
-  BOARD_LEVELS_PATH,
-  BOARD_PLAY_PATH,
-  levelHref,
-} from "~/lib/board-guides";
-import {
-  COURSE_LEVELS,
-  DAILY_GOAL,
-  UNITS,
-  doneCount,
-  levelDone,
-  nextLevel,
-  readiness,
-  unitState,
-  weakestDrive,
-  type UnitState,
-} from "~/lib/board/curriculum";
-import { dayKey, usePracticeStreak } from "~/lib/practice-streak";
-import {
-  cardStage,
-  today as todayKey,
-  useTestRecord,
-  type TestCardStage,
-} from "~/lib/test-date";
-import { planLine, testPlan } from "~/lib/test-plan";
-import { useCourseProgress } from "~/lib/use-course-progress";
-import { cn } from "~/lib/utils";
-
 import { BoardThumb } from "~/components/board/board-thumb";
 import { CourseLabel } from "~/components/board/course-label";
-import { Icon } from "~/components/brand/icon";
-import { InstallNudge } from "~/components/brand/install-nudge";
 import { TestCard } from "~/components/board/test-card";
-import { DailyDriveRow } from "~/components/board/daily-drive-row";
-import { FreeDriveRow } from "~/components/board/free-drive-row";
+import { Icon } from "~/components/brand/icon";
 import {
   CheckIcon,
   ChevronRightIcon,
   LockIcon,
   PlayIcon,
 } from "~/components/brand/icons";
+import { InstallNudge } from "~/components/brand/install-nudge";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Progress } from "~/components/ui/progress";
+import {
+  COURSE_LEVELS,
+  DAILY_GOAL,
+  doneCount,
+  levelDone,
+  nextLevel,
+  readiness,
+  UNITS,
+  type UnitState,
+  unitState,
+  weakestDrive,
+} from "~/lib/board/curriculum";
+import {
+  BOARD_LEVELS_PATH,
+  BOARD_PLAY_PATH,
+  levelHref,
+} from "~/lib/board-guides";
+import { dayKey, usePracticeStreak } from "~/lib/practice-streak";
+import {
+  cardStage,
+  type TestCardStage,
+  today as todayKey,
+  useTestRecord,
+} from "~/lib/test-date";
+import { planLine, testPlan } from "~/lib/test-plan";
+import { linkPrefetch } from "~/lib/ui/link-prefetch";
+import { useCourseProgress } from "~/lib/use-course-progress";
+import { cn } from "~/lib/utils";
 
 const TOTAL = COURSE_LEVELS.length;
 /** More levels today than this are said as "2 of 9", not drawn as dots. */
@@ -61,7 +72,14 @@ const MAX_DOTS = 6;
 /** Layout for a quiet-rush Button: a long level name wraps. */
 const quiet = "h-auto min-h-11 justify-start text-left whitespace-normal";
 
-export function BoardLevels({ className }: { className?: string }) {
+export function CourseCard({
+  full = false,
+  className,
+}: {
+  /** The learner's numbers, the test date card and the install nudge too. */
+  full?: boolean;
+  className?: string;
+}) {
   const saved = useCourseProgress();
   const empty = { learned: [], bestStars: {} };
   const done = saved ? doneCount(saved) : 0;
@@ -73,7 +91,6 @@ export function BoardLevels({ className }: { className?: string }) {
     : done > 0
       ? `Continue: level ${next.n}`
       : "Start level 1";
-  const units = UNITS.filter((unit) => unit.id !== "mock");
   const ready = saved ? readiness(saved) : 0;
   const streak = usePracticeStreak();
   const today =
@@ -98,11 +115,12 @@ export function BoardLevels({ className }: { className?: string }) {
   }, [testStage]);
 
   return (
-    <div id="levels" className={cn("grid scroll-mt-20 gap-5", className)}>
+    <div className={cn("grid gap-5", className)}>
       <div className="overflow-hidden rounded-soft border border-ink/25">
         {/* The button below is the link that is read out. This is the same
             way in for anyone who taps the picture. */}
         <Link
+          prefetch={linkPrefetch()}
           to={href}
           aria-hidden
           tabIndex={-1}
@@ -112,7 +130,7 @@ export function BoardLevels({ className }: { className?: string }) {
         </Link>
         <div className="grid gap-3 bg-surface p-4">
           <Button asChild variant="rush" size="lg" className="w-full">
-            <Link to={href}>
+            <Link prefetch={linkPrefetch()} to={href}>
               <Icon icon={PlayIcon} size={18} />
               <CourseLabel
                 label={label}
@@ -123,10 +141,10 @@ export function BoardLevels({ className }: { className?: string }) {
           </Button>
           <div>
             <div className="mb-1.5 flex items-baseline justify-between gap-3">
-              <span className="min-w-0 text-[14px] font-bold leading-snug text-ink">
+              <span className="min-w-0 text-[14px] leading-snug font-bold text-ink">
                 {mock ? "Every level is done." : next.title}
               </span>
-              <span className="shrink-0 font-mono text-[10.5px] font-bold uppercase tracking-widest tabular-nums text-ink-3">
+              <span className="shrink-0 font-mono text-[10.5px] font-bold tracking-widest text-ink-3 uppercase tabular-nums">
                 {done} of {TOTAL}
               </span>
             </div>
@@ -139,32 +157,32 @@ export function BoardLevels({ className }: { className?: string }) {
             />
           </div>
           {/* Only for a learner who has started: a first visit stays one button. */}
-          {saved && done > 0 && (
+          {full && saved && done > 0 && (
             <dl className="m-0 grid grid-cols-3 gap-2 border-t border-ink/15 pt-3 text-center">
               <div>
-                <dt className="font-mono text-[9.5px] font-bold uppercase tracking-widest text-ink-3">
+                <dt className="font-mono text-[9.5px] font-bold tracking-widest text-ink-3 uppercase">
                   Board ready
                 </dt>
-                <dd className="m-0 mt-0.5 font-display text-[20px] font-extrabold leading-none tabular-nums text-ink">
+                <dd className="m-0 mt-0.5 font-display text-[20px] leading-none font-extrabold text-ink tabular-nums">
                   {ready}%
                 </dd>
               </div>
               <div>
-                <dt className="font-mono text-[9.5px] font-bold uppercase tracking-widest text-ink-3">
+                <dt className="font-mono text-[9.5px] font-bold tracking-widest text-ink-3 uppercase">
                   Days in a row
                 </dt>
-                <dd className="m-0 mt-0.5 font-display text-[20px] font-extrabold leading-none tabular-nums text-ink">
+                <dd className="m-0 mt-0.5 font-display text-[20px] leading-none font-extrabold text-ink tabular-nums">
                   {streak?.days ?? 0}
                 </dd>
               </div>
               <div>
-                <dt className="font-mono text-[9.5px] font-bold uppercase tracking-widest text-ink-3">
+                <dt className="font-mono text-[9.5px] font-bold tracking-widest text-ink-3 uppercase">
                   Today
                 </dt>
                 {/* With a test date, today's share of the plan; more than
                     a row of dots holds is said as a count. */}
                 {goal > MAX_DOTS ? (
-                  <dd className="m-0 mt-0.5 font-display text-[20px] font-extrabold leading-none tabular-nums text-ink">
+                  <dd className="m-0 mt-0.5 font-display text-[20px] leading-none font-extrabold text-ink tabular-nums">
                     {Math.min(today, goal)}
                     <span className="text-[13px] text-ink-3"> of {goal}</span>
                   </dd>
@@ -188,14 +206,14 @@ export function BoardLevels({ className }: { className?: string }) {
               </div>
             </dl>
           )}
-          {saved && planLine(plan) && (
+          {full && saved && planLine(plan) && (
             <p className="m-0 text-center text-[14px] font-bold text-ink">
               {planLine(plan)}
             </p>
           )}
           {weakest && weakest.kind === "drive" && (
             <Button variant="quiet-rush" asChild className={quiet}>
-              <Link to={levelHref(weakest.id)}>
+              <Link prefetch={linkPrefetch()} to={levelHref(weakest.id)}>
                 Or get 3 stars on level {weakest.n}: {weakest.title}
               </Link>
             </Button>
@@ -203,17 +221,10 @@ export function BoardLevels({ className }: { className?: string }) {
         </div>
       </div>
 
-      {/* Today's drive: one task a day, the same for everyone, and the
-          streak it keeps. */}
-      <DailyDriveRow surface="course_page" />
-
-      {/* No task: the whole board to drive, every rule still said. */}
-      <FreeDriveRow surface="course_page" />
-
       {/* After a finished level, not before: a first visit is not asked for
           anything. */}
       {/* One card at a time, and the test comes first. */}
-      {test && testCard ? (
+      {!full ? null : test && testCard ? (
         <TestCard
           stage={testCard}
           record={test}
@@ -227,14 +238,26 @@ export function BoardLevels({ className }: { className?: string }) {
       ) : (
         done >= 1 && <InstallNudge surface="levels_page" />
       )}
+    </div>
+  );
+}
+
+export function BoardLevels({ className }: { className?: string }) {
+  const saved = useCourseProgress();
+  const units = UNITS.filter((unit) => unit.id !== "mock");
+  return (
+    <div id="levels" className={cn("grid scroll-mt-20 gap-5", className)}>
+      <CourseCard />
 
       <div className="grid gap-2">
         <div className="flex items-baseline justify-between gap-3">
-          <h2 className="m-0 font-display text-[18px] font-extrabold uppercase leading-tight tracking-tight text-ink">
+          <h2 className="m-0 font-display text-[18px] leading-tight font-extrabold tracking-tight text-ink uppercase">
             Units
           </h2>
           <Button variant="quiet-rush" asChild className={quiet}>
-            <Link to={BOARD_LEVELS_PATH}>All levels</Link>
+            <Link prefetch={linkPrefetch()} to={BOARD_LEVELS_PATH}>
+              All levels
+            </Link>
           </Button>
         </div>
         <ol className="m-0 grid list-none gap-2 p-0 sm:grid-cols-2">
@@ -246,9 +269,10 @@ export function BoardLevels({ className }: { className?: string }) {
             return (
               <li key={unit.id}>
                 <Link
+                  prefetch={linkPrefetch()}
                   to={`${BOARD_LEVELS_PATH}#unit-${unit.id}`}
                   className={cn(
-                    "flex h-full min-h-16 items-center gap-3 rounded-soft border px-4 py-3 text-ink no-underline outline-none transition-colors hover:bg-paper-2 focus-visible:bg-paper-2",
+                    "flex h-full min-h-16 items-center gap-3 rounded-soft border px-4 py-3 text-ink no-underline transition-colors outline-none hover:bg-paper-2 focus-visible:bg-paper-2",
                     state === "done"
                       ? "border-success-line bg-state-done-soft"
                       : state === "current"
@@ -259,7 +283,7 @@ export function BoardLevels({ className }: { className?: string }) {
                   )}
                 >
                   <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-widest text-ink-3">
+                    <span className="flex items-center gap-2 font-mono text-[10px] font-bold tracking-widest text-ink-3 uppercase">
                       Unit {i + 1}
                       {state === "current" && (
                         <span className="rounded-soft bg-state-next px-1.5 py-0.5 leading-none text-state-next-foreground">
@@ -272,7 +296,7 @@ export function BoardLevels({ className }: { className?: string }) {
                     </span>
                     <span
                       className={cn(
-                        "block font-display text-[16px] font-extrabold uppercase leading-tight tracking-tight",
+                        "block font-display text-[16px] leading-tight font-extrabold tracking-tight uppercase",
                         state === "locked" && "text-neutral-strong",
                       )}
                     >
@@ -312,18 +336,19 @@ export function BoardLevels({ className }: { className?: string }) {
       </div>
 
       <Link
+        prefetch={linkPrefetch()}
         to={BOARD_PLAY_PATH}
-        className="flex min-h-16 items-center gap-3 border border-ink/25 bg-surface px-4 py-3 text-ink no-underline outline-none transition-colors hover:bg-paper-2 focus-visible:bg-paper-2"
+        className="flex min-h-16 items-center gap-3 border border-ink/25 bg-surface px-4 py-3 text-ink no-underline transition-colors outline-none hover:bg-paper-2 focus-visible:bg-paper-2"
       >
         <span className="min-w-0 flex-1">
-          <span className="block font-display text-[16px] font-extrabold uppercase leading-tight tracking-tight">
+          <span className="block font-display text-[16px] leading-tight font-extrabold tracking-tight uppercase">
             Mock test
           </span>
           <span className="mt-0.5 block text-[13.5px] leading-snug text-ink-2">
             Five tasks picked for you, mixed from every unit. Take it any time.
           </span>
           {saved?.mockBest && (
-            <span className="mt-1 block font-mono text-[10.5px] font-bold uppercase tracking-widest text-ink-3">
+            <span className="mt-1 block font-mono text-[10.5px] font-bold tracking-widest text-ink-3 uppercase">
               Best: {saved.mockBest.clean} of {saved.mockBest.total} clean
             </span>
           )}
@@ -335,7 +360,9 @@ export function BoardLevels({ className }: { className?: string }) {
       </Link>
 
       <Button variant="quiet-rush" asChild className={quiet}>
-        <Link to={`${BOARD_PLAY_PATH}?learn=1`}>Explore the board</Link>
+        <Link prefetch={linkPrefetch()} to={`${BOARD_PLAY_PATH}?learn=1`}>
+          Explore the board
+        </Link>
       </Button>
     </div>
   );

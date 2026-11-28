@@ -1,5 +1,5 @@
-import * as React from "react";
 import { Progress as ProgressPrimitive } from "radix-ui";
+import type * as React from "react";
 
 import { cn } from "~/lib/utils";
 
@@ -35,9 +35,7 @@ function Progress({
         data-slot="progress-indicator"
         className={cn(
           "h-full rounded-full transition-[width] duration-300 ease-snap",
-          tone === "rush"
-            ? "bg-rush"
-            : "bg-kenya-green",
+          tone === "rush" ? "bg-rush" : "bg-kenya-green",
           indicatorClassName,
         )}
         style={{ width: `${pct}%` }}

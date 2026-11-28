@@ -72,7 +72,7 @@ export function BoardPicture({
         </ol>
       )}
       {caption && (
-        <figcaption className="mt-2 font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+        <figcaption className="mt-2 font-mono text-[10.5px] tracking-widest text-ink-3 uppercase">
           {caption}
         </figcaption>
       )}

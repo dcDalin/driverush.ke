@@ -1,14 +1,15 @@
 /**
- * Blog manifest. Reads every `*.mdx` file under `app/blogs/` via Vite's
- * `import.meta.glob` (`eager: true`), validates each file's frontmatter and
- * returns a typed, date-sorted list of posts.
+ * Blog manifest. Reads every `*.mdx` file's frontmatter under `app/blogs/`
+ * via Vite's `import.meta.glob` (`eager`, the `frontmatter` export only),
+ * validates it and returns a typed, date-sorted list of posts.
  *
- * - Each post's `default` export is the MDX component for `<post.Component />`.
+ * - Server only (the blog routes' loaders, the sitemap, llms.txt). Each
+ *   post's text (the MDX `default` export) loads on its own page only,
+ *   through `BLOG_BODIES` in `blog-page.ts`.
  * - The slug is sourced from frontmatter; we fall back to the filename so a
  *   missing slug field is loud, not silent.
  * - Sort order is reverse chronological by `date` (most recent first).
  */
-import type { ComponentType } from "react";
 
 export type BlogTone =
   | "practical"
@@ -23,11 +24,7 @@ export type BlogTone =
   | "observational";
 
 export type BlogCategory =
-  | "NTSA"
-  | "Road signs"
-  | "Driving in Kenya"
-  | "Licensing"
-  | "Skills";
+  "NTSA" | "Road signs" | "Driving in Kenya" | "Licensing" | "Skills";
 
 /** A single FAQ pair, surfaced as visible content + FAQPage JSON-LD. */
 
@@ -50,20 +47,19 @@ export type BlogFrontmatter = {
   kicker?: string;
 };
 
-export type BlogPost = BlogFrontmatter & {
-  Component: ComponentType;
-};
+export type BlogPost = BlogFrontmatter;
 
-type MdxModule = {
-  default: ComponentType;
-  frontmatter?: Partial<BlogFrontmatter>;
-};
-
-// `eager: true` is required so we can read frontmatter at module load time —
-// every blog post ships in the same bundle. With ~10 short posts this is a
-// few KB of JS; if the list grows past a few dozen we'd swap to async glob
-// + a slug → loader map.
-const MODULES = import.meta.glob<MdxModule>("../blogs/*.mdx", { eager: true });
+/**
+ * Every post's frontmatter, read when this module loads (the index, related
+ * posts, the sitemap need them all). Server only: the blog routes read it in
+ * their loaders and hand the browser the posts it shows, so this module (and
+ * through it every post's chunk) never reaches the browser. Each post's text
+ * loads on its own page (`blog-page.ts`).
+ */
+const FRONTMATTER = import.meta.glob<Partial<BlogFrontmatter>>(
+  "../blogs/*.mdx",
+  { eager: true, import: "frontmatter" },
+);
 
 function pathToFallbackSlug(path: string) {
   return path
@@ -100,10 +96,9 @@ function assertFrontmatter(
   } as BlogFrontmatter;
 }
 
-const ALL: BlogPost[] = Object.entries(MODULES)
-  .map(([path, mod]) => ({
-    ...assertFrontmatter(path, mod.frontmatter),
-    Component: mod.default,
+const ALL: BlogPost[] = Object.entries(FRONTMATTER)
+  .map(([path, frontmatter]) => ({
+    ...assertFrontmatter(path, frontmatter),
   }))
   .sort((a, b) => (a.date < b.date ? 1 : -1));
 
@@ -138,14 +133,3 @@ export function getRelatedPosts(slug: string, limit = 3): BlogPost[] {
 
   return scored.slice(0, limit).map((s) => s.post);
 }
-
-/** Site-wide blog keywords appended to meta on every blog page. */
-export const BLOG_KEYWORDS = [
-  "NTSA blog",
-  "learning to drive in Kenya",
-  "Kenya driving tips",
-  "Kenyan road signs explained",
-  "Nairobi driving",
-  "driving licence Kenya",
-  "NTSA test tips",
-] as const;

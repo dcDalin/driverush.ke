@@ -32,6 +32,7 @@ import {
 } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+
 import sharp from "sharp";
 
 import { kit, loadFont, lockup } from "./sponsor-art/lib.mjs";
@@ -39,7 +40,11 @@ import { kit, loadFont, lockup } from "./sponsor-art/lib.mjs";
 const ROOT = process.cwd();
 const SRC = path.join(ROOT, "scripts/sponsor-art");
 const FONTS = path.join(SRC, "fonts");
+// The cars' shared wrap layouts and templates (part of the car models).
 const ASSETS = path.join(ROOT, "public/assets/board/sponsors");
+// Each school's art: published to Supabase Storage with
+// `npm run livery:publish <id>`, never served from the app.
+const LIVERIES = path.join(ROOT, "seed/fixtures/liveries");
 export const CARS = [
   "saloon",
   "hatchback",
@@ -64,7 +69,7 @@ const schools = ids.length
   : readdirSync(SRC)
       .filter((f) => f.endsWith(".json"))
       .map((f) => f.replace(/\.json$/, ""));
-const out = path.resolve(option("out") ?? ASSETS);
+const out = path.resolve(option("out") ?? LIVERIES);
 const cars = option("cars")?.split(",") ?? CARS;
 
 /**

@@ -66,11 +66,11 @@ export function BoardSpotPicks({
             onClick={() => onPick(spot.id)}
             aria-label={`Pin ${LETTERS[i]}`}
             style={{ visibility: "hidden" }}
-            className="pointer-events-auto absolute left-0 top-0 flex min-h-11 min-w-11 flex-col items-center justify-end pb-0.5 outline-none"
+            className="pointer-events-auto absolute top-0 left-0 flex min-h-11 min-w-11 flex-col items-center justify-end pb-0.5 outline-none"
           >
             <span
               className={cn(
-                "flex size-9 items-center justify-center rounded-full border-2 border-[#17181b] font-mono text-[15px] font-bold leading-none shadow-[0_3px_0_rgba(0,0,0,0.45)]",
+                "flex size-9 items-center justify-center rounded-full border-2 border-[#17181b] font-mono text-[15px] leading-none font-bold shadow-[0_3px_0_rgba(0,0,0,0.45)]",
                 tried
                   ? "bg-[#3a3c42] text-white/60"
                   : "bg-[#f6c416] text-[#17181b]",

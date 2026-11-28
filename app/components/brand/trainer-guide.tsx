@@ -80,7 +80,7 @@ export function TrainerGuide({
         </ul>
       </div>
 
-      <details className="group border border-line bg-paper-3 font-sans rounded-lg">
+      <details className="group rounded-lg border border-line bg-paper-3 font-sans">
         <summary className="cursor-pointer px-4 py-3 font-display text-[15px] font-bold tracking-tight text-ink">
           All {signs.length} signs in this trainer
         </summary>

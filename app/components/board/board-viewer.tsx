@@ -6,22 +6,21 @@
  */
 import * as React from "react";
 
+import type { ExtraCar } from "~/components/board/board-table";
+import { LoadingPanel } from "~/components/brand/traffic-loader";
+import { Button } from "~/components/ui/button";
+import { analytics } from "~/lib/analytics";
 import type { BoardCarId } from "~/lib/board/cars";
 import type { BoardChallenge } from "~/lib/board/challenges";
 import type { Seat } from "~/lib/board/joystick";
-import { analytics } from "~/lib/analytics";
 import {
+  type Device,
   isWeakGpu,
   startRung,
   tierFor,
-  type Device,
 } from "~/lib/board/quality";
 import type { BoardQuality } from "~/lib/board-store";
 import { cn } from "~/lib/utils";
-
-import { LoadingPanel } from "~/components/brand/traffic-loader";
-import { Button } from "~/components/ui/button";
-import type { ExtraCar } from "~/components/board/board-table";
 
 /**
  * The scene, and the joystick's library with it: loaded together, a download

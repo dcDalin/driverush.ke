@@ -1,13 +1,13 @@
-import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
+import type * as React from "react";
+
+import { SignIcon } from "~/components/brand/art/sign-glyphs";
 import { Icon } from "~/components/brand/icon";
 import type { IconDef } from "~/components/brand/icons";
-import { SignIcon } from "~/components/brand/art/sign-glyphs";
-
 import { cn } from "~/lib/utils";
 
 const signFrameVariants = cva(
-  "flex size-28 shrink-0 items-center justify-center border border-line rounded-lg",
+  "flex size-28 shrink-0 items-center justify-center rounded-lg border border-line",
   {
     variants: {
       shape: {
@@ -77,7 +77,7 @@ function SignCard({
     <figure
       data-slot="sign-card"
       className={cn(
-        "flex flex-col items-center gap-3 border border-line bg-surface px-5 py-6 text-center rounded-lg",
+        "flex flex-col items-center gap-3 rounded-lg border border-line bg-surface px-5 py-6 text-center",
         className,
       )}
       {...props}
@@ -100,7 +100,7 @@ function SignCard({
           {name}
         </div>
         {classification && (
-          <div className="font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
+          <div className="font-sans text-[10.5px] font-medium tracking-wider text-ink-3 uppercase">
             {classification}
           </div>
         )}

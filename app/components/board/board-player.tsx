@@ -9,27 +9,72 @@ import { createPortal } from "react-dom";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { useShallow } from "zustand/react/shallow";
 
-import {
-  BOARD_CARS,
-  SMALL_CARS,
-  isBig,
-  resolveCar,
-  type BoardCarId,
-} from "~/lib/board/cars";
-import { startRound, useVisitSponsor } from "~/lib/board/sponsor-visit";
+import { BoardCameraPad, zoomActions } from "~/components/board/board-camera";
+import { BoardCarPicks } from "~/components/board/board-car-picks";
+import { LevelCheer } from "~/components/board/board-cheer";
+import { BoardControls } from "~/components/board/board-controls";
+import { BoardFaultTip } from "~/components/board/board-fault-tip";
+import { BoardFinishCue } from "~/components/board/board-finish-cue";
+import { BoardFps } from "~/components/board/board-fps";
+import { BoardFreeSummary } from "~/components/board/board-free-summary";
+import { BoardLearn } from "~/components/board/board-learn";
+import { BoardLevel } from "~/components/board/board-level";
+import { BoardPlayback, routeLines } from "~/components/board/board-playback";
+import { BoardSettingsSheet } from "~/components/board/board-settings-sheet";
+import { BoardSheet } from "~/components/board/board-sheet";
+import { BoardSignCue } from "~/components/board/board-sign-cue";
+import { BoardViewer } from "~/components/board/board-viewer";
+import { DailyDriveLink } from "~/components/board/daily-drive-row";
+import { freeDriveHref } from "~/components/board/free-drive-row";
+import { LevelTestNote } from "~/components/board/level-test-note";
+import { OpenLevelsContext } from "~/components/board/levels-sheet-context";
 import {
   SponsorCredit,
   SponsorReadyCard,
 } from "~/components/board/sponsor-credit";
+import { useCourseStart } from "~/components/board/use-course-start";
+import { useParkingLayout } from "~/components/board/use-parking-layout";
+import { Icon } from "~/components/brand/icon";
+import {
+  CheckIcon,
+  ChevronLeftIcon,
+  CloseIcon,
+  GoIcon,
+  GridIcon,
+  InfoIcon,
+  MenuIcon,
+  PlayIcon,
+  RefreshIcon,
+  SettingsIcon,
+  StarIcon,
+} from "~/components/brand/icons";
+import { ShareButton } from "~/components/brand/share-button";
+import { Button } from "~/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
+import { analytics } from "~/lib/analytics";
 import { faultRule, faultTip } from "~/lib/board/board-rules";
 import {
-  BOARD_CHALLENGES,
+  BOARD_CARS,
+  type BoardCarId,
+  isBig,
+  resolveCar,
+  SMALL_CARS,
+} from "~/lib/board/cars";
+import {
   blockCars,
+  BOARD_CHALLENGES,
+  type BoardChallenge,
   hasReverse,
   isFreeDrive,
   isRouteTask,
-  type BoardChallenge,
 } from "~/lib/board/challenges";
+import { COURSE_LEVELS, levelAfter, levelById } from "~/lib/board/curriculum";
 import {
   BOUNDS,
   CAR_COLORS,
@@ -39,8 +84,8 @@ import {
 import type { Seat } from "~/lib/board/joystick";
 import { pickable, queueCars } from "~/lib/board/lane-queue";
 import {
-  ROUTE_COLOR,
   challengeRoute,
+  ROUTE_COLOR,
   taskGoalBox,
   taskParks,
   taskUsesAngleBay,
@@ -57,69 +102,21 @@ import {
   setVehicle,
   subscribeShowing,
 } from "~/lib/board/runtime";
-import type { Fault } from "~/lib/board/referee";
 import { SCORE_MAX } from "~/lib/board/score";
+import { startRound, useVisitSponsor } from "~/lib/board/sponsor-visit";
 import { peekAt, useStage } from "~/lib/board/stage";
-import { LevelCheer } from "~/components/board/board-cheer";
+import { levelHref } from "~/lib/board-guides";
 import {
   BOARD_CHALLENGE_IDS,
+  type BoardNotice,
   isFreeRun,
   rulesBroken,
   useBoardStore,
-  type BoardNotice,
 } from "~/lib/board-store";
-import { analytics } from "~/lib/analytics";
-import { levelHref } from "~/lib/board-guides";
 import { isDailyDrive, kenyaDay, recordDailyPass } from "~/lib/daily-drive";
-import { liveStreak, readPracticeStreak } from "~/lib/practice-streak";
-import { COURSE_LEVELS, levelAfter, levelById } from "~/lib/board/curriculum";
 import { signCounts } from "~/lib/pelican-progress";
+import { liveStreak, readPracticeStreak } from "~/lib/practice-streak";
 import { cn } from "~/lib/utils";
-
-import { useParkingLayout } from "~/components/board/use-parking-layout";
-
-import { Icon } from "~/components/brand/icon";
-import { ShareButton } from "~/components/brand/share-button";
-import {
-  CheckIcon,
-  ChevronLeftIcon,
-  CloseIcon,
-  GoIcon,
-  GridIcon,
-  InfoIcon,
-  PlayIcon,
-  MenuIcon,
-  RefreshIcon,
-  SettingsIcon,
-  StarIcon,
-} from "~/components/brand/icons";
-import { Button } from "~/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
-import { BoardCameraPad, zoomActions } from "~/components/board/board-camera";
-import { BoardCarPicks } from "~/components/board/board-car-picks";
-import { BoardControls } from "~/components/board/board-controls";
-import { LevelTestNote } from "~/components/board/level-test-note";
-import { DailyDriveLink } from "~/components/board/daily-drive-row";
-import { useCourseStart } from "~/components/board/use-course-start";
-import { BoardFaultTip } from "~/components/board/board-fault-tip";
-import { BoardFinishCue } from "~/components/board/board-finish-cue";
-import { BoardFreeSummary } from "~/components/board/board-free-summary";
-import { freeDriveHref } from "~/components/board/free-drive-row";
-import { BoardFps } from "~/components/board/board-fps";
-import { BoardLearn } from "~/components/board/board-learn";
-import { BoardLevel } from "~/components/board/board-level";
-import { OpenLevelsContext } from "~/components/board/levels-sheet-context";
-import { BoardPlayback, routeLines } from "~/components/board/board-playback";
-import { BoardSettingsSheet } from "~/components/board/board-settings-sheet";
-import { BoardSheet } from "~/components/board/board-sheet";
-import { BoardSignCue } from "~/components/board/board-sign-cue";
-import { BoardViewer } from "~/components/board/board-viewer";
 
 // Only needed at the end of a round, and it brings framer-motion with it, so
 // people who land here to read the guide never download it.
@@ -320,7 +317,7 @@ function TaskHint({
     setOpen(false);
     if (!at) return;
     const { route, index } = at;
-    const now = route.steps[index];
+    const now = route.steps[index]!;
     const then = route.steps[index + 1];
     useStage.getState().show([
       {
@@ -390,9 +387,9 @@ function TaskHint({
         <div
           role="status"
           data-msg="tip"
-          className="dr-rise pointer-events-auto relative w-full rounded-md border-2 border-[#f6c416] bg-[#101114]/90 py-2.5 pl-3.5 pr-11 shadow-[0_4px_0_rgba(0,0,0,0.4)]"
+          className="dr-rise pointer-events-auto relative w-full rounded-md border-2 border-[#f6c416] bg-[#101114]/90 py-2.5 pr-11 pl-3.5 shadow-[0_4px_0_rgba(0,0,0,0.4)]"
         >
-          <p className="m-0 text-[14px] font-bold leading-snug">{tip.title}</p>
+          <p className="m-0 text-[14px] leading-snug font-bold">{tip.title}</p>
           <p
             data-fold="2"
             className="m-0 mt-1 text-[13px] leading-snug text-white/80"
@@ -402,7 +399,7 @@ function TaskHint({
           {tip.then && (
             <p
               data-fold="6"
-              className="m-0 mt-1.5 text-[12.5px] font-semibold leading-snug text-kenya-gold"
+              className="m-0 mt-1.5 text-[12.5px] leading-snug font-semibold text-kenya-gold"
             >
               Then: {tip.then}
             </p>
@@ -415,7 +412,7 @@ function TaskHint({
               setTip(null);
               useStage.getState().clear();
             }}
-            className="absolute right-0 top-0 border-transparent bg-transparent"
+            className="absolute top-0 right-0 border-transparent bg-transparent"
           >
             <Icon icon={CloseIcon} size={16} />
           </Button>
@@ -467,13 +464,13 @@ function TaskCard({
         }}
         className="pointer-events-auto block min-h-11 w-full rounded-md border-2 border-white/15 bg-[#101114]/85 px-3.5 py-2.5 text-left shadow-[0_4px_0_rgba(0,0,0,0.4)] outline-none focus-visible:border-white"
       >
-        <span className="block font-mono text-[10px] font-bold uppercase tracking-widest text-kenya-gold">
+        <span className="block font-mono text-[10px] font-bold tracking-widest text-kenya-gold uppercase">
           {place} · {title}
         </span>
         {open && (
           <span
             data-fold="1"
-            className="mt-1.5 block text-[14.5px] font-semibold leading-snug"
+            className="mt-1.5 block text-[14.5px] leading-snug font-semibold"
           >
             {prompt}
           </span>
@@ -551,7 +548,7 @@ function HudColumn({ children }: { children: React.ReactNode }) {
     <div
       ref={column}
       data-board-hud-left
-      className="flex min-w-0 max-w-[19rem] flex-1 flex-col items-start gap-2"
+      className="flex max-w-[19rem] min-w-0 flex-1 flex-col items-start gap-2"
     >
       {children}
     </div>
@@ -588,7 +585,7 @@ function StarLost({
       // Long enough to read a one-line rule.
       style={{ animationDuration: "3.6s" }}
     >
-      <p className="m-0 font-mono text-[10px] font-bold uppercase tracking-widest">
+      <p className="m-0 font-mono text-[10px] font-bold tracking-widest uppercase">
         {notice.route
           ? `Off route · ${tip.title}`
           : notice.turned
@@ -600,7 +597,7 @@ function StarLost({
                 : tip.title}
         {!lesson && !notice.route && " · 1 star lost"}
       </p>
-      <p className="m-0 mt-1 text-[13.5px] font-semibold leading-snug">
+      <p className="m-0 mt-1 text-[13.5px] leading-snug font-semibold">
         {notice.route
           ? "No rule broken, so drive on if you like. This try will not pass. Restart to try again."
           : tip.rule}
@@ -1151,7 +1148,7 @@ export function BoardGame() {
           size="icon"
           aria-label="Close"
           onClick={s.exit}
-          className="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))] z-30 sm:right-6 sm:top-5"
+          className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-3 z-30 sm:top-5 sm:right-6"
         >
           <Icon icon={CloseIcon} size={20} />
         </Button>
@@ -1205,7 +1202,7 @@ export function BoardGame() {
           {s.phase === "driving" ? (
             <div
               className={cn(
-                "flex min-w-0 max-w-[19rem] flex-1",
+                "flex max-w-[19rem] min-w-0 flex-1",
                 awayForTurn(showing),
               )}
             >
@@ -1409,7 +1406,7 @@ export function BoardGame() {
                   <span
                     role="status"
                     data-msg="off-route"
-                    className="rounded-sm bg-[#f6c416] px-1.5 py-0.5 text-[10px] uppercase tracking-widest text-[#17181b]"
+                    className="rounded-sm bg-[#f6c416] px-1.5 py-0.5 text-[10px] tracking-widest text-[#17181b] uppercase"
                   >
                     Off route
                   </span>
@@ -1470,11 +1467,11 @@ export function BoardGame() {
             role="status"
             className="dr-rise absolute inset-x-0 bottom-[calc(13.5rem+env(safe-area-inset-bottom))] z-30 mx-auto w-[min(19rem,calc(100%-1.5rem))] rounded-md border-2 border-[#17181b] bg-[#f6c416] p-3 text-[#17181b] shadow-[0_6px_0_rgba(0,0,0,0.45)]"
           >
-            <p className="m-0 text-[14px] font-bold leading-snug">
+            <p className="m-0 text-[14px] leading-snug font-bold">
               {COACH_STEPS[coachStep]}
             </p>
             <div className="mt-2 flex items-center justify-between gap-3">
-              <span className="font-mono text-[10.5px] font-bold uppercase tracking-widest">
+              <span className="font-mono text-[10.5px] font-bold tracking-widest uppercase">
                 Tip {coachStep + 1} of {COACH_STEPS.length}
               </span>
               <span className="flex items-center gap-1">
@@ -1482,7 +1479,7 @@ export function BoardGame() {
                   <Button
                     variant="ghost"
                     onClick={endCoach}
-                    className="px-3 font-mono text-[11px] font-bold uppercase tracking-widest text-game-gold-foreground underline underline-offset-4 hover:bg-black/10 focus-visible:outline-game-gold-foreground"
+                    className="px-3 font-mono text-[11px] font-bold tracking-widest text-game-gold-foreground uppercase underline underline-offset-4 hover:bg-black/10 focus-visible:outline-game-gold-foreground"
                   >
                     Skip
                   </Button>
@@ -1494,7 +1491,7 @@ export function BoardGame() {
                       ? setCoachStep((n) => n + 1)
                       : endCoach()
                   }
-                  className="border-transparent bg-game-gold-foreground px-4 font-mono text-[11px] font-bold uppercase tracking-widest hover:bg-game"
+                  className="border-transparent bg-game-gold-foreground px-4 font-mono text-[11px] font-bold tracking-widest uppercase hover:bg-game"
                 >
                   {coachStep < COACH_STEPS.length - 1 ? "Next" : "Got it"}
                 </Button>
@@ -1583,7 +1580,7 @@ export function BoardGame() {
         >
           <h2
             id="board-leave-title"
-            className="m-0 font-display text-[clamp(22px,5.5vw,28px)] font-extrabold uppercase leading-none tracking-tight"
+            className="m-0 font-display text-[clamp(22px,5.5vw,28px)] leading-none font-extrabold tracking-tight uppercase"
           >
             Close the board?
           </h2>
@@ -1623,7 +1620,7 @@ export function BoardGame() {
         >
           <h2
             id="board-fault-title"
-            className="m-0 font-display text-[clamp(22px,5.5vw,28px)] font-extrabold uppercase leading-none tracking-tight"
+            className="m-0 font-display text-[clamp(22px,5.5vw,28px)] leading-none font-extrabold tracking-tight uppercase"
           >
             {s.missed ? "You left the route" : faultTip(s.fault).title}
           </h2>
@@ -1634,13 +1631,13 @@ export function BoardGame() {
           )}
           <BoardFaultTip tip={faultTip(s.fault)} offRoute={s.missed} />
           {s.missed && s.lastScore != null && (
-            <p className="m-0 text-[13.5px] font-semibold leading-snug text-ink">
+            <p className="m-0 text-[13.5px] leading-snug font-semibold text-ink">
               Score {s.lastScore} of {SCORE_MAX.toLocaleString("en")}. Not
               saved. You reached the box, but not by the way you were asked to
               go.
             </p>
           )}
-          <p className="m-0 flex items-center gap-2 text-[12.5px] font-semibold leading-snug text-ink-2">
+          <p className="m-0 flex items-center gap-2 text-[12.5px] leading-snug font-semibold text-ink-2">
             <span
               aria-hidden
               className="inline-block h-1.5 w-7 shrink-0 rounded-full bg-[#ff6b5e]"
@@ -1705,7 +1702,7 @@ export function BoardGame() {
             )
           }
         >
-          <h2 className="m-0 font-display text-[clamp(22px,5.5vw,28px)] font-extrabold uppercase leading-none tracking-tight">
+          <h2 className="m-0 font-display text-[clamp(22px,5.5vw,28px)] leading-none font-extrabold tracking-tight uppercase">
             {warmup
               ? "You can drive it."
               : s.taskFaults === 0
@@ -1719,7 +1716,7 @@ export function BoardGame() {
           {daily && (
             <p
               role="status"
-              className="m-0 flex items-center gap-2 text-[14.5px] font-bold leading-snug text-ink"
+              className="m-0 flex items-center gap-2 text-[14.5px] leading-snug font-bold text-ink"
             >
               <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-kenya-green text-kenya-green-foreground">
                 <Icon icon={CheckIcon} size={14} />
@@ -1751,12 +1748,12 @@ export function BoardGame() {
               data-msg="other-way"
               className="space-y-1.5 border-2 border-ink bg-paper-2 p-3 text-left"
             >
-              <p className="m-0 text-[14px] font-bold leading-snug text-ink">
+              <p className="m-0 text-[14px] leading-snug font-bold text-ink">
                 {s.lastWay === "longer"
                   ? "Passed another correct way. Rule 1 picks a shorter one."
                   : "Passed another correct way, just as good."}
               </p>
-              <p className="m-0 flex items-center gap-2 text-[12.5px] font-semibold leading-snug text-ink-2">
+              <p className="m-0 flex items-center gap-2 text-[12.5px] leading-snug font-semibold text-ink-2">
                 <span
                   aria-hidden
                   className="inline-block h-1.5 w-7 shrink-0 rounded-full"
@@ -1766,7 +1763,7 @@ export function BoardGame() {
                   ? "The yellow line is the shortest correct route, the one an examiner wants. It cost a star."
                   : "The yellow line is the way the route rules pick."}
               </p>
-              <p className="m-0 flex items-center gap-2 text-[12.5px] font-semibold leading-snug text-ink-2">
+              <p className="m-0 flex items-center gap-2 text-[12.5px] leading-snug font-semibold text-ink-2">
                 <span
                   aria-hidden
                   className="inline-block h-1.5 w-7 shrink-0 rounded-full bg-[#ff6b5e]"
@@ -1781,10 +1778,10 @@ export function BoardGame() {
               className="space-y-1.5 border-2 border-ink bg-paper-2 p-3 text-left"
             >
               <p className="m-0 flex items-baseline justify-between gap-3">
-                <span className="font-mono text-[10px] uppercase tracking-widest text-ink-3">
+                <span className="font-mono text-[10px] tracking-widest text-ink-3 uppercase">
                   {s.lastBest ? "Score · New best" : "Score"}
                 </span>
-                <span className="font-display text-[26px] font-extrabold tabular-nums leading-none text-ink">
+                <span className="font-display text-[26px] leading-none font-extrabold text-ink tabular-nums">
                   {s.lastScore.toLocaleString("en")}
                 </span>
               </p>
@@ -1801,7 +1798,7 @@ export function BoardGame() {
               asChild
               variant="rush"
               size="lg"
-              className="h-auto min-h-12 w-full whitespace-normal py-2 text-center leading-snug"
+              className="h-auto min-h-12 w-full py-2 text-center leading-snug whitespace-normal"
             >
               <Link to={levelHref(nextUp.id)} replace>
                 Next: level {nextUp.n}, {nextUp.title}
@@ -1900,7 +1897,7 @@ export function BoardGame() {
                 {s.runFaultRules.map((id) => (
                   <li
                     key={id}
-                    className="border-2 border-ink bg-paper-2 px-3 py-2 text-[13px] font-semibold leading-snug text-ink"
+                    className="border-2 border-ink bg-paper-2 px-3 py-2 text-[13px] leading-snug font-semibold text-ink"
                   >
                     {faultRule(id)}
                   </li>

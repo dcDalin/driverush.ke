@@ -5,23 +5,19 @@
  */
 import { describe, expect, it } from "vitest";
 
+import { COURSE_LEVELS } from "./board/curriculum";
 import {
   BOARD_GUIDES,
   BOARD_LEVELS_DESCRIPTION,
   BOARD_LEVELS_TITLE,
 } from "./board-guides";
-import { COURSE_LEVELS } from "./board/curriculum";
 import { DRIVING_SCHOOL_PAGES } from "./driving-school-pages";
-import { SIGN_CLASS_PAGES } from "./sign-class-pages";
-import {
-  SIGN_PAGES,
-  isSignConfirmed,
-  signTitle,
-} from "./road-sign-pages";
 import {
   NTSA_QUESTIONS_DESCRIPTION,
   NTSA_QUESTIONS_TITLE,
 } from "./ntsa-questions-page";
+import { isSignConfirmed, SIGN_PAGES, signTitle } from "./road-sign-pages";
+import { SIGN_CLASS_PAGES } from "./sign-class-pages";
 import { pageTitle } from "./site";
 
 const TITLE_MAX = 60;
@@ -55,7 +51,9 @@ describe("titles fit in a search result", () => {
   it("the board's levels page", () => {
     expect(pageTitle(BOARD_LEVELS_TITLE).length).toBeLessThanOrEqual(TITLE_MAX);
     expect(BOARD_LEVELS_TITLE).toContain(String(COURSE_LEVELS.length));
-    expect(BOARD_LEVELS_DESCRIPTION.length).toBeLessThanOrEqual(DESCRIPTION_MAX);
+    expect(BOARD_LEVELS_DESCRIPTION.length).toBeLessThanOrEqual(
+      DESCRIPTION_MAX,
+    );
   });
 
   it("every sign in search", () => {

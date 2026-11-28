@@ -10,7 +10,7 @@
  * Usage:
  *   npm run dev                 # terminal 1
  *   npm run build:pwa           # terminal 2
- *   DEV_URL=http://localhost:5180 npm run build:pwa
+ *   DEV_URL=http://localhost:5731 npm run build:pwa
  *
  * Requires Google Chrome. Keep the names in step with
  * `public/manifest.webmanifest`.
@@ -26,7 +26,7 @@ const execFileAsync = promisify(execFile);
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OUT_DIR = path.join(ROOT, "public", "pwa");
-const DEV_URL = process.env.DEV_URL ?? "http://localhost:5173";
+const DEV_URL = process.env.DEV_URL ?? "http://localhost:5730";
 
 /**
  * `width`×`height` are CSS pixels, `scale` the device pixel ratio: a phone

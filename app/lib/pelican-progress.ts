@@ -55,7 +55,7 @@ export function masteredCount(
 /** Is this sign ready to review? Never-reviewed entries always are. */
 export function isDue(entry: SignBox | undefined, now = Date.now()): boolean {
   if (!entry || entry.lastAt == null) return true;
-  const days = INTERVAL_DAYS[Math.min(entry.box, MAX_BOX)];
+  const days = INTERVAL_DAYS[Math.min(entry.box, MAX_BOX)]!;
   return now >= startOfLocalDay(entry.lastAt) + days * DAY_MS;
 }
 

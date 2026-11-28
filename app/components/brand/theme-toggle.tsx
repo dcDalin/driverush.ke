@@ -1,13 +1,8 @@
 import { Icon } from "~/components/brand/icon";
-import {
-  MoonIcon,
-  SunIcon,
-} from "~/components/brand/icons";
-
-import { cn } from "~/lib/utils";
-import { toggleTheme } from "~/lib/theme";
-
+import { MoonIcon, SunIcon } from "~/components/brand/icons";
 import { Button } from "~/components/ui/button";
+import { toggleTheme } from "~/lib/theme";
+import { cn } from "~/lib/utils";
 
 /**
  * Light/dark switcher — a single stamped icon button sized to sit beside the
@@ -28,16 +23,8 @@ function ThemeToggle({ className }: { className?: string }) {
       onClick={() => toggleTheme()}
       className={cn("w-9 px-0", className)}
     >
-      <Icon
-        icon={SunIcon}
-        size={16}
-        className="dark:hidden"
-      />
-      <Icon
-        icon={MoonIcon}
-        size={16}
-        className="hidden dark:block"
-      />
+      <Icon icon={SunIcon} size={16} className="dark:hidden" />
+      <Icon icon={MoonIcon} size={16} className="hidden dark:block" />
     </Button>
   );
 }

@@ -8,11 +8,6 @@
  */
 import { Link } from "react-router";
 
-import { analytics } from "~/lib/analytics";
-import { useDailyDrive } from "~/lib/daily-drive";
-import { usePracticeStreak } from "~/lib/practice-streak";
-import { cn } from "~/lib/utils";
-
 import { Icon } from "~/components/brand/icon";
 import {
   CheckIcon,
@@ -20,6 +15,10 @@ import {
   RoadIcon,
 } from "~/components/brand/icons";
 import { Button } from "~/components/ui/button";
+import { analytics } from "~/lib/analytics";
+import { useDailyDrive } from "~/lib/daily-drive";
+import { usePracticeStreak } from "~/lib/practice-streak";
+import { cn } from "~/lib/utils";
 
 function days(n: number): string {
   return `${n} ${n === 1 ? "day" : "days"}`;
@@ -70,7 +69,7 @@ export function DailyDriveRow({
           : `Today's drive: ${drive.task.title}`
       }
       className={cn(
-        "dr-rise flex min-h-16 items-center gap-3 rounded-lg border border-ink/25 bg-surface px-4 py-3 text-ink no-underline outline-none transition-colors hover:bg-paper-2 focus-visible:bg-paper-2",
+        "dr-rise flex min-h-16 items-center gap-3 rounded-lg border border-ink/25 bg-surface px-4 py-3 text-ink no-underline transition-colors outline-none hover:bg-paper-2 focus-visible:bg-paper-2",
         className,
       )}
     >
@@ -85,7 +84,7 @@ export function DailyDriveRow({
         <Icon icon={drive.done ? CheckIcon : RoadIcon} size={20} />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block font-display text-[15px] font-bold leading-tight tracking-tight">
+        <span className="block font-display text-[15px] leading-tight font-bold tracking-tight">
           {drive.done ? "Today's drive is done" : "Today's drive"}
           <span className="font-sans font-semibold text-ink-2">
             : {drive.task.title}

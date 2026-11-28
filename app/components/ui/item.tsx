@@ -6,9 +6,9 @@
  * game's dark ground in both themes. The parts are spans, so a row can be a
  * button and stay valid HTML.
  */
-import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Slot } from "radix-ui";
+import type * as React from "react";
 
 import { cn } from "~/lib/utils";
 
@@ -136,7 +136,7 @@ function ItemTitle({ className, ...props }: React.ComponentProps<"span">) {
   return (
     <span
       data-slot="item-title"
-      className={cn("text-[13.5px] font-semibold leading-snug", className)}
+      className={cn("text-[13.5px] leading-snug font-semibold", className)}
       {...props}
     />
   );
@@ -150,7 +150,7 @@ function ItemDescription({
     <span
       data-slot="item-description"
       className={cn(
-        "block text-[12px] font-normal leading-snug text-ink-3 group-data-[variant^=game]/item:text-white/60",
+        "block text-[12px] leading-snug font-normal text-ink-3 group-data-[variant^=game]/item:text-white/60",
         className,
       )}
       {...props}
@@ -196,13 +196,13 @@ function ItemFooter({ className, ...props }: React.ComponentProps<"span">) {
 
 export {
   Item,
-  ItemMedia,
-  ItemContent,
   ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemFooter,
   ItemGroup,
+  ItemHeader,
+  ItemMedia,
   ItemSeparator,
   ItemTitle,
-  ItemDescription,
-  ItemHeader,
-  ItemFooter,
 };

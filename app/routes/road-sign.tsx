@@ -1,40 +1,44 @@
 /**
  * `/road-signs/:slug`: one Kenyan road sign. People search for individual signs by
  * name, so each gets a page that answers the question and then gets them
- * practising it. The data is static, and the loader exists only so an unknown slug
- * returns a real 404.
+ * practising it. The data is static and the page is prerendered: the loader
+ * hands over this sign's write-up (`road-sign-guide.ts`), so the browser never
+ * loads every sign's text, and an unknown slug returns a real 404.
  */
 import { Link } from "react-router";
 
-import type { Route } from "./+types/road-sign";
-
-import { ogCardAlt, ogCardPath } from "~/lib/og-cards";
-import {
-  hasSign3D,
-  isSignConfirmed,
-  relatedSigns,
-  SIGN_CLASS_GUIDE,
-  signGuide,
-  signPageByCode,
-  SIGN_IMAGE_SIZE,
-  signHeading,
-  signImagePath,
-  signPageBySlug,
-  signTitle,
-  signPagePath,
-} from "~/lib/road-sign-pages";
-import { signClassPage } from "~/lib/sign-class-pages";
-import { absUrl, breadcrumbLd, graphLd, pageMeta,
-  TITLE_SUFFIX,
-} from "~/lib/site";
-import { trainerHref } from "~/lib/trainer-rounds";
-
-import { Button } from "~/components/ui/button";
 import { Rail } from "~/components/brand/rail";
 import { SignCredit } from "~/components/brand/sign-credit";
 import { SignImage } from "~/components/brand/sign-image";
 import { SiteFooter } from "~/components/brand/site-footer";
 import { SiteNav } from "~/components/brand/site-nav";
+import { Button } from "~/components/ui/button";
+import { ogCardAlt, ogCardPath } from "~/lib/og-cards";
+import { signGuide } from "~/lib/road-sign-guide";
+import {
+  hasSign3D,
+  isSignConfirmed,
+  relatedSigns,
+  SIGN_CLASS_GUIDE,
+  SIGN_IMAGE_SIZE,
+  signHeading,
+  signImagePath,
+  signPageByCode,
+  signPageBySlug,
+  signPagePath,
+  signTitle,
+} from "~/lib/road-sign-pages";
+import { signClassPage } from "~/lib/sign-class-pages";
+import {
+  absUrl,
+  breadcrumbLd,
+  graphLd,
+  pageMeta,
+  TITLE_SUFFIX,
+} from "~/lib/site";
+import { trainerHref } from "~/lib/trainer-rounds";
+
+import type { Route } from "./+types/road-sign";
 
 const DESCRIPTION_LIMIT = 155;
 /** Cut at a word boundary so a search result never ends mid-word. */
@@ -46,10 +50,10 @@ function clip(text: string, limit: number): string {
 export function loader({ params }: Route.LoaderArgs) {
   const sign = signPageBySlug(params.slug);
   if (!sign) throw new Response("Not found", { status: 404 });
-  return { slug: sign.slug };
+  return { slug: sign.slug, guide: signGuide(sign) ?? null };
 }
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   const sign = signPageBySlug(data?.slug);
   if (!sign) {
     return [
@@ -113,7 +117,7 @@ export default function RoadSign({ loaderData }: Route.ComponentProps) {
   const guide = SIGN_CLASS_GUIDE[sign.category!];
   const classPage = signClassPage(sign.category);
   const codes = sign.code ? [sign.code] : [];
-  const extra = signGuide(sign);
+  const extra = loaderData.guide;
   const lookAlikes = (extra?.confusedWith ?? []).flatMap(({ code, how }) => {
     const other = signPageByCode(code);
     return other ? [{ other, how }] : [];
@@ -124,10 +128,10 @@ export default function RoadSign({ loaderData }: Route.ComponentProps) {
       <SiteNav />
       <main className="min-h-screen text-ink">
         <Rail />
-        <div className="mx-auto w-full max-w-4xl px-5 pb-20 pt-6 sm:px-9 sm:pt-10">
+        <div className="mx-auto w-full max-w-4xl px-5 pt-6 pb-20 sm:px-9 sm:pt-10">
           <nav
             aria-label="Breadcrumb"
-            className="mb-6 flex flex-wrap items-center gap-2 font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium"
+            className="mb-6 flex flex-wrap items-center gap-2 font-sans text-[10.5px] font-medium tracking-wider text-ink-3 uppercase"
           >
             <Link to="/road-signs" className="hover:text-ink hover:underline">
               Road signs
@@ -151,20 +155,20 @@ export default function RoadSign({ loaderData }: Route.ComponentProps) {
                 width={SIGN_IMAGE_SIZE}
                 height={SIGN_IMAGE_SIZE}
                 fetchPriority="high"
-                className="block aspect-square w-full max-w-[240px] border border-ink/25 bg-white rounded-lg"
+                className="block aspect-square w-full max-w-[240px] rounded-lg border border-ink/25 bg-white"
               />
             ) : (
               <SignImage
                 sign={sign}
                 label={`${sign.name} road sign (${sign.code})`}
-                className="aspect-square w-full max-w-[240px] border border-ink/25 rounded-lg"
+                className="aspect-square w-full max-w-[240px] rounded-lg border border-ink/25"
               />
             )}
             <div className="grid justify-items-start gap-3">
-              <p className="m-0 font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
+              <p className="m-0 font-sans text-[10.5px] font-medium tracking-wider text-ink-3 uppercase">
                 Kenyan {guide.singular} · {sign.code}
               </p>
-              <h1 className="m-0 font-display text-[clamp(30px,5.6vw,56px)] font-semibold leading-[0.95] tracking-tighter">
+              <h1 className="m-0 font-display text-[clamp(30px,5.6vw,56px)] leading-[0.95] font-semibold tracking-tighter">
                 {signHeading(sign.name!)}
               </h1>
               <div className="mt-1 flex flex-wrap gap-2.5">
@@ -222,7 +226,7 @@ export default function RoadSign({ loaderData }: Route.ComponentProps) {
                         >
                           <SignImage
                             sign={other}
-                            className="size-14 border border-line rounded-lg"
+                            className="size-14 rounded-lg border border-line"
                           />
                           <p className="m-0">
                             <Link
@@ -267,20 +271,20 @@ export default function RoadSign({ loaderData }: Route.ComponentProps) {
                 <li key={other.slug}>
                   <Link
                     to={signPagePath(other)}
-                    className="grid h-full grid-cols-[48px_1fr] items-center gap-2.5 border border-line bg-paper-3 p-2.5 outline-none transition-colors hover:bg-surface focus-visible:bg-surface rounded-lg"
+                    className="grid h-full grid-cols-[48px_1fr] items-center gap-2.5 rounded-lg border border-line bg-paper-3 p-2.5 transition-colors outline-none hover:bg-surface focus-visible:bg-surface"
                   >
                     <SignImage
                       sign={other}
-                      className="size-12 border border-line rounded-lg"
+                      className="size-12 rounded-lg border border-line"
                     />
-                    <span className="font-display text-[11.5px] font-bold uppercase leading-tight tracking-[0.02em]">
+                    <span className="font-display text-[11.5px] leading-tight font-bold tracking-[0.02em] uppercase">
                       {other.name}
                     </span>
                   </Link>
                 </li>
               ))}
             </ul>
-            <p className="mb-0 mt-5 text-[14.5px] leading-snug text-ink-2">
+            <p className="mt-5 mb-0 text-[14.5px] leading-snug text-ink-2">
               On the way to your test? Read{" "}
               <Link
                 to="/ntsa-test"

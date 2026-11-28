@@ -1,4 +1,4 @@
-import * as React from "react";
+import type * as React from "react";
 
 import { cn } from "~/lib/utils";
 
@@ -31,15 +31,15 @@ function SectionHead({
       <div className="grid grid-cols-[60px_1fr_auto] items-baseline gap-4 border-b border-line pb-4 sm:grid-cols-[80px_1fr_auto]">
         <span
           aria-hidden
-          className="font-display text-4xl font-semibold leading-none tracking-[-0.04em] text-rush sm:text-[56px]"
+          className="font-display text-4xl leading-none font-semibold tracking-[-0.04em] text-rush sm:text-[56px]"
         >
           {num}
         </span>
-        <h2 className="m-0 font-display text-[clamp(28px,4vw,52px)] font-semibold leading-[0.96] tracking-tight text-ink [&_em]:font-serif [&_em]:font-normal [&_em]:normal-case [&_em]:tracking-normal [&_em]:text-ink-3 [&_em]:text-[0.78em]">
+        <h2 className="m-0 font-display text-[clamp(28px,4vw,52px)] leading-[0.96] font-semibold tracking-tight text-ink [&_em]:font-serif [&_em]:text-[0.78em] [&_em]:font-normal [&_em]:tracking-normal [&_em]:text-ink-3 [&_em]:normal-case">
           {title}
         </h2>
         {stamp && (
-          <div className="hidden text-right font-sans text-[11px] uppercase tracking-wider text-ink-3 sm:block font-medium">
+          <div className="hidden text-right font-sans text-[11px] font-medium tracking-wider text-ink-3 uppercase sm:block">
             {stamp}
           </div>
         )}

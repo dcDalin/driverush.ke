@@ -1,0 +1,19 @@
+{
+  "label": "Fitted per vehicle (2026-11-22)",
+  "base": "#f6f6f3",
+  "rail": {
+    "gold": "#f4a20c",
+    "red": "#e3271b"
+  },
+  "topBoard": {
+    "width": 1.35,
+    "height": 0.45,
+    "cut": 0.04,
+    "edge": "#e3271b"
+  },
+  "brand": {
+    "paint": "#f4a20c",
+    "ink": "#1d2fc2"
+  },
+  "note": "Copied from a photo of their own car; the roof board is ours, in their look."
+}

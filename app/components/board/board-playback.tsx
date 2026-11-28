@@ -5,17 +5,6 @@
  */
 import * as React from "react";
 
-import { REVERSE_COLOR, ROUTE_COLOR } from "~/lib/board/lessons";
-import { stepPoints, type Route, type RouteStep } from "~/lib/board/network";
-import {
-  PLAY_RATES,
-  cam,
-  play,
-  useStage,
-  type StageLine,
-} from "~/lib/board/stage";
-import { cn } from "~/lib/utils";
-
 import { Icon } from "~/components/brand/icon";
 import {
   ChevronLeftIcon,
@@ -26,6 +15,16 @@ import {
 } from "~/components/brand/icons";
 import { Button } from "~/components/ui/button";
 import { Slider } from "~/components/ui/slider";
+import { REVERSE_COLOR, ROUTE_COLOR } from "~/lib/board/lessons";
+import { type Route, type RouteStep, stepPoints } from "~/lib/board/network";
+import {
+  cam,
+  play,
+  PLAY_RATES,
+  type StageLine,
+  useStage,
+} from "~/lib/board/stage";
+import { cn } from "~/lib/utils";
 
 /** A route as lines for the table: the step in hand bright, the rest dimmed. */
 export function routeLines(
@@ -103,7 +102,9 @@ function PlaybackScrubber({
       step={0.5}
       value={[at]}
       aria-label="Where the car is along the route"
-      onValueChange={([next]) => {
+      onValueChange={(values) => {
+        // a one-thumb slider always reports one value
+        const next = values[0]!;
         setAt(next);
         onSeek(next);
       }}
@@ -167,23 +168,23 @@ export function BoardPlayback({
     <div className={cn("grid gap-3", className)}>
       {step && (
         <div aria-live="polite">
-          <p className="m-0 flex flex-wrap items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-kenya-gold">
+          <p className="m-0 flex flex-wrap items-center gap-1.5 font-mono text-[10px] font-bold tracking-widest text-kenya-gold uppercase">
             Step {index + 1} of {total}
             <StepTags step={step} />
           </p>
           {note && (
-            <p className="m-0 mt-1.5 text-[12.5px] font-bold leading-snug text-[#ff9d8a]">
+            <p className="m-0 mt-1.5 text-[12.5px] leading-snug font-bold text-[#ff9d8a]">
               {note}
             </p>
           )}
-          <p className="m-0 mt-1.5 text-[15.5px] font-bold leading-snug text-white">
+          <p className="m-0 mt-1.5 text-[15.5px] leading-snug font-bold text-white">
             {step.title}
           </p>
           <p className="m-0 mt-1 text-[13.5px] leading-snug text-white/80">
             {step.why}
           </p>
           {!step.confirmed && (
-            <p className="m-0 mt-1.5 text-[12.5px] font-semibold leading-snug text-kenya-gold">
+            <p className="m-0 mt-1.5 text-[12.5px] leading-snug font-semibold text-kenya-gold">
               {UNSURE_NOTE}
             </p>
           )}
@@ -224,7 +225,7 @@ export function BoardPlayback({
             icon={ended ? RefreshIcon : playing ? PauseIcon : PlayIcon}
             size={18}
           />
-          <span className="ml-2 font-mono text-[11px] font-bold uppercase tracking-widest">
+          <span className="ml-2 font-mono text-[11px] font-bold tracking-widest uppercase">
             {ended ? "Again" : playing ? "Pause" : "Play"}
           </span>
         </Button>
@@ -247,7 +248,7 @@ export function BoardPlayback({
             const next =
               PLAY_RATES[
                 (PLAY_RATES.indexOf(rate as 1) + 1) % PLAY_RATES.length
-              ];
+              ]!;
             setRate(next);
           }}
         >

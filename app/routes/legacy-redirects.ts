@@ -7,7 +7,7 @@
  * Campaign tags carry through so attribution survives the hop. Everything else
  * (like `?mode=test`) means nothing at the new address and is dropped.
  */
-import { redirect, type LoaderFunctionArgs } from "react-router";
+import { type LoaderFunctionArgs, redirect } from "react-router";
 
 /** Whole paths, checked first. */
 const EXACT_TARGETS: Record<string, string> = {
@@ -23,10 +23,11 @@ const TARGETS: Record<string, string> = {
   design: "/",
 };
 
-export function loader({ request }: LoaderFunctionArgs) {
-  const url = new URL(request.url);
+export function loader({ url }: LoaderFunctionArgs) {
   const target =
-    EXACT_TARGETS[url.pathname] ?? TARGETS[url.pathname.split("/")[1] ?? ""] ?? "/";
+    EXACT_TARGETS[url.pathname] ??
+    TARGETS[url.pathname.split("/")[1] ?? ""] ??
+    "/";
   const utm = new URLSearchParams();
   for (const [key, value] of url.searchParams) {
     if (key.startsWith("utm_")) utm.append(key, value);

@@ -4,7 +4,7 @@
  * A drive that left its route broke no rule, so there it says where the car
  * left and what the task asked for.
  */
-import { RULES_SOURCE, type FaultTip } from "~/lib/board/board-rules";
+import { type FaultTip, RULES_SOURCE } from "~/lib/board/board-rules";
 
 const LABEL = "m-0 font-mono text-[10px] uppercase tracking-widest text-ink-3";
 
@@ -26,7 +26,7 @@ export function BoardFaultTip({
       </div>
       <div className="space-y-1">
         <p className={LABEL}>{offRoute ? "What to do" : "The rule"}</p>
-        <p className="m-0 text-[13.5px] font-semibold leading-snug text-ink">
+        <p className="m-0 text-[13.5px] leading-snug font-semibold text-ink">
           {tip.rule}
         </p>
         <p className="m-0 text-[11.5px] leading-snug text-ink-3">

@@ -79,7 +79,7 @@ const RANGES: Range[] = Object.values(DATACENTER_RANGES)
   .map((cidr) => {
     const [address, bits] = cidr.split("/");
     const size = 2 ** (32 - Number(bits));
-    const base = ipv4(address)!;
+    const base = ipv4(address!)!;
     return { base: base - (base % size), size };
   });
 
@@ -110,7 +110,7 @@ export function clientIp(headers: Headers): string | null {
   const real = headers.get("x-real-ip");
   if (real) return real.trim();
   const forwarded = headers.get("x-forwarded-for");
-  return forwarded ? forwarded.split(",")[0].trim() : null;
+  return forwarded ? forwarded.split(",")[0]!.trim() : null;
 }
 
 /** Whether Google Analytics should measure this request's page. */

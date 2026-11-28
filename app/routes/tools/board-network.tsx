@@ -1,31 +1,5 @@
 import * as React from "react";
 
-import type { Route as PageRoute } from "./+types/board-network";
-
-import { blockById } from "~/lib/board/blocks";
-import { BOARD_CHALLENGES, isRouteTask } from "~/lib/board/challenges";
-import {
-  CAR_COLORS,
-  fullBoardSvg,
-  type FullBoardOptions,
-} from "~/lib/board/full-board";
-import {
-  challengeRoute,
-  lessonById,
-  lessonPlan,
-  taskGoalBox,
-} from "~/lib/board/lessons";
-import { parkedCars } from "~/lib/board/parking-layouts";
-import {
-  network,
-  planRoute,
-  stepPoints,
-  type Maneuver,
-  type NetEdge,
-  type Route,
-} from "~/lib/board/network";
-import { cn } from "~/lib/utils";
-
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import {
@@ -41,6 +15,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
+import { blockById } from "~/lib/board/blocks";
+import { BOARD_CHALLENGES, isRouteTask } from "~/lib/board/challenges";
+import {
+  CAR_COLORS,
+  type FullBoardOptions,
+  fullBoardSvg,
+} from "~/lib/board/full-board";
+import {
+  challengeRoute,
+  lessonById,
+  lessonPlan,
+  taskGoalBox,
+} from "~/lib/board/lessons";
+import {
+  type Maneuver,
+  type NetEdge,
+  network,
+  planRoute,
+  type Route,
+  stepPoints,
+} from "~/lib/board/network";
+import { parkedCars } from "~/lib/board/parking-layouts";
+import { cn } from "~/lib/utils";
+
+import type { Route as PageRoute } from "./+types/board-network";
 
 export function meta(_: PageRoute.MetaArgs) {
   return [
@@ -201,7 +200,7 @@ export default function BoardNetworkTool() {
           arrow: i === driven.steps.length - 1 || active === i,
         })),
       );
-      const start = driven.points[0];
+      const start = driven.points[0]!;
       return fullBoardSvg({
         seen,
         routes: lines,
@@ -217,7 +216,7 @@ export default function BoardNetworkTool() {
           {
             x: start.x,
             z: start.z,
-            heading: driven.headings[0],
+            heading: driven.headings[0]!,
             color: CAR_COLORS.player,
           },
         ],
@@ -285,7 +284,7 @@ export default function BoardNetworkTool() {
     <div>
       <header className="border-b border-line pb-5">
         <span className="eyebrow text-ink">Model Town Board · checking</span>
-        <h1 className="m-0 mt-3 font-display text-[clamp(28px,4vw,44px)] font-semibold leading-[0.95] tracking-tighter">
+        <h1 className="m-0 mt-3 font-display text-[clamp(28px,4vw,44px)] leading-[0.95] font-semibold tracking-tighter">
           Lane network
         </h1>
         <p className="mt-3 max-w-3xl text-[14.5px] leading-relaxed text-ink-2">
@@ -298,14 +297,14 @@ export default function BoardNetworkTool() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div
-          className="border border-line bg-[#101114] [&>svg]:block [&>svg]:h-auto [&>svg]:max-h-[88vh] [&>svg]:w-full rounded-lg"
+          className="rounded-lg border border-line bg-[#101114] [&>svg]:block [&>svg]:h-auto [&>svg]:max-h-[88vh] [&>svg]:w-full"
           data-testid="board-network"
           dangerouslySetInnerHTML={{ __html: svg }}
         />
 
         <div className="flex flex-col gap-6">
           <section
-            className="border border-line bg-surface p-4 rounded-lg"
+            className="rounded-lg border border-line bg-surface p-4"
             data-testid="blocked-roads"
           >
             <h2 className="m-0 font-display text-[18px] font-bold tracking-tight">
@@ -344,11 +343,11 @@ export default function BoardNetworkTool() {
             )}
           </section>
 
-          <section className="border border-line bg-surface p-4 rounded-lg">
+          <section className="rounded-lg border border-line bg-surface p-4">
             <h2 className="m-0 font-display text-[18px] font-bold tracking-tight">
               Try a route
             </h2>
-            <label className="mt-3 block font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+            <label className="mt-3 block font-mono text-[10.5px] tracking-widest text-ink-3 uppercase">
               From
               <Select
                 value={from || NONE}
@@ -368,7 +367,7 @@ export default function BoardNetworkTool() {
                 </SelectContent>
               </Select>
             </label>
-            <label className="mt-3 block font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+            <label className="mt-3 block font-mono text-[10.5px] tracking-widest text-ink-3 uppercase">
               To
               <Select
                 value={to || NONE}
@@ -448,12 +447,12 @@ export default function BoardNetworkTool() {
                             <ItemTitle className="text-[14px] font-bold text-ink">
                               {i + 1}. {step.title}
                               {step.gear === "reverse" && (
-                                <span className="ml-2 font-mono text-[10px] uppercase tracking-widest text-rush">
+                                <span className="ml-2 font-mono text-[10px] tracking-widest text-rush uppercase">
                                   Reverse
                                 </span>
                               )}
                               {!step.confirmed && (
-                                <span className="ml-2 font-mono text-[10px] uppercase tracking-widest text-ink-3">
+                                <span className="ml-2 font-mono text-[10px] tracking-widest text-ink-3 uppercase">
                                   To confirm
                                 </span>
                               )}
@@ -472,7 +471,7 @@ export default function BoardNetworkTool() {
           </section>
 
           {!plan && (
-            <section className="border border-line bg-surface p-4 rounded-lg">
+            <section className="rounded-lg border border-line bg-surface p-4">
               <h2 className="m-0 font-display text-[18px] font-bold tracking-tight">
                 Show
               </h2>
@@ -499,7 +498,7 @@ export default function BoardNetworkTool() {
             </section>
           )}
 
-          <section className="border border-line bg-surface p-4 rounded-lg">
+          <section className="rounded-lg border border-line bg-surface p-4">
             <h2 className="m-0 font-display text-[18px] font-bold tracking-tight">
               Still to confirm with a driving school
             </h2>

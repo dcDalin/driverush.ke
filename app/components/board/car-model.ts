@@ -27,15 +27,17 @@ const smooth = (a: number, b: number, x: number) => {
 };
 
 function key(t: number, keys: Keys): number {
-  if (t <= keys[0][0]) return keys[0][1];
+  // every key list is written out by hand and never empty
+  const head = keys[0]!;
+  if (t <= head[0]) return head[1];
   for (let i = 1; i < keys.length; i += 1) {
-    if (t <= keys[i][0]) {
-      const [t0, v0] = keys[i - 1];
-      const [t1, v1] = keys[i];
+    const [t1, v1] = keys[i]!;
+    if (t <= t1) {
+      const [t0, v0] = keys[i - 1]!;
       return v0 + (v1 - v0) * smooth(t0, t1, t);
     }
   }
-  return keys[keys.length - 1][1];
+  return keys[keys.length - 1]![1];
 }
 
 // `t` runs from the rear bumper (0) to the nose (1): a short boot, a tall cabin
@@ -141,10 +143,12 @@ function buildBody(): Body {
     const z = zAt(t);
     const ring = halfRing(t);
     for (let j = 0; j < POINTS; j += 1) {
-      positions.push(ring[j][0], ring[j][1], z);
+      const [x, y] = ring[j]!;
+      positions.push(x, y, z);
     }
     for (let j = POINTS - 2; j >= 1; j -= 1) {
-      positions.push(-ring[j][0], ring[j][1], z);
+      const [x, y] = ring[j]!;
+      positions.push(-x, y, z);
     }
   }
   const groups: Record<Part, number[]> = {
@@ -155,7 +159,7 @@ function buildBody(): Body {
     tail: [],
   };
   for (let i = 0; i < STATIONS; i += 1) {
-    const mid = (stations[i] + stations[i + 1]) / 2;
+    const mid = (stations[i]! + stations[i + 1]!) / 2;
     for (let k = 0; k < RING; k += 1) {
       const next = (k + 1) % RING;
       const a = i * RING + k;
@@ -170,12 +174,12 @@ function buildBody(): Body {
   const cap = (station: number, front: boolean) => {
     const ring = halfRing(front ? 1 : 0);
     const first = station * RING;
-    const cy = (ring[0][1] + ring[POINTS - 1][1]) / 2;
+    const cy = (ring[0]![1] + ring[POINTS - 1]![1]) / 2;
     const z = (front ? -1 : 1) * (LENGTH / 2 + 0.035);
     const inner = positions.length / 3;
     for (let k = 0; k < RING; k += 1) {
-      const x = positions[(first + k) * 3];
-      const y = positions[(first + k) * 3 + 1];
+      const x = positions[(first + k) * 3]!;
+      const y = positions[(first + k) * 3 + 1]!;
       positions.push(x * 0.56, cy + (y - cy) * 0.5, z);
     }
     const centre = positions.length / 3;
@@ -294,11 +298,16 @@ export type CarModel = THREE.Group & {
     steering: THREE.Group[];
     /** The wheels' radius in metres, when it is not `WHEEL_RADIUS`. */
     wheelRadius?: number;
+    /**
+     * How many times a wheel's pattern repeats in one turn, when the model
+     * says: the board limits each frame's roll by it.
+     */
+    spokes?: number;
     /** Where a school's name board stands on the roof (`top-board.ts`). */
     roof?: { y: number; z: number };
     /**
      * The bodywork's material, on a downloaded model whose bodywork can take
-     * a school's paint (see `~/lib/board/sponsors`).
+     * a school's paint (see `~/lib/board/school-catalog`).
      */
     paintwork?: THREE.MeshStandardMaterial;
   };

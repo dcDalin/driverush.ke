@@ -6,11 +6,6 @@
 import * as React from "react";
 import { useNavigate } from "react-router";
 
-import { analytics } from "~/lib/analytics";
-import { BOARD_PLAY_PATH, levelHref } from "~/lib/board-guides";
-import { type Level } from "~/lib/board/curriculum";
-import { cn } from "~/lib/utils";
-
 import { Icon } from "~/components/brand/icon";
 import { ArrowRightIcon, LockIcon } from "~/components/brand/icons";
 import { Button } from "~/components/ui/button";
@@ -20,6 +15,10 @@ import {
   DialogDescription,
   DialogTitle,
 } from "~/components/ui/dialog";
+import { analytics } from "~/lib/analytics";
+import { type Level } from "~/lib/board/curriculum";
+import { BOARD_PLAY_PATH, levelHref } from "~/lib/board-guides";
+import { cn } from "~/lib/utils";
 
 export const hrefOfLevel = (level: Level) =>
   level.kind === "mock" ? BOARD_PLAY_PATH : levelHref(level.id);

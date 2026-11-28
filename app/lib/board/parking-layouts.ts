@@ -12,7 +12,7 @@
  *
  * Pure data, no three.js and no React.
  */
-import { parkedSpots, type ParkedBays } from "./full-board";
+import { type ParkedBays, parkedSpots } from "./full-board";
 
 export type ParkingLayout = ParkedBays & { id: string };
 
@@ -23,7 +23,7 @@ export const PARKING_LAYOUTS: readonly ParkingLayout[] = [
   { id: "three-in", right: [1, 2, 3], left: [], flush: [2] },
 ];
 
-let current: ParkingLayout = PARKING_LAYOUTS[0];
+let current: ParkingLayout = PARKING_LAYOUTS[0]!;
 const listeners = new Set<() => void>();
 
 export function parkingLayout(): ParkingLayout {
@@ -40,7 +40,8 @@ export function setParkingLayout(id: string): void {
 /** Move the parked cars: another layout, never the one already showing. */
 export function shuffleParkingLayout(random: () => number = Math.random): void {
   const others = PARKING_LAYOUTS.filter((layout) => layout !== current);
-  const pick = others[Math.min(others.length - 1, Math.floor(random() * others.length))];
+  const pick =
+    others[Math.min(others.length - 1, Math.floor(random() * others.length))]!;
   setParkingLayout(pick.id);
 }
 

@@ -1,0 +1,13 @@
+build
+node_modules
+.react-router
+coverage
+playwright-report
+test-results
+public
+marketing
+supabase/.temp
+supabase/.branches
+package-lock.json
+*.mdx
+.claude

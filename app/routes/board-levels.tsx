@@ -5,8 +5,11 @@
  */
 import { Link } from "react-router";
 
-import type { Route } from "./+types/board-levels";
-
+import { LevelPicker } from "~/components/board/level-picker";
+import { SiteFooter } from "~/components/brand/site-footer";
+import { SiteNav } from "~/components/brand/site-nav";
+import { Button } from "~/components/ui/button";
+import { COURSE_LEVELS, doneCount, UNITS } from "~/lib/board/curriculum";
 import {
   BOARD_LEVELS_DESCRIPTION,
   BOARD_LEVELS_PATH,
@@ -14,15 +17,11 @@ import {
   BOARD_PATH,
   BOARD_PLAY_PATH,
 } from "~/lib/board-guides";
-import { COURSE_LEVELS, UNITS, doneCount } from "~/lib/board/curriculum";
 import { ogCardAlt, ogCardPath } from "~/lib/og-cards";
 import { BOARD_KEYWORDS, breadcrumbLd, graphLd, pageMeta } from "~/lib/site";
 import { useCourseProgress } from "~/lib/use-course-progress";
 
-import { LevelPicker } from "~/components/board/level-picker";
-import { SiteFooter } from "~/components/brand/site-footer";
-import { SiteNav } from "~/components/brand/site-nav";
-import { Button } from "~/components/ui/button";
+import type { Route } from "./+types/board-levels";
 
 const TOTAL = COURSE_LEVELS.length;
 const UNIT_COUNT = UNITS.filter((unit) => unit.id !== "mock").length;
@@ -55,9 +54,9 @@ export default function BoardLevelsPage() {
     <>
       <SiteNav />
       <main className="min-h-screen text-ink">
-        <div className="mx-auto w-full max-w-5xl px-4 pb-20 pt-6 sm:px-9 sm:pt-10">
+        <div className="mx-auto w-full max-w-5xl px-4 pt-6 pb-20 sm:px-9 sm:pt-10">
           <header className="mb-2">
-            <p className="m-0 font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+            <p className="m-0 font-mono text-[10.5px] tracking-widest text-ink-3 uppercase">
               <Link
                 to={BOARD_PATH}
                 className="text-ink-3 no-underline hover:text-ink hover:underline"
@@ -65,12 +64,12 @@ export default function BoardLevelsPage() {
                 Model Town Board
               </Link>
             </p>
-            <h1 className="m-0 mt-2 font-display text-[clamp(30px,6vw,52px)] font-extrabold uppercase leading-[0.96] tracking-tighter">
+            <h1 className="m-0 mt-2 font-display text-[clamp(30px,6vw,52px)] leading-[0.96] font-extrabold tracking-tighter uppercase">
               All levels
             </h1>
             <p className="m-0 mt-2 text-[15px] leading-snug text-ink-2">
-              {TOTAL} levels in {UNIT_COUNT} units, every one open. Tap a
-              picture to play that level.
+              {TOTAL} levels in {UNIT_COUNT} units, in the order you learn them.
+              Tap a picture to play that level; you can skip ahead.
               {saved && done > 0 && (
                 <>
                   {" "}

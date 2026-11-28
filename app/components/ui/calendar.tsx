@@ -5,9 +5,9 @@
  */
 import * as React from "react";
 import {
+  type DayButton,
   DayPicker,
   getDefaultClassNames,
-  type DayButton,
 } from "react-day-picker";
 
 import { Icon } from "~/components/brand/icon";
@@ -84,7 +84,7 @@ function Calendar({
           defaultClassNames.dropdown,
         ),
         caption_label: cn(
-          "font-semibold select-none text-ink",
+          "font-semibold text-ink select-none",
           captionLayout === "label"
             ? "text-[15px]"
             : "flex h-8 items-center gap-1 rounded-md pr-1 pl-2 text-sm [&>svg]:size-3.5 [&>svg]:text-ink-3",
@@ -187,7 +187,7 @@ function CalendarDayButton({
       className={cn(
         "flex aspect-square size-auto h-auto w-full min-w-(--cell-size) flex-col gap-1 px-0 text-[14.5px] leading-none font-medium",
         "data-[selected-single=true]:bg-rush data-[selected-single=true]:text-primary-foreground",
-        "data-[range-start=true]:bg-rush data-[range-start=true]:text-primary-foreground data-[range-end=true]:bg-rush data-[range-end=true]:text-primary-foreground",
+        "data-[range-end=true]:bg-rush data-[range-end=true]:text-primary-foreground data-[range-start=true]:bg-rush data-[range-start=true]:text-primary-foreground",
         "data-[range-middle=true]:rounded-none data-[range-middle=true]:bg-paper-2",
         "group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10",
         defaultClassNames.day,

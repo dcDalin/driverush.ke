@@ -1,0 +1,177 @@
+-- ===================================================
+-- FUNCTIONS: who the caller is to a school
+-- ===================================================
+-- Owner-rights so policies can ask them without reading school_members
+-- through its own policy (which would recurse). Each answers only for the
+-- caller (auth.uid()).
+
+-- Access:  authenticated (evaluated as the caller inside policies and functions)
+-- Guard:   public (answers for the caller)
+-- Callers: RLS policies (schools, school_members, school_member_invites, billing); school_* functions
+create or replace function private.is_school_owner(p_school_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from public.school_members as m
+     where m.school_id = p_school_id and m.user_id = auth.uid() and m.role = 'owner'
+  );
+$$;
+
+-- Access:  authenticated (evaluated as the caller inside policies and functions)
+-- Guard:   public (answers for the caller)
+-- Callers: RLS policies (schools, school_branches, school_members, school_member_branches)
+create or replace function private.is_school_member(p_school_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from public.school_members as m
+     where m.school_id = p_school_id and m.user_id = auth.uid()
+  );
+$$;
+
+-- Whether the caller works in this branch: the school's owner, or an admin
+-- tied to it. Staff are not included (callers add is_staff themselves).
+--
+-- Access:  authenticated (evaluated as the caller inside policies and functions)
+-- Guard:   public (answers for the caller)
+-- Callers: RLS policies (school_student_links); private.can_manage_branch, school_student_progress
+create or replace function private.can_see_branch(p_branch_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+      from public.school_branches as b
+      join public.school_members as m on m.school_id = b.school_id and m.user_id = auth.uid()
+     where b.id = p_branch_id
+       and (m.role = 'owner'
+            or exists (select 1 from public.school_member_branches as mb
+                        where mb.member_id = m.id and mb.branch_id = b.id))
+  );
+$$;
+
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: school_create_branch, school_update_branch, school_add_admin, school_set_admin_branches (+2)
+create or replace function private.can_manage_school(p_school_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select private.is_staff() or private.is_school_owner(p_school_id);
+$$;
+
+-- Who may add, move, release or withdraw a student in this branch: the
+-- school's own people (its owner, or an admin of the branch). Not DriveRush
+-- staff (owner, 2026-11-28): staff help a school set up its branches and
+-- team, but its learners are the school's alone. Staff still read them.
+--
+-- Access:  service_role
+-- Guard:   none (the grant is the gate)
+-- Callers: school_add_student, school_release_student, school_cancel_student_invite, school_move_student_branch
+create or replace function private.can_manage_branch(p_branch_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select private.can_see_branch(p_branch_id);
+$$;
+
+-- Whether the caller has (or had) a link with this school, so a learner can
+-- read the name and branch of a school that added them.
+--
+-- Access:  authenticated (evaluated as the caller inside policies and functions)
+-- Guard:   public (answers for the caller)
+-- Callers: RLS policies (schools, school_branches)
+create or replace function private.has_school_link(p_school_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from public.school_student_links as l
+     where l.school_id = p_school_id and l.user_id = auth.uid()
+  );
+$$;
+
+-- Whether a school is public: the one public fact about a school that
+-- decides whether its profile and live livery are shown to everyone. It is
+-- active, and its owner has made it ready (owner, 2026-11-28): a logo, a
+-- tagline or about text, and at least one open branch. DriveRush staff hand a
+-- school over with only its name and livery; until its owner fills these in
+-- there is no half-empty school on the site or the board.
+-- `app/database/schools/readiness.ts` says the same to the owner and the console.
+--
+-- Access:  anon (evaluated as any caller inside policies, guests included)
+-- Guard:   public (a public fact; no row of schools is returned)
+-- Callers: RLS policies (school_profiles, school_liveries)
+create or replace function private.is_active_school(p_school_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from public.schools as s
+     where s.id = p_school_id and s.status = 'active'
+       and exists (
+         select 1 from public.school_profiles as p
+          where p.school_id = s.id
+            and p.logo is not null
+            and (p.tagline is not null or p.about is not null)
+       )
+       and exists (
+         select 1 from public.school_branches as b
+          where b.school_id = s.id and b.is_active
+       )
+  );
+$$;
+
+revoke all on function private.is_active_school(uuid) from public;
+grant execute on function private.is_active_school(uuid) to service_role;
+comment on function private.is_active_school(uuid) is
+  'Whether this school is public: active, with a logo, a tagline or about text and an open branch (its profile and live livery are shown to everyone).';
+
+revoke all on function private.is_school_owner(uuid) from public;
+revoke all on function private.is_school_member(uuid) from public;
+revoke all on function private.can_see_branch(uuid) from public;
+revoke all on function private.can_manage_school(uuid) from public;
+revoke all on function private.can_manage_branch(uuid) from public;
+revoke all on function private.has_school_link(uuid) from public;
+grant execute on function private.is_school_owner(uuid) to service_role;
+grant execute on function private.is_school_member(uuid) to service_role;
+grant execute on function private.can_see_branch(uuid) to service_role;
+grant execute on function private.can_manage_school(uuid) to service_role;
+grant execute on function private.can_manage_branch(uuid) to service_role;
+grant execute on function private.has_school_link(uuid) to service_role;
+
+comment on function private.is_school_owner(uuid) is
+  'Whether the caller owns this school (is its school su).';
+comment on function private.is_school_member(uuid) is
+  'Whether the caller is this school''s owner or one of its admins.';
+comment on function private.can_see_branch(uuid) is
+  'Whether the caller works in this branch: the school owner, or an admin tied to it.';
+comment on function private.can_manage_school(uuid) is
+  'Whether the caller may run this school: DriveRush staff or the school owner.';
+comment on function private.can_manage_branch(uuid) is
+  'Whether the caller may add and release students in this branch: staff, the owner, or its admin.';
+comment on function private.has_school_link(uuid) is
+  'Whether the caller has or had a student link with this school.';

@@ -1,37 +1,37 @@
 import { Link } from "react-router";
-import type { Route } from "./+types/road-signs";
 
-import { absUrl, breadcrumbLd, pageMeta, ROAD_SIGN_KEYWORDS } from "~/lib/site";
-import { stagger } from "~/lib/motion";
-import { ogCardAlt, ogCardPath } from "~/lib/og-cards";
-import { SIGN_COUNT } from "~/lib/road-signs";
+import { Accordion, AccordionItem } from "~/components/brand/accordion";
+import { Callout } from "~/components/brand/callout";
+import { GuideFold, useHashOpens } from "~/components/brand/guide-fold";
+import { SectionHead } from "~/components/brand/section-head";
+import { ShareButton } from "~/components/brand/share-button";
+import { SignCard } from "~/components/brand/sign-card";
+import { SignClassList } from "~/components/brand/sign-class-list";
+import { SignCredit } from "~/components/brand/sign-credit";
+import { SignTrainerList } from "~/components/brand/sign-trainer-list";
+import { SiteFooter } from "~/components/brand/site-footer";
+import { SiteNav } from "~/components/brand/site-nav";
+import { SignCheck } from "~/components/home/sign-check";
+import { Badge } from "~/components/ui/badge";
 import {
   SIGN_CATEGORIES,
   type SignShape,
   type SignTone,
 } from "~/data/road-signs-reference";
+import { stagger } from "~/lib/motion";
+import { ogCardAlt, ogCardPath } from "~/lib/og-cards";
 import {
-  SIGN_PAGES,
   isSignConfirmed,
+  SIGN_PAGES,
   signHeading,
   signPagePath,
 } from "~/lib/road-sign-pages";
+import { SIGN_COUNT } from "~/lib/road-signs";
 import { SIGN_CLASS_PAGES } from "~/lib/sign-class-pages";
+import { absUrl, breadcrumbLd, pageMeta, ROAD_SIGN_KEYWORDS } from "~/lib/site";
 import { cn } from "~/lib/utils";
 
-import { Badge } from "~/components/ui/badge";
-import { Accordion, AccordionItem } from "~/components/brand/accordion";
-import { Callout } from "~/components/brand/callout";
-import { SignCredit } from "~/components/brand/sign-credit";
-import { SectionHead } from "~/components/brand/section-head";
-import { ShareButton } from "~/components/brand/share-button";
-import { SignCard } from "~/components/brand/sign-card";
-import { SignClassList } from "~/components/brand/sign-class-list";
-import { SiteFooter } from "~/components/brand/site-footer";
-import { SiteNav } from "~/components/brand/site-nav";
-import { SignCheck } from "~/components/home/sign-check";
-import { GuideFold, useHashOpens } from "~/components/brand/guide-fold";
-import { SignTrainerList } from "~/components/brand/sign-trainer-list";
+import type { Route } from "./+types/road-signs";
 
 const PATH = "/road-signs";
 /** Classes the trainers don't drill, so the text reference is all there is. */
@@ -122,7 +122,7 @@ function SignChip({
     <span
       aria-hidden
       className={cn(
-        "inline-block size-5 shrink-0 border border-line rounded-md",
+        "inline-block size-5 shrink-0 rounded-md border border-line",
         CHIP_CLIP[shape],
         CHIP_BG[tone],
         className,
@@ -137,14 +137,13 @@ export default function RoadSigns() {
     <>
       <SiteNav />
       <main className="min-h-screen text-ink">
-
-        <div className="mx-auto w-full max-w-4xl px-5 pb-24 pt-6 sm:px-9 sm:pt-10">
+        <div className="mx-auto w-full max-w-4xl px-5 pt-6 pb-24 sm:px-9 sm:pt-10">
           {/* Hero: what this page is, then straight to the trainers. */}
           <header className="grid gap-3 sm:gap-4">
             <SignCredit className="dr-rise" />
             <h1
               style={stagger(1)}
-              className="dr-rise m-0 font-display text-[clamp(36px,7vw,76px)] font-semibold leading-[0.9] tracking-tighter"
+              className="dr-rise m-0 font-display text-[clamp(36px,7vw,76px)] leading-[0.9] font-semibold tracking-tighter"
             >
               Kenya road signs.{" "}
               <span className="text-rush">{`All ${SIGN_COUNT}.`}</span>
@@ -164,7 +163,8 @@ export default function RoadSigns() {
               Read them by class:{" "}
               {SIGN_CLASS_PAGES.map((page, i) => (
                 <span key={page.path}>
-                  {i > 0 && (i === SIGN_CLASS_PAGES.length - 1 ? " and " : ", ")}
+                  {i > 0 &&
+                    (i === SIGN_CLASS_PAGES.length - 1 ? " and " : ", ")}
                   <Link
                     to={page.path}
                     className="font-semibold text-ink underline decoration-rush decoration-2 underline-offset-4 hover:text-rush"
@@ -265,8 +265,8 @@ export default function RoadSigns() {
                 <SignClassList />
 
                 {/* The chart itself: tucked away, open if wanted. */}
-                <details className="mt-4 border border-line bg-surface [&[open]>summary]:border-b-2 [&[open]>summary]:border-ink [&[open]>summary]:after:content-['−'] rounded-lg">
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 font-sans text-[10.5px] uppercase tracking-wider text-ink-3 outline-none after:font-display after:text-lg after:font-bold after:leading-none after:text-rush after:content-['+'] focus-visible:text-ink [&::-webkit-details-marker]:hidden font-medium">
+                <details className="mt-4 rounded-lg border border-line bg-surface [&[open]>summary]:border-b-2 [&[open]>summary]:border-ink [&[open]>summary]:after:content-['−']">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 font-sans text-[10.5px] font-medium tracking-wider text-ink-3 uppercase outline-none after:font-display after:text-lg after:leading-none after:font-bold after:text-rush after:content-['+'] focus-visible:text-ink [&::-webkit-details-marker]:hidden">
                     The Pelican chart
                   </summary>
                   <figure className="bg-white p-3 sm:p-5">
@@ -278,7 +278,7 @@ export default function RoadSigns() {
                       loading="lazy"
                       className="mx-auto block w-full"
                     />
-                    <figcaption className="mt-3 border-t border-line pt-3 font-sans text-[10px] uppercase tracking-wider text-ink-3 font-medium">
+                    <figcaption className="mt-3 border-t border-line pt-3 font-sans text-[10px] font-medium tracking-wider text-ink-3 uppercase">
                       The Pelican chart · the trainer zooms into one sign at a
                       time
                     </figcaption>
@@ -311,14 +311,14 @@ export default function RoadSigns() {
                         <span className="flex flex-1 items-center gap-2.5">
                           <SignChip shape={cat.shape} tone={cat.tone} />
                           <span>{cat.title}</span>
-                          <span className="ml-auto font-mono text-[10px] font-normal normal-case tracking-wider opacity-70">
+                          <span className="ml-auto font-mono text-[10px] font-normal tracking-wider normal-case opacity-70">
                             {cat.signs.length}
                           </span>
                         </span>
                       }
                     >
                       <div id={cat.slug} className="scroll-mt-20 font-sans">
-                        <p className="font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
+                        <p className="font-sans text-[10.5px] font-medium tracking-wider text-ink-3 uppercase">
                           {cat.shapeLabel}
                         </p>
                         <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ink-2">
@@ -328,10 +328,10 @@ export default function RoadSigns() {
                           {cat.signs.map((sign) => (
                             <li
                               key={sign.name}
-                              className="border border-line bg-paper-3 px-3.5 py-3 rounded-lg"
+                              className="rounded-lg border border-line bg-paper-3 px-3.5 py-3"
                             >
                               <div className="flex items-start justify-between gap-2">
-                                <span className="font-display text-[12.5px] font-bold uppercase leading-tight tracking-[0.02em] text-ink">
+                                <span className="font-display text-[12.5px] leading-tight font-bold tracking-[0.02em] text-ink uppercase">
                                   {sign.name}
                                 </span>
                                 {sign.swahili && (

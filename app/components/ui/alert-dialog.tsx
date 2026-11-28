@@ -3,8 +3,8 @@
  * {@link Dialog}, for a question that must be answered before going on, like
  * "Reset your progress?". The actions are the house Button.
  */
-import * as React from "react";
 import { AlertDialog as AlertDialogPrimitive } from "radix-ui";
+import type * as React from "react";
 
 import { buttonVariants } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
@@ -59,9 +59,9 @@ function AlertDialogContent({
       <AlertDialogPrimitive.Content
         data-slot="alert-dialog-content"
         className={cn(
-          "fixed left-1/2 top-1/2 z-50 grid w-[calc(100vw-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 gap-5 p-6",
-          "border border-line bg-surface text-foreground shadow-xl rounded-2xl",
-          "data-[state=open]:animate-in data-[state=closed]:animate-out",
+          "fixed top-1/2 left-1/2 z-50 grid w-[calc(100vw-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 gap-5 p-6",
+          "rounded-2xl border border-line bg-surface text-foreground shadow-xl",
+          "data-[state=closed]:animate-out data-[state=open]:animate-in",
           "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
           "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
           className,
@@ -160,14 +160,14 @@ function AlertDialogCancel({
 
 export {
   AlertDialog,
-  AlertDialogPortal,
-  AlertDialogOverlay,
-  AlertDialogTrigger,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogFooter,
-  AlertDialogTitle,
-  AlertDialogDescription,
   AlertDialogAction,
   AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogOverlay,
+  AlertDialogPortal,
+  AlertDialogTitle,
+  AlertDialogTrigger,
 };

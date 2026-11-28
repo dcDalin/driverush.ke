@@ -1,9 +1,9 @@
 import {
-  type RouteConfig,
   index,
   layout,
   prefix,
   route,
+  type RouteConfig,
 } from "@react-router/dev/routes";
 
 export default [
@@ -68,6 +68,147 @@ export default [
   route("blogs/driving-schools-in-kenya", "routes/legacy-redirects.ts", {
     id: "legacy-blog-schools",
   }),
+
+  // Where Google sends a learner back after signing in.
+  route("auth/callback", "routes/auth-callback.tsx"),
+
+  // Buying the full course (Paystack), and where Paystack sends the learner
+  // back. Signed in to pay; private like the dashboards.
+  route("pass", "routes/pass.tsx"),
+  route("pass/done", "routes/pass-done.tsx"),
+
+  // A driving school's dashboard (owners and branch admins). Signed in only.
+  route("school", "routes/school-home.tsx"),
+  // A dashboard frame like the console's: one page per section, and the add
+  // forms as modal routes over their lists.
+  route(
+    "school/:schoolId",
+    "routes/layouts/school-layout.tsx",
+    { id: "school-layout" },
+    [
+      index("routes/school/overview.tsx"),
+      // Pages show and link; every change is a modal route over its page.
+      route("students", "routes/school/students.tsx", [
+        route("add", "routes/school/student-add.tsx"),
+        route(":linkId/:verb", "routes/school/student-change.tsx"),
+      ]),
+      route("passes", "routes/school/passes.tsx", [
+        route("price", "routes/school/pass-price.tsx"),
+        route("bank", "routes/school/pass-bank.tsx"),
+      ]),
+      route("team", "routes/school/team.tsx", [
+        route("add", "routes/school/admin-add.tsx"),
+        route(
+          "invites/:inviteId/withdraw",
+          "routes/school/invite-withdraw.tsx",
+        ),
+        route(":memberId/:verb", "routes/school/admin-change.tsx"),
+      ]),
+      route("branches", "routes/school/branches.tsx", [
+        route("add", "routes/school/branch-add.tsx"),
+        route(":branchId/edit", "routes/school/branch-edit.tsx"),
+      ]),
+      route("profile", "routes/school/profile.tsx", [
+        route("edit", "routes/school/profile-edit.tsx"),
+        route("logo/:kind", "routes/school/profile-logo.tsx"),
+        route("branches/:branchId", "routes/school/profile-branch.tsx"),
+      ]),
+    ],
+  ),
+  // Resource routes for fetchers (no page of their own).
+  route("api/me/school-invites", "routes/api/me.school-invites.ts"),
+  route("api/me/places", "routes/api/me.places.ts"),
+  route("api/board-schools", "routes/api/board-schools.ts"),
+  // Asked by the GA head script once a visit, and by the shell after a form:
+  // the per-visitor answers the prerendered pages can't carry.
+  route("api/visit", "routes/api/visit.ts"),
+  route("api/flash", "routes/api/flash.ts"),
+  route("api/webhooks/paystack", "routes/api/webhooks.paystack.ts"),
+  // DriveRush staff: schools, owners and staff roles. Signed in only.
+  // A dashboard frame (side menu, top bar) around one page per section;
+  // "new" and "grant" are modal routes drawn over the list that owns them.
+  // Static `new` wins over `:schoolId`.
+  route(
+    "console",
+    "routes/layouts/console-layout.tsx",
+    { id: "console-layout" },
+    [
+      index("routes/console/overview.tsx"),
+      // The list, and "New school" as a modal route over it.
+      route("schools", "routes/console/schools.tsx", [
+        route("new", "routes/console/school-new.tsx"),
+      ]),
+      // One school: a layout route (header and tabs stay put) around a page
+      // per tab, every change a modal route over its tab. Static `new` (under
+      // the list) wins over `:schoolId`.
+      route(
+        "schools/:schoolId",
+        "routes/console/school.tsx",
+        { id: "console-school" },
+        [
+          layout("routes/console/school-setup.tsx", [
+            index("routes/console/school-setup-index.tsx"),
+            route("hand-over", "routes/console/school-hand-over.tsx"),
+            route("status", "routes/console/school-status.tsx"),
+          ]),
+          route("livery", "routes/console/school-livery.tsx", [
+            route("upload", "routes/console/school-livery-upload.tsx"),
+            route(
+              ":liveryId/:verb",
+              "routes/console/school-livery-confirm.tsx",
+            ),
+          ]),
+          route("payments", "routes/console/school-payments.tsx", [
+            route("review/:decision", "routes/console/school-bank-review.tsx"),
+            route("code", "routes/console/school-code.tsx"),
+            route("bank", "routes/console/school-bank.tsx"),
+          ]),
+          route("sponsorship", "routes/console/school-sponsorship.tsx", [
+            route("new", "routes/console/school-sponsorship-new.tsx"),
+          ]),
+          // Helping a school set up (owner, 2026-11-28): the owner's own pages
+          // and modals, as staff, under the console. Students are read only.
+          route("profile", "routes/console/school-profile.tsx", [
+            route("edit", "routes/school/profile-edit.tsx", {
+              id: "console-profile-edit",
+            }),
+            route("logo/:kind", "routes/school/profile-logo.tsx", {
+              id: "console-profile-logo",
+            }),
+            route("branches/:branchId", "routes/school/profile-branch.tsx", {
+              id: "console-profile-branch",
+            }),
+          ]),
+          route("branches", "routes/console/school-branches.tsx", [
+            route("add", "routes/school/branch-add.tsx", {
+              id: "console-branch-add",
+            }),
+            route(":branchId/edit", "routes/school/branch-edit.tsx", {
+              id: "console-branch-edit",
+            }),
+          ]),
+          route("team", "routes/console/school-team.tsx", [
+            route("add", "routes/school/admin-add.tsx", {
+              id: "console-admin-add",
+            }),
+            route(
+              "invites/:inviteId/withdraw",
+              "routes/school/invite-withdraw.tsx",
+              { id: "console-invite-withdraw" },
+            ),
+            route(":memberId/:verb", "routes/school/admin-change.tsx", {
+              id: "console-admin-change",
+            }),
+          ]),
+          route("students", "routes/console/school-students.tsx"),
+        ],
+      ),
+      route("payments", "routes/console/payments.tsx"),
+      route("staff", "routes/console/staff.tsx", [
+        route("grant", "routes/console/staff-grant.tsx"),
+      ]),
+    ],
+  ),
 
   // Where shared achievement links land (`/s?k=quiz&…`). Deliberately short:
   // the URL travels through WhatsApp forwards. Renders a useful page for any

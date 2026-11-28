@@ -11,15 +11,15 @@
  */
 import * as React from "react";
 
+import { Button } from "~/components/ui/button";
 import {
-  SPONSORS,
+  liveSchools,
   type Sponsor,
   type SponsorPlace,
-} from "~/lib/board/sponsors";
+  useCatalog,
+} from "~/lib/board/school-catalog";
 import { sponsorLinkClicked, sponsorShown } from "~/lib/board/sponsor-visit";
 import { cn } from "~/lib/utils";
-
-import { Button } from "~/components/ui/button";
 
 function useSeen(sponsor: Sponsor | null, place: SponsorPlace) {
   React.useEffect(() => sponsorShown(sponsor, place), [sponsor, place]);
@@ -93,7 +93,7 @@ export function SponsorReadyCard({
         className="h-12 w-auto max-w-full object-contain"
         loading="lazy"
       />
-      <p className="m-0 text-[13.5px] font-semibold leading-snug">
+      <p className="m-0 text-[13.5px] leading-snug font-semibold">
         {ready
           ? "Ready for the real test? Book lessons on a real board."
           : "Want an instructor to go over it with you on a real board?"}
@@ -121,7 +121,7 @@ export function SponsorReadyCard({
 /** The live schools' names as one English list ("A, B and C"). */
 export function boardSchoolNames(): string {
   return new Intl.ListFormat("en", { type: "conjunction" }).format(
-    SPONSORS.filter((s) => s.live).map((s) => s.school),
+    liveSchools().map((s) => s.school),
   );
 }
 
@@ -143,7 +143,7 @@ export function BoardSchools({
   onInk?: boolean;
   className?: string;
 }) {
-  const schools = SPONSORS.filter((s) => s.live);
+  const schools = liveSchools(useCatalog()).filter((s) => s.logo.full);
   if (schools.length === 0) return null;
   // The school's logo is a 1024 x 401 lockup: tiles keep its shape, and the
   // edge keeps a white tile visible in either theme.
@@ -180,7 +180,7 @@ export function BoardSchools({
                 onClick={() => sponsorLinkClicked(school, place)}
                 className={cn(
                   tile,
-                  "outline-none transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-rush",
+                  "transition-opacity outline-none hover:opacity-85 focus-visible:ring-2 focus-visible:ring-rush",
                 )}
               >
                 {logo}

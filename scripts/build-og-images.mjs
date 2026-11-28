@@ -28,7 +28,7 @@ const execFileAsync = promisify(execFile);
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OUT_DIR = path.join(ROOT, "public", "og");
-const DEV_URL = process.env.DEV_URL ?? "http://localhost:5173";
+const DEV_URL = process.env.DEV_URL ?? "http://localhost:5730";
 
 const WIDTH = 1200;
 const HEIGHT = 630;
@@ -40,11 +40,12 @@ const HEIGHT = 630;
 const SCALE = Number(process.env.SCALE ?? 1);
 
 /**
- * A sponsoring school's id (`app/lib/board/sponsors.ts`): the board still is
+ * A school's slug (it must be on the dev server's board: `npm run db:seed`,
+ * or `npm run livery:publish <slug> -- --live` locally): the board still is
  * taken with the learner's car in that school's paint and its logo on the
  * table, and saved as `<card>-<id>.png`, for the school's sales deck and
  * socials. The site's own cards are never taken this way.
- *   SPONSOR=heltz SCALE=2 DEV_URL=http://localhost:5190 npm run build:og -- board-3d
+ *   SPONSOR=heltz SCALE=2 DEV_URL=http://localhost:5740 npm run build:og -- board-3d
  */
 const SPONSOR = process.env.SPONSOR ?? "";
 const fileOf = (card) => (SPONSOR ? `${card.id}-${SPONSOR}` : card.id);
@@ -66,10 +67,12 @@ const CARDS = [
   // which `board-thumb.tsx` offers with srcset, then capture the card:
   //   SPONSOR=heltz SCALE=2 npm run build:og -- board-3d
   //   sips -s format jpeg -s formatOptions 82 -Z 2400 public/og/board-3d-heltz.png \
-  //     --out public/assets/board/poster-heltz-2400.jpg
+  //     --out seed/fixtures/liveries/heltz/stills/poster-2400.jpg
   //   sips -s format jpeg -s formatOptions 78 -Z 1200 public/og/board-3d-heltz.png \
-  //     --out public/assets/board/poster-heltz.jpg && rm public/og/board-3d-heltz.png
-  //   SPONSOR=heltz npm run build:og -- board      # public/og/board-heltz.jpg
+  //     --out seed/fixtures/liveries/heltz/stills/poster.jpg && rm public/og/board-3d-heltz.png
+  //   SPONSOR=heltz npm run build:og -- board
+  //   mv public/og/board-heltz.jpg seed/fixtures/liveries/heltz/stills/og.jpg
+  // then `npm run livery:publish heltz` (the stills go with the livery).
   { id: "board-3d", settleMs: 25000, minBytes: 200_000 },
   { id: "default", settleMs: 2500, minBytes: 20_000 },
   // Shipped as a JPEG: as a PNG this card is about 300 kB, which is where

@@ -11,19 +11,25 @@
  * external HDRI fetch) whose soft glare drifts across the gloss as the sign turns,
  * plus a soft contact shadow to ground it.
  */
-import * as React from "react";
-import { Canvas, useThree, type ThreeElements } from "@react-three/fiber";
 import {
   ContactShadows,
   Environment,
   GradientTexture,
   OrbitControls,
-  useGLTF,
-  useTexture,
 } from "@react-three/drei";
+import {
+  Canvas,
+  type ThreeElements,
+  useLoader,
+  useThree,
+} from "@react-three/fiber";
+import * as React from "react";
 import * as THREE from "three";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 
+import { analytics } from "~/lib/analytics";
 import { SIGN_BRAND } from "~/lib/sign-credits";
+import { loadSturdyTexture, SturdyGLTFLoader } from "~/lib/sturdy-loaders";
 import { useActiveTheme } from "~/lib/theme";
 
 const DEG = Math.PI / 180;
@@ -42,6 +48,10 @@ export type Sign3DCanvasProps = {
   interactive?: boolean;
   /** Told each time a model has actually reached the scene. */
   onModelReady?: (modelSrc: string) => void;
+  /** Told when a model could not be downloaded, even on the second ask. */
+  onModelFailed?: (modelSrc: string) => void;
+  /** Bumped to ask again for a model that failed. */
+  attempt?: number;
 };
 
 /**
@@ -69,7 +79,9 @@ function trueSignColor(c: THREE.Color): THREE.Color {
 /** The little Pelican sticker on the post. W_9 exports it under sign materials, so
  *  that one is caught by what it is: a tiny flat decal sitting on the post. */
 function isSticker(mesh: THREE.Mesh): boolean {
-  if (/Pelican|Dark_Blue|pasted__/.test((mesh.material as THREE.Material).name)) {
+  if (
+    /Pelican|Dark_Blue|pasted__/.test((mesh.material as THREE.Material).name)
+  ) {
     return true;
   }
   if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
@@ -105,11 +117,11 @@ const STICKER_GEOMETRY = (() => {
   const height = (arcLength * SIGN_BRAND.logoHeight) / SIGN_BRAND.logoWidth;
   const lift = 0.0015;
   // Where a distance along the wrap lands on the octagon.
-  const corner = (k: number) => {
+  const corner = (k: number): [number, number] => {
     const angle = (k * Math.PI) / 4;
     return [POST_RADIUS * Math.sin(angle), POST_RADIUS * Math.cos(angle)];
   };
-  const onPost = (arc: number) => {
+  const onPost = (arc: number): [number, number] => {
     const k = Math.min(Math.floor(Math.abs(arc) / facet), 1);
     const t = (Math.abs(arc) - k * facet) / facet;
     const [x0, z0] = corner(k);
@@ -122,7 +134,7 @@ const STICKER_GEOMETRY = (() => {
   const uvs: number[] = [];
   const indices: number[] = [];
   for (let i = 0; i < stops.length - 1; i++) {
-    const [a, b] = [stops[i], stops[i + 1]];
+    const [a, b] = [stops[i]!, stops[i + 1]!];
     const [ax, az] = onPost(a);
     const [bx, bz] = onPost(b);
     const len = Math.hypot(bx - ax, bz - az);
@@ -132,7 +144,7 @@ const STICKER_GEOMETRY = (() => {
     for (const [x, z, arc] of [
       [ax, az, a],
       [bx, bz, b],
-    ]) {
+    ] as const) {
       for (const y of [-height / 2, height / 2]) {
         positions.push(x + nx * lift, y, z + nz * lift);
         normals.push(nx, 0, nz);
@@ -142,7 +154,10 @@ const STICKER_GEOMETRY = (() => {
     indices.push(base, base + 2, base + 3, base, base + 3, base + 1);
   }
   const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(positions, 3),
+  );
   geometry.setAttribute("normal", new THREE.Float32BufferAttribute(normals, 3));
   geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
   geometry.setIndex(indices);
@@ -286,31 +301,49 @@ function sheetingMaterial(
     // Bare panels have no post to leave out, so every surface counts.
     shader.uniforms.uFaceMinZ = { value: hasPost ? POST_FRONT_Z : -Infinity };
     shader.uniforms.uPlateMinZ = { value: hasPost ? PLATE_MIN_Z : -Infinity };
-    shader.vertexShader =
-      "uniform float uFaceMinZ;\nvarying float vSheeting;\nvarying vec3 vSignPos;\nvarying vec3 vSignNormal;\n" +
-      shader.vertexShader.replace(
-        "#include <begin_vertex>",
-        `#include <begin_vertex>
+    shader.vertexShader = `uniform float uFaceMinZ;\nvarying float vSheeting;\nvarying vec3 vSignPos;\nvarying vec3 vSignNormal;\n${shader.vertexShader.replace(
+      "#include <begin_vertex>",
+      `#include <begin_vertex>
         // Sign faces all look down +Z, so this leaves out the back, edges and post.
         vSheeting = step(0.3, normal.z) * step(uFaceMinZ, position.z);
         vSignPos = position;
         vSignNormal = normal;`,
-      );
-    shader.fragmentShader =
-      "uniform float uRetroGain;\nuniform float uPlateMinZ;\nvarying float vSheeting;\nvarying vec3 vSignPos;\nvarying vec3 vSignNormal;\n" +
-      shader.fragmentShader
-        .replace(
-          "#include <emissivemap_fragment>",
-          `#include <emissivemap_fragment>\n${SHEETING_GLSL}`,
-        )
-        .replace(
-          "#include <lights_physical_fragment>",
-          `#include <lights_physical_fragment>
+    )}`;
+    shader.fragmentShader = `uniform float uRetroGain;\nuniform float uPlateMinZ;\nvarying float vSheeting;\nvarying vec3 vSignPos;\nvarying vec3 vSignNormal;\n${shader.fragmentShader
+      .replace(
+        "#include <emissivemap_fragment>",
+        `#include <emissivemap_fragment>\n${SHEETING_GLSL}`,
+      )
+      .replace(
+        "#include <lights_physical_fragment>",
+        `#include <lights_physical_fragment>
           material.clearcoat *= 1.0 - signBare;`,
-        );
+      )}`;
   };
   mat.customProgramCacheKey = () => "road-sign-sheeting";
   return mat;
+}
+
+/**
+ * The Pelican sticker's picture, loaded once for every sign. It is decoration,
+ * so a picture that can't be had (a dropped download, a browser that blocks
+ * images) leaves the sticker plain white vinyl and never stops the sign.
+ */
+let stickerLogo: Promise<THREE.Texture | null> | undefined;
+function loadStickerLogo(): Promise<THREE.Texture | null> {
+  stickerLogo ??= loadSturdyTexture(SIGN_BRAND.logo).then(
+    (texture) => {
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.anisotropy = 4;
+      texture.needsUpdate = true;
+      return texture;
+    },
+    () => {
+      analytics.signs3dLoadFailed({ reason: "logo" });
+      return null;
+    },
+  );
+  return stickerLogo;
 }
 
 /** Load a GLB, clone it (so per-instance material changes don't poison the cache)
@@ -330,14 +363,12 @@ function SignModel({
   pitch?: number;
   onReady?: () => void;
 }) {
-  const { scene } = useGLTF(modelSrc);
-  const logo = useTexture(SIGN_BRAND.logo);
+  // Asks twice for the model; a second failure goes to `ModelGuard`.
+  const { scene } = useLoader(SturdyGLTFLoader, modelSrc);
+  const logo = React.use(loadStickerLogo());
   const invalidate = useThree((s) => s.invalidate);
 
   const stickerMaterial = React.useMemo(() => {
-    logo.colorSpace = THREE.SRGBColorSpace;
-    logo.anisotropy = 4;
-    logo.needsUpdate = true;
     // Printed vinyl: satin, and no sheeting.
     return new THREE.MeshStandardMaterial({
       map: logo,
@@ -396,7 +427,11 @@ function SignModel({
         });
         plateBottom = sticker.max.y;
         const wrapped = new THREE.Mesh(STICKER_GEOMETRY, stickerMaterial);
-        wrapped.position.set(post.x, sticker.getCenter(new THREE.Vector3()).y, post.y);
+        wrapped.position.set(
+          post.x,
+          sticker.getCenter(new THREE.Vector3()).y,
+          post.y,
+        );
         root.add(wrapped);
       }
       addPostClamps(root, post, plateBottom, bounds.max.y);
@@ -420,6 +455,36 @@ function SignModel({
   );
 }
 
+/**
+ * Catches a model that failed both asks, inside the canvas, so the canvas (and
+ * its WebGL context) lives on and the viewer can offer another go. Without it
+ * the failure climbs to the root error page and the learner loses the trainer.
+ */
+class ModelGuard extends React.Component<
+  {
+    modelSrc: string;
+    onFail?: (modelSrc: string) => void;
+    children: React.ReactNode;
+  },
+  { failed: boolean }
+> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  componentDidCatch() {
+    // Forget the failure, or the next try would be handed it straight back.
+    useLoader.clear(SturdyGLTFLoader, this.props.modelSrc);
+    this.props.onFail?.(this.props.modelSrc);
+  }
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
+
+/** What FitCamera needs of the orbit controls. */
+type ControlsHandle = { target: THREE.Vector3; update: () => void };
+
 /** After the model mounts (and on resize / framing changes), frame the sign's
  *  panel: target the upper region for sign-on-post models so the panel reads
  *  large with a bit of post below; fit the whole thing for panel-only models. */
@@ -431,10 +496,7 @@ function FitCamera({
   onFloor,
 }: {
   groupRef: React.RefObject<THREE.Group | null>;
-  controlsRef: React.RefObject<{
-    target: THREE.Vector3;
-    update: () => void;
-  } | null>;
+  controlsRef: React.RefObject<ControlsHandle | null>;
   zoom?: number;
   recomputeKey: string;
   onFloor: (y: number) => void;
@@ -570,9 +632,15 @@ function ReflectedSky({ night }: { night: boolean }) {
   const uniforms = React.useMemo(() => {
     const sky = night ? SKY.night : SKY.day;
     return {
-      uZenith: { value: new THREE.Vector3(...(sky.zenith as [number, number, number])) },
-      uHorizon: { value: new THREE.Vector3(...(sky.horizon as [number, number, number])) },
-      uGround: { value: new THREE.Vector3(...(sky.ground as [number, number, number])) },
+      uZenith: {
+        value: new THREE.Vector3(...(sky.zenith as [number, number, number])),
+      },
+      uHorizon: {
+        value: new THREE.Vector3(...(sky.horizon as [number, number, number])),
+      },
+      uGround: {
+        value: new THREE.Vector3(...(sky.ground as [number, number, number])),
+      },
       uGlare: { value: sky.glare },
     };
   }, [night]);
@@ -604,9 +672,11 @@ function SceneContents({
   autoRotate = false,
   interactive = true,
   onModelReady,
+  onModelFailed,
+  attempt = 0,
 }: Sign3DCanvasProps) {
   const groupRef = React.useRef<THREE.Group | null>(null);
-  const controlsRef = React.useRef<any>(null);
+  const controlsRef = React.useRef<OrbitControlsImpl | null>(null);
   const [floorY, setFloorY] = React.useState(0);
   // Bumped when the model's geometry lands, to force FitCamera to re-frame.
   const [fitTick, setFitTick] = React.useState(0);
@@ -665,16 +735,22 @@ function SceneContents({
 
       <Environment resolution={128}>{sky}</Environment>
 
-      <React.Suspense fallback={null}>
-        <SignModel
-          modelSrc={modelSrc}
-          groupRef={groupRef}
-          night={night}
-          yaw={yaw}
-          pitch={pitch}
-          onReady={handleReady}
-        />
-      </React.Suspense>
+      <ModelGuard
+        key={`${modelSrc}#${attempt}`}
+        modelSrc={modelSrc}
+        onFail={onModelFailed}
+      >
+        <React.Suspense fallback={null}>
+          <SignModel
+            modelSrc={modelSrc}
+            groupRef={groupRef}
+            night={night}
+            yaw={yaw}
+            pitch={pitch}
+            onReady={handleReady}
+          />
+        </React.Suspense>
+      </ModelGuard>
 
       <ContactShadows
         position={[0, floorY - 0.01, 0]}
@@ -717,7 +793,7 @@ export default function Sign3DCanvas(props: Sign3DCanvasProps) {
       // ph-no-capture: session replay records only the board's canvas. This
       // one doesn't keep its drawing buffer, so the recorder would clear it
       // twice a second and it would flicker (see `posthog.ts`).
-      className="!touch-none ph-no-capture"
+      className="ph-no-capture !touch-none"
       shadows={false}
       dpr={[1, 2]}
       frameloop={props.autoRotate ? "always" : "demand"}

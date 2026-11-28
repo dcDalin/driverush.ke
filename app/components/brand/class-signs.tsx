@@ -4,14 +4,14 @@
  */
 import { Link } from "react-router";
 
+import { SignCredit } from "~/components/brand/sign-credit";
+import { SignImage } from "~/components/brand/sign-image";
+import { Button } from "~/components/ui/button";
 import type { SignCategoryId } from "~/lib/image-focus";
 import { SIGN_PAGES, signPagePath } from "~/lib/road-sign-pages";
 import { signClassPage } from "~/lib/sign-class-pages";
 import { trainerHref } from "~/lib/trainer-rounds";
-
-import { Button } from "~/components/ui/button";
-import { SignCredit } from "~/components/brand/sign-credit";
-import { SignImage } from "~/components/brand/sign-image";
+import { linkPrefetch } from "~/lib/ui/link-prefetch";
 
 export function ClassSigns({ category }: { category: SignCategoryId }) {
   const page = signClassPage(category)!;
@@ -25,11 +25,12 @@ export function ClassSigns({ category }: { category: SignCategoryId }) {
         All {signs.length} {page.name.toLowerCase()}
       </h2>
       <div className="mb-5 flex flex-wrap items-center gap-2">
-        <span className="font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
+        <span className="font-sans text-[10.5px] font-medium tracking-wider text-ink-3 uppercase">
           Drill this class
         </span>
         <Button variant="rush" size="sm" asChild>
           <Link
+            prefetch={linkPrefetch()}
             to={trainerHref("/road-signs/pelican", {
               category: page.category,
               go: true,
@@ -40,6 +41,7 @@ export function ClassSigns({ category }: { category: SignCategoryId }) {
         </Button>
         <Button variant="paper" size="sm" asChild>
           <Link
+            prefetch={linkPrefetch()}
             to={trainerHref("/road-signs/3d", {
               category: page.category,
               go: true,
@@ -53,12 +55,16 @@ export function ClassSigns({ category }: { category: SignCategoryId }) {
         {signs.map((sign) => (
           <li key={sign.id}>
             <Link
+              prefetch={linkPrefetch()}
               to={signPagePath(sign)}
-              className="grid h-full grid-cols-[56px_1fr] items-start gap-3 border border-line bg-paper-3 p-3 no-underline outline-none transition-colors hover:bg-surface focus-visible:bg-surface rounded-lg"
+              className="grid h-full grid-cols-[56px_1fr] items-start gap-3 rounded-lg border border-line bg-paper-3 p-3 no-underline transition-colors outline-none hover:bg-surface focus-visible:bg-surface"
             >
-              <SignImage sign={sign} className="size-14 border border-line rounded-lg" />
+              <SignImage
+                sign={sign}
+                className="size-14 rounded-lg border border-line"
+              />
               <span className="min-w-0">
-                <span className="block font-display text-[12.5px] font-bold uppercase leading-tight tracking-[0.02em] text-ink">
+                <span className="block font-display text-[12.5px] leading-tight font-bold tracking-[0.02em] text-ink uppercase">
                   {sign.name}
                 </span>
                 <span className="mt-1 block font-sans text-[13px] leading-snug text-ink-2">

@@ -4,6 +4,7 @@ Who made what DriveRush uses, and what we're allowed to do with it. Keep this up
 to date when an asset or an agreement changes. No personal contact details here.
 
 ## Pelican Signs name and logo
+
 - **Position:** Pelican Signs agreed to DriveRush using their name and logo. They get free promotion and we get a known brand. No money changes hands, so it is not a partnership and must not be described as one.
 - **Used in:** the "Pelican chart" trainer name and URL, the credit line, and the logos on the chart and 3D sign posts.
 - **Agreed on:** _to fill in: date_
@@ -11,12 +12,14 @@ to date when an asset or an agreement changes. No personal contact details here.
 - **In writing:** _to fill in: where the confirmation is kept_
 
 ## Chart and 3D models
+
 - **Made by:** the DriveRush team, in-house. Files: `public/assets/road-signs/road-signs.v2.svg`, `public/assets/road-signs/models/`.
 - **Contractors:** _to fill in: anyone paid to draw or model these, and where the assignment of rights is kept_
 - Do not credit Pelican Signs as the author of this artwork.
 - **Missing:** the 3D model for M.5 (Pass to the left). `M_5.glb` was an exact copy of the M.7 bicycle, so it was deleted and M.5 is out of the 3D trainer until it's re-exported. Add it back in `app/data/road-signs-3d.json` or `/tools/sign-3d`. The chart trainer still has M.5.
 
 ## Model Town Board
+
 - **Made by:** the DriveRush team's own code, except the cars (below).
 - **The board** (roads, markings, kerbs, the parking zone, the stopping box) is drawn by `app/lib/board/full-board.ts`. Its layout follows the boards Kenyan driving schools paint, and its proportions were measured off a reference drawing of one. No artwork was copied from either.
 - **The cars** (since 2026-11-21) are free models from Sketchfab, downloaded with the owner's account: five cars on 2026-11-21, a van, a lorry and a crossover on 2026-11-22. Each one's licence was read on its page that day.
@@ -39,7 +42,8 @@ to date when an asset or an agreement changes. No personal contact details here.
 - **Removed on 2026-11-11:** the cars and trees from Kenney's "Racing Pack" (CC0), used by the earlier 2D game. They are no longer in the repository.
 
 ## Driving schools' brands (Model Town Board sponsors)
-- **What they are:** each school's name, logo and car paint, copied from the school's own car and logo so the board car is recognisably theirs. Drawn by `scripts/sponsor-art/<id>/design.mjs`, built by `npm run build:sponsors` into `public/assets/board/sponsors/<id>/`.
+
+- **What they are:** each school's name, logo and car paint, copied from the school's own car and logo so the board car is recognisably theirs. Drawn by `scripts/sponsor-art/<id>/design.mjs`, built by `npm run build:sponsors` into `seed/fixtures/liveries/<id>/`, and published to Supabase Storage (the `school-media` bucket) with `npm run livery:publish <id>` (`docs/school-media.md`). Schools' own logo uploads (dashboard, Profile) are theirs and stored there too.
 - **Heltz Driving Academy:** copied from the owner's photo of their car (`scripts/sponsor-art/heltz/reference.jpg`). Their real car has no roof board; the one on the board cars is our design in their look (owner, 2026-11-21).
   - **Agreement and artwork:** _to fill in: who at Heltz agreed, when, and where their artwork files are kept_
 - **Top Gear Driving School** (added 2026-11-21): copied from three photos of their cars and their logo, supplied by the owner (`scripts/sponsor-art/topgear/reference-*.{png,jpg}`, `logo.jpg`). The TG mark is traced from their logo. Their door lettering has no free match, so its letters are drawn to the photo's shapes.
@@ -51,23 +55,27 @@ to date when an asset or an agreement changes. No personal contact details here.
 - **Petanns Driving School** (Petanns Kenya, "Shule Ya Wakenya"; added 2026-11-22): copied from photos of their cars and their emblem, supplied by the owner (`scripts/sponsor-art/petanns/reference-*.jpg`, `logo.jpg`). Their emblem is shown as their own picture; it has a photograph of a car in it, whose own rights are theirs to answer for. Its outline is traced for one-colour places. Their phone number is on the paint as on their cars. Their real cars carry no roof board; the one on the board cars is our design in their look. No link: none of their material shows a site.
   - **Agreement and artwork:** _to fill in: who at Petanns agreed, when, and where their artwork files are kept_
 - **Typefaces standing in for the schools' lettering** (all SIL Open Font License, files and licences in `scripts/sponsor-art/fonts/`): Rubik Mono One and Righteous (Heltz); Anton, Alfa Slab One and Arvo Bold (Top Gear); Poppins and Michroma (Blixen); Poppins (AA); Alfa Slab One, Kaushan Script and Poppins (Petanns). Only pictures made with them are shipped, never the font files.
-- **If a school's sponsorship ends:** set `live: false` in `app/lib/board/sponsors.ts` (or remove its entry) and delete its folder in `public/assets/board/sponsors/`.
+- **If a school's sponsorship ends:** in the console, End its sponsorship (its cars stop taking turns) and Retire its livery if its own learners should stop seeing it too; then remove its files from the bucket through the Storage API (`docs/school-media.md`).
 
 ## Voice clips
+
 - **Made with:** ElevenLabs, on a paid plan. The clips in `public/assets/road-signs/sounds/` carry ElevenLabs content tags.
 - **Receipt:** _to fill in: where the proof of the paid plan is kept_
 - **File names:** some clip names don't match their sign's code, because the chart's codes are one off from the source list. M.7 plays `M.6.mp3`, M.8 plays `M.7.mp3`, M.9 plays `M.8.mp3`, and P.16 and P.17 play each other's. `audioSrc` in the data files is the source of truth. `P.38.mp3` is unused.
 
 ## Promo video music
+
 - **Made by:** the DriveRush team, in-house. The three music beds in `marketing/social/music/` are generated by `marketing/social/make-music.mjs` from code alone. No samples, loops or third-party recordings.
 - The videos' other sounds are the app's own effects and voice clips (see Voice clips).
 - **Mixkit (videos 18 to 20, added 2026-11-16):** music `mk-midnight-funk` ("Midnight Funk", Michael Ramir C., Mixkit #1147), `mk-sweet-september` ("Sweet September", Arulo, #282), `mk-complicated` ("Complicated", Arulo, #281), and the effects in `marketing/social/sfx/` (#1061 tick, #577 drum roll, #2903 whoosh impact, #1490 whoosh, #3005 pop, #2870 correct tone, #948 buzzer, #600 bell). Mixkit Stock Music Free License and Sound Effects Free License, read on mixkit.co/license on 2026-11-16: commercial use in social media video posts and online marketing ads allowed, no credit needed; not allowed: redistributing the files on their own, remixing the music into a music-only track, registering them with a rights management service. So the raw files are never passed on, and only the finished videos are posted. The whole `marketing/` folder is kept out of git (`.gitignore`). A claim on a post goes to team@mixkit.co.
 
 ## Sign notes
+
 - **Source:** written in DriveRush's own words on 2026-11-04, from NTSA / Highway Code material. Same instructions, no new facts.
 - **Stored in:** `app/data/road-signs-pelican.json` and `app/data/road-signs-3d.json`. Keep the two identical by sign code.
 
 ## If Pelican's permission ever ends
+
 1. Remove `SignCredit` and the footer line that says the name and logo are used with permission.
 2. Rename the trainer in the copy, and move `/road-signs/pelican` to a new URL with a 301.
 3. Remove the logo from the 3D models: it's one material per model (`lambert8_Pelican_Logo*`), on 78 of 84 models, about 4% of the geometry.

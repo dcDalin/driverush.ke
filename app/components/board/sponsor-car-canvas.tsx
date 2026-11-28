@@ -3,23 +3,24 @@
  * round by hand, or jump to the board camera's own tilt from each side to see
  * what a learner at the table sees. Loaded lazily: all of three is in here.
  */
-import * as React from "react";
-import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
+import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
+import * as React from "react";
 import * as THREE from "three";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
-import { carFromGltf } from "~/components/board/car-glb";
-import type { CarModel } from "~/components/board/car-model";
 import {
   loadPicture,
   loadWrap,
   wearWrap,
 } from "~/components/board/board-sponsor";
+import { carFromGltf } from "~/components/board/car-glb";
+import type { CarModel } from "~/components/board/car-model";
 import { wearTopBoard } from "~/components/board/top-board";
-import type { TopBoard } from "~/lib/board/sponsors";
 import { BOARD_CARS, type BoardCarId } from "~/lib/board/cars";
+import type { TopBoard } from "~/lib/board/school-catalog";
 
 export type CarView = { heading: number; tilt: number; dist: number };
 
@@ -30,6 +31,9 @@ function Car({
   topBoard,
   roll,
   steer,
+  turned,
+  lock,
+  simple,
 }: {
   src: string;
   wrapUrl: string | null;
@@ -37,6 +41,9 @@ function Car({
   topBoard: TopBoard | null;
   roll: boolean;
   steer: boolean;
+  turned: number | null;
+  lock: number | null;
+  simple: boolean;
 }) {
   const gltf = useLoader(GLTFLoader, src, (loader) =>
     loader.setMeshoptDecoder(MeshoptDecoder),
@@ -46,11 +53,12 @@ function Car({
     const group = new THREE.Group();
     const model = carFromGltf(gltf.scene, {
       paint: new THREE.Color(base).getHex(),
+      simple,
     });
     group.add(model);
     group.userData.model = model;
     return group;
-  }, [gltf, base]);
+  }, [gltf, base, simple]);
   React.useEffect(() => {
     if (!wrapUrl) return;
     let alive = true;
@@ -88,16 +96,49 @@ function Car({
   // A wheel that is not true on its axle shows here at once.
   useFrame((state, dt) => {
     const model = holder.userData.model as CarModel;
-    if (roll) {
+    if (turned != null) {
+      for (const wheel of model.userData.wheels) {
+        wheel.rotation.x = (-turned * Math.PI) / 180;
+      }
+    } else if (roll) {
       for (const wheel of model.userData.wheels) {
         const radius = (wheel.userData.radius as number | undefined) ?? 0.32;
         wheel.rotation.x -= (1.4 * Math.min(dt, 0.05)) / radius;
       }
     }
-    const lock = steer ? Math.sin(state.clock.elapsedTime * 1.2) * 0.45 : 0;
-    for (const hub of model.userData.steering) hub.rotation.y = -lock;
+    const swing =
+      lock != null
+        ? (lock * Math.PI) / 180
+        : steer
+          ? Math.sin(state.clock.elapsedTime * 1.2) * 0.45
+          : 0;
+    for (const hub of model.userData.steering) hub.rotation.y = -swing;
   });
   return <primitive object={holder} />;
+}
+
+/**
+ * The room the paint, the chrome and the lamps reflect: the board's own
+ * (board-table.tsx), so a car looks here as it does on the table. Without it
+ * every metal part comes out black.
+ */
+function Room() {
+  const gl = useThree((s) => s.gl);
+  const scene = useThree((s) => s.scene);
+  const invalidate = useThree((s) => s.invalidate);
+  React.useEffect(() => {
+    const pmrem = new THREE.PMREMGenerator(gl);
+    const room = pmrem.fromScene(new RoomEnvironment(), 0.035);
+    scene.environment = room.texture;
+    scene.environmentIntensity = 0.5;
+    invalidate();
+    return () => {
+      scene.environment = null;
+      room.dispose();
+      pmrem.dispose();
+    };
+  }, [gl, scene, invalidate]);
+  return null;
 }
 
 function Aim({ view }: { view: CarView }) {
@@ -129,7 +170,10 @@ export default function SponsorCarCanvas({
   view,
   roll = false,
   steer = false,
+  turned = null,
+  lock = null,
   bare = false,
+  simple = false,
 }: {
   car?: BoardCarId;
   wrapUrl: string | null;
@@ -141,11 +185,17 @@ export default function SponsorCarCanvas({
   roll?: boolean;
   /** Swing the front wheels from lock to lock. */
   steer?: boolean;
+  /** Hold every wheel turned this many degrees forward, for a still picture. */
+  turned?: number | null;
+  /** Hold the front wheels steered this many degrees. */
+  lock?: number | null;
   /**
    * The car alone on a clear background, with no ground under it: for the
    * small pictures in the car menu (`/tools/car-thumb`).
    */
   bare?: boolean;
+  /** As the board's lighter picture draws it: plain materials, no room. */
+  simple?: boolean;
 }) {
   return (
     <Canvas
@@ -154,12 +204,14 @@ export default function SponsorCarCanvas({
       gl={{ antialias: true }}
       onCreated={({ gl }) => {
         gl.toneMapping = THREE.ACESFilmicToneMapping;
-        gl.toneMappingExposure = 0.95;
+        gl.toneMappingExposure = 0.8;
       }}
     >
       {!bare && <color attach="background" args={["#4f4c47"]} />}
-      <hemisphereLight args={["#ffffff", "#6b6155", 1.4]} />
-      <directionalLight position={[6, 10, 4]} intensity={2.2} />
+      {/* The board's own light at its best setting (board-table.tsx). */}
+      <Room />
+      <hemisphereLight args={["#dfeaff", "#6a7a4a", 0.6]} />
+      <directionalLight position={[6, 10, 4]} intensity={3.1} color="#fff0d6" />
       {!bare && (
         <mesh rotation-x={-Math.PI / 2} position-y={-0.001}>
           <planeGeometry args={[14, 14]} />
@@ -175,6 +227,9 @@ export default function SponsorCarCanvas({
           topBoard={topBoard}
           roll={roll}
           steer={steer}
+          turned={turned}
+          lock={lock}
+          simple={simple}
         />
       </React.Suspense>
       <OrbitControls

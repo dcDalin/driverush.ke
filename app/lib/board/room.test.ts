@@ -3,14 +3,14 @@ import { describe, expect, it } from "vitest";
 import {
   CHAIR_BACK,
   FLOOR_Y,
-  FURNITURE,
-  ROOM,
-  TABLE,
-  WALLS,
-  WALL_ITEMS,
   footprint,
+  FURNITURE,
   gapToTable,
   onWall,
+  ROOM,
+  TABLE,
+  WALL_ITEMS,
+  WALLS,
 } from "~/lib/board/room";
 
 describe("the classroom", () => {

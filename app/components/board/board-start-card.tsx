@@ -9,23 +9,26 @@ import { CourseLabel } from "~/components/board/course-label";
 import { useCourseStart } from "~/components/board/use-course-start";
 import { Icon } from "~/components/brand/icon";
 import { PlayIcon } from "~/components/brand/icons";
+import { freeLabel } from "~/lib/board/free-copy";
+import { linkPrefetch } from "~/lib/ui/link-prefetch";
 
 export function BoardStartCard() {
   const start = useCourseStart();
   return (
     <Link
+      prefetch={linkPrefetch()}
       to={start.href}
-      className="group grid border-2 border-ink bg-surface shadow-stamp outline-none transition-colors hover:bg-paper-3 focus-visible:bg-paper-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,260px)]"
+      className="group grid border-2 border-ink bg-surface shadow-stamp transition-colors outline-none hover:bg-paper-3 focus-visible:bg-paper-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,260px)]"
     >
       <span className="grid content-center gap-2 p-4 sm:p-5">
-        <span className="font-display text-[clamp(18px,3vw,24px)] font-extrabold uppercase leading-none tracking-tight text-ink">
+        <span className="font-display text-[clamp(18px,3vw,24px)] leading-none font-extrabold tracking-tight text-ink uppercase">
           Practise it on the board
         </span>
         <span className="text-[14px] leading-snug text-ink-2">
           Learn the Model Town Board level by level, then drive it and get told
-          which rule you broke. Free, no signup.
+          which rule you broke. {freeLabel()}, no account needed.
         </span>
-        <span className="mt-1 inline-flex w-fit items-center gap-2 rounded-soft bg-rush px-3.5 py-2 font-display text-[12.5px] font-bold uppercase tracking-wide text-white">
+        <span className="mt-1 inline-flex w-fit items-center gap-2 rounded-soft bg-rush px-3.5 py-2 font-display text-[12.5px] font-bold tracking-wide text-white uppercase">
           <Icon icon={PlayIcon} size={14} />
           <CourseLabel
             label={start.label}

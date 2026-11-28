@@ -1,10 +1,6 @@
 {
   "note": "AA Driving School (AA Kenya): their own dark green car with yellow squares, copied from the photos of it (scripts/sponsor-art/aa/reference-*.jpg) and their logo. See aa/design.mjs.",
   "design": "aa/design.mjs",
-  "fonts": [
-    "Poppins-Medium.ttf",
-    "Poppins-Bold.ttf",
-    "Poppins-ExtraBold.ttf"
-  ],
+  "fonts": ["Poppins-Medium.ttf", "Poppins-Bold.ttf", "Poppins-ExtraBold.ttf"],
   "colors": { "base": "#0d3b2a" }
 }

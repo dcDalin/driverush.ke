@@ -1,7 +1,8 @@
-import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Slot } from "radix-ui";
+import type * as React from "react";
 
+import { TrafficLoader } from "~/components/brand/traffic-loader";
 import { cn } from "~/lib/utils";
 
 const buttonVariants = cva(
@@ -11,7 +12,7 @@ const buttonVariants = cva(
     // under the pointer and dips a pixel when pressed.
     "group/button inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap select-none",
     "rounded-soft border border-transparent font-sans font-semibold tracking-normal",
-    "outline-none transition-[background-color,border-color,color,transform] duration-150 ease-snap",
+    "transition-[background-color,border-color,color,transform] duration-150 ease-snap outline-none",
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rush",
     "active:translate-y-px",
     "disabled:pointer-events-none disabled:cursor-default disabled:opacity-50",
@@ -89,6 +90,8 @@ const buttonVariants = cva(
 type ButtonProps = React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean;
+    /** Waiting on its action: disabled, marked busy, with the traffic-light loader. */
+    isLoading?: boolean;
   };
 
 function Button({
@@ -96,6 +99,9 @@ function Button({
   variant,
   size,
   asChild = false,
+  isLoading = false,
+  disabled,
+  children,
   ...props
 }: ButtonProps) {
   const Comp = asChild ? Slot.Root : "button";
@@ -106,8 +112,20 @@ function Button({
       data-variant={variant ?? "paper"}
       data-size={size ?? "default"}
       className={cn(buttonVariants({ variant, size, className }))}
+      disabled={disabled || isLoading}
+      aria-busy={isLoading || undefined}
       {...props}
-    />
+    >
+      {/* `asChild` hands its one child to Slot untouched (Slot needs exactly one). */}
+      {asChild ? (
+        children
+      ) : (
+        <>
+          {isLoading && <TrafficLoader size="sm" aria-hidden />}
+          {children}
+        </>
+      )}
+    </Comp>
   );
 }
 

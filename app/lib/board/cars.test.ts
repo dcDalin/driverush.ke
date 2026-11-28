@@ -6,13 +6,13 @@ import { describe, expect, it } from "vitest";
 import { CAR } from "./car";
 import {
   BOARD_CARS,
-  SMALL_CARS,
   carsBeside,
   isBig,
   modelBeside,
   parkedModel,
   resolveCar,
   sizeOf,
+  SMALL_CARS,
 } from "./cars";
 import { BOARD_CHALLENGES } from "./challenges";
 import { taskUsesAngleBay } from "./lessons";
@@ -45,7 +45,7 @@ describe("board cars", () => {
   });
 
   it("survives a roll at the edges and a setting it does not know", () => {
-    expect(resolveCar("random", 1)).toBe(BOARD_CARS[BOARD_CARS.length - 1].id);
+    expect(resolveCar("random", 1)).toBe(BOARD_CARS[BOARD_CARS.length - 1]!.id);
     expect(resolveCar("tractor" as never, 0)).toBe(BOARD_CARS[0].id);
   });
 

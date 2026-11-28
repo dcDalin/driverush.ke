@@ -19,20 +19,22 @@ import {
   FLOOR_Y,
   FURNITURE,
   METRE,
+  onWall,
   ROOM,
   SEAT,
-  WALLS,
   WALL_ITEMS,
-  onWall,
   type WallItemKind,
+  WALLS,
 } from "~/lib/board/room";
-import type { Sponsor } from "~/lib/board/sponsors";
+import type { Sponsor } from "~/lib/board/school-catalog";
 
 const CHART = "/assets/board/room/signs-chart.webp";
 const WALL_H = ROOM.top - FLOOR_Y;
 
-/** The school's stripe rail along the walls, and their gold and red. */
-const RAIL = { y: 10, h: 8, gold: "#f4a20c", red: "#e3271b" };
+/** The stripe rail along the walls: its height, and its colours with no school. */
+const RAIL = { y: 10, h: 8 };
+const PLAIN_RAIL = { gold: "#f4a20c", red: "#e3271b" };
+type RailColours = { gold: string; red: string };
 
 function canvasTexture(
   w: number,
@@ -55,37 +57,40 @@ const row = (y: number, px: number) => ((ROOM.top - y) / WALL_H) * px;
 
 /**
  * The wall's paint, one strip 2 m wide repeated along it: cream above, a
- * grey-green dado to 1 m, a dark skirting, and the stripe rail.
+ * grey-green dado to 1 m, a dark skirting, and the stripe rail in the
+ * school's colours (`Room.rail` repaints it when the school changes).
  */
+function drawWall(ctx: CanvasRenderingContext2D, rail: RailColours) {
+  const W = ctx.canvas.width;
+  const H = ctx.canvas.height;
+  ctx.fillStyle = "#efe7d6";
+  ctx.fillRect(0, 0, W, H);
+  const dado = row(FLOOR_Y + 1.0 * METRE, H);
+  ctx.fillStyle = "#9fb2a2";
+  ctx.fillRect(0, dado, W, H - dado);
+  // a faint wash, so a big wall is not one flat colour
+  const wash = ctx.createLinearGradient(0, 0, 0, H);
+  wash.addColorStop(0, "rgba(255,255,255,0.10)");
+  wash.addColorStop(1, "rgba(0,0,0,0.08)");
+  ctx.fillStyle = wash;
+  ctx.fillRect(0, 0, W, H);
+  // the school's stripe rail
+  const r0 = row(RAIL.y + RAIL.h / 2, H);
+  const r1 = row(RAIL.y - RAIL.h / 2, H);
+  ctx.fillStyle = rail.gold;
+  ctx.fillRect(0, r0, W, r1 - r0);
+  ctx.fillStyle = rail.red;
+  const t = (r1 - r0) / 6;
+  ctx.fillRect(0, r0 + t, W, t);
+  ctx.fillRect(0, r1 - 2 * t, W, t);
+  // skirting
+  const skirt = row(FLOOR_Y + 0.1 * METRE, H);
+  ctx.fillStyle = "#4a4038";
+  ctx.fillRect(0, skirt, W, H - skirt);
+}
+
 function wallPaint() {
-  const W = 256;
-  const H = 512;
-  return canvasTexture(W, H, (ctx) => {
-    ctx.fillStyle = "#efe7d6";
-    ctx.fillRect(0, 0, W, H);
-    const dado = row(FLOOR_Y + 1.0 * METRE, H);
-    ctx.fillStyle = "#9fb2a2";
-    ctx.fillRect(0, dado, W, H - dado);
-    // a faint wash, so a big wall is not one flat colour
-    const wash = ctx.createLinearGradient(0, 0, 0, H);
-    wash.addColorStop(0, "rgba(255,255,255,0.10)");
-    wash.addColorStop(1, "rgba(0,0,0,0.08)");
-    ctx.fillStyle = wash;
-    ctx.fillRect(0, 0, W, H);
-    // the school's stripe rail
-    const r0 = row(RAIL.y + RAIL.h / 2, H);
-    const r1 = row(RAIL.y - RAIL.h / 2, H);
-    ctx.fillStyle = RAIL.gold;
-    ctx.fillRect(0, r0, W, r1 - r0);
-    ctx.fillStyle = RAIL.red;
-    const t = (r1 - r0) / 6;
-    ctx.fillRect(0, r0 + t, W, t);
-    ctx.fillRect(0, r1 - 2 * t, W, t);
-    // skirting
-    const skirt = row(FLOOR_Y + 0.1 * METRE, H);
-    ctx.fillStyle = "#4a4038";
-    ctx.fillRect(0, skirt, W, H - skirt);
-  });
+  return canvasTexture(256, 512, (ctx) => drawWall(ctx, PLAIN_RAIL));
 }
 
 function whiteboard() {
@@ -118,7 +123,7 @@ function whiteboard() {
       [330, 70],
       [330, 128],
       [330, 186],
-    ]) {
+    ] as const) {
       ctx.beginPath();
       ctx.moveTo(x, y);
       ctx.lineTo(x + 120, y);
@@ -209,6 +214,8 @@ export type Room = {
   group: THREE.Group;
   /** The materials a school's pictures go on, by what hangs there. */
   slots: Partial<Record<WallItemKind, THREE.MeshStandardMaterial[]>>;
+  /** Repaints the walls' stripe rail (the school's colours, or none). */
+  rail: (colours: RailColours | null) => void;
 };
 
 /**
@@ -229,8 +236,22 @@ export function buildRoom(cx: number, cz: number): Room {
   // Walls: inner side only.
   const paint = wallPaint();
   paint.wrapS = THREE.RepeatWrapping;
+  // Every wall's map is a clone of one canvas: repainting it repaints all.
+  const wallMaps: THREE.Texture[] = [];
+  let railNow = "";
+  const rail = (colours: RailColours | null) => {
+    const next = colours ?? PLAIN_RAIL;
+    const key = `${next.gold}${next.red}`;
+    const canvas = paint.image as HTMLCanvasElement;
+    const ctx = canvas.getContext("2d");
+    if (key === railNow || !ctx) return;
+    railNow = key;
+    drawWall(ctx, next);
+    for (const map of wallMaps) map.needsUpdate = true;
+  };
   for (const wall of WALLS) {
     const map = paint.clone();
+    wallMaps.push(map);
     map.needsUpdate = true;
     map.repeat.set(wall.length / (2 * METRE), 1);
     const mesh = add(
@@ -388,7 +409,7 @@ export function buildRoom(cx: number, cz: number): Room {
   );
   for (const g of [...wood, ...metal]) g.dispose();
 
-  return { group, slots };
+  return { group, slots, rail };
 }
 
 function wear(material: THREE.MeshStandardMaterial, texture: THREE.Texture) {
@@ -409,8 +430,9 @@ export async function hangSchool(
   small: boolean,
 ): Promise<THREE.Texture[]> {
   const pics = sponsor.room;
+  room.rail(pics?.rail ?? null);
   if (!pics) return [];
-  const loader = new THREE.TextureLoader();
+  const loader = new THREE.TextureLoader().setCrossOrigin("anonymous");
   const load = async (url: string) => {
     const t = await loader.loadAsync(url);
     t.colorSpace = THREE.SRGBColorSpace;
@@ -429,7 +451,7 @@ export async function hangSchool(
   loaded.forEach((result, i) => {
     if (result.status !== "fulfilled") return;
     textures.push(result.value);
-    for (const m of room.slots[jobs[i][0]] ?? []) wear(m, result.value);
+    for (const m of room.slots[jobs[i]![0]] ?? []) wear(m, result.value);
   });
   return textures;
 }

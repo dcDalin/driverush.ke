@@ -8,64 +8,18 @@ import * as React from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router";
 
-import { analytics } from "~/lib/analytics";
-import { BOARD_LEVELS_PATH, levelHref } from "~/lib/board-guides";
-import { BLOCK_SOURCE, RULES_SOURCE, laneRule } from "~/lib/board/board-rules";
-import {
-  COURSE_LEVELS,
-  learnedKey,
-  levelAfter,
-  unitOf,
-  type Level,
-} from "~/lib/board/curriculum";
-import { findSpots, levelSlides } from "~/lib/board/curriculum-content";
-import { RING_R } from "~/lib/board/full-board";
-import { ARMS, OPTION_CODES, type ArmId } from "~/lib/board/geometry";
-import type { Seat } from "~/lib/board/joystick";
-import { pickable, queueCars } from "~/lib/board/lane-queue";
-import {
-  APPROACHES,
-  LESSONS,
-  ROUTE_COLOR,
-  ROUTE_RULES,
-  lessonPlan,
-  lessonWays,
-} from "~/lib/board/lessons";
-import { shownWays, type Way } from "~/lib/board/ways";
-import type { Route } from "~/lib/board/network";
-import { shuffleParkingLayout } from "~/lib/board/parking-layouts";
-import {
-  cam,
-  fitTable,
-  flyTo,
-  redraw,
-  setMarks,
-  useStage,
-} from "~/lib/board/stage";
-import { useBoardStore } from "~/lib/board-store";
-import { cn } from "~/lib/utils";
-
-import { Button } from "~/components/ui/button";
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemMedia,
-  ItemTitle,
-} from "~/components/ui/item";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "~/components/ui/collapsible";
-import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group";
-
 import { LevelCheer } from "~/components/board/board-cheer";
-import { useOpenLevels } from "~/components/board/levels-sheet-context";
-import { LevelTestNote } from "~/components/board/level-test-note";
-import { DailyDriveLink } from "~/components/board/daily-drive-row";
+import {
+  BoardPlayback,
+  routeLines,
+  StepTags,
+  UNSURE_NOTE,
+} from "~/components/board/board-playback";
 import { BoardSpotPicks } from "~/components/board/board-spot-picks";
+import { DailyDriveLink } from "~/components/board/daily-drive-row";
+import { LevelTestNote } from "~/components/board/level-test-note";
+import { useOpenLevels } from "~/components/board/levels-sheet-context";
+import { useParkingLayout } from "~/components/board/use-parking-layout";
 import { Icon } from "~/components/brand/icon";
 import {
   ArrowRightIcon,
@@ -77,13 +31,58 @@ import {
   PlayIcon,
   SettingsIcon,
 } from "~/components/brand/icons";
+import { Button } from "~/components/ui/button";
 import {
-  BoardPlayback,
-  StepTags,
-  UNSURE_NOTE,
-  routeLines,
-} from "~/components/board/board-playback";
-import { useParkingLayout } from "~/components/board/use-parking-layout";
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "~/components/ui/collapsible";
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+} from "~/components/ui/item";
+import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group";
+import { analytics } from "~/lib/analytics";
+import { BLOCK_SOURCE, laneRule, RULES_SOURCE } from "~/lib/board/board-rules";
+import {
+  COURSE_LEVELS,
+  learnedKey,
+  type Level,
+  levelAfter,
+  unitOf,
+} from "~/lib/board/curriculum";
+import { findSpots, levelSlides } from "~/lib/board/curriculum-content";
+import { RING_R } from "~/lib/board/full-board";
+import { type ArmId, ARMS, OPTION_CODES } from "~/lib/board/geometry";
+import type { Seat } from "~/lib/board/joystick";
+import { pickable, queueCars } from "~/lib/board/lane-queue";
+import {
+  APPROACHES,
+  lessonPlan,
+  LESSONS,
+  lessonWays,
+  ROUTE_COLOR,
+  ROUTE_RULES,
+} from "~/lib/board/lessons";
+import type { Route } from "~/lib/board/network";
+import { shuffleParkingLayout } from "~/lib/board/parking-layouts";
+import {
+  cam,
+  fitTable,
+  flyTo,
+  redraw,
+  setMarks,
+  useStage,
+} from "~/lib/board/stage";
+import { shownWays, type Way } from "~/lib/board/ways";
+import { BOARD_LEVELS_PATH, levelHref } from "~/lib/board-guides";
+import { useBoardStore } from "~/lib/board-store";
+import { linkPrefetch } from "~/lib/ui/link-prefetch";
+import { cn } from "~/lib/utils";
 
 const eyebrow =
   "m-0 font-mono text-[10px] font-bold uppercase tracking-widest text-white/55";
@@ -154,7 +153,7 @@ export function LevelNext({
     <PanelActions>
       {next && (
         <Button variant="game-gold" asChild className={primary}>
-          <Link to={levelHref(next.id)} replace>
+          <Link prefetch={linkPrefetch()} to={levelHref(next.id)} replace>
             <span className="min-w-0">
               {next.kind === "mock"
                 ? "Next: the mock test"
@@ -172,7 +171,7 @@ export function LevelNext({
           </Button>
         ) : (
           <Button variant="game-link" asChild className={quiet}>
-            <Link to={BOARD_LEVELS_PATH} replace>
+            <Link prefetch={linkPrefetch()} to={BOARD_LEVELS_PATH} replace>
               All levels
             </Link>
           </Button>
@@ -192,7 +191,7 @@ function SkipOn({ level }: { level: Level }) {
         You have done this level before.
       </p>
       <Button variant="game-outline" asChild className={secondary}>
-        <Link to={levelHref(next.id)} replace>
+        <Link prefetch={linkPrefetch()} to={levelHref(next.id)} replace>
           {next.kind === "mock"
             ? "Go to the mock test"
             : `Go to level ${next.n}`}
@@ -225,7 +224,7 @@ function DoneNote({ children }: { children: React.ReactNode }) {
   return (
     <p
       role="status"
-      className="m-0 flex items-center gap-2 text-[14px] font-bold leading-snug text-white"
+      className="m-0 flex items-center gap-2 text-[14px] leading-snug font-bold text-white"
     >
       <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-kenya-green text-kenya-green-foreground">
         <Icon icon={CheckIcon} size={14} />
@@ -262,7 +261,7 @@ function RouteSteps({ route, step }: { route: Route; step: number }) {
               <ItemContent>
                 <ItemTitle>
                   {s.title}
-                  <span className="ml-1.5 inline-flex gap-1 align-middle font-mono text-[9.5px] font-bold uppercase tracking-widest">
+                  <span className="ml-1.5 inline-flex gap-1 align-middle font-mono text-[9.5px] font-bold tracking-widest uppercase">
                     <StepTags step={s} />
                   </span>
                 </ItemTitle>
@@ -375,7 +374,7 @@ function SlidesLevel({
           className="rounded-md border-2 border-[#f6c416] bg-white/5 p-3"
         >
           <p className={eyebrow}>Find it on the board</p>
-          <h3 className="m-0 mt-1 text-[17px] font-bold leading-snug">
+          <h3 className="m-0 mt-1 text-[17px] leading-snug font-bold">
             Which pin is on: {target.name}?
           </h3>
           <p className="m-0 mt-1.5 text-[14px] leading-snug text-white/85">
@@ -412,7 +411,7 @@ function SlidesLevel({
         <p className={eyebrow}>
           {at + 1} of {cards.length}
         </p>
-        <h3 className="m-0 mt-1 text-[17px] font-bold leading-snug">
+        <h3 className="m-0 mt-1 text-[17px] leading-snug font-bold">
           {card.title}
         </h3>
         <p className="m-0 mt-1.5 text-[14px] leading-snug text-white/85">
@@ -420,6 +419,7 @@ function SlidesLevel({
         </p>
         {card.sign && (
           <Link
+            prefetch={linkPrefetch()}
             to={card.sign.to}
             className="mt-2 inline-flex min-h-11 items-center gap-1 text-[13px] font-bold text-kenya-gold underline-offset-4 hover:underline"
           >
@@ -427,7 +427,7 @@ function SlidesLevel({
             <Icon icon={ArrowRightIcon} size={13} />
           </Link>
         )}
-        <p className="m-0 mt-2 font-mono text-[10px] uppercase tracking-widest text-white/50">
+        <p className="m-0 mt-2 font-mono text-[10px] tracking-widest text-white/50 uppercase">
           {card.block ? BLOCK_SOURCE : `${RULES_SOURCE}, Unit 3`}
         </p>
       </div>
@@ -459,7 +459,8 @@ function SlidesLevel({
             </Button>
             <Button
               variant="game-gold"
-              className={primary}
+              // The room the back button leaves, never the whole row.
+              className={cn(primary, "w-auto min-w-0 flex-1")}
               onClick={() => {
                 if (!last) {
                   setAt((n) => n + 1);
@@ -487,7 +488,7 @@ function SlidesLevel({
           </div>
           {done && after && (
             <Button variant="game-link" asChild className={quiet}>
-              <Link to={levelHref(after.id)} replace>
+              <Link prefetch={linkPrefetch()} to={levelHref(after.id)} replace>
                 Done before. Skip to level {after.n}
               </Link>
             </Button>
@@ -579,7 +580,7 @@ function LanesLevel({
         variant="game"
         size="sm"
         className={cn(
-          "flex-nowrap text-[13.5px] font-semibold leading-snug",
+          "flex-nowrap text-[13.5px] leading-snug font-semibold",
           canTake && "border-game-gold/70",
           // On a phone the panel has half the screen: one line per car.
           compact && "max-sm:min-h-10 max-sm:py-1.5",
@@ -601,7 +602,7 @@ function LanesLevel({
           <ItemContent className="gap-0">
             <ItemTitle className="font-semibold">
               {compact && (
-                <span className="block font-mono text-[10px] font-bold uppercase tracking-widest text-white/55 max-sm:mr-1.5 max-sm:inline">
+                <span className="block font-mono text-[10px] font-bold tracking-widest text-white/55 uppercase max-sm:mr-1.5 max-sm:inline">
                   Lane {car.lane}
                 </span>
               )}
@@ -636,11 +637,11 @@ function LanesLevel({
                 <span className="sr-only">Home</span>
               </span>
             ) : canTake ? (
-              <span className="shrink-0 rounded-[4px] bg-game-gold px-2 py-1 font-mono text-[10.5px] font-bold uppercase leading-none tracking-widest text-game-gold-foreground">
+              <span className="shrink-0 rounded-[4px] bg-game-gold px-2 py-1 font-mono text-[10.5px] leading-none font-bold tracking-widest text-game-gold-foreground uppercase">
                 Drive
               </span>
             ) : (
-              <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-widest text-white/55">
+              <span className="shrink-0 font-mono text-[10px] font-bold tracking-widest text-white/55 uppercase">
                 Waiting
               </span>
             )}
@@ -660,7 +661,7 @@ function LanesLevel({
       {!allHome && (
         <div className="grid gap-2 rounded-md border-2 border-[#f6c416] bg-white/5 p-3 max-sm:gap-1.5 max-sm:p-2.5">
           <p className={cn(eyebrow, "max-sm:hidden")}>Do this</p>
-          <p className="m-0 text-[14.5px] font-semibold leading-snug text-white max-sm:text-[14px]">
+          <p className="m-0 text-[14.5px] leading-snug font-semibold text-white max-sm:text-[14px]">
             {/* One line on a phone, so the panel fits a short screen. */}
             <span className="max-sm:hidden">
               Drive each car to its place. Tap a car marked Drive, here or on
@@ -716,7 +717,7 @@ function LanesLevel({
         {(only ?? Array.from({ length: lanes }, (_, i) => i + 1)).map(
           (lane) => (
             <section key={lane} aria-label={`Lane ${lane}`}>
-              <p className="m-0 text-[13px] font-semibold leading-snug text-white/80">
+              <p className="m-0 text-[13px] leading-snug font-semibold text-white/80">
                 {laneRule(lanes, lane)}
               </p>
               <ul className="m-0 mt-1.5 grid list-none gap-1.5 p-0">
@@ -822,7 +823,9 @@ function WatchLevel({
 
   // Before Play, every way lies on the table, the chosen one brightest.
   React.useEffect(() => {
-    if (route) show(routeLines(route, step, wayColor(ways[played] ?? ways[0])));
+    // a route only plays from one of the ways, so there is at least one
+    if (route)
+      show(routeLines(route, step, wayColor((ways[played] ?? ways[0])!)));
     else if (line) {
       show([
         ...ways
@@ -835,7 +838,12 @@ function WatchLevel({
             width: 1.2,
             opacity: 0.35,
           })),
-        { id: "whole", points: line.points, color: wayColor(chosen), width: 2 },
+        {
+          id: "whole",
+          points: line.points,
+          color: wayColor(chosen!),
+          width: 2,
+        },
       ]);
       fitTable();
     }
@@ -887,10 +895,10 @@ function WatchLevel({
               style={{ background: wayColor(way) }}
             />
             <span className="min-w-0 flex-1">
-              <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-white/55">
+              <span className="font-mono text-[10px] font-bold tracking-widest text-white/55 uppercase">
                 Way {i + 1}
               </span>{" "}
-              {wayLabel(way, ways[0])}
+              {wayLabel(way, ways[0]!)}
             </span>
           </ToggleGroupItem>
         ))}
@@ -908,11 +916,11 @@ function WatchLevel({
       )}
       <div>
         <p className={eyebrow}>The examiner might say</p>
-        <p className="m-0 mt-1 text-[14.5px] font-semibold leading-snug">
+        <p className="m-0 mt-1 text-[14.5px] leading-snug font-semibold">
           {lesson.ask}
         </p>
         {rule && (
-          <p className="m-0 mt-1.5 text-[13px] font-semibold leading-snug text-kenya-gold">
+          <p className="m-0 mt-1.5 text-[13px] leading-snug font-semibold text-kenya-gold">
             {rule.name}. {rule.says}
           </p>
         )}
@@ -968,7 +976,11 @@ function WatchLevel({
             </Button>
             {done && levelAfter(level) && (
               <Button variant="game-link" asChild className={quiet}>
-                <Link to={levelHref(levelAfter(level)!.id)} replace>
+                <Link
+                  prefetch={linkPrefetch()}
+                  to={levelHref(levelAfter(level)!.id)}
+                  replace
+                >
                   Done before. Skip to level {levelAfter(level)!.n}
                 </Link>
               </Button>
@@ -1043,14 +1055,14 @@ export function BoardLevel({
       <section
         ref={panel}
         aria-label={`Level ${level.n}: ${level.title}`}
-        className="dr-rise pointer-events-auto flex max-h-[54dvh] w-full flex-col border-t-2 border-white/15 bg-[#101114]/95 pb-[env(safe-area-inset-bottom)] text-white sm:h-full sm:max-h-none sm:w-[23.5rem] sm:border-r-2 sm:border-t-0"
+        className="dr-rise pointer-events-auto flex max-h-[54dvh] w-full flex-col border-t-2 border-white/15 bg-[#101114]/95 pb-[env(safe-area-inset-bottom)] text-white sm:h-full sm:max-h-none sm:w-[23.5rem] sm:border-t-0 sm:border-r-2"
       >
         <header className="flex items-start justify-between gap-2 px-3.5 pt-3">
           <div className="min-w-0">
             <p className={eyebrow}>
               Level {level.n} of {COURSE_LEVELS.length} · {unit.title}
             </p>
-            <h2 className="m-0 mt-1 font-display text-[19px] font-extrabold uppercase leading-[1.05] tracking-tight">
+            <h2 className="m-0 mt-1 font-display text-[19px] leading-[1.05] font-extrabold tracking-tight uppercase">
               {level.title}
             </h2>
           </div>
@@ -1103,7 +1115,7 @@ export function BoardLevel({
         {/* The one thing to do next, never scrolled away. Empty, it takes no room. */}
         <div
           ref={setFoot}
-          className="grid shrink-0 gap-1.5 border-t-2 border-white/10 px-3.5 pb-3 pt-3 empty:hidden"
+          className="grid shrink-0 gap-1.5 border-t-2 border-white/10 px-3.5 pt-3 pb-3 empty:hidden"
         />
       </section>
     </div>

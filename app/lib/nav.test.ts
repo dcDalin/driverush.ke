@@ -23,6 +23,10 @@ describe("which tab a page belongs to", () => {
   it("hides the bar in the game and the tools, and nowhere else", () => {
     expect(tabBarHidden("/model-town-board/play")).toBe(true);
     expect(tabBarHidden("/tools/sign-3d")).toBe(true);
+    // The dashboards have their own menu; the list of schools does not.
+    expect(tabBarHidden("/console/schools")).toBe(true);
+    expect(tabBarHidden("/school/8a8d6f0e/students")).toBe(true);
+    expect(tabBarHidden("/school")).toBe(false);
     expect(tabBarHidden("/model-town-board")).toBe(false);
     expect(tabBarHidden("/road-signs/pelican")).toBe(false);
   });

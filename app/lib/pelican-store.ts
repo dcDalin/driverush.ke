@@ -13,34 +13,28 @@ import {
   type StateStorage,
 } from "zustand/middleware";
 
+import { analytics } from "./analytics";
 import {
-  orderRegions,
   type FocusRegion,
   type ImageFocusData,
+  orderRegions,
   type SignCategoryId,
 } from "./image-focus";
+import { missTip } from "./miss-tips";
+import {
+  applyGrade,
+  boxOf,
+  type GradeResult,
+  isMastered,
+  LEGACY_PROGRESS_KEY,
+  type SignProgress,
+} from "./pelican-progress";
 import {
   DEFAULT_PELICAN_SETTINGS,
   normalizeSettings,
   type PelicanUserSettings,
 } from "./pelican-settings";
-import {
-  applyGrade,
-  boxOf,
-  isMastered,
-  LEGACY_PROGRESS_KEY,
-  type GradeResult,
-  type SignProgress,
-} from "./pelican-progress";
-import { analytics } from "./analytics";
-import { missTip } from "./miss-tips";
 import { bumpPracticeStreak } from "./practice-streak";
-import {
-  defaultScope,
-  pickRound,
-  runTally,
-  type RunScope,
-} from "./trainer-rounds";
 import {
   BUZZ,
   buzz,
@@ -51,6 +45,12 @@ import {
   warmSfx,
   warmVoice,
 } from "./sounds";
+import {
+  defaultScope,
+  pickRound,
+  type RunScope,
+  runTally,
+} from "./trainer-rounds";
 
 // ---------------------------------------------------------------------------
 // module-scope engine bits (one trainer instance — fine to keep these here)
@@ -100,7 +100,10 @@ function buildQueue(
   }
   if (scope.kind === "drill") {
     const ids = new Set(scope.ids);
-    return ordered((board?.regions ?? []).filter((r) => ids.has(r.id)), s);
+    return ordered(
+      (board?.regions ?? []).filter((r) => ids.has(r.id)),
+      s,
+    );
   }
   const pool = practiceRegions(board, scope.categories ?? s.categories);
   return pickRound(ordered(pool, s), progress);
@@ -379,7 +382,7 @@ export const usePelicanStore = create<PelicanState>()(
         const scope = requested ?? defaultScope(settings.selfGrading);
         const queue = buildQueue(board, settings, scope, progress);
         if (queue.length === 0) return; // nothing to play — leave the ready card up
-        
+
         set({
           queue,
           pos: 0,

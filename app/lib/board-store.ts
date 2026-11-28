@@ -12,55 +12,54 @@ import {
 } from "zustand/middleware";
 
 import { analytics } from "./analytics";
+import type { BoardCarSetting } from "./board/cars";
 import {
   BOARD_CHALLENGES,
   BOARD_ROUND_SIZE,
+  type BoardChallenge,
   FREE_DRIVE,
   hasParkedCars,
   isFreeDrive,
-  type BoardChallenge,
 } from "./board/challenges";
-import { learnedKey, levelById, unitOf, type Level } from "./board/curriculum";
+import { learnedKey, type Level, levelById, unitOf } from "./board/curriculum";
 import type { ArmId } from "./board/geometry";
+import type { Seat } from "./board/joystick";
 import {
   pickable,
   queueCars,
   queueChallenge,
   type QueuePose,
 } from "./board/lane-queue";
+import { challengeRoute, ROUTE_COLOR, taskParks } from "./board/lessons";
 import { shuffleParkingLayout } from "./board/parking-layouts";
-import { ROUTE_COLOR, challengeRoute, taskParks } from "./board/lessons";
-import { STOPS_ALWAYS, type Fault, type FaultId } from "./board/referee";
+import { type Fault, type FaultId, STOPS_ALWAYS } from "./board/referee";
 import {
   beginChallenge,
   car,
   deviation,
-  drive,
   drivenMetres,
-  judging,
   elapsedSeconds,
   goalWay,
   hasMoved,
+  judging,
   setBack,
   stopDriving,
   trail,
 } from "./board/runtime";
-import type { BoardCarSetting } from "./board/cars";
-import type { Seat } from "./board/joystick";
+import {
+  beats,
+  type BestScore,
+  OFF_ROUTE_SCORE,
+  parSeconds,
+  SCORE_VERSION,
+  scoreFor,
+} from "./board/score";
 import {
   fitTable,
   forgetDriveZoom,
   releaseCamera,
   useStage,
 } from "./board/stage";
-import {
-  OFF_ROUTE_SCORE,
-  SCORE_VERSION,
-  beats,
-  parSeconds,
-  scoreFor,
-  type BestScore,
-} from "./board/score";
 import { FIRST_DRIVE } from "./board/warmup";
 import { applyGrade, type SignProgress } from "./pelican-progress";
 import { bumpPracticeStreak, dayKey } from "./practice-streak";
@@ -90,12 +89,7 @@ export const DEFAULT_BOARD_SETTINGS: BoardSettings = {
 
 /** "watch" is the drive paused while the right way is played back. */
 export type BoardPhase =
-  | "ready"
-  | "driving"
-  | "fault"
-  | "watch"
-  | "passed"
-  | "complete";
+  "ready" | "driving" | "fault" | "watch" | "passed" | "complete";
 
 /**
  * Driving the tasks, learning the board with no task on, or a level of the
@@ -726,10 +720,10 @@ export const useBoardStore = create<BoardState>()(
           const points = picked.option.route.points;
           let from = 0;
           for (let i = 1; i < points.length; i += 1) {
-            const d = Math.hypot(points[i].x - car.x, points[i].z - car.z);
+            const d = Math.hypot(points[i]!.x - car.x, points[i]!.z - car.z);
             const best = Math.hypot(
-              points[from].x - car.x,
-              points[from].z - car.z,
+              points[from]!.x - car.x,
+              points[from]!.z - car.z,
             );
             if (d < best) from = i;
             else if (d > best + 8) break;

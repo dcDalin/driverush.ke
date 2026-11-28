@@ -10,21 +10,20 @@
  */
 import * as React from "react";
 
+import { Icon } from "~/components/brand/icon";
+import { ShareIcon } from "~/components/brand/icons";
+import { Button } from "~/components/ui/button";
 import { analytics } from "~/lib/analytics";
 import {
+  forgetPrompt,
   heldPrompt,
+  type InstallEvent,
   installSettled,
   isInstalled,
   onPromptChange,
   settleInstall,
-  forgetPrompt,
-  type InstallEvent,
 } from "~/lib/install";
 import { cn } from "~/lib/utils";
-
-import { Icon } from "~/components/brand/icon";
-import { ShareIcon } from "~/components/brand/icons";
-import { Button } from "~/components/ui/button";
 
 /**
  * Safari on an iPhone or iPad, where Share has "Add to Home Screen". Other
@@ -96,7 +95,7 @@ export function InstallNudge({
       )}
     >
       {way.kind === "prompt" ? (
-        <p className="m-0 min-w-0 flex-1 basis-48 text-[14px] font-semibold leading-snug text-ink">
+        <p className="m-0 min-w-0 flex-1 basis-48 text-[14px] leading-snug font-semibold text-ink">
           Keep DriveRush on your home screen, one tap from your next level.
         </p>
       ) : (

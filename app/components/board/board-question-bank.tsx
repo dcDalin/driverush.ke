@@ -4,17 +4,16 @@
  * sit in native `<details>`, so they open without JavaScript and search
  * engines read them. Each topic ends with the course level that teaches it.
  */
+import { UNSURE_NOTE } from "~/components/board/board-playback";
+import { Accordion, AccordionItem } from "~/components/brand/accordion";
+import { MDX } from "~/components/brand/mdx-components";
 import {
   BOARD_QUESTIONS,
   BOARD_TOPICS,
   boardQuestionsIn,
 } from "~/data/board-questions";
-import { levelHref } from "~/lib/board-guides";
 import { COURSE_LEVELS } from "~/lib/board/curriculum";
-
-import { UNSURE_NOTE } from "~/components/board/board-playback";
-import { Accordion, AccordionItem } from "~/components/brand/accordion";
-import { MDX } from "~/components/brand/mdx-components";
+import { levelHref } from "~/lib/board-guides";
 
 export const BOARD_QUESTION_COUNT = BOARD_QUESTIONS.length;
 
@@ -40,7 +39,7 @@ export function BoardQuestionBank() {
                       {UNSURE_NOTE}
                     </p>
                   ) : null}
-                  <p className="m-0 mt-2 font-mono text-[10.5px] uppercase tracking-widest text-ink-3">
+                  <p className="m-0 mt-2 font-mono text-[10.5px] tracking-widest text-ink-3 uppercase">
                     {question.source}
                   </p>
                 </AccordionItem>

@@ -8,12 +8,12 @@
  * apply (83 signs, free with no signup, NTSA's own fees, no ranking of schools).
  */
 import { getAllPosts } from "~/lib/blog";
+import { COURSE_LEVELS } from "~/lib/board/curriculum";
 import {
   BOARD_GUIDES,
   BOARD_LEVELS_PATH,
   BOARD_PATH,
 } from "~/lib/board-guides";
-import { COURSE_LEVELS } from "~/lib/board/curriculum";
 import { DRIVING_SCHOOL_PAGES } from "~/lib/driving-school-pages";
 import {
   NTSA_QUESTIONS_DESCRIPTION,

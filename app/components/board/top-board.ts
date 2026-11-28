@@ -1,7 +1,7 @@
 /**
  * The name board on a school car's roof: the yellow board Kenyan driving
  * school cars carry, standing across the car so it reads from in front and
- * from behind. The learner's car wears its school's (`~/lib/board/sponsors`).
+ * from behind. The learner's car wears its school's (`~/lib/board/school-catalog`).
  *
  * Where it stands comes from the car's own file (`roof`, written by
  * `scripts/build-car-wrap.mjs`); a car without it gets no board. The art is
@@ -10,7 +10,7 @@
 import * as THREE from "three";
 
 import type { CarModel } from "~/components/board/car-model";
-import type { TopBoard } from "~/lib/board/sponsors";
+import type { TopBoard } from "~/lib/board/school-catalog";
 
 const NAME = "top-board";
 /** How thick the board is, and how far its foot lifts it off the roof. */

@@ -10,20 +10,6 @@
  */
 import * as React from "react";
 
-import { analytics } from "~/lib/analytics";
-import { COURSE_LEVELS } from "~/lib/board/curriculum";
-import {
-  daysBetween,
-  isDay,
-  today,
-  type TestCardStage,
-  type TestRecord,
-  type TestResult,
-} from "~/lib/test-date";
-import { planPromise, testPlan } from "~/lib/test-plan";
-import { googleCalendarUrl, ICS_NAME, icsHref } from "~/lib/test-reminder";
-import { cn } from "~/lib/utils";
-
 import { ProudShare } from "~/components/board/proud-share";
 import { Icon } from "~/components/brand/icon";
 import { CalendarIcon } from "~/components/brand/icons";
@@ -34,6 +20,19 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "~/components/ui/popover";
+import { analytics } from "~/lib/analytics";
+import { COURSE_LEVELS } from "~/lib/board/curriculum";
+import {
+  daysBetween,
+  isDay,
+  type TestCardStage,
+  type TestRecord,
+  type TestResult,
+  today,
+} from "~/lib/test-date";
+import { planPromise, testPlan } from "~/lib/test-plan";
+import { googleCalendarUrl, ICS_NAME, icsHref } from "~/lib/test-reminder";
+import { cn } from "~/lib/utils";
 
 /** Layout for a quiet Button: a thumb high, a little room either side. */
 const linkButton = "px-3 text-[13.5px]";
@@ -44,7 +43,7 @@ const card =
 /** "3 Dec", the way the test day is said back. */
 function shortDay(day: string): string {
   const [y, m, d] = day.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString("en-KE", {
+  return new Date(y!, m! - 1, d).toLocaleDateString("en-KE", {
     day: "numeric",
     month: "short",
   });
@@ -53,7 +52,7 @@ function shortDay(day: string): string {
 /** A day as "2026-12-03" and back, in the learner's own time zone. */
 function dayToDate(day: string): Date {
   const [y, m, d] = day.split("-").map(Number);
-  return new Date(y, m - 1, d);
+  return new Date(y!, m! - 1, d);
 }
 function dateToDay(date: Date): string {
   const mm = String(date.getMonth() + 1).padStart(2, "0");
@@ -216,7 +215,7 @@ export function TestCard({
   if (thanks) {
     return (
       <div className={shell} role="status">
-        <p className="m-0 min-w-0 flex-1 basis-48 text-[14px] font-semibold leading-snug text-ink">
+        <p className="m-0 min-w-0 flex-1 basis-48 text-[14px] leading-snug font-semibold text-ink">
           {thanks.text}
         </p>
         {thanks.remind && <Reminder record={thanks.remind} now={now} />}
@@ -246,7 +245,7 @@ export function TestCard({
     };
     return (
       <div className={shell}>
-        <p className="m-0 min-w-0 flex-1 basis-48 text-[14px] font-semibold leading-snug text-ink">
+        <p className="m-0 min-w-0 flex-1 basis-48 text-[14px] leading-snug font-semibold text-ink">
           Your NTSA test was on {shortDay(record.date)}. How did it go?
         </p>
         <span className="flex flex-wrap items-center gap-1">

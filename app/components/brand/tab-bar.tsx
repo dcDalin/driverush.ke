@@ -6,18 +6,19 @@
  */
 import { Link, useLocation } from "react-router";
 
-import { analytics } from "~/lib/analytics";
-import { SITE_TABS, activeTab, tabBarHidden } from "~/lib/nav";
-import { cn } from "~/lib/utils";
-
 import { Icon } from "~/components/brand/icon";
 import {
   BookIcon,
   HomeIcon,
+  type IconDef,
   RoadIcon,
   WarningIcon,
-  type IconDef,
 } from "~/components/brand/icons";
+import { useActiveTab } from "~/components/brand/use-active-tab";
+import { analytics } from "~/lib/analytics";
+import { SITE_TABS, tabBarHidden } from "~/lib/nav";
+import { linkPrefetch } from "~/lib/ui/link-prefetch";
+import { cn } from "~/lib/utils";
 
 const ICONS: Record<(typeof SITE_TABS)[number]["id"], IconDef> = {
   home: HomeIcon,
@@ -28,8 +29,8 @@ const ICONS: Record<(typeof SITE_TABS)[number]["id"], IconDef> = {
 
 export function TabBar() {
   const { pathname } = useLocation();
+  const current = useActiveTab();
   if (tabBarHidden(pathname)) return null;
-  const current = activeTab(pathname);
   return (
     <>
       {/* Holds the page clear of the bar. */}
@@ -47,13 +48,14 @@ export function TabBar() {
             return (
               <li key={tab.id}>
                 <Link
+                  prefetch={linkPrefetch()}
                   to={tab.href}
                   aria-current={on ? "page" : undefined}
                   onClick={() =>
                     analytics.navTabClicked({ tab: tab.id, from: pathname })
                   }
                   className={cn(
-                    "relative flex h-[3.75rem] flex-col items-center justify-center gap-1 text-[11px] font-medium outline-none transition-colors focus-visible:bg-paper-2",
+                    "relative flex h-[3.75rem] flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors outline-none focus-visible:bg-paper-2",
                     on
                       ? "text-ink before:absolute before:inset-x-3 before:-top-0.5 before:h-[3px] before:bg-rush"
                       : "text-ink-3 hover:text-ink",

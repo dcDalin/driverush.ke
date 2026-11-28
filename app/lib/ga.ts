@@ -20,8 +20,9 @@
  *
  * Never measured on `/tools`, in a browser driven by a script (the promo
  * video recorder), or in one that says it is headless or a bot. Bots and
- * data-centre browsers are also stopped on the server, before this script is
- * sent at all (`bot-traffic.ts`, through the root loader). Outside a
+ * data-centre browsers are also stopped by the server: pages are prerendered,
+ * the same for everyone, so the head script asks `/api/visit` once a visit
+ * (`bot-traffic.ts` reads the address) and measures only after a yes. Outside a
  * production build every hit is in debug mode, so it shows in the dev
  * property's DebugView. Two switches, both sticky:
  *
@@ -34,7 +35,7 @@
  * Consent: no banner. There are no ads, so analytics storage is granted and
  * every advertising signal is denied, and Google signals are off.
  */
-import type { PageMeta } from "./page-meta";
+import { KEEP_PARAMS, type PageMeta } from "./page-meta";
 
 /** This environment's GA property. `undefined` turns GA off. */
 export const GA_MEASUREMENT_ID: string | undefined =
@@ -44,8 +45,12 @@ export const GA_MEASUREMENT_ID: string | undefined =
 const ALWAYS_DEBUG = !import.meta.env.PROD;
 const DEBUG_KEY = "dr:ga_debug";
 const INTERNAL_KEY = "dr:internal";
+/** The server's answer to "measure this visit?", kept for the tab. */
+const MEASURE_KEY = "dr:measure";
+/** Asked once a visit: is this browser a bot or in a data centre? */
+export const VISIT_CHECK_PATH = "/api/visit";
 
-/** The landing page, worked out on the server for the head script. */
+/** A page as GA reports it: its labels and its cleaned address. */
 export type GaLanding = PageMeta & {
   /** `pathname + search` with only the keys worth reporting (`cleanPath`). */
   path: string;
@@ -53,18 +58,24 @@ export type GaLanding = PageMeta & {
 
 /**
  * The inline `<head>` script. Put it after `<Meta />` so `document.title` is
- * already the page's own. Everything is in one try: analytics must never
- * break a page.
+ * already the page's own. Everything is in a try: analytics must never break
+ * a page. The page's labels come from the route, the same for every visitor,
+ * so the script can be prerendered; its address, with only the query keys
+ * worth reporting (`KEEP_PARAMS`), is read from `location`.
  */
 export function gaHeadScript(
-  landing: GaLanding,
+  page: PageMeta,
   measurementId: string | undefined = GA_MEASUREMENT_ID,
 ): string {
   if (!measurementId) return "";
-  // `<` escaped so a path can't close the script tag.
-  const page = JSON.stringify(landing).replace(/</g, "\\u003c");
+  // `<` escaped so a label can't close the script tag.
+  const labels = JSON.stringify({
+    content_group: page.content_group,
+    page_template: page.page_template,
+  }).replace(/</g, "\\u003c");
+  const keep = JSON.stringify([...KEEP_PARAMS]);
   return `(function(){try{
-var P=${page},I=${JSON.stringify(measurementId)},w=window,l=location,d=document;
+var P=${labels},K=${keep},I=${JSON.stringify(measurementId)},w=window,l=location,d=document;
 var q=new URLSearchParams(l.search),s=sessionStorage,ls=localStorage;
 var g=q.get('ga_debug');if(g==='1')s.setItem('${DEBUG_KEY}','1');else if(g==='0')s.removeItem('${DEBUG_KEY}');
 var n=q.get('internal');if(n==='1')ls.setItem('${INTERNAL_KEY}','1');else if(n==='0')ls.removeItem('${INTERNAL_KEY}');
@@ -73,6 +84,8 @@ var nv=navigator;if(nv.webdriver)return;
 if(/headless|[^u]bot\\b|crawl|spider|lighthouse|pagespeed|puppeteer|playwright|phantomjs|selenium/i.test(nv.userAgent))return;
 try{if(nv.userAgentData&&nv.userAgentData.brands.some(function(b){return /headless/i.test(b.brand)}))return;}catch(e){}
 if(/^\\/tools(\\/|$)/.test(l.pathname))return;
+var kp=new URLSearchParams();q.forEach(function(v,k){if(K.indexOf(k)>=0)kp.append(k,v)});P.path=l.pathname+(kp.toString()?'?'+kp.toString():'');
+function go(){try{
 w.dataLayer=w.dataLayer||[];
 function gtag(){w.dataLayer.push(arguments);}
 w.gtag=gtag;w.__drGa={debug:dbg,page:{content_group:P.content_group,page_template:P.page_template}};
@@ -87,6 +100,9 @@ var v={page_location:l.origin+P.path,page_title:d.title,page_referrer:d.referrer
 gtag('set',{page_location:v.page_location,page_title:v.page_title,page_referrer:v.page_referrer});gtag('event','page_view',v);
 if(P.content_group==='Not found')gtag('event','page_not_found',{missing_path:l.pathname});
 var e=d.createElement('script');e.async=true;e.src='https://www.googletagmanager.com/gtag/js?id='+I;d.head.appendChild(e);
+}catch(e){}}
+var m=s.getItem('${MEASURE_KEY}');if(m==='1')return go();if(m==='0')return;
+fetch('${VISIT_CHECK_PATH}',{credentials:'omit'}).then(function(r){return r.json()}).then(function(v){s.setItem('${MEASURE_KEY}',v.measure?'1':'0');if(v.measure)go();}).catch(function(){});
 }catch(e){}})();`;
 }
 

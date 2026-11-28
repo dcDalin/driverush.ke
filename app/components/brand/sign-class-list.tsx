@@ -6,16 +6,16 @@
  */
 import { Link } from "react-router";
 
+import { Accordion, AccordionItem } from "~/components/brand/accordion";
+import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
 import { regionSpriteStyle, SIGN_CATEGORIES } from "~/lib/image-focus";
 import { isDue, MASTERED_BOX, type SignProgress } from "~/lib/pelican-progress";
 import { CHART_SRC, SIGN_PAGES, signPagePath } from "~/lib/road-sign-pages";
 import { signClassPage } from "~/lib/sign-class-pages";
 import { trainerHref } from "~/lib/trainer-rounds";
+import { linkPrefetch } from "~/lib/ui/link-prefetch";
 import { useSignProgress } from "~/lib/use-sign-progress";
-
-import { Badge } from "~/components/ui/badge";
-import { Button } from "~/components/ui/button";
-import { Accordion, AccordionItem } from "~/components/brand/accordion";
 
 const THUMB_PAD = 0;
 
@@ -47,11 +47,11 @@ export function SignClassList() {
             <span className="flex flex-1 items-center gap-2.5">
               <span
                 aria-hidden
-                className="size-7 shrink-0 border border-line bg-white rounded-md"
-                style={regionSpriteStyle(signs[0].crop, CHART_SRC, THUMB_PAD)}
+                className="size-7 shrink-0 rounded-md border border-line bg-white"
+                style={regionSpriteStyle(signs[0]!.crop, CHART_SRC, THUMB_PAD)}
               />
               <span>{category.label}</span>
-              <span className="ml-auto font-mono text-[10px] font-normal normal-case tracking-wider opacity-70">
+              <span className="ml-auto font-mono text-[10px] font-normal tracking-wider normal-case opacity-70">
                 {signs.length} signs
               </span>
             </span>
@@ -59,11 +59,12 @@ export function SignClassList() {
         >
           <div id={category.id} className="scroll-mt-20 font-sans">
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <span className="font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
+              <span className="font-sans text-[10.5px] font-medium tracking-wider text-ink-3 uppercase">
                 Drill this class
               </span>
               <Button variant="paper" size="sm" asChild>
                 <Link
+                  prefetch={linkPrefetch()}
                   to={trainerHref("/road-signs/pelican", {
                     category: category.id,
                     go: true,
@@ -74,6 +75,7 @@ export function SignClassList() {
               </Button>
               <Button variant="paper" size="sm" asChild>
                 <Link
+                  prefetch={linkPrefetch()}
                   to={trainerHref("/road-signs/3d", {
                     category: category.id,
                     go: true,
@@ -84,6 +86,7 @@ export function SignClassList() {
               </Button>
               {signClassPage(category.id) && (
                 <Link
+                  prefetch={linkPrefetch()}
                   to={signClassPage(category.id)!.path}
                   className="ml-auto font-sans text-[13px] font-semibold text-rush hover:underline"
                 >
@@ -95,19 +98,20 @@ export function SignClassList() {
               {signs.map((sign) => (
                 <li
                   key={sign.id}
-                  className="dr-skip-offscreen grid grid-cols-[64px_1fr] items-start gap-3 border border-line bg-paper-3 p-3 rounded-lg"
+                  className="dr-skip-offscreen grid grid-cols-[64px_1fr] items-start gap-3 rounded-lg border border-line bg-paper-3 p-3"
                 >
                   <div
                     role="img"
                     aria-label={`Road sign: ${sign.name}`}
-                    className="size-16 border border-line bg-white rounded-lg"
+                    className="size-16 rounded-lg border border-line bg-white"
                     style={regionSpriteStyle(sign.crop, CHART_SRC, THUMB_PAD)}
                   />
                   <div className="min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <Link
+                        prefetch={linkPrefetch()}
                         to={signPagePath(sign)}
-                        className="font-display text-[12.5px] font-bold uppercase leading-tight tracking-[0.02em] text-ink underline-offset-2 hover:text-rush hover:underline"
+                        className="font-display text-[12.5px] leading-tight font-bold tracking-[0.02em] text-ink uppercase underline-offset-2 hover:text-rush hover:underline"
                       >
                         {sign.name}
                       </Link>

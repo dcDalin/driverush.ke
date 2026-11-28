@@ -9,6 +9,7 @@
  */
 import { mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
+
 import sharp from "sharp";
 
 const ROOT = process.cwd();

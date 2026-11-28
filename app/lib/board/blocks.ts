@@ -19,19 +19,19 @@ import { CAR } from "./car";
 import { ROADS, U_TURN_GAPS } from "./full-board";
 import {
   ARMS,
-  LANE_W,
-  RING_LANES,
-  SOLID_ZONE,
   bearingOf,
   dirOf,
+  LANE_W,
   laneBearing,
   lanePoint,
   leftOf,
+  RING_LANES,
   ringRadius,
-  wrapPi,
+  SOLID_ZONE,
   type Vec,
+  wrapPi,
 } from "./geometry";
-import { EXIT_FROM, network, type NetEdge } from "./network";
+import { EXIT_FROM, type NetEdge, network } from "./network";
 
 export type BlockCar = { x: number; z: number; heading: number };
 
@@ -115,7 +115,7 @@ function build(): Block[] {
   // The first gap in the central reserve. The car stands in the gap, along the
   // road, and the line runs the length of the gap.
   {
-    const gap = U_TURN_GAPS[0];
+    const gap = U_TURN_GAPS[0]!;
     const mid = (gap.from + gap.to) / 2;
     const out = ARMS.N.out;
     const at = (along: number): Vec => ({ x: out.x * along, z: out.z * along });
@@ -139,7 +139,7 @@ function build(): Block[] {
     blocks.push({
       id: "gaps",
       what: "both gaps in the central reserve",
-      line: first,
+      line: first!, // U_TURN_GAPS is never empty
       more: rest,
       cars: U_TURN_GAPS.map((gap) => ({
         ...at((gap.from + gap.to) / 2),
@@ -186,8 +186,8 @@ function build(): Block[] {
     );
     if (turn) {
       const i = Math.floor(turn.points.length * 0.45);
-      const p = turn.points[i];
-      const q = turn.points[i + 1] ?? turn.points[i - 1];
+      const p = turn.points[i]!;
+      const q = (turn.points[i + 1] ?? turn.points[i - 1])!;
       const sign = turn.points[i + 1] ? 1 : -1;
       const heading = bearingOf((q.x - p.x) * sign, (q.z - p.z) * sign);
       blocks.push({
@@ -212,7 +212,7 @@ function both(made: readonly Block[], id: string, what: string): Block {
     const block = made.find((b) => b.id === one);
     if (!block) throw new Error(`no block ${one}`);
     return block;
-  });
+  }) as [Block, Block]; // the id always names two blocks
   return {
     id,
     what,
@@ -270,8 +270,8 @@ export function closedEdges(block: Block): ReadonlySet<NetEdge> {
   const lines = [block.line, ...(block.more ?? [])];
   for (const e of network().edges) {
     for (let i = 1; i < e.points.length; i += 1) {
-      const p = e.points[i - 1];
-      const q = e.points[i];
+      const p = e.points[i - 1]!;
+      const q = e.points[i]!;
       let hit = lines.some(([a, b]) => crosses(p, q, a, b));
       // walk the piece half a metre at a time
       const steps = Math.max(

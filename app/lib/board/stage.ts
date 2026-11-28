@@ -9,9 +9,9 @@
  */
 import { create } from "zustand";
 
-import { BOUNDS, RING_R, type Box } from "./full-board";
+import { BOUNDS, type Box, RING_R } from "./full-board";
 import type { Vec } from "./geometry";
-import { poseAt, type Pose, type Route } from "./network";
+import { type Pose, poseAt, type Route } from "./network";
 
 export type StageLine = {
   id: string;
@@ -391,7 +391,7 @@ export const useStage = create<StageState>()((set, get) => ({
   toStep: (index) => {
     const { route } = get();
     if (!route) return;
-    const step = route.steps[clamp(index, 0, route.steps.length - 1)];
+    const step = route.steps[clamp(index, 0, route.steps.length - 1)]!;
     get().seek(step.from + 0.01);
   },
 

@@ -1,8 +1,8 @@
-import * as React from "react";
-import { Icon } from "~/components/brand/icon";
-import { InfoIcon, type IconDef } from "~/components/brand/icons";
-import { SignIcon } from "~/components/brand/art/sign-glyphs";
+import type * as React from "react";
 
+import { SignIcon } from "~/components/brand/art/sign-glyphs";
+import { Icon } from "~/components/brand/icon";
+import { type IconDef, InfoIcon } from "~/components/brand/icons";
 import { cn } from "~/lib/utils";
 
 type CalloutProps = React.ComponentProps<"div"> & {
@@ -29,14 +29,14 @@ function Callout({
     <div
       data-slot="callout"
       className={cn(
-        "grid grid-cols-[auto_1fr] items-center gap-4 border border-ink-900 bg-cream px-5 py-4 rounded-lg",
+        "grid grid-cols-[auto_1fr] items-center gap-4 rounded-lg border border-ink-900 bg-cream px-5 py-4",
         className,
       )}
       {...props}
     >
       <span
         aria-label={iconLabel}
-        className="flex size-14 items-center justify-center border border-ink-900 bg-ink-900 text-cream rounded-lg"
+        className="flex size-14 items-center justify-center rounded-lg border border-ink-900 bg-ink-900 text-cream"
       >
         {icon.sign ? (
           <SignIcon name={icon.sign} size={34} />

@@ -10,11 +10,10 @@
  */
 import * as React from "react";
 
-import { controlAhead, type Control } from "~/lib/board/network";
+import { SignImage } from "~/components/brand/sign-image";
+import { type Control, controlAhead } from "~/lib/board/network";
 import { car } from "~/lib/board/runtime";
 import { signPageBySlug } from "~/lib/road-sign-pages";
-
-import { SignImage } from "~/components/brand/sign-image";
 
 const CUES: Record<Control, { slug: string; name: string; means: string }> = {
   give_way: {
@@ -73,10 +72,10 @@ export function BoardSignCue({
         />
       )}
       <div className="min-w-0">
-        <p className="m-0 font-mono text-[10px] font-bold uppercase tracking-widest text-kenya-gold">
+        <p className="m-0 font-mono text-[10px] font-bold tracking-widest text-kenya-gold uppercase">
           Sign ahead
         </p>
-        <p className="m-0 mt-0.5 text-[15px] font-bold leading-snug">
+        <p className="m-0 mt-0.5 text-[15px] leading-snug font-bold">
           {cue.name}
         </p>
         {/* The first thing to go when the column runs out of room. */}

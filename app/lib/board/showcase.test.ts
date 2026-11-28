@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  SHOW_OUT,
   overCars,
   overFrame,
+  SHOW_OUT,
   SHOW_TOTAL,
   showcaseCamera,
   showcasePose,

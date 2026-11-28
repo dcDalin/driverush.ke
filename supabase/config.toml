@@ -1,0 +1,273 @@
+# Local Supabase stack for DriveRush.
+# Reference: https://supabase.com/docs/guides/local-development/cli/config
+#
+# Ports: this stack owns 54720-54729 (shadow 54720, api 54721, db 54722,
+# studio 54723, mail 54724, analytics 54727, inspector 54728, pooler 54729).
+# Other local Supabase projects on this Mac use 543xx, 544xx, 545xx, 546xx and
+# 554xx; keep new ports inside this block.
+project_id = "driverush"
+
+[api]
+enabled = true
+port = 54721
+# Only public is served. `private` holds the owner-rights functions
+# (supabase/schemas/_private/private_schema.sql) and is never exposed.
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54722
+shadow_port = 54720
+health_timeout = "2m"
+major_version = 17
+
+[db.pooler]
+enabled = false
+port = 54729
+pool_mode = "transaction"
+default_pool_size = 20
+max_client_conn = 100
+
+[db.migrations]
+enabled = true
+# The declarative source of truth, in load order. `supabase db diff` builds a
+# shadow database from exactly these files and compares it with the
+# migrations, so CI fails if a schema change has no migration. Every file in
+# supabase/schemas must be listed here (supabase/schemas/README.md).
+#
+# Order: extensions and schema private first; then every enum and table
+# (SQL-language functions are checked against the tables they read when they
+# are created); then functions, triggers and policies; the grants last.
+schema_paths = [
+  './schemas/_private/extensions.sql',
+  './schemas/_private/private_schema.sql',
+  './schemas/_private/local_stack.sql',
+  './schemas/_private/signed_in_for_staff.sql',
+  './schemas/_private/set_updated_at.sql',
+  './schemas/_private/media_checks.sql',
+
+  # profiles: platform roles and the learner's profile
+  './schemas/profiles/enums/app_role.sql',
+  './schemas/profiles/tables/profiles.sql',
+  './schemas/profiles/tables/user_roles.sql',
+
+  # schools: schools, branches, school owner and admins
+  './schemas/schools/enums/school_enums.sql',
+  './schemas/schools/tables/schools.sql',
+  './schemas/schools/tables/school_branches.sql',
+  './schemas/schools/tables/school_members.sql',
+  './schemas/schools/tables/school_member_branches.sql',
+  './schemas/schools/tables/school_member_invites.sql',
+  './schemas/schools/tables/school_profiles.sql',
+  './schemas/schools/tables/school_liveries.sql',
+  './schemas/schools/tables/school_sponsorships.sql',
+
+  # billing: plans, learner passes, payments (Paystack) and school pass settings
+  './schemas/billing/enums/billing_enums.sql',
+  './schemas/billing/tables/plans.sql',
+  './schemas/billing/tables/payments.sql',
+  './schemas/billing/tables/learner_subscriptions.sql',
+  './schemas/billing/tables/school_subscriptions.sql',
+  './schemas/billing/tables/school_payment_settings.sql',
+
+  # students: a school's link to a learner, by email (free; a pass unlocks)
+  './schemas/students/enums/student_enums.sql',
+  './schemas/students/tables/school_student_links.sql',
+
+  # progress: the learner's saved progress, one row per app store
+  './schemas/progress/tables/learner_progress.sql',
+
+  # functions (helpers before the functions that call them)
+  './schemas/profiles/functions/platform_roles.sql',
+  './schemas/profiles/functions/custom_access_token_hook.sql',
+  './schemas/schools/functions/school_access.sql',
+  './schemas/schools/functions/admin_limit.sql',
+  './schemas/students/functions/link_lifecycle.sql',
+  './schemas/profiles/functions/match_pending_invites.sql',
+  './schemas/profiles/functions/handle_auth_users.sql',
+  './schemas/profiles/functions/grant_platform_role.sql',
+  './schemas/schools/functions/admin_schools.sql',
+  './schemas/schools/functions/school_branches.sql',
+  './schemas/schools/functions/school_admins.sql',
+  './schemas/schools/functions/school_members_list.sql',
+  './schemas/schools/functions/school_profiles.sql',
+  './schemas/schools/functions/school_liveries.sql',
+  './schemas/students/functions/school_students.sql',
+  './schemas/students/functions/invite_resend.sql',
+  './schemas/students/functions/learner_links.sql',
+  './schemas/billing/functions/my_entitlement.sql',
+  './schemas/billing/functions/passes.sql',
+  './schemas/billing/functions/school_passes.sql',
+  './schemas/progress/functions/school_student_progress.sql',
+
+  # triggers
+  './schemas/profiles/triggers/auth_users_triggers.sql',
+  './schemas/schools/triggers/school_triggers.sql',
+  './schemas/billing/triggers/billing_triggers.sql',
+  './schemas/progress/triggers/progress_triggers.sql',
+
+  # row level security
+  './schemas/profiles/rls/profiles_rls.sql',
+  './schemas/profiles/rls/user_roles_rls.sql',
+  './schemas/schools/rls/schools_rls.sql',
+  './schemas/billing/rls/billing_rls.sql',
+  './schemas/students/rls/school_student_links_rls.sql',
+  './schemas/progress/rls/learner_progress_rls.sql',
+
+  # realtime: broadcast triggers and who may listen
+  './schemas/realtime/school_broadcasts.sql',
+
+  # the only client grants, last
+  './schemas/_grants/function_privileges.sql',
+  './schemas/_grants/table_privileges.sql',
+
+  # storage: the school-media bucket (db diff does not read the storage
+  # schema; the insert is idempotent and lands in the baseline)
+  './schemas/storage/school_media_bucket.sql',
+]
+
+[db.seed]
+enabled = true
+# Local only: the file refuses to run anywhere but a CLI stack
+# (private.is_local_stack). Reference rows every database needs (the plans)
+# are a migration, not a seed.
+sql_paths = ["./seeds/local_demo.sql"]
+
+[db.network_restrictions]
+enabled = false
+allowed_cidrs = ["0.0.0.0/0"]
+allowed_cidrs_v6 = ["::/0"]
+
+[realtime]
+enabled = true
+
+[studio]
+enabled = true
+port = 54723
+api_url = "http://127.0.0.1"
+
+# Local mail catcher: emails from the local stack land here, not in inboxes.
+[local_smtp]
+enabled = true
+port = 54724
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+# School logos and liveries (supabase/schemas/storage/school_media_bucket.sql
+# creates the same bucket everywhere else). Public, content-named files, no
+# client policies: only the service role writes. No SVG (it can carry script).
+[storage.buckets.school-media]
+public = true
+file_size_limit = "5MiB"
+allowed_mime_types = ["image/webp", "image/png", "image/jpeg"]
+
+# Supabase image transformation is billed per request: every size the app
+# needs is made before upload instead.
+[storage.image_transformation]
+enabled = false
+
+[auth]
+enabled = true
+site_url = "http://localhost:5730"
+additional_redirect_urls = [
+  "http://localhost:5730/**",
+  "http://127.0.0.1:5730/**",
+]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_signup = true
+enable_anonymous_sign_ins = false
+enable_manual_linking = false
+minimum_password_length = 8
+password_requirements = "letters_digits"
+
+[auth.rate_limit]
+email_sent = 30
+sms_sent = 30
+anonymous_users = 30
+token_refresh = 150
+sign_in_sign_ups = 60
+token_verifications = 60
+web3 = 30
+
+[auth.email]
+# Learners and schools sign in with Google (the first choice) or an email and
+# password. DriveRush su/admin console roles count on either, never on a code
+# (private.signed_in_for_staff). Confirmations stay on: a school links a
+# learner by email, so a link only ever matches a confirmed address. A new
+# password account confirms its email with a 6-digit code.
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = true
+secure_password_change = true
+max_frequency = "1s"
+otp_length = 6
+otp_expiry = 3600
+
+# The emails carry a 6-digit code ({{ .Token }}), typed into the app's sign-in
+# sheet: `confirmation` for a new password account, `recovery` to set a new
+# password. `magic_link` is for a code sign-in through the API (the sheet no
+# longer offers one). The hosted project needs the same templates (Dashboard >
+# Authentication > Emails).
+[auth.email.template.confirmation]
+subject = "Confirm your email for DriveRush"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Your DriveRush password code"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.magic_link]
+subject = "Your DriveRush code"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.sms]
+enable_signup = false
+enable_confirmations = false
+
+# Adds the platform role (user_role) to every access token.
+[auth.hook.custom_access_token]
+enabled = true
+uri = "pg-functions://postgres/public/custom_access_token_hook"
+
+[auth.mfa]
+max_enrolled_factors = 10
+
+[auth.mfa.totp]
+enroll_enabled = false
+verify_enabled = false
+
+[auth.mfa.phone]
+enroll_enabled = false
+verify_enabled = false
+
+# Google sign-in, the sheet's first choice. Both variables live in
+# supabase/.env (gitignored): the "DriveRush (dev)" OAuth client in the Google
+# Cloud project `driverush`, whose redirect URI is this stack's
+# http://127.0.0.1:54721/auth/v1/callback. Without them the provider stays
+# off. The hosted project takes the "DriveRush (prod)" client's keys in its
+# dashboard (Authentication > Sign In / Providers > Google), and that client
+# needs https://<project-ref>.supabase.co/auth/v1/callback as a redirect URI.
+[auth.external.google]
+enabled = true
+client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+redirect_uri = ""
+url = ""
+# Required for local sign in with Google.
+skip_nonce_check = true
+
+[edge_runtime]
+enabled = false
+policy = "per_worker"
+inspector_port = 54728
+deno_version = 2
+
+[analytics]
+enabled = false
+port = 54727
+backend = "postgres"

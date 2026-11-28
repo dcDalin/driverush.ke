@@ -3,8 +3,8 @@
  * and each tab is a thumb high. The list and triggers take their colours
  * from where they sit, so a surface can pass its own.
  */
-import * as React from "react";
 import { Tabs as TabsPrimitive } from "radix-ui";
+import type * as React from "react";
 
 import { cn } from "~/lib/utils";
 
@@ -71,4 +71,4 @@ function TabsContent({
   );
 }
 
-export { Tabs, TabsList, TabsTrigger, TabsContent };
+export { Tabs, TabsContent, TabsList, TabsTrigger };

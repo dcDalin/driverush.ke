@@ -2,8 +2,8 @@ import * as React from "react";
 
 import {
   parsePersistedProgress,
-  TRAINER_STORAGE_KEYS,
   type SignProgress,
+  TRAINER_STORAGE_KEYS,
 } from "./pelican-progress";
 
 function subscribe(onChange: () => void) {
@@ -43,8 +43,8 @@ export function useSignProgress(): Record<
     if (raw == null) return null;
     const [pelican, threeD] = raw.split("\n");
     return {
-      pelican: parsePersistedProgress(pelican),
-      "3d": parsePersistedProgress(threeD),
+      pelican: parsePersistedProgress(pelican ?? null),
+      "3d": parsePersistedProgress(threeD ?? null),
     };
   }, [raw]);
 }

@@ -13,7 +13,7 @@
  * for more than a moment is in two lanes at once, and is reported the same.
  */
 import type { CarState } from "./car";
-import { continuousLines, type ContinuousLine } from "./full-board";
+import { type ContinuousLine, continuousLines } from "./full-board";
 
 /** The middle of the car has to be this far over a line to have crossed it. */
 const OVER = 0.5;

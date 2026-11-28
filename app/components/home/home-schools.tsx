@@ -13,7 +13,7 @@ export function HomeSchools() {
     >
       <h2
         id="home-schools"
-        className="m-0 mb-1 font-display text-[clamp(18px,4.4vw,24px)] font-semibold leading-none tracking-tight text-ink"
+        className="m-0 mb-1 font-display text-[clamp(18px,4.4vw,24px)] leading-none font-semibold tracking-tight text-ink"
       >
         The cars on the board
       </h2>

@@ -1,34 +1,36 @@
-import * as React from "react";
+import type * as React from "react";
 import { Link } from "react-router";
-import { Icon } from "~/components/brand/icon";
-import { ArrowRightIcon, PelicanIcon } from "~/components/brand/icons";
-
-import type { Route } from "./+types/blogs";
-
-import { absUrl, breadcrumbLd, keywords, SITE, siteWideMeta } from "~/lib/site";
-import { BLOG_KEYWORDS, getAllPosts } from "~/lib/blog";
-
-import { Badge } from "~/components/ui/badge";
-import { Button } from "~/components/ui/button";
 
 import { BlogCard } from "~/components/brand/blog-card";
+import { Icon } from "~/components/brand/icon";
+import { ArrowRightIcon, PelicanIcon } from "~/components/brand/icons";
 import { Masthead } from "~/components/brand/masthead";
 import { Rail } from "~/components/brand/rail";
 import { SiteFooter } from "~/components/brand/site-footer";
 import { SiteNav } from "~/components/brand/site-nav";
+import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
+import { getAllPosts } from "~/lib/blog";
+import { BLOG_KEYWORDS } from "~/lib/blog-page";
+import { absUrl, breadcrumbLd, keywords, SITE, siteWideMeta } from "~/lib/site";
+
+import type { Route } from "./+types/blogs";
 
 const PATH = "/blogs";
 
-// `meta()` runs on every request — keep it self-contained so the static
-// import-cost of the posts list (~10 frontmatters) is the only work.
-export function meta(_: Route.MetaArgs) {
+/** Every post's frontmatter; the list itself stays on the server (`blog.ts`). */
+export function loader() {
+  return { posts: getAllPosts() };
+}
+
+export function meta({ loaderData }: Route.MetaArgs) {
   const title =
     "DriveRush Blog · NTSA, road signs and learning to drive in Kenya";
   const description =
     "Honest, practical writing on the NTSA test, Kenyan road signs, getting your driving licence, and surviving Nairobi traffic, from the team behind DriveRush.";
   const url = absUrl(PATH);
   const ogImage = absUrl(SITE.ogImage);
-  const posts = getAllPosts();
+  const posts = loaderData?.posts ?? [];
 
   return [
     { title },
@@ -97,8 +99,8 @@ const Container = ({ children }: { children: React.ReactNode }) => (
   <div className="mx-auto w-full max-w-6xl px-5 sm:px-9">{children}</div>
 );
 
-export default function BlogsIndex() {
-  const posts = getAllPosts();
+export default function BlogsIndex({ loaderData }: Route.ComponentProps) {
+  const { posts } = loaderData;
   const [hero, ...rest] = posts;
 
   return (
@@ -142,9 +144,9 @@ export default function BlogsIndex() {
                 <div>
                   <h2
                     className={[
-                      "m-0 font-display font-bold leading-[0.92] tracking-tight text-ink",
+                      "m-0 font-display leading-[0.92] font-bold tracking-tight text-ink",
                       "text-[clamp(36px,6vw,64px)]",
-                      "[&_em]:font-serif [&_em]:font-normal [&_em]:normal-case [&_em]:text-rush",
+                      "[&_em]:font-serif [&_em]:font-normal [&_em]:text-rush [&_em]:normal-case",
                     ].join(" ")}
                   >
                     <Link
@@ -164,20 +166,20 @@ export default function BlogsIndex() {
                         <Icon icon={ArrowRightIcon} size={16} />
                       </Link>
                     </Button>
-                    <span className="font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
+                    <span className="font-sans text-[11px] font-medium tracking-wider text-ink-3 uppercase">
                       {hero.readingMinutes} min read · By {SITE.byline}
                     </span>
                   </div>
                 </div>
 
                 <aside className="border-l border-line pl-5">
-                  <p className="m-0 mb-3 font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
+                  <p className="m-0 mb-3 font-sans text-[11px] font-medium tracking-wider text-ink-3 uppercase">
                     Why we wrote this →
                   </p>
                   <p className="m-0 font-serif text-base leading-snug text-ink-2">
                     {hero.description}
                   </p>
-                  <p className="mt-4 font-sans text-[10.5px] uppercase tracking-wider text-rush font-medium">
+                  <p className="mt-4 font-sans text-[10.5px] font-medium tracking-wider text-rush uppercase">
                     Tone: {hero.tone}
                   </p>
                 </aside>
@@ -191,12 +193,12 @@ export default function BlogsIndex() {
               <h2 className="m-0 font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
                 More from the editors
               </h2>
-              <span className="font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
+              <span className="font-sans text-[11px] font-medium tracking-wider text-ink-3 uppercase">
                 {rest.length} more
               </span>
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-2 sm:auto-rows-fr lg:grid-cols-3">
+            <div className="grid gap-5 sm:auto-rows-fr sm:grid-cols-2 lg:grid-cols-3">
               {rest.map((p) => (
                 <div key={p.slug} className="dr-reveal h-full">
                   <BlogCard post={p} />
@@ -206,13 +208,13 @@ export default function BlogsIndex() {
           </section>
 
           {/* Outbound CTA strip — keep the live product within one click. */}
-          <section className="mb-14 border border-line bg-ink p-6 text-paper sm:p-8 rounded-lg">
-            <p className="m-0 mb-2 font-sans text-[11px] uppercase tracking-wider opacity-70 font-medium">
+          <section className="mb-14 rounded-lg border border-line bg-ink p-6 text-paper sm:p-8">
+            <p className="m-0 mb-2 font-sans text-[11px] font-medium tracking-wider uppercase opacity-70">
               The reading is great. The practice is greater.
             </p>
-            <h2 className="m-0 mb-4 font-display text-2xl font-semibold leading-[0.98] tracking-tight sm:text-3xl">
-              Try the live <span className="text-rush">games</span> the
-              blog keeps pointing at.
+            <h2 className="m-0 mb-4 font-display text-2xl leading-[0.98] font-semibold tracking-tight sm:text-3xl">
+              Try the live <span className="text-rush">games</span> the blog
+              keeps pointing at.
             </h2>
             {/* On a phone the buttons wrap their words and fill the width: a
                 one-line label is wider than the screen. */}
@@ -221,7 +223,7 @@ export default function BlogsIndex() {
                 variant="rush"
                 size="lg"
                 asChild
-                className="max-sm:h-auto max-sm:min-h-14 max-sm:w-full max-sm:whitespace-normal max-sm:px-4 max-sm:py-3 max-sm:text-center"
+                className="max-sm:h-auto max-sm:min-h-14 max-sm:w-full max-sm:px-4 max-sm:py-3 max-sm:text-center max-sm:whitespace-normal"
               >
                 <Link to="/road-signs/pelican">
                   <Icon icon={PelicanIcon} size={18} />
@@ -232,7 +234,7 @@ export default function BlogsIndex() {
                 variant="paper"
                 size="lg"
                 asChild
-                className="max-sm:h-auto max-sm:min-h-14 max-sm:w-full max-sm:whitespace-normal max-sm:px-4 max-sm:py-3 max-sm:text-center"
+                className="max-sm:h-auto max-sm:min-h-14 max-sm:w-full max-sm:px-4 max-sm:py-3 max-sm:text-center max-sm:whitespace-normal"
               >
                 <Link to="/road-signs/3d">Spin signs in 3D</Link>
               </Button>

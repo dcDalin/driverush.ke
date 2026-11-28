@@ -1,23 +1,24 @@
-import * as React from "react";
+import type * as React from "react";
 import { Link } from "react-router";
+
+import { BlogCard, formatDate } from "~/components/brand/blog-card";
 import { Icon } from "~/components/brand/icon";
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
-  Sign3DIcon,
   PelicanIcon,
+  Sign3DIcon,
 } from "~/components/brand/icons";
-
-import { cn } from "~/lib/utils";
-import { SITE } from "~/lib/site";
-import type { BlogPost } from "~/lib/blog";
 import { Rail } from "~/components/brand/rail";
 import { ShareButton } from "~/components/brand/share-button";
 import { SiteFooter } from "~/components/brand/site-footer";
 import { SiteNav } from "~/components/brand/site-nav";
-import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
-import { BlogCard, formatDate } from "~/components/brand/blog-card";
+import { Button } from "~/components/ui/button";
+import type { BlogPost } from "~/lib/blog";
+import { SITE } from "~/lib/site";
+import { linkPrefetch } from "~/lib/ui/link-prefetch";
+import { cn } from "~/lib/utils";
 
 type BlogPostLayoutProps = {
   post: BlogPost;
@@ -28,9 +29,9 @@ type BlogPostLayoutProps = {
 /** Keeps the trainers one click away, even for readers who never reach the end. */
 function TryItNowPanel() {
   return (
-    <aside className="mt-6 flex flex-wrap items-center justify-between gap-3 border border-line bg-paper-2 px-4 py-3 sm:px-5 rounded-lg">
+    <aside className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-paper-2 px-4 py-3 sm:px-5">
       <div>
-        <p className="m-0 font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
+        <p className="m-0 font-sans text-[10.5px] font-medium tracking-wider text-ink-3 uppercase">
           Try it now
         </p>
         <p className="m-0 mt-0.5 text-[14px] leading-snug text-ink">
@@ -38,7 +39,7 @@ function TryItNowPanel() {
         </p>
       </div>
       <Button variant="rush" size="sm" asChild>
-        <Link to="/road-signs">
+        <Link prefetch={linkPrefetch()} to="/road-signs">
           Start training
           <Icon icon={ArrowRightIcon} size={14} />
         </Link>
@@ -64,31 +65,32 @@ export function BlogPostLayout({
       <main className="min-h-screen bg-paper text-ink">
         <Rail />
 
-        <div className="mx-auto w-full max-w-3xl px-5 pb-24 pt-6 sm:px-9 sm:pt-10">
+        <div className="mx-auto w-full max-w-3xl px-5 pt-6 pb-24 sm:px-9 sm:pt-10">
           <div className="mb-6 flex items-center justify-between gap-3">
             <Link
+              prefetch={linkPrefetch()}
               to="/blogs"
-              className="inline-flex items-center gap-2 font-sans text-[11px] uppercase tracking-wider text-ink-3 outline-none hover:text-ink focus-visible:text-ink font-medium"
+              className="inline-flex items-center gap-2 font-sans text-[11px] font-medium tracking-wider text-ink-3 uppercase outline-none hover:text-ink focus-visible:text-ink"
             >
               <Icon icon={ArrowLeftIcon} size={14} />
               All posts
             </Link>
-            <span className="font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
+            <span className="font-sans text-[10.5px] font-medium tracking-wider text-ink-3 uppercase">
               Blog · {post.category}
             </span>
           </div>
 
           <header className="border-b border-line pb-8">
-            <div className="flex items-baseline justify-between border-b border-line pb-2.5 font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
+            <div className="flex items-baseline justify-between border-b border-line pb-2.5 font-sans text-[11px] font-medium tracking-wider text-ink-3 uppercase">
               <span>{post.kicker ?? `${post.category} · ${post.tone}`}</span>
               <time dateTime={post.date}>{formatDate(post.date)}</time>
             </div>
 
             <h1
               className={cn(
-                "m-0 mt-6 font-display font-bold uppercase leading-[0.92] tracking-tight text-ink",
+                "m-0 mt-6 font-display leading-[0.92] font-bold tracking-tight text-ink uppercase",
                 "text-[clamp(36px,7vw,72px)]",
-                "[&_em]:font-serif [&_em]:font-normal [&_em]:normal-case [&_em]:text-rush",
+                "[&_em]:font-serif [&_em]:font-normal [&_em]:text-rush [&_em]:normal-case",
               )}
             >
               {post.title}
@@ -102,12 +104,16 @@ export function BlogPostLayout({
                 decided the piece is worth passing on. Posts share their own
                 canonical URL, not a /s hop, so the link equity stays here. */}
             <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-2 font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
+              <div className="flex flex-wrap items-center gap-2 font-sans text-[10.5px] font-medium tracking-wider text-ink-3 uppercase">
                 <span>{post.readingMinutes} min read</span>
                 <span aria-hidden>·</span>
                 <span>
                   By{" "}
-                  <Link to="/about" className="hover:text-ink hover:underline">
+                  <Link
+                    prefetch={linkPrefetch()}
+                    to="/about"
+                    className="hover:text-ink hover:underline"
+                  >
                     {SITE.byline}
                   </Link>
                 </span>
@@ -141,18 +147,18 @@ export function BlogPostLayout({
 
           {/* Buttons a post puts in its text never wrap on their own, and a
               long label is wider than a phone: there they wrap and fit. */}
-          <article className="pt-8 pb-12 max-sm:[&_[data-slot=button]]:h-auto max-sm:[&_[data-slot=button]]:min-h-14 max-sm:[&_[data-slot=button]]:max-w-full max-sm:[&_[data-slot=button]]:whitespace-normal max-sm:[&_[data-slot=button]]:px-4 max-sm:[&_[data-slot=button]]:py-3 max-sm:[&_[data-slot=button]]:text-center">
+          <article className="pt-8 pb-12 max-sm:[&_[data-slot=button]]:h-auto max-sm:[&_[data-slot=button]]:min-h-14 max-sm:[&_[data-slot=button]]:max-w-full max-sm:[&_[data-slot=button]]:px-4 max-sm:[&_[data-slot=button]]:py-3 max-sm:[&_[data-slot=button]]:text-center max-sm:[&_[data-slot=button]]:whitespace-normal">
             {children}
           </article>
 
           {/* CTA tail — keep nudging readers toward the live product. */}
           <section className="border-t border-line bg-paper-2 px-5 py-8 sm:px-7">
-            <p className="m-0 mb-4 font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
+            <p className="m-0 mb-4 font-sans text-[11px] font-medium tracking-wider text-ink-3 uppercase">
               Stop reading. Practise the signs.
             </p>
-            <h2 className="m-0 mb-5 font-display text-2xl font-semibold leading-[0.98] tracking-tight text-ink sm:text-3xl">
+            <h2 className="m-0 mb-5 font-display text-2xl leading-[0.98] font-semibold tracking-tight text-ink sm:text-3xl">
               The fastest way to remember Kenyan road signs is{" "}
-              <em className="font-serif font-normal normal-case text-rush">
+              <em className="font-serif font-normal text-rush normal-case">
                 to play with them
               </em>
               .
@@ -164,9 +170,9 @@ export function BlogPostLayout({
                 variant="rush"
                 size="lg"
                 asChild
-                className="max-sm:h-auto max-sm:min-h-14 max-sm:w-full max-sm:whitespace-normal max-sm:px-4 max-sm:py-3 max-sm:text-center"
+                className="max-sm:h-auto max-sm:min-h-14 max-sm:w-full max-sm:px-4 max-sm:py-3 max-sm:text-center max-sm:whitespace-normal"
               >
-                <Link to="/road-signs/pelican">
+                <Link prefetch={linkPrefetch()} to="/road-signs/pelican">
                   <Icon icon={PelicanIcon} size={18} />
                   Train on the Pelican chart
                 </Link>
@@ -175,9 +181,9 @@ export function BlogPostLayout({
                 variant="paper"
                 size="lg"
                 asChild
-                className="max-sm:h-auto max-sm:min-h-14 max-sm:w-full max-sm:whitespace-normal max-sm:px-4 max-sm:py-3 max-sm:text-center"
+                className="max-sm:h-auto max-sm:min-h-14 max-sm:w-full max-sm:px-4 max-sm:py-3 max-sm:text-center max-sm:whitespace-normal"
               >
-                <Link to="/road-signs/3d">
+                <Link prefetch={linkPrefetch()} to="/road-signs/3d">
                   <Icon icon={Sign3DIcon} size={18} />
                   Spin signs in 3D
                 </Link>
@@ -192,8 +198,9 @@ export function BlogPostLayout({
                   Keep reading
                 </h2>
                 <Link
+                  prefetch={linkPrefetch()}
                   to="/blogs"
-                  className="font-sans text-[11px] uppercase tracking-wider text-rush hover:underline font-medium"
+                  className="font-sans text-[11px] font-medium tracking-wider text-rush uppercase hover:underline"
                 >
                   All posts →
                 </Link>

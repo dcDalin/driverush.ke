@@ -16,6 +16,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
 import sharp from "sharp";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -191,9 +192,7 @@ function vivid(hex, sat = 1.25, val = 1.15) {
     .join("")}`;
 }
 
-const warm = (h, s, v) => (h <= 52 || h >= 340) && s >= 0.42 && v >= 0.33;
 const red = (h, s, v) => (h <= 14 || h >= 340) && s >= 0.6 && v >= 0.3;
-const blue = (h, s, v) => h >= 205 && h <= 255 && s >= 0.35 && v >= 0.2;
 
 // ---- the splash on the front wing -----------------------------------------------
 

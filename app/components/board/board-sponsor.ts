@@ -2,7 +2,12 @@
  * A sponsoring driving school on the 3D table: its paint on the learner's
  * car, its logo engraved on the frame's brass plates, and its logo painted
  * faintly in one green field of the board. Which school, and the rules for
- * picking it, are in `~/lib/board/sponsors`.
+ * picking it, are in `~/lib/board/school-catalog` and `sponsor-visit`.
+ *
+ * The pictures come from Supabase Storage (another origin), so every load
+ * asks with CORS (`crossOrigin = "anonymous"`): WebGL and the canvas that
+ * engraves the plates refuse a picture from another origin without it, and
+ * the service worker only keeps CORS answers for offline.
  *
  * Everything here waits for its pictures: until they arrive (or if they never
  * do) the table looks as it does with no sponsor, and the car wears the
@@ -13,9 +18,9 @@ import * as THREE from "three";
 import type { CarModel } from "~/components/board/car-model";
 import type { BoardCarId } from "~/lib/board/cars";
 import { SPONSOR_PAINT, sponsorSpot } from "~/lib/board/full-board";
-import type { Sponsor } from "~/lib/board/sponsors";
+import type { Sponsor } from "~/lib/board/school-catalog";
 
-const loader = new THREE.TextureLoader();
+const loader = new THREE.TextureLoader().setCrossOrigin("anonymous");
 
 /** A school's wrap picture, ready for the saloon's paint (laid out as glTF expects). */
 export async function loadWrap(
@@ -71,13 +76,18 @@ export function warmSchool(
     image.crossOrigin = "anonymous";
     image.src = url;
   }
-  // The logo for the plates and the board is loaded plainly (`loadImage`).
-  new Image().src = sponsor.logo.mono;
+  // The logo for the plates and the board (`loadImage`), the same way.
+  if (sponsor.logo.mono) {
+    const mono = new Image();
+    mono.crossOrigin = "anonymous";
+    mono.src = sponsor.logo.mono;
+  }
 }
 
 export function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
+    image.crossOrigin = "anonymous";
     image.decoding = "async";
     image.onload = () => resolve(image);
     image.onerror = () => reject(new Error(`could not load ${url}`));

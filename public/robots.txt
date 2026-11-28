@@ -7,6 +7,11 @@ User-agent: *
 Allow: /
 Disallow: /tools
 Disallow: /tools/
+Disallow: /school
+Disallow: /console
+Disallow: /auth
+Disallow: /api
+Disallow: /pass
 
 # AI search and assistant crawlers, named so it's plain they are welcome.
 # A named group replaces the * group for that crawler, so it repeats the rules.
@@ -27,5 +32,10 @@ User-agent: MistralAI-User
 Allow: /
 Disallow: /tools
 Disallow: /tools/
+Disallow: /school
+Disallow: /console
+Disallow: /auth
+Disallow: /api
+Disallow: /pass
 
 Sitemap: https://driverush.ke/sitemap.xml

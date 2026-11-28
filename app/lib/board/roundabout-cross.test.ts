@@ -7,11 +7,11 @@ import { describe, expect, it } from "vitest";
 
 import type { CarState } from "./car";
 import {
+  continuousLines,
+  fullBoardSvg,
   ISLAND_R,
   RING_LANES,
   RING_R,
-  continuousLines,
-  fullBoardSvg,
   roundaboutCross,
 } from "./full-board";
 import { ringRadius } from "./geometry";

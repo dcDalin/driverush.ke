@@ -3,7 +3,7 @@
  * marked as known. The house AlertDialog in place of the browser's own
  * confirm box: same look on every phone, and focus starts on the way back out.
  */
-import * as React from "react";
+import type * as React from "react";
 
 import {
   AlertDialog,

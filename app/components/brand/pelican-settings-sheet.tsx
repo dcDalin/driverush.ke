@@ -1,21 +1,20 @@
 import * as React from "react";
-import {
-  FocusIcon,
-  ShuffleIcon,
-  CheckIcon,
-  TrafficLightIcon,
-  SoundIcon,
-} from "~/components/brand/icons";
-
-import {
-  SIGN_CATEGORIES,
-  type SignCategory,
-  type SignCategoryId,
-} from "~/lib/image-focus";
-import { masteredCount } from "~/lib/pelican-progress";
-import { usePelicanStore } from "~/lib/pelican-store";
 
 import { ConfirmAction } from "~/components/brand/confirm-action";
+import {
+  CheckIcon,
+  FocusIcon,
+  ShuffleIcon,
+  SoundIcon,
+  TrafficLightIcon,
+} from "~/components/brand/icons";
+import {
+  ChipToggle,
+  SelectRow,
+  SettingSection,
+  SliderRow,
+  ToggleRow,
+} from "~/components/brand/setting-controls";
 import { Button } from "~/components/ui/button";
 import {
   Sheet,
@@ -26,12 +25,12 @@ import {
   SheetTitle,
 } from "~/components/ui/sheet";
 import {
-  ChipToggle,
-  SelectRow,
-  SettingSection,
-  SliderRow,
-  ToggleRow,
-} from "~/components/brand/setting-controls";
+  SIGN_CATEGORIES,
+  type SignCategory,
+  type SignCategoryId,
+} from "~/lib/image-focus";
+import { masteredCount } from "~/lib/pelican-progress";
+import { usePelicanStore } from "~/lib/pelican-store";
 
 /** The trainer's right-side settings sheet — entirely driven by the Zustand store. */
 export function PelicanSettingsSheet() {
@@ -44,7 +43,7 @@ export function PelicanSettingsSheet() {
   const resetSettings = usePelicanStore((s) => s.resetSettings);
   const resetProgress = usePelicanStore((s) => s.resetProgress);
 
-  const regions = board?.regions ?? [];
+  const regions = React.useMemo(() => board?.regions ?? [], [board]);
   const shuffled = settings.order === "shuffle";
 
   const countByCat = React.useMemo(() => {
@@ -109,7 +108,7 @@ export function PelicanSettingsSheet() {
             }
           >
             {regions.length === 0 ? (
-              <p className="font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
+              <p className="font-sans text-[10.5px] font-medium tracking-wider text-ink-3 uppercase">
                 No signs on the board yet
               </p>
             ) : (
@@ -215,8 +214,8 @@ export function PelicanSettingsSheet() {
               <strong>known</strong>: a meter that builds across runs (a miss
               only nudges it down a notch). Saved on this device only.
             </p>
-            <div className="flex items-center justify-between gap-3 border border-line bg-paper-3 px-3 py-2 rounded-lg">
-              <span className="font-sans text-[10.5px] uppercase tracking-wider text-ink-2 font-medium">
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paper-3 px-3 py-2">
+              <span className="font-sans text-[10.5px] font-medium tracking-wider text-ink-2 uppercase">
                 Known {mastered} / {regions.length}
               </span>
               <ConfirmAction

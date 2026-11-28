@@ -1,0 +1,13 @@
+// The seed's own typecheck (`npm run seed:typecheck`). It is left out of the
+// app's tsconfig because Snaplet's client types only exist after
+// `npm run db:sync` has read a running database (as in thinkrush).
+{
+  "extends": "../tsconfig.json",
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", ".snaplet"],
+  "compilerOptions": {
+    "rootDirs": ["."],
+    "types": ["node", "vite/client"],
+    "paths": { "~/*": ["../app/*"] }
+  }
+}

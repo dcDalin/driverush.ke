@@ -3,35 +3,60 @@
  * search it by name. Built from `lib/driving-school-pages.ts`, where every
  * fact carries the school's own source. The page states only what the school
  * publishes, says plainly when it publishes no prices, and never ranks.
+ *
+ * A school on DriveRush also has its own profile (owner, 2026-11-26): its
+ * tagline, about text, contacts and branches with addresses, map pins and
+ * hours, written by the school on its dashboard. The loader reads it from
+ * the cached `board_schools()` manifest, so it is in the server's page and in
+ * the structured data; "From the school" shows it, and "Where to find" uses
+ * its branches.
  */
-import type { Route } from "./+types/driving-school";
-
-import { sponsorById } from "~/lib/board/sponsors";
+import { BoardStartCard } from "~/components/board/board-start-card";
+import { GuideLayout } from "~/components/brand/guide-layout";
+import { MDX } from "~/components/brand/mdx-components";
+import {
+  SchoolBranches,
+  SchoolOwnWords,
+} from "~/components/school/public-school";
+import { sponsorById, useCatalog } from "~/lib/board/school-catalog";
+import { loadSchoolProfiles } from "~/lib/board/school-catalog.server";
 import {
   DRIVING_SCHOOL_PAGES,
   DRIVING_SCHOOLS_PATH,
   drivingSchoolBySlug,
   type DrivingSchoolPage,
 } from "~/lib/driving-school-pages";
+import { PUBLIC_DATA_PAGE_CACHE } from "~/lib/http-cache";
+import {
+  hasOwnWords,
+  type PublicSchool,
+  schoolProfileLd,
+} from "~/lib/school/public-profile";
 import { breadcrumbLd, graphLd, guideLd, pageMeta } from "~/lib/site";
 
-import { BoardStartCard } from "~/components/board/board-start-card";
-import { GuideLayout } from "~/components/brand/guide-layout";
-import { MDX } from "~/components/brand/mdx-components";
+import type { Route } from "./+types/driving-school";
 
-export function loader({ params }: Route.LoaderArgs) {
+/** Drawn from the schools' own data: the CDN keeps it five minutes. */
+export function headers() {
+  return { "Cache-Control": PUBLIC_DATA_PAGE_CACHE };
+}
+
+export async function loader({ params }: Route.LoaderArgs) {
   const school = drivingSchoolBySlug(params.slug);
   if (!school) throw new Response("Not found", { status: 404 });
-  return { slug: school.slug };
+  const profile = school.schoolSlug
+    ? ((await loadSchoolProfiles()).get(school.schoolSlug) ?? null)
+    : null;
+  return { slug: school.slug, profile };
 }
 
 /** "KSh 24,900" → 24900, for the structured data; null when it isn't one plain amount. */
 function amount(price: string): number | null {
   const match = /^KSh\s?([\d,]+)$/.exec(price.trim());
-  return match ? Number(match[1].replace(/,/g, "")) : null;
+  return match ? Number(match[1]!.replace(/,/g, "")) : null;
 }
 
-function schoolLd(school: DrivingSchoolPage) {
+function schoolLd(school: DrivingSchoolPage, profile: PublicSchool | null) {
   const offers = school.prices.flatMap((p) => {
     const value = amount(p.price);
     return value === null
@@ -59,10 +84,12 @@ function schoolLd(school: DrivingSchoolPage) {
       name: place,
     })),
     ...(offers.length ? { makesOffer: offers } : {}),
+    // The school's own profile on DriveRush, where it has one, wins.
+    ...(profile ? schoolProfileLd(profile) : {}),
   };
 }
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   const school = data && drivingSchoolBySlug(data.slug);
   if (!school) return [{ title: "Not found · DriveRush Kenya" }];
   const page = guideLd({
@@ -85,7 +112,7 @@ export function meta({ data }: Route.MetaArgs) {
         { name: "Driving schools in Kenya", url: DRIVING_SCHOOLS_PATH },
         { name: school.name, url: school.path },
       ]),
-      { ...page, about: schoolLd(school) },
+      { ...page, about: schoolLd(school, data.profile) },
     ),
   ];
 }
@@ -109,7 +136,15 @@ function readableDate(iso: string): string {
 
 export default function DrivingSchool({ loaderData }: Route.ComponentProps) {
   const school = drivingSchoolBySlug(loaderData.slug)!;
-  const sponsor = school.sponsorId ? sponsorById(school.sponsorId) : null;
+  const profile = loaderData.profile;
+  const ownWords = profile && hasOwnWords(profile) ? profile : null;
+  const branches = profile?.branches.length ? profile : null;
+  const schools = useCatalog();
+  // Named as a sponsor only while it sponsors the board.
+  const board = school.schoolSlug
+    ? sponsorById(school.schoolSlug, schools)
+    : null;
+  const sponsor = board?.live ? board : null;
   const others = DRIVING_SCHOOL_PAGES.filter((s) => s.slug !== school.slug);
   const checked = readableDate(school.checked);
   const sources = [
@@ -141,6 +176,13 @@ export default function DrivingSchool({ loaderData }: Route.ComponentProps) {
         <MDX.p>
           <strong>Check the town.</strong> {school.nameClash}
         </MDX.p>
+      ) : null}
+
+      {ownWords ? (
+        <>
+          <MDX.h2 id="from-the-school">From {school.name}</MDX.h2>
+          <SchoolOwnWords school={ownWords} />
+        </>
       ) : null}
 
       <MDX.h2 id="fees">{school.name} fees</MDX.h2>
@@ -195,8 +237,18 @@ export default function DrivingSchool({ loaderData }: Route.ComponentProps) {
       </MDX.p>
 
       <MDX.h2 id="where">Where to find {school.name}</MDX.h2>
+      {branches ? (
+        <>
+          <MDX.p>
+            {branches.branches.length === 1
+              ? "Its branch, as the school gives it on DriveRush:"
+              : `Its ${branches.branches.length} branches, as the school gives them on DriveRush:`}
+          </MDX.p>
+          <SchoolBranches school={branches} />
+        </>
+      ) : null}
       <MDX.ul>
-        {school.locations.length > 0 ? (
+        {!branches && school.locations.length > 0 ? (
           <li>
             <strong>Locations:</strong> {school.locations.join("; ")}.
           </li>

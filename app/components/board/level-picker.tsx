@@ -11,25 +11,8 @@
 import * as React from "react";
 import { Link } from "react-router";
 
-import { BOARD_PLAY_PATH, levelHref } from "~/lib/board-guides";
-import {
-  KIND_LABEL,
-  UNITS,
-  levelDone,
-  levelState,
-  nextLevel,
-  unitState,
-  type CourseProgress,
-  type Level,
-  type LevelKind,
-  type LevelState,
-  type UnitState,
-} from "~/lib/board/curriculum";
-import { useCourseProgress } from "~/lib/use-course-progress";
-import { cn } from "~/lib/utils";
-
-import { Icon } from "~/components/brand/icon";
 import { useSkipAhead } from "~/components/board/skip-ahead";
+import { Icon } from "~/components/brand/icon";
 import {
   CheckIcon,
   ChevronRightIcon,
@@ -39,6 +22,24 @@ import {
 } from "~/components/brand/icons";
 import { Badge, type BadgeProps } from "~/components/ui/badge";
 import { Progress } from "~/components/ui/progress";
+import {
+  type CourseProgress,
+  KIND_LABEL,
+  type Level,
+  levelDone,
+  type LevelKind,
+  type LevelState,
+  levelState,
+  nextLevel,
+  UNITS,
+  type UnitState,
+  unitState,
+} from "~/lib/board/curriculum";
+import { passHref, usePaywall } from "~/lib/board/use-paywall";
+import { BOARD_PLAY_PATH, levelHref } from "~/lib/board-guides";
+import { linkPrefetch } from "~/lib/ui/link-prefetch";
+import { useCourseProgress } from "~/lib/use-course-progress";
+import { cn } from "~/lib/utils";
 
 const KIND_BADGE: Record<LevelKind, BadgeProps["variant"]> = {
   warmup: "rush",
@@ -75,8 +76,11 @@ function LevelCard({
   replace,
   onPick,
   onLocked,
+  walled = false,
 }: {
   level: Level;
+  /** Needs a pass (`~/lib/board/use-paywall`): opens the pass page instead. */
+  walled?: boolean;
   /** Before saved progress is read, every level shows as open. */
   state: LevelState;
   /** The level the game is on, when the picker is open over it. */
@@ -94,8 +98,17 @@ function LevelCard({
   return (
     <li className={cn(mock && "col-span-full")}>
       <Link
-        to={mock ? BOARD_PLAY_PATH : levelHref(level.id)}
-        replace={replace}
+        // Behind the paywall, the level links to the pass itself: a real
+        // link, so it can be opened, prefetched and read out as one.
+        to={
+          walled && !now
+            ? passHref(level)
+            : mock
+              ? BOARD_PLAY_PATH
+              : levelHref(level.id)
+        }
+        replace={replace && !(walled && !now)}
+        prefetch={linkPrefetch()}
         data-level={level.id}
         data-state={state}
         aria-current={now ? "true" : next ? "step" : undefined}
@@ -105,6 +118,7 @@ function LevelCard({
             : `Level ${level.n}: ${level.title}. ${now ? "Playing now. " : ""}${STATE_SAID[state]}.`
         }
         onClick={(event) => {
+          if (walled && !now) return;
           if (locked && !now) {
             event.preventDefault();
             onLocked(level);
@@ -113,7 +127,7 @@ function LevelCard({
           onPick?.(level);
         }}
         className={cn(
-          "group relative flex h-full min-h-[76px] items-center gap-3 rounded-soft border p-3 text-ink no-underline outline-none transition-[background-color,border-color,transform] active:scale-[0.99] motion-reduce:transition-none",
+          "group relative flex h-full min-h-[76px] items-center gap-3 rounded-soft border p-3 text-ink no-underline transition-[background-color,border-color,transform] outline-none active:scale-[0.99] motion-reduce:transition-none",
           next
             ? "border-2 border-ink bg-state-next text-state-next-foreground"
             : done
@@ -157,16 +171,16 @@ function LevelCard({
             {!mock && (done || locked) && (
               <span
                 aria-hidden
-                className="font-mono text-[10.5px] font-bold tabular-nums text-ink-3"
+                className="font-mono text-[10.5px] font-bold text-ink-3 tabular-nums"
               >
                 {level.n}
               </span>
             )}
             <span
               className={cn(
-                "block min-w-0 font-bold leading-snug",
+                "block min-w-0 leading-snug font-bold",
                 mock
-                  ? "font-display text-[16px] font-extrabold uppercase tracking-tight"
+                  ? "font-display text-[16px] font-extrabold tracking-tight uppercase"
                   : "text-[14px]",
                 locked && "text-neutral-strong",
               )}
@@ -191,7 +205,7 @@ function LevelCard({
               <span
                 aria-hidden
                 className={cn(
-                  "font-mono text-[10px] font-bold uppercase tracking-widest",
+                  "font-mono text-[10px] font-bold tracking-widest uppercase",
                   now
                     ? "text-state-now"
                     : done
@@ -288,6 +302,7 @@ export function LevelPicker({
   const next = nextLevel(saved ?? EMPTY);
   const root = React.useRef<HTMLDivElement>(null);
   const inGame = current != null;
+  const paywall = usePaywall();
   const skip = useSkipAhead({
     next,
     replace,
@@ -341,7 +356,7 @@ export function LevelPicker({
                 href={`#unit-${unit.id}`}
                 onClick={(event) => jump(event, unit.id)}
                 className={cn(
-                  "inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-soft border px-3 text-[13px] font-bold no-underline outline-none transition-colors hover:bg-paper-2 focus-visible:bg-paper-2",
+                  "inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-soft border px-3 text-[13px] font-bold no-underline transition-colors outline-none hover:bg-paper-2 focus-visible:bg-paper-2",
                   state === "done"
                     ? "border-success-line bg-state-done-soft text-ink"
                     : state === "current"
@@ -400,12 +415,12 @@ export function LevelPicker({
           >
             {!mock && (
               <header className="mb-3">
-                <p className="m-0 font-mono text-[10px] font-bold uppercase tracking-widest text-ink-3">
+                <p className="m-0 font-mono text-[10px] font-bold tracking-widest text-ink-3 uppercase">
                   Unit {i + 1} · {unit.levels.length} levels
                 </p>
                 <h2
                   id={`unit-${unit.id}-title`}
-                  className="m-0 mt-0.5 font-display text-[20px] font-extrabold uppercase leading-tight tracking-tight text-ink"
+                  className="m-0 mt-0.5 font-display text-[20px] leading-tight font-extrabold tracking-tight text-ink uppercase"
                 >
                   {unit.title}
                 </h2>
@@ -421,7 +436,7 @@ export function LevelPicker({
                       aria-label={`${unit.title}: levels done`}
                       className="h-1.5 flex-1"
                     />
-                    <span className="shrink-0 font-mono text-[10.5px] font-bold uppercase tracking-widest tabular-nums text-ink-3">
+                    <span className="shrink-0 font-mono text-[10.5px] font-bold tracking-widest text-ink-3 uppercase tabular-nums">
                       {count} of {unit.levels.length} done
                     </span>
                   </div>
@@ -448,6 +463,7 @@ export function LevelPicker({
                   replace={replace}
                   onPick={onPick}
                   onLocked={skip.ask}
+                  walled={paywall.walled(level)}
                 />
               ))}
             </ol>

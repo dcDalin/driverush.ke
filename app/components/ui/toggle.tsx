@@ -2,9 +2,9 @@
  * shadcn's Toggle, in DriveRush's clothes: a flat chip with a soft corner
  * that fills with ink when it is on. No stamp shadow, no heavy ink border.
  */
-import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Toggle as TogglePrimitive } from "radix-ui";
+import type * as React from "react";
 
 import { cn } from "~/lib/utils";
 

@@ -11,36 +11,78 @@
  * three.js only loads with this file, which the viewer fetches after Start.
  * The table is built once, by hand; only the cars and the camera move.
  */
-import * as React from "react";
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
+import * as React from "react";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
-import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
+import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
+import type { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 import {
+  type BoardPaint,
+  buildBoardPaint,
+} from "~/components/board/board-paint";
+import {
+  buildRoom,
+  hangSchool,
+  type Room,
+} from "~/components/board/board-room";
+import {
+  boardLogo,
+  loadImage,
+  loadPicture,
+  loadWrap,
+  PLATE,
+  sponsoredPlate,
+  warmSchool,
+  wearWrap,
+} from "~/components/board/board-sponsor";
+import { carFromGltf, SHARED } from "~/components/board/car-glb";
+import {
+  buildCar,
+  type CarModel,
+  WHEEL_RADIUS,
+} from "~/components/board/car-model";
+import {
+  buildRibbon,
+  chevronTexture,
+  disposeRibbons,
+} from "~/components/board/route-ribbon";
+import { wearTopBoard } from "~/components/board/top-board";
+import { useParkingLayout } from "~/components/board/use-parking-layout";
+import { analytics } from "~/lib/analytics";
+import {
   BOARD_CARS,
+  type BoardCarId,
   modelBeside,
   parkedModel,
   sizeOf,
-  type BoardCarId,
 } from "~/lib/board/cars";
-import { hasParkedCars, type BoardChallenge } from "~/lib/board/challenges";
+import { type BoardChallenge, hasParkedCars } from "~/lib/board/challenges";
 import {
   BOUNDS,
+  type Box,
   CAR_COLORS,
   COLORS,
-  ISLAND_R,
   fullBoardSvg,
+  ISLAND_R,
   kerbHighlights,
   reserves,
-  type Box,
 } from "~/lib/board/full-board";
 import { dirOf } from "~/lib/board/geometry";
-import { STICK_DEADZONE, type Seat } from "~/lib/board/joystick";
+import { type Seat, STICK_DEADZONE } from "~/lib/board/joystick";
 import { taskGoalBox } from "~/lib/board/lessons";
 import { parkedCars } from "~/lib/board/parking-layouts";
+import {
+  type BoardTier,
+  newPace,
+  paceFrame,
+  pixelRatio as pixelRatioAt,
+  rungAt,
+  saveRung,
+  stepDown,
+} from "~/lib/board/quality";
 import {
   car,
   hasMoved,
@@ -50,12 +92,24 @@ import {
   tick,
   view,
 } from "~/lib/board/runtime";
+import type { Sponsor, TopBoard } from "~/lib/board/school-catalog";
+import {
+  SHOW_TOTAL,
+  showcaseCamera,
+  showcasePose,
+  skipTo,
+} from "~/lib/board/showcase";
+import {
+  nextSchool,
+  sponsorShown,
+  useVisitSponsor,
+} from "~/lib/board/sponsor-visit";
 import {
   advance,
   asDriveSpan,
+  blockSpots,
   cam,
   endLook,
-  blockSpots,
   finish,
   marks,
   picks,
@@ -65,62 +119,7 @@ import {
   setWake,
   useStage,
 } from "~/lib/board/stage";
-
-import {
-  newPace,
-  paceFrame,
-  pixelRatio as pixelRatioAt,
-  rungAt,
-  saveRung,
-  stepDown,
-  type BoardTier,
-} from "~/lib/board/quality";
-import { analytics } from "~/lib/analytics";
-
-import {
-  buildBoardPaint,
-  type BoardPaint,
-} from "~/components/board/board-paint";
-import {
-  buildRibbon,
-  chevronTexture,
-  disposeRibbons,
-} from "~/components/board/route-ribbon";
-import { SHARED, carFromGltf } from "~/components/board/car-glb";
-import { wearTopBoard } from "~/components/board/top-board";
-import {
-  buildRoom,
-  hangSchool,
-  type Room,
-} from "~/components/board/board-room";
-import {
-  PLATE,
-  boardLogo,
-  loadImage,
-  loadPicture,
-  warmSchool,
-  loadWrap,
-  sponsoredPlate,
-  wearWrap,
-} from "~/components/board/board-sponsor";
-import {
-  nextSchool,
-  sponsorShown,
-  useVisitSponsor,
-} from "~/lib/board/sponsor-visit";
-import type { Sponsor, TopBoard } from "~/lib/board/sponsors";
-import {
-  SHOW_TOTAL,
-  showcaseCamera,
-  showcasePose,
-  skipTo,
-} from "~/lib/board/showcase";
-import { useParkingLayout } from "~/components/board/use-parking-layout";
-import {
-  WHEEL_RADIUS,
-  buildCar,
-  type CarModel,
-} from "~/components/board/car-model";
+import { SturdyGLTFLoader } from "~/lib/sturdy-loaders";
 
 export type { BoardTier };
 
@@ -441,14 +440,27 @@ function paintBoard(width: number): Promise<THREE.CanvasTexture> {
 
 type Pair = [number, number];
 
+/** A promo film's camera for this frame (dev server only, see useFrame). */
+type FilmWindow = Window & {
+  __filmCam?: (scene: {
+    car: { x: number; z: number; heading: number };
+    centre: { x: number; z: number };
+    others: { x: number; z: number; flipped: boolean }[];
+  }) => {
+    at: [number, number, number];
+    aim: [number, number, number];
+    fov?: number;
+  } | null;
+};
+
 /** A raised strip following a line of points on the board. Corners are mitred. */
 function stripGeometry(points: Pair[], width: number, height: number) {
   const half = width / 2;
   const left: Pair[] = [];
   const right: Pair[] = [];
   points.forEach(([x, z], i) => {
-    const a = points[Math.max(0, i - 1)];
-    const b = points[Math.min(points.length - 1, i + 1)];
+    const a = points[Math.max(0, i - 1)]!;
+    const b = points[Math.min(points.length - 1, i + 1)]!;
     const before: Pair = [x - a[0], z - a[1]];
     const after: Pair = [b[0] - x, b[1] - z];
     const l1 = Math.hypot(before[0], before[1]) || 1;
@@ -468,7 +480,7 @@ function stripGeometry(points: Pair[], width: number, height: number) {
     right.push([x - mx * reach, z - mz * reach]);
   });
   const shape = new THREE.Shape();
-  shape.moveTo(left[0][0], left[0][1]);
+  shape.moveTo(left[0]![0], left[0]![1]);
   for (const p of left.slice(1)) shape.lineTo(p[0], p[1]);
   for (const p of right.slice().reverse()) shape.lineTo(p[0], p[1]);
   shape.closePath();
@@ -872,27 +884,6 @@ const withMeshopt = (loader: GLTFLoader) => {
 };
 
 /**
- * Asks once more, after a short wait, when a car's model fails to arrive. A
- * phone on a weak line drops the odd download ("Load failed" on iPhones), and
- * without the driven car's model the whole board shows its failure screen.
- */
-class SturdyGLTFLoader extends GLTFLoader {
-  override load(
-    url: string,
-    onLoad: Parameters<GLTFLoader["load"]>[1],
-    onProgress?: Parameters<GLTFLoader["load"]>[2],
-    onError?: Parameters<GLTFLoader["load"]>[3],
-  ): void {
-    super.load(url, onLoad, onProgress, () => {
-      window.setTimeout(
-        () => super.load(url, onLoad, onProgress, onError),
-        1500,
-      );
-    });
-  }
-}
-
-/**
  * A car with a soft shadow under it, ready to be placed on the table. With a
  * downloaded model it is that car; with none it is the one built in code.
  */
@@ -992,10 +983,16 @@ function finishFence(width: number, depth: number) {
 }
 
 /**
- * The most a wheel turns in one frame: under half the gap between two spokes,
- * so a fast car's wheels never look as if they are turning backwards.
+ * The most a wheel turns in one frame, as a share of the angle its pattern
+ * repeats at (72 degrees for five spokes, 36 for ten). A turn of more than
+ * half a repeat between two frames reads as the wheel going backwards, and
+ * one near it as a flicker; under a third, every wheel plainly rolls forward
+ * at any speed and frame rate. Past that speed it just holds its pace, so a
+ * rim with few spokes is let turn faster than one with many.
  */
-const MAX_ROLL = (30 * Math.PI) / 180;
+const ROLL_SHARE = 0.3;
+/** For a car whose model does not say (`extras.spokes`): the busiest rim. */
+const SPOKES = 10;
 /** The front wheels turn less than the real lock, so they stay inside the arches. */
 const MAX_STEER_SHOWN = 0.45;
 
@@ -1003,11 +1000,12 @@ const MAX_STEER_SHOWN = 0.45;
 function rollWheels(holder: THREE.Object3D, distance: number) {
   const model = holder.userData.model as CarModel;
   const radius = model.userData.wheelRadius ?? WHEEL_RADIUS;
+  const most = ((2 * Math.PI) / (model.userData.spokes ?? SPOKES)) * ROLL_SHARE;
   // The nose points down -z, so rolling forward turns the top of the wheel that way.
   for (const wheel of model.userData.wheels) {
     // Each by its own radius: a smaller wheel turns faster over the same road.
     const own = (wheel.userData.radius as number | undefined) ?? radius;
-    wheel.rotation.x -= Math.min(distance / own, MAX_ROLL);
+    wheel.rotation.x -= clamp(distance / own, -most, most);
   }
 }
 
@@ -1162,7 +1160,7 @@ function Scene({
       .catch(() => {
         // The frames stay plain.
       });
-    const brass = table.plates[0].material as THREE.MeshStandardMaterial;
+    const brass = table.plates[0]!.material as THREE.MeshStandardMaterial;
     const plain = brass.map;
     loadImage(sponsor.logo.mono)
       .then((logo) => {
@@ -1186,6 +1184,7 @@ function Scene({
     return () => {
       alive = false;
       hung.forEach((t) => t.dispose());
+      table.room.rail(null);
       if (logoMesh) {
         table.group.remove(logoMesh);
         dispose(logoMesh);
@@ -1480,8 +1479,8 @@ function Scene({
     if (tier !== "high") return group;
     parkedCars(layout).forEach((spot, i) => {
       const parkedCar = carOnTable(
-        PARKED_PAINTS[i % PARKED_PAINTS.length],
-        PARKED_PLATES[i % PARKED_PLATES.length],
+        PARKED_PAINTS[i % PARKED_PAINTS.length]!,
+        PARKED_PLATES[i % PARKED_PLATES.length]!,
         tier,
         models?.[parkedModel(i, spot.flush)],
       );
@@ -2067,6 +2066,29 @@ function Scene({
       aimY = lerp(aimY, pose.target.y, closeUp);
       aimZ = lerp(aimZ, pose.target.z, closeUp);
     }
+    // The promo films (marketing/social/film) may take the camera for a
+    // shot: a sweep of the room, a tracking shot beside the car. Dev server
+    // only; a production build drops this whole block.
+    if (import.meta.env.DEV) {
+      const film = (window as FilmWindow).__filmCam?.({
+        car: { x: car.x, z: car.z, heading: car.heading },
+        centre: { x: CX, z: CZ },
+        others: (challenge?.otherCars ?? []).map((other, i) => {
+          const pose = view.others[i] ?? other;
+          return { x: pose.x, z: pose.z, flipped: !!other.flipped };
+        }),
+      });
+      if (film) {
+        [camX, camY, camZ] = film.at;
+        [aimX, aimY, aimZ] = film.aim;
+        const lens = state.camera as THREE.PerspectiveCamera;
+        const fov = film.fov ?? VFOV;
+        if (lens.fov !== fov) {
+          lens.fov = fov;
+          lens.updateProjectionMatrix();
+        }
+      }
+    }
     state.camera.position.set(camX, camY, camZ);
     state.camera.lookAt(aimX, aimY, aimZ);
     // A car still waiting for its paint stays out of sight (`dress`). The
@@ -2288,7 +2310,8 @@ type SceneProps = BoardTableProps & { shadow: number; onSlow: () => void };
  */
 function SceneWithCars(props: SceneProps) {
   const drivenUrl = srcOf(props.car);
-  const [driven] = useLoader(SturdyGLTFLoader, [drivenUrl], withMeshopt);
+  // one url in, one model out
+  const driven = useLoader(SturdyGLTFLoader, [drivenUrl], withMeshopt)[0]!;
   const [others, setOthers] = React.useState<
     Partial<Record<BoardCarId, THREE.Object3D>>
   >({});

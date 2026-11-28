@@ -19,7 +19,7 @@ import type { CarState } from "./car";
 import type { TurnChallenge } from "./challenges";
 import { ARMS, type Turn } from "./geometry";
 import type { Contact } from "./physics";
-import { createRoad, roadStep, type RoadState } from "./road-rules";
+import { createRoad, type RoadState, roadStep } from "./road-rules";
 
 export type SmallFaultId =
   | "kerb"

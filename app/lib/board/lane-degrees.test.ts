@@ -10,16 +10,16 @@ import { faultTip } from "./board-rules";
 import { CAR } from "./car";
 import type { TurnChallenge } from "./challenges";
 import {
-  ARMS,
   armForTurn,
+  type ArmId,
+  ARMS,
   bearingOf,
   laneRules,
   locate,
   loopsAt,
   optionSweep,
-  turnSweep,
-  type ArmId,
   type Turn,
+  turnSweep,
   type Vec,
 } from "./geometry";
 import { lanePath } from "./lane-paths";
@@ -86,8 +86,8 @@ function driveLine(challenge: TurnChallenge, path: Vec[]): Outcome {
   for (let i = 0; i < 240 / STEP && !over; i += 1) {
     while (
       nearest < path.length - 1 &&
-      Math.hypot(path[nearest + 1].x - car.x, path[nearest + 1].z - car.z) <=
-        Math.hypot(path[nearest].x - car.x, path[nearest].z - car.z)
+      Math.hypot(path[nearest + 1]!.x - car.x, path[nearest + 1]!.z - car.z) <=
+        Math.hypot(path[nearest]!.x - car.x, path[nearest]!.z - car.z)
     ) {
       nearest += 1;
     }
@@ -107,12 +107,12 @@ function driveLine(challenge: TurnChallenge, path: Vec[]): Outcome {
       let run = 0;
       while (aim < path.length - 1 && run < 4.5) {
         run += Math.hypot(
-          path[aim + 1].x - path[aim].x,
-          path[aim + 1].z - path[aim].z,
+          path[aim + 1]!.x - path[aim]!.x,
+          path[aim + 1]!.z - path[aim]!.z,
         );
         aim += 1;
       }
-      const bearing = bearingOf(path[aim].x - car.x, path[aim].z - car.z);
+      const bearing = bearingOf(path[aim]!.x - car.x, path[aim]!.z - car.z);
       stick.x = Math.sin(bearing) * 0.7;
       stick.y = -Math.cos(bearing) * 0.7;
     }

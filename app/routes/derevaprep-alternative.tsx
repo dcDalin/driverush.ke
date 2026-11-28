@@ -3,12 +3,11 @@
  * them. Keep it factual and dated, and say where they're ahead. Re-check their
  * public pages whenever this is edited.
  */
-import type { Route } from "./+types/derevaprep-alternative";
-
+import { GuideLayout } from "~/components/brand/guide-layout";
 import Body from "~/guides/derevaprep-alternative.mdx";
 import { breadcrumbLd, graphLd, guideLd, pageMeta } from "~/lib/site";
 
-import { GuideLayout } from "~/components/brand/guide-layout";
+import type { Route } from "./+types/derevaprep-alternative";
 
 const PATH = "/derevaprep-alternative";
 const CHECKED = "2026-11-11";

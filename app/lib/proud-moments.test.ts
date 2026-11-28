@@ -6,10 +6,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   COURSE_LEVELS,
-  learnedKey,
-  UNITS,
   type CourseProgress,
+  learnedKey,
   type Level,
+  UNITS,
 } from "./board/curriculum";
 import {
   levelMoment,
@@ -37,9 +37,9 @@ const units = UNITS.filter((u) => u.id !== "mock");
 
 describe("which moment a level earns", () => {
   it("is the unit, once its last level is done", () => {
-    const lanes = units[1];
-    const last = lanes.levels[lanes.levels.length - 1];
-    const before = units[0].levels;
+    const lanes = units[1]!;
+    const last = lanes.levels[lanes.levels.length - 1]!;
+    const before = units[0]!.levels;
     expect(levelMoment(last, progress([...before, ...lanes.levels]))).toEqual({
       moment: "unit",
       n: 2,
@@ -51,7 +51,7 @@ describe("which moment a level earns", () => {
   });
 
   it("is the whole course when the last level anywhere is done", () => {
-    const level = COURSE_LEVELS[10];
+    const level = COURSE_LEVELS[10]!;
     expect(levelMoment(level, progress(COURSE_LEVELS))).toEqual({
       moment: "course",
       n: COURSE_LEVELS.length,
@@ -59,7 +59,7 @@ describe("which moment a level earns", () => {
   });
 
   it("is nothing for a level not done", () => {
-    expect(levelMoment(COURSE_LEVELS[0], progress([]))).toBeNull();
+    expect(levelMoment(COURSE_LEVELS[0]!, progress([]))).toBeNull();
   });
 });
 

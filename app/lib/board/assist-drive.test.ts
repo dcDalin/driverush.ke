@@ -10,17 +10,17 @@ import { useBoardStore } from "../board-store";
 import type { CarInput, CarState } from "./car";
 import { ALL_LEVELS } from "./curriculum";
 import {
-  SOLID_ZONE,
   bearingOf,
-  lanePoint,
   laneBearing,
+  lanePoint,
   locate,
+  SOLID_ZONE,
 } from "./geometry";
 import {
   AISLE_SPEED,
+  type AssistState,
   createAssist,
   stickToInput,
-  type AssistState,
 } from "./joystick";
 import { challengeRoute } from "./lessons";
 import { car, drive, loadPhysics, stick, tick } from "./runtime";
@@ -49,7 +49,7 @@ function driveLevel(
 ): string {
   useBoardStore.getState().startLevel(id);
   const first = useBoardStore.getState();
-  const route = challengeRoute(first.queue[first.pos]);
+  const route = challengeRoute(first.queue[first.pos]!);
   if (!route) return "no route";
   const reverse = (d: number) =>
     route.steps.some((s) => s.gear === "reverse" && d >= s.from && d < s.to);
@@ -58,14 +58,14 @@ function driveLevel(
     .map((s) => s.from);
   // the route, a point every half metre
   const points: { x: number; z: number; d: number; back: boolean }[] = [
-    { ...route.points[0], d: 0, back: reverse(0) },
+    { ...route.points[0]!, d: 0, back: reverse(0) },
   ];
   for (let k = 1; k < route.points.length; k += 1) {
-    const a = route.points[k - 1];
-    const b = route.points[k];
+    const a = route.points[k - 1]!;
+    const b = route.points[k]!;
     const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / 0.5));
     for (let j = 1; j <= n; j += 1) {
-      const d = route.at[k - 1] + ((route.at[k] - route.at[k - 1]) * j) / n;
+      const d = route.at[k - 1]! + ((route.at[k]! - route.at[k - 1]!) * j) / n;
       points.push({
         x: a.x + ((b.x - a.x) * j) / n,
         z: a.z + ((b.z - a.z) * j) / n,
@@ -83,23 +83,23 @@ function driveLevel(
     // where along the route the car is, never jumping back or far ahead
     let gap = Infinity;
     for (let k = at; k < Math.min(points.length, at + 60); k += 1) {
-      const d = Math.hypot(points[k].x - car.x, points[k].z - car.z);
+      const d = Math.hypot(points[k]!.x - car.x, points[k]!.z - car.z);
       if (d < gap) {
         gap = d;
         at = k;
       }
     }
-    const back = points[at].back;
+    const back = points[at]!.back;
     let aim = at;
     let run = 0;
     while (
       aim < points.length - 1 &&
       run < (back ? 2.5 : 6) &&
-      points[aim + 1].back === back
+      points[aim + 1]!.back === back
     ) {
       run += Math.hypot(
-        points[aim + 1].x - points[aim].x,
-        points[aim + 1].z - points[aim].z,
+        points[aim + 1]!.x - points[aim]!.x,
+        points[aim + 1]!.z - points[aim]!.z,
       );
       aim += 1;
     }
@@ -108,19 +108,19 @@ function driveLevel(
     let rest = at >= points.length - 2 && gap < 1.2;
     for (const line of stops) {
       if (stopped.has(line)) continue;
-      const ahead = line - points[at].d;
+      const ahead = line - points[at]!.d;
       if (ahead < 2.2 && ahead > -1) {
         rest = true;
         if (Math.abs(car.speed) < 0.05) stopped.add(line);
       }
     }
     const knob =
-      bearingOf(points[aim].x - car.x, points[aim].z - car.z) + bias * DEG;
+      bearingOf(points[aim]!.x - car.x, points[aim]!.z - car.z) + bias * DEG;
     // seated south, up on the knob is north
     stick.x = rest ? 0 : Math.sin(knob);
     stick.y = rest ? 0 : -Math.cos(knob);
     tick(STEP);
-    watch?.(points[at].d, route.length);
+    watch?.(points[at]!.d, route.length);
   }
   const after = useBoardStore.getState();
   return after.phase === "fault" ? (after.fault?.id ?? "fault") : after.phase;

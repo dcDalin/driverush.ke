@@ -255,13 +255,14 @@ function scatter(c) {
   const t = 0.22; // tile
   const r = 0.027;
   const ring = (x, y, col) =>
-    `<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="${col}" stroke-width="0.0075"/>` +
-    [0, 1, 2, 3]
+    `<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="${col}" stroke-width="0.0075"/>${[
+      0, 1, 2, 3,
+    ]
       .map((i) => {
         const a = (i * Math.PI) / 2 + Math.PI / 4;
         return `<ellipse cx="${(x + Math.cos(a) * r * 0.42).toFixed(4)}" cy="${(y + Math.sin(a) * r * 0.42).toFixed(4)}" rx="${(r * 0.34).toFixed(4)}" ry="${(r * 0.18).toFixed(4)}" transform="rotate(${45 + i * 90} ${(x + Math.cos(a) * r * 0.42).toFixed(4)} ${(y + Math.sin(a) * r * 0.42).toFixed(4)})" fill="${col}"/>`;
       })
-      .join("");
+      .join("")}`;
   const diamond = (x, y, col) =>
     `<polygon points="${x},${y - r} ${x + r},${y} ${x},${y + r} ${x - r},${y}" fill="none" stroke="${col}" stroke-width="0.0075"/>` +
     `<polygon points="${star4(x, y, r * 0.62)}" fill="${col}"/>`;
@@ -646,9 +647,9 @@ function lorry(k, fonts) {
     k.rect(-far, -far, far, cab.sill + 0.3, c.white),
   ].join("");
 
-  const defs =
-    scatter(c) +
-    `<clipPath id="heltz-top-rear"><rect x="${zScatter.toFixed(3)}" y="-9" width="9" height="18"/></clipPath>`;
+  const defs = `${scatter(
+    c,
+  )}<clipPath id="heltz-top-rear"><rect x="${zScatter.toFixed(3)}" y="-9" width="9" height="18"/></clipPath>`;
   const body = [
     k.inView("left", side),
     k.inView("right", side),

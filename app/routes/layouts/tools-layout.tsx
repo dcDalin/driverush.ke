@@ -1,17 +1,8 @@
 import { useState } from "react";
 import { Link, Outlet, useLocation } from "react-router";
+
 import { Icon } from "~/components/brand/icon";
-import {
-  ArrowLeftIcon,
-  CropIcon,
-  MenuIcon,
-} from "~/components/brand/icons";
-
-import type { Route } from "./+types/tools-layout";
-
-import { TOOLS } from "~/lib/tools";
-import { cn } from "~/lib/utils";
-
+import { ArrowLeftIcon, CropIcon, MenuIcon } from "~/components/brand/icons";
 import { Button } from "~/components/ui/button";
 import {
   Sheet,
@@ -21,6 +12,10 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "~/components/ui/sheet";
+import { TOOLS } from "~/lib/tools";
+import { cn } from "~/lib/utils";
+
+import type { Route } from "./+types/tools-layout";
 
 export function meta(_: Route.MetaArgs) {
   return [
@@ -43,9 +38,9 @@ function ToolNav({ onNavigate }: { onNavigate?: () => void }) {
         onClick={onNavigate}
         data-active={pathname === "/tools" || undefined}
         className={cn(
-          "flex items-center gap-2.5 border border-transparent px-3 py-2 rounded-lg",
-          "font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium",
-          "outline-none transition-colors duration-100 ease-snap",
+          "flex items-center gap-2.5 rounded-lg border border-transparent px-3 py-2",
+          "font-sans text-[11px] font-medium tracking-wider text-ink-3 uppercase",
+          "transition-colors duration-100 ease-snap outline-none",
           "hover:text-ink focus-visible:border-line focus-visible:bg-paper-3 focus-visible:text-ink",
           "data-[active]:bg-ink data-[active]:text-paper data-[active]:hover:text-paper",
         )}
@@ -59,8 +54,8 @@ function ToolNav({ onNavigate }: { onNavigate?: () => void }) {
         const active = pathname === tool.path;
         const soon = tool.status === "soon";
         const className = cn(
-          "group/tool flex items-start gap-2.5 border border-transparent px-3 py-2.5 rounded-lg",
-          "outline-none transition-colors duration-100 ease-snap",
+          "group/tool flex items-start gap-2.5 rounded-lg border border-transparent px-3 py-2.5",
+          "transition-colors duration-100 ease-snap outline-none",
           soon
             ? "cursor-not-allowed text-ink-4"
             : "text-ink-2 hover:text-ink focus-visible:border-line focus-visible:bg-paper-3 focus-visible:text-ink",
@@ -68,16 +63,12 @@ function ToolNav({ onNavigate }: { onNavigate?: () => void }) {
         );
         const inner = (
           <>
-            <Icon
-              icon={tool.icon}
-              size={18}
-              className="mt-px shrink-0"
-            />
+            <Icon icon={tool.icon} size={18} className="mt-px shrink-0" />
             <span className="min-w-0">
-              <span className="flex items-center gap-1.5 font-display text-[12.5px] font-bold uppercase tracking-wide">
+              <span className="flex items-center gap-1.5 font-display text-[12.5px] font-bold tracking-wide uppercase">
                 {tool.title}
                 {soon && (
-                  <span className="border border-current px-1 py-px font-sans text-[8.5px] font-semibold uppercase tracking-wider rounded-lg">
+                  <span className="rounded-lg border border-current px-1 py-px font-sans text-[8.5px] font-semibold tracking-wider uppercase">
                     Soon
                   </span>
                 )}
@@ -109,14 +100,11 @@ function ToolNav({ onNavigate }: { onNavigate?: () => void }) {
         onClick={onNavigate}
         className={cn(
           "flex items-center gap-2 px-3 py-2",
-          "font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium",
-          "outline-none transition-colors duration-100 hover:text-ink focus-visible:text-ink",
+          "font-sans text-[10.5px] font-medium tracking-wider text-ink-3 uppercase",
+          "transition-colors duration-100 outline-none hover:text-ink focus-visible:text-ink",
         )}
       >
-        <Icon
-          icon={ArrowLeftIcon}
-          size={13}
-        />
+        <Icon icon={ArrowLeftIcon} size={13} />
         Back to site
       </Link>
     </nav>
@@ -129,14 +117,14 @@ function SidebarHeader() {
       to="/tools"
       className="flex items-center gap-2.5 border-b border-line bg-ink px-4 py-3.5 text-paper outline-none"
     >
-      <span className="flex size-7 items-center justify-center border border-paper bg-paper text-ink rounded-md">
+      <span className="flex size-7 items-center justify-center rounded-md border border-paper bg-paper text-ink">
         <Icon icon={CropIcon} size={15} />
       </span>
       <span className="leading-none">
         <span className="block font-display text-[13px] font-bold tracking-tight">
           DriveRush
         </span>
-        <span className="mt-0.5 block font-sans text-[9px] uppercase tracking-[0.2em] text-ink-200 font-medium">
+        <span className="mt-0.5 block font-sans text-[9px] font-medium tracking-[0.2em] text-ink-200 uppercase">
           Tools · internal
         </span>
       </span>
@@ -160,11 +148,8 @@ export default function ToolsLayout() {
       {/* Mobile top bar */}
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-line bg-surface px-4 py-3 md:hidden">
         <Link to="/tools" className="flex items-center gap-2 outline-none">
-          <span className="flex size-7 items-center justify-center border border-line bg-ink text-paper rounded-md">
-            <Icon
-              icon={CropIcon}
-              size={14}
-            />
+          <span className="flex size-7 items-center justify-center rounded-md border border-line bg-ink text-paper">
+            <Icon icon={CropIcon} size={14} />
           </span>
           <span className="font-display text-[13px] font-bold tracking-tight">
             DriveRush <span className="text-ink-3">Tools</span>
@@ -173,10 +158,7 @@ export default function ToolsLayout() {
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <Button variant="paper" size="sm" aria-label="Open tools menu">
-              <Icon
-                icon={MenuIcon}
-                size={16}
-              />
+              <Icon icon={MenuIcon} size={16} />
               Tools
             </Button>
           </SheetTrigger>

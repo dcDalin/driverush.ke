@@ -3,9 +3,9 @@
  * (type="multiple") are on. Arrow keys move between the items. The items share
  * the group's variant and size unless they set their own.
  */
-import * as React from "react";
 import { type VariantProps } from "class-variance-authority";
 import { ToggleGroup as ToggleGroupPrimitive } from "radix-ui";
+import * as React from "react";
 
 import { toggleVariants } from "~/components/ui/toggle";
 import { cn } from "~/lib/utils";

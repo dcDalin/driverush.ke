@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { SHARE_OG_CARD, buildShareLink, resolveShare } from "./share";
+import { buildShareLink, resolveShare, SHARE_OG_CARD } from "./share";
 
 describe("sharing a board round", () => {
   it("builds a short link with only numbers in it", () => {

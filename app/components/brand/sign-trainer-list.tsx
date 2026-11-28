@@ -5,17 +5,17 @@
  */
 import { Link } from "react-router";
 
+import { Icon } from "~/components/brand/icon";
+import { ChevronRightIcon } from "~/components/brand/icons";
+import { Button } from "~/components/ui/button";
 import { signCounts } from "~/lib/pelican-progress";
 import { usePracticeStreak } from "~/lib/practice-streak";
 import { SIGN_GAMES } from "~/lib/road-signs";
 import { SIGN_BRAND } from "~/lib/sign-credits";
 import { ROUND_SIZE, trainerHref } from "~/lib/trainer-rounds";
+import { linkPrefetch } from "~/lib/ui/link-prefetch";
 import { useSignProgress } from "~/lib/use-sign-progress";
 import { cn } from "~/lib/utils";
-
-import { Icon } from "~/components/brand/icon";
-import { ChevronRightIcon } from "~/components/brand/icons";
-import { Button } from "~/components/ui/button";
 
 export function SignTrainerList({
   buttons = false,
@@ -29,7 +29,7 @@ export function SignTrainerList({
   const streak = usePracticeStreak();
   return (
     <div className={className}>
-      <ul className="m-0 grid list-none border border-ink/25 bg-surface p-0 rounded-lg">
+      <ul className="m-0 grid list-none rounded-lg border border-ink/25 bg-surface p-0">
         {SIGN_GAMES.map((game, index) => {
           const saved = progress?.[game.slug] ?? {};
           const counts = signCounts(saved, Object.keys(saved));
@@ -55,7 +55,7 @@ export function SignTrainerList({
                 </span>
               )}
               <span className="min-w-0 flex-1">
-                <span className="block font-display text-[15px] font-bold leading-tight tracking-tight">
+                <span className="block font-display text-[15px] leading-tight font-bold tracking-tight">
                   {game.title}
                 </span>
                 <span className="mt-0.5 block text-[13.5px] leading-snug text-ink-2">
@@ -79,17 +79,22 @@ export function SignTrainerList({
                     variant={index === 0 ? "rush" : "paper"}
                     className="w-full sm:w-auto sm:min-w-40"
                   >
-                    <Link to={href} aria-label={`${game.title}: ${start}`}>
+                    <Link
+                      prefetch={linkPrefetch()}
+                      to={href}
+                      aria-label={`${game.title}: ${start}`}
+                    >
                       {start}
                     </Link>
                   </Button>
                 </div>
               ) : (
                 <Link
+                  prefetch={linkPrefetch()}
                   to={href}
                   aria-label={`${game.title}: ${start}`}
                   className={cn(
-                    "flex min-h-16 items-center gap-3 px-4 py-3 text-ink no-underline outline-none transition-colors hover:bg-paper-2 focus-visible:bg-paper-2",
+                    "flex min-h-16 items-center gap-3 px-4 py-3 text-ink no-underline transition-colors outline-none hover:bg-paper-2 focus-visible:bg-paper-2",
                   )}
                 >
                   {body}
@@ -106,7 +111,7 @@ export function SignTrainerList({
       </ul>
       {/* Only for returning learners, so a first visit stays all action. */}
       {streak && streak.days > 0 && (
-        <p className="m-0 mt-2.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-ink-2">
+        <p className="m-0 mt-2.5 font-sans text-[11px] font-semibold tracking-wider text-ink-2 uppercase">
           {streak.days} day{streak.days === 1 ? "" : "s"} in a row
           {!streak.practisedToday && (
             <span className="font-normal text-ink-3">

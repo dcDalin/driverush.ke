@@ -87,16 +87,14 @@ const BANNER = { w: 3.2 * METRE, h: 0.6 * METRE };
 export const WALL_ITEMS: readonly WallItem[] = [
   // A school's banner on every wall, from the table's height up: the band the
   // opening close-up sees as it turns.
-  ...(["north", "south", "east", "west"] as const).map(
-    (wall): WallItem => ({
-      kind: "banner",
-      wall,
-      along: 0,
-      y: BANNER.h / 2,
-      w: BANNER.w,
-      h: BANNER.h,
-    }),
-  ),
+  ...(["north", "south", "east", "west"] as const).map((wall): WallItem => ({
+    kind: "banner",
+    wall,
+    along: 0,
+    y: BANNER.h / 2,
+    w: BANNER.w,
+    h: BANNER.h,
+  })),
   // The teaching wall: the whiteboard, and the road-signs chart.
   { kind: "whiteboard", wall: "west", along: -170, y: 100, w: 160, h: 80 },
   { kind: "chart", wall: "west", along: 170, y: 96, w: 128, h: 72 },

@@ -15,6 +15,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+
 import { NodeIO } from "@gltf-transform/core";
 import {
   EXTMeshoptCompression,
@@ -137,7 +138,7 @@ if (compare) {
     path.relative(ROOT, path.join(out, "styles.png")),
   );
 } else {
-  const wrapDir = path.join(ROOT, "public/assets/board/sponsors", id);
+  const wrapDir = path.join(ROOT, "seed/fixtures/liveries", id);
   const rows = [];
   for (const car of CARS) {
     if (!existsSync(path.join(wrapDir, `${car}-wrap4-hi.webp`))) continue;

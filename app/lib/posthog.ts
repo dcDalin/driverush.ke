@@ -1,11 +1,14 @@
 /**
- * PostHog browser client — one init, one accessor.
+ * PostHog browser client — one start, one accessor.
  *
- * Initialised from `entry.client.tsx` before hydration so autocapture, replay,
- * pageviews and exception capture are live from the first paint. Everything
- * else in the app reads the client through {@link getPostHog} (or the typed
- * dispatcher in `analytics.ts`) and must tolerate `undefined`: a missing
- * PostHog config is never allowed to break the app.
+ * Started from `entry.client.tsx` at the same moment as the page, but never
+ * in its way (owner, 2026-11-28): posthog-js (about 75 KB compressed) is
+ * fetched by a dynamic import while React hydrates, instead of every page
+ * waiting for it before it can start. Autocapture, replay, the first
+ * pageview and exception capture begin when it arrives, a moment after the
+ * page. Anything the app sends before then waits in a queue
+ * ({@link withPostHog}) and goes out once it is up, with the time it
+ * happened. A missing PostHog config is never allowed to break the app.
  *
  * Config is read from Vite env:
  *   VITE_PUBLIC_POSTHOG_PROJECT_TOKEN   project write key
@@ -14,7 +17,7 @@
  * In DEV a missing variable throws loudly (silently-missed events are worse
  * than a red screen while wiring things up). In PROD it is a no-op.
  */
-import posthog, { type PostHog } from "posthog-js";
+import type { PostHog } from "posthog-js";
 
 import { pageMetaForPath } from "./page-meta";
 
@@ -37,16 +40,42 @@ export const APP_ENV = import.meta.env.PROD ? "production" : "development";
 const APP_VERSION: string = import.meta.env.VITE_APP_VERSION ?? "dev";
 
 let client: PostHog | undefined;
+let starting: Promise<PostHog | undefined> | undefined;
+/** Calls made before the client arrived, run in order once it has. */
+const waiting: ((posthog: PostHog) => void)[] = [];
 
 /**
- * Initialise the browser client. Safe to call repeatedly; returns the same
- * instance, or `undefined` when PostHog isn't configured or we're on the
- * server.
+ * Starts loading and initialising the browser client, once. Resolves to the
+ * client, or `undefined` when PostHog isn't configured, fails to load (an ad
+ * blocker), or this is the server. Never awaited before hydration.
  */
-export function initPostHog(): PostHog | undefined {
-  if (typeof window === "undefined") return undefined;
-  if (client) return client;
+export function startPostHog(): Promise<PostHog | undefined> {
+  if (typeof window === "undefined") return Promise.resolve(undefined);
+  starting ??= load().catch((error: unknown) => {
+    // Blocked or offline: the app carries on without analytics. In
+    // development a missing setting is said out loud.
+    if (import.meta.env.DEV) console.error(error);
+    waiting.length = 0;
+    return undefined;
+  });
+  return starting;
+}
 
+/**
+ * Runs `run` with the client: now if it is up, else once it has loaded.
+ * Dropped when PostHog is off or never loads.
+ */
+export function withPostHog(run: (posthog: PostHog) => void) {
+  if (client) {
+    run(client);
+    return;
+  }
+  if (typeof window === "undefined") return;
+  waiting.push(run);
+  void startPostHog();
+}
+
+async function load(): Promise<PostHog | undefined> {
   if (!TOKEN || !HOST) {
     if (import.meta.env.DEV) {
       const missing = !TOKEN
@@ -56,9 +85,11 @@ export function initPostHog(): PostHog | undefined {
         `${missing} variable required by PostHog is missing or un-configured, this causes events to be silently missed. This error stops appearing once ${missing} is configured`,
       );
     }
+    waiting.length = 0;
     return undefined;
   }
 
+  const { default: posthog } = await import("posthog-js");
   posthog.init(TOKEN, {
     // In production events go through our own domain (`/ingest`, rewritten
     // to PostHog in `vercel.json`), so ad blockers that block posthog.com
@@ -131,10 +162,11 @@ export function initPostHog(): PostHog | undefined {
   });
 
   client = posthog;
+  for (const run of waiting.splice(0)) run(posthog);
   return client;
 }
 
-/** The initialised client, or `undefined` when PostHog isn't configured. */
+/** The client if it has loaded, else `undefined`. Prefer {@link withPostHog}. */
 export function getPostHog(): PostHog | undefined {
   return client;
 }

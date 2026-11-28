@@ -9,22 +9,19 @@
  * comes from.
  */
 export type PracticeTopicId =
-  | "licence"
-  | "rules"
-  | "signs"
-  | "safety"
-  | "control"
-  | "emergencies";
+  "licence" | "rules" | "signs" | "safety" | "control" | "emergencies";
 
-export const PRACTICE_TOPICS: readonly { id: PracticeTopicId; title: string }[] =
-  [
-    { id: "licence", title: "Your licence and the test" },
-    { id: "rules", title: "Rules of the road" },
-    { id: "signs", title: "Signs and signals" },
-    { id: "safety", title: "Safety, alcohol and fatigue" },
-    { id: "control", title: "Controlling the car" },
-    { id: "emergencies", title: "Emergencies" },
-  ];
+export const PRACTICE_TOPICS: readonly {
+  id: PracticeTopicId;
+  title: string;
+}[] = [
+  { id: "licence", title: "Your licence and the test" },
+  { id: "rules", title: "Rules of the road" },
+  { id: "signs", title: "Signs and signals" },
+  { id: "safety", title: "Safety, alcohol and fatigue" },
+  { id: "control", title: "Controlling the car" },
+  { id: "emergencies", title: "Emergencies" },
+];
 
 export type PracticeQuestion = {
   topic: PracticeTopicId;
@@ -259,8 +256,14 @@ const MORE_QUESTIONS: PracticeQuestion[] = [
   },
   {
     topic: "rules",
-    prompt: "May you drive in a part of the road set aside for pedestrians and cyclists?",
-    choices: ["Yes, to pass slow traffic", "Yes, at night", "No", "Only on a weekend"],
+    prompt:
+      "May you drive in a part of the road set aside for pedestrians and cyclists?",
+    choices: [
+      "Yes, to pass slow traffic",
+      "Yes, at night",
+      "No",
+      "Only on a weekend",
+    ],
     answer: 2,
     why: "You should not ride or drive in areas of the road designated for pedestrians and cyclists.",
     source: handbook(2, 8),
@@ -268,7 +271,12 @@ const MORE_QUESTIONS: PracticeQuestion[] = [
   {
     topic: "rules",
     prompt: "How many passengers may a Category B light vehicle carry?",
-    choices: ["Not more than five", "Not more than seven", "Not more than ten", "As many as have seats"],
+    choices: [
+      "Not more than five",
+      "Not more than seven",
+      "Not more than ten",
+      "As many as have seats",
+    ],
     answer: 1,
     why: "The handbook's table allows not more than seven passengers in a Category B light vehicle.",
     source: handbook(4, 18),
@@ -312,7 +320,12 @@ const MORE_QUESTIONS: PracticeQuestion[] = [
   {
     topic: "signs",
     prompt: "What does a rectangular road sign usually do?",
-    choices: ["Warn you", "Give you an order", "Inform you", "Tell you to stop"],
+    choices: [
+      "Warn you",
+      "Give you an order",
+      "Inform you",
+      "Tell you to stop",
+    ],
     answer: 2,
     why: "Most signs fall into three shapes: a triangle warns, a circle gives an order, and a rectangle informs.",
     source: handbook(2, 8),
@@ -320,7 +333,12 @@ const MORE_QUESTIONS: PracticeQuestion[] = [
   {
     topic: "signs",
     prompt: "What does a circular road sign usually do?",
-    choices: ["Give an order", "Warn of a hazard", "Show a place name", "Mark a parking area"],
+    choices: [
+      "Give an order",
+      "Warn of a hazard",
+      "Show a place name",
+      "Mark a parking area",
+    ],
     answer: 0,
     why: "A circle gives an order. A triangle warns and a rectangle informs.",
     source: handbook(2, 8),
@@ -541,7 +559,8 @@ const MORE_QUESTIONS: PracticeQuestion[] = [
   },
   {
     topic: "safety",
-    prompt: "A police officer asks you to take a breathalyser test. May you refuse?",
+    prompt:
+      "A police officer asks you to take a breathalyser test. May you refuse?",
     choices: [
       "Yes, if you have not been drinking",
       "Yes, if you are close to home",
@@ -660,8 +679,14 @@ const MORE_QUESTIONS: PracticeQuestion[] = [
   },
   {
     topic: "control",
-    prompt: "Where should your hands be on the steering wheel to avoid injury if the airbag goes off?",
-    choices: ["12 and 6", "At 9 and 3", "Both at the top", "One hand at the bottom"],
+    prompt:
+      "Where should your hands be on the steering wheel to avoid injury if the airbag goes off?",
+    choices: [
+      "12 and 6",
+      "At 9 and 3",
+      "Both at the top",
+      "One hand at the bottom",
+    ],
     answer: 1,
     why: "To avoid injury from the airbag, hold the wheel at the 9 and 3 position.",
     source: handbook(8, 35),
@@ -685,7 +710,12 @@ const MORE_QUESTIONS: PracticeQuestion[] = [
   {
     topic: "control",
     prompt: "In rain or fog, how far behind the car in front should you stay?",
-    choices: ["One second", "Two seconds", "About four seconds", "One car length"],
+    choices: [
+      "One second",
+      "Two seconds",
+      "About four seconds",
+      "One car length",
+    ],
     answer: 2,
     why: "The handbook's 4-second rule: when the car ahead passes a landmark, count to four. If you reach it first, drop back.",
     source: handbook(10, 43),
@@ -745,14 +775,20 @@ const MORE_QUESTIONS: PracticeQuestion[] = [
   {
     topic: "control",
     prompt: "Which brakes does the handbrake work on?",
-    choices: ["The front two", "The rear two", "All four", "Only the left side"],
+    choices: [
+      "The front two",
+      "The rear two",
+      "All four",
+      "Only the left side",
+    ],
     answer: 1,
     why: "The handbrake applies the two rear brakes.",
     source: handbook(10, 45),
   },
   {
     topic: "control",
-    prompt: "What are the three kinds of road conditions the handbook describes?",
+    prompt:
+      "What are the three kinds of road conditions the handbook describes?",
     choices: [
       "Open, closed and changing",
       "Wet, dry and dusty",
@@ -767,7 +803,8 @@ const MORE_QUESTIONS: PracticeQuestion[] = [
   // Emergencies
   {
     topic: "emergencies",
-    prompt: "Your car breaks down on the road. Where do you put the reflector triangles?",
+    prompt:
+      "Your car breaks down on the road. Where do you put the reflector triangles?",
     choices: [
       "10 metres behind only",
       "60 metres ahead and 60 metres behind",

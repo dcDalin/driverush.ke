@@ -5,11 +5,11 @@
  */
 import {
   BOARD_LANDMARKS,
+  type Box,
   RING_R,
   ROADS,
   SOLID_TO,
   U_TURN_GAPS,
-  type Box,
 } from "./full-board";
 
 export type BoardFeature = {
@@ -102,8 +102,8 @@ export const BOARD_FEATURES: readonly BoardFeature[] = [
     box: {
       x0: -WIDE,
       x1: WIDE,
-      z0: -U_TURN_GAPS[0].to - 9,
-      z1: -U_TURN_GAPS[0].from + 9,
+      z0: -U_TURN_GAPS[0]!.to - 9,
+      z1: -U_TURN_GAPS[0]!.from + 9,
     },
   },
   {

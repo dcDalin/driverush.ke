@@ -1,13 +1,12 @@
 /**
  * `/about`: who runs DriveRush, what it isn't, and how its facts get checked.
  */
-import type { Route } from "./+types/about";
-
+import { OpenRoadScene } from "~/components/brand/art/scenes";
+import { GuideLayout } from "~/components/brand/guide-layout";
 import Body from "~/guides/about.mdx";
 import { breadcrumbLd, graphLd, guideLd, pageMeta } from "~/lib/site";
 
-import { GuideLayout } from "~/components/brand/guide-layout";
-import { OpenRoadScene } from "~/components/brand/art/scenes";
+import type { Route } from "./+types/about";
 
 const PATH = "/about";
 const CHECKED = "2026-11-05";

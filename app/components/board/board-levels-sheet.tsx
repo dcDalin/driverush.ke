@@ -9,17 +9,6 @@
 import type * as React from "react";
 import { Link, useNavigate } from "react-router";
 
-import {
-  COURSE_LEVELS,
-  levelAfter,
-  levelBefore,
-  levelState,
-  nextLevel,
-  type CourseProgress,
-  type Level,
-} from "~/lib/board/curriculum";
-import { useCourseProgress } from "~/lib/use-course-progress";
-
 import { LevelPicker } from "~/components/board/level-picker";
 import { hrefOfLevel, useSkipAhead } from "~/components/board/skip-ahead";
 import { Icon } from "~/components/brand/icon";
@@ -31,6 +20,17 @@ import {
 } from "~/components/brand/icons";
 import { Button } from "~/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "~/components/ui/sheet";
+import {
+  COURSE_LEVELS,
+  type CourseProgress,
+  type Level,
+  levelAfter,
+  levelBefore,
+  levelState,
+  nextLevel,
+} from "~/lib/board/curriculum";
+import { passHref, usePaywall } from "~/lib/board/use-paywall";
+import { useCourseProgress } from "~/lib/use-course-progress";
 
 /** A square paper Button, a thumb wide. */
 const square = "size-11 p-0 disabled:opacity-30";
@@ -98,7 +98,13 @@ export default function BoardLevelsSheet({
     dark: true,
     onGo: close,
   });
+  const paywall = usePaywall();
   const goTo = (to: Level) => {
+    if (paywall.walled(to)) {
+      close();
+      navigate(passHref(to));
+      return;
+    }
     if (saved && levelState(to, saved) === "locked") {
       skip.ask(to);
       return;
@@ -117,7 +123,7 @@ export default function BoardLevelsSheet({
       >
         <header className="flex items-center justify-between gap-3 border-b border-ink/15 px-4 py-2.5">
           <div className="min-w-0">
-            <p className="m-0 font-mono text-[10px] font-bold uppercase tracking-widest text-ink-3">
+            <p className="m-0 font-mono text-[10px] font-bold tracking-widest text-ink-3 uppercase">
               {level.kind === "mock"
                 ? "Mock test"
                 : `Level ${level.n} of ${COURSE_LEVELS.length}`}

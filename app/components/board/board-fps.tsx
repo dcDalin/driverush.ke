@@ -44,7 +44,7 @@ export function BoardFps() {
     <span
       ref={label}
       aria-hidden
-      className="pointer-events-none absolute bottom-[max(0.5rem,env(safe-area-inset-bottom))] left-2 z-40 rounded-sm bg-black/75 px-2 py-1 font-mono text-[11px] font-bold tabular-nums text-[#7dffa0]"
+      className="pointer-events-none absolute bottom-[max(0.5rem,env(safe-area-inset-bottom))] left-2 z-40 rounded-sm bg-black/75 px-2 py-1 font-mono text-[11px] font-bold text-[#7dffa0] tabular-nums"
     >
       measuring
     </span>

@@ -10,9 +10,9 @@ import {
   isRouteTask,
   type TurnChallenge,
 } from "./challenges";
-import { ROADS, continuousLines } from "./full-board";
+import { continuousLines, ROADS } from "./full-board";
 import { armForTurn, lanePoint } from "./geometry";
-import { LESSONS, challengeRoute, lessonRoute } from "./lessons";
+import { challengeRoute, lessonRoute, LESSONS } from "./lessons";
 import { createLineState, lineStep } from "./lines";
 import type { Route } from "./network";
 import { createRef, refStep } from "./referee";
@@ -49,8 +49,8 @@ function along(route: Route): string[] {
   const state = createLineState();
   const crossed: string[] = [];
   for (let i = 0; i < route.points.length - 1; i += 1) {
-    const a = route.points[i];
-    const b = route.points[i + 1];
+    const a = route.points[i]!;
+    const b = route.points[i + 1]!;
     const steps = Math.max(
       1,
       Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / 0.25),

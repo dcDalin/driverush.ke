@@ -3,13 +3,14 @@
  * chart's data, so a sign added to `road-signs-pelican.json` gets a page and a
  * sitemap entry by itself, as long as it has a line in `SIGN_DETAILS`.
  */
-import { TITLE_SUFFIX } from "./site";
 import { SIGN_DETAILS } from "~/data/road-sign-details";
-import { SIGN_GUIDES, type SignGuide } from "~/data/road-sign-guides";
-import pelican from "~/data/road-signs-pelican.json";
 import signs3d from "~/data/road-signs-3d.json";
+import pelican from "~/data/road-signs-pelican.json";
 import type { FocusRegion, RegionBox, SignCategoryId } from "~/lib/image-focus";
 import { signCrop } from "~/lib/sign-crops";
+import { signSlug } from "~/lib/sign-slug";
+
+import { TITLE_SUFFIX } from "./site";
 
 export type SignPage = FocusRegion & {
   slug: string;
@@ -31,14 +32,6 @@ export const CHART_SRC = pelican.imageSrc as string;
 export const SIGN_IMAGE_SIZE = 512;
 export const signImagePath = (sign: { slug: string }) =>
   `/assets/road-signs/signs/${sign.slug}.png`;
-
-function signSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/['’]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
 
 export const SIGN_PAGES: SignPage[] = (pelican.regions as FocusRegion[]).map(
   (region) => ({
@@ -131,13 +124,6 @@ export function signPageByCode(code: string): SignPage | undefined {
   return BY_CODE.get(code);
 }
 
-/** The long-form write-up, for signs that are in search. */
-export function signGuide(sign: { code?: string }): SignGuide | undefined {
-  return sign.code && isSignConfirmed(sign)
-    ? SIGN_GUIDES[sign.code]
-    : undefined;
-}
-
 export function signPagePath(sign: { slug: string }): string {
   return `/road-signs/${sign.slug}`;
 }
@@ -152,7 +138,7 @@ export function relatedSigns(sign: SignPage, count = 6): SignPage[] {
   const at = sameClass.findIndex((s) => s.slug === sign.slug);
   const following = Array.from(
     { length: sameClass.length - 1 },
-    (_, i) => sameClass[(at + i + 1) % sameClass.length],
+    (_, i) => sameClass[(at + i + 1) % sameClass.length]!,
   );
   // Pages that are in search first, so links lead somewhere a search engine
   // will keep. The order within each group stays the chart's.

@@ -5,16 +5,25 @@
  * levels: still on this page and in the server's HTML, for the learners who
  * arrive searching for how the board works.
  */
-import type { Route } from "./+types/model-town-board";
-
+import { BoardLevels } from "~/components/board/board-levels";
+import { BoardPicture } from "~/components/board/board-picture";
+import {
+  boardSchoolNames,
+  BoardSchools,
+} from "~/components/board/sponsor-credit";
+import { useBoardPage } from "~/components/board/use-board-page";
+import { GuideFold } from "~/components/brand/guide-fold";
+import { GuideLayout } from "~/components/brand/guide-layout";
+import { MDX } from "~/components/brand/mdx-components";
+import { BOARD_QUESTIONS } from "~/data/board-questions";
 import Body from "~/guides/model-town-board.mdx";
+import { COURSE_LEVELS, UNITS } from "~/lib/board/curriculum";
+import { freeLine } from "~/lib/board/free-copy";
 import {
   BOARD_CHECKED,
   BOARD_PATH,
   BOARD_QUESTIONS_PDF,
 } from "~/lib/board-guides";
-import { BOARD_QUESTIONS } from "~/data/board-questions";
-import { COURSE_LEVELS, UNITS } from "~/lib/board/curriculum";
 import { ogCardAlt, ogCardPath } from "~/lib/og-cards";
 import {
   BOARD_KEYWORDS,
@@ -26,16 +35,7 @@ import {
   webAppLd,
 } from "~/lib/site";
 
-import { BoardLevels } from "~/components/board/board-levels";
-import { useBoardPage } from "~/components/board/use-board-page";
-import { BoardPicture } from "~/components/board/board-picture";
-import {
-  BoardSchools,
-  boardSchoolNames,
-} from "~/components/board/sponsor-credit";
-import { GuideFold } from "~/components/brand/guide-fold";
-import { GuideLayout } from "~/components/brand/guide-layout";
-import { MDX } from "~/components/brand/mdx-components";
+import type { Route } from "./+types/model-town-board";
 
 const PATH = BOARD_PATH;
 const CHECKED = BOARD_CHECKED;
@@ -45,6 +45,11 @@ const DESCRIPTION = `Learn the Model Town Board free: ${COURSE_LEVELS.length} le
 const TEACHES = UNITS.filter((unit) => unit.id !== "mock").map(
   (unit) => unit.title,
 );
+
+/** The question bank stays on the server: the page shows its count. */
+export function loader() {
+  return { questionCount: BOARD_QUESTIONS.length };
+}
 
 export function meta(_: Route.MetaArgs) {
   return [
@@ -89,7 +94,7 @@ export function meta(_: Route.MetaArgs) {
   ];
 }
 
-export default function ModelTownBoard() {
+export default function ModelTownBoard({ loaderData }: Route.ComponentProps) {
   useBoardPage();
 
   return (
@@ -100,7 +105,7 @@ export default function ModelTownBoard() {
           Model Town Board <em>simulator.</em>
         </>
       }
-      lede={`${COURSE_LEVELS.length} levels on a 3D board you drive yourself, from the lanes to parking. Every rule from the NTSA handbook. Free, no signup, every level open.`}
+      lede={`${COURSE_LEVELS.length} levels on a 3D board you drive yourself, from the lanes to parking. Every rule from the NTSA handbook. ${freeLine()}`}
       ledeFirstOnly
       checked={CHECKED}
       byline={false}
@@ -126,7 +131,7 @@ export default function ModelTownBoard() {
         <MDX.p>
           Test yourself with{" "}
           <MDX.a href={`${BOARD_PATH}/questions`}>
-            {BOARD_QUESTIONS.length} questions and answers
+            {loaderData.questionCount} questions and answers
           </MDX.a>
           , check{" "}
           <MDX.a href={`${BOARD_PATH}/lane-options`}>

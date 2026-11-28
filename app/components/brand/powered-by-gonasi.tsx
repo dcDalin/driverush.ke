@@ -1,8 +1,6 @@
-import * as React from "react";
-
 import { GONASI } from "~/lib/site";
-import { addUtm } from "~/lib/utm";
 import { cn } from "~/lib/utils";
+import { addUtm } from "~/lib/utm";
 
 /**
  * Tone of the surrounding band. Drives which Gonasi logo variant renders:
@@ -119,15 +117,15 @@ export function PoweredByGonasi({
         aria-label={aria}
         className={cn(
           // Clipped, so the logo's square field takes the box's round corners.
-          "group/gonasi inline-flex items-center gap-3 overflow-hidden border border-line rounded-lg",
-          "outline-none transition-[transform,box-shadow] duration-100 ease-snap",
+          "group/gonasi inline-flex items-center gap-3 overflow-hidden rounded-lg border border-line",
+          "transition-[transform,box-shadow] duration-100 ease-snap outline-none",
           "hover:-translate-x-px hover:-translate-y-px hover:shadow-stamp",
           "active:translate-x-[2px] active:translate-y-[2px] active:shadow-stamp-sm",
           "focus-visible:-translate-x-px focus-visible:-translate-y-px focus-visible:shadow-stamp-rush",
           className,
         )}
       >
-        <span className="pl-3 pr-1 font-sans text-[10px] font-semibold uppercase tracking-wider opacity-80">
+        <span className="pr-1 pl-3 font-sans text-[10px] font-semibold tracking-wider uppercase opacity-80">
           Powered by
         </span>
         <GonasiMark
@@ -149,14 +147,14 @@ export function PoweredByGonasi({
         rel="noreferrer noopener"
         aria-label={aria}
         className={cn(
-          "group/gonasi inline-flex items-center gap-2.5 overflow-hidden border border-line rounded-lg",
-          "outline-none transition-[transform,box-shadow] duration-100 ease-snap",
+          "group/gonasi inline-flex items-center gap-2.5 overflow-hidden rounded-lg border border-line",
+          "transition-[transform,box-shadow] duration-100 ease-snap outline-none",
           "hover:-translate-x-px hover:-translate-y-px hover:shadow-stamp-sm",
           "focus-visible:-translate-x-px focus-visible:-translate-y-px focus-visible:shadow-stamp-rush",
           className,
         )}
       >
-        <span className="pl-2.5 pr-1 font-sans text-[10px] font-semibold uppercase tracking-wider text-ink-3">
+        <span className="pr-1 pl-2.5 font-sans text-[10px] font-semibold tracking-wider text-ink-3 uppercase">
           Powered by{" "}
           <span className="text-ink group-hover/gonasi:text-rush">
             {GONASI.name}
@@ -180,7 +178,7 @@ export function PoweredByGonasi({
       aria-label={aria}
       className={cn(
         "inline-flex items-center gap-2",
-        "outline-none transition-opacity hover:opacity-80 focus-visible:opacity-80",
+        "transition-opacity outline-none hover:opacity-80 focus-visible:opacity-80",
         className,
       )}
     >
@@ -188,7 +186,7 @@ export function PoweredByGonasi({
         tone={tone}
         className="block h-8 w-8 shrink-0 object-contain"
       />
-      <span className="font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
+      <span className="font-sans text-[11px] font-medium tracking-wider text-ink-3 uppercase">
         Powered by <span className="font-bold text-ink">{GONASI.name}</span>
       </span>
     </a>

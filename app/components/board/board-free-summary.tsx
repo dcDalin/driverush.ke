@@ -8,7 +8,7 @@ import { PlayIcon, RefreshIcon } from "~/components/brand/icons";
 import { Button } from "~/components/ui/button";
 import { faultRule, faultTip } from "~/lib/board/board-rules";
 import type { FaultId } from "~/lib/board/referee";
-import { rulesBroken, type FreeEntry } from "~/lib/board-store";
+import { type FreeEntry, rulesBroken } from "~/lib/board-store";
 
 import { BoardSheet } from "./board-sheet";
 
@@ -58,7 +58,7 @@ export function BoardFreeSummary({
     >
       <h2
         id="board-free-title"
-        className="m-0 font-display text-[clamp(22px,5.5vw,28px)] font-extrabold uppercase leading-none tracking-tight"
+        className="m-0 font-display text-[clamp(22px,5.5vw,28px)] leading-none font-extrabold tracking-tight uppercase"
       >
         {total === 0
           ? "No rules broken"

@@ -101,7 +101,7 @@ const clampRung = (tier: BoardTier, rung: number) =>
   Math.min(LADDER[tier].length - 1, Math.max(0, Math.floor(rung)));
 
 export function rungAt(tier: BoardTier, rung: number): Rung {
-  return LADDER[tier][clampRung(tier, rung)];
+  return LADDER[tier][clampRung(tier, rung)]!;
 }
 
 /**
@@ -118,7 +118,7 @@ export function stepDown(
   const now = rungAt(tier, from);
   const ratio = pixelRatio(now, screen);
   for (let next = from + 1; next < LADDER[tier].length; next += 1) {
-    const step = LADDER[tier][next];
+    const step = LADDER[tier][next]!;
     if (step.shadow !== now.shadow || pixelRatio(step, screen) < ratio) {
       return next;
     }

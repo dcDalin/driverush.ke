@@ -1,4 +1,3 @@
-import * as React from "react";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 
 function Toaster({ ...props }: ToasterProps) {
@@ -24,7 +23,7 @@ function Toaster({ ...props }: ToasterProps) {
           ].join(" "),
           description: "text-[12px] text-paper/80",
           actionButton: [
-            "ml-auto bg-transparent font-sans text-[11px] font-semibold uppercase tracking-wider text-paper",
+            "ml-auto shrink-0 whitespace-nowrap bg-transparent font-sans text-[11px] font-semibold uppercase tracking-wider text-paper",
             "hover:underline focus-visible:underline outline-none cursor-pointer",
           ].join(" "),
           cancelButton: [

@@ -1,4 +1,11 @@
-import { TabBar } from "~/components/brand/tab-bar";
+import "./app.css";
+import "./motion.css";
+import "./pwa.css";
+// Catches the browser's install prompt from the first load.
+import "~/lib/install";
+
+import * as React from "react";
+import { ViewTransition } from "react";
 import {
   isRouteErrorResponse,
   Link,
@@ -10,50 +17,81 @@ import {
   useLocation,
   useRouteLoaderData,
 } from "react-router";
-import * as React from "react";
+import { HoneypotProvider } from "remix-utils/honeypot/react";
 
-import type { Route } from "./+types/root";
-import "./app.css";
-import "./motion.css";
-import "./pwa.css";
-import { Toaster } from "~/components/ui/sonner";
-import { Button } from "~/components/ui/button";
+import { AccountShell } from "~/components/account/account-shell";
+import { EntitlementLivery } from "~/components/account/entitlement-livery";
+import { ProgressSync } from "~/components/account/progress-sync";
 import { NavigationProgressBar } from "~/components/brand/navigation-progress-bar";
-import { RoadClosedScene, ScenePlate } from "~/components/brand/art/scenes";
+import { TabBar } from "~/components/brand/tab-bar";
+import { TrafficLoader } from "~/components/brand/traffic-loader";
+import { Button } from "~/components/ui/button";
+import { Toaster } from "~/components/ui/sonner";
+import { useGaPage, usePageviews, withPostHog } from "~/lib/analytics";
+import {
+  primeCatalog,
+  type Sponsor,
+  useCatalogRefresh,
+} from "~/lib/board/school-catalog";
+import { loadBoardSchools } from "~/lib/board/school-catalog.server";
+import { honeypot } from "~/lib/forms/honeypot.server";
+import { useFlashToasts } from "~/lib/forms/use-flash-toasts";
+import { loadWhole, shouldLoadWhole, useFreshBuild } from "~/lib/fresh-build";
+import { GA_MEASUREMENT_ID, gaHeadScript } from "~/lib/ga";
+import { PUBLIC_PAGE_CACHE } from "~/lib/http-cache";
+import { guestVisitScript } from "~/lib/progress/guest-visit";
+import { absUrl, appMeta, SITE } from "~/lib/site";
 import {
   THEME_COLOR_SCRIPT,
   THEME_INIT_SCRIPT,
   useThemeColorSync,
   useThemeSync,
 } from "~/lib/theme";
-import { SITE, absUrl, appMeta } from "~/lib/site";
-import {
-  getPostHog,
-  initAnalytics,
-  useGaPage,
-  usePageviews,
-} from "~/lib/analytics";
-import { shouldMeasure } from "~/lib/bot-traffic";
-import { loadWhole, shouldLoadWhole, useFreshBuild } from "~/lib/fresh-build";
-import { TrafficLoader } from "~/components/brand/traffic-loader";
-import { GA_MEASUREMENT_ID, gaHeadScript } from "~/lib/ga";
 import { useLearnerAnalytics } from "~/lib/use-learner-analytics";
-// Catches the browser's install prompt from the first load.
-import "~/lib/install";
+
+import type { Route } from "./+types/root";
+
+const GUEST_VISIT_SCRIPT = guestVisitScript(
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+    ? import.meta.env.VITE_SUPABASE_URL
+    : undefined,
+);
 
 const BOARD_INIT_SCRIPT = `try{var s=JSON.parse(localStorage.getItem("driverush:board")||"{}").state;if(s&&((s.learned&&s.learned.length)||(s.bestStars&&Object.keys(s.bestStars).length)))document.documentElement.dataset.board="started"}catch(e){}`;
 
 /**
- * Whether Google Analytics measures this visit: not for a bot, or for a
- * browser run from a data centre (`bot-traffic.ts`). Decided once, from the
- * request that loads the page, and kept for every navigation after it.
+ * The same for every visitor, so every public page can be prerendered and
+ * cached: the board's schools (a snapshot, refreshed in the browser when old,
+ * `useCatalogRefresh`) and the bot trap's fields for server forms (remix-utils
+ * honeypot; a build-time timestamp still passes its check). What is about one
+ * visitor is asked for separately: GA's bot check (`/api/visit`), an action's
+ * message (`/api/flash`), the session (in the browser).
  */
-export function loader({ request }: Route.LoaderArgs) {
-  return { measure: shouldMeasure(request) };
+export async function loader() {
+  // Primed here too so `meta` functions drawn on the server see the schools.
+  const schools = await loadBoardSchools();
+  primeCatalog(schools);
+  return {
+    schools,
+    schoolsAt: Date.now(),
+    honeypotInputProps: await honeypot.getInputProps(),
+  };
 }
 
+/** Nothing in it changes with a navigation or a form. */
 export function shouldRevalidate() {
   return false;
+}
+
+/**
+ * Public pages are the same for everyone (the session is read in the
+ * browser), so Vercel's CDN may keep a server-rendered one for an hour and
+ * serve it stale while it renders the next. Prerendered pages are files and
+ * never get here. Pages about one person override this with `privatePage`
+ * middleware (`lib/auth/private-page.server.ts`).
+ */
+export function headers() {
+  return { "Cache-Control": PUBLIC_PAGE_CACHE };
 }
 
 export const links: Route.LinksFunction = () => [
@@ -125,8 +163,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
   // script has run by then, and its text must not change.
   const gaPage = useGaPage();
   const [gaLanding] = React.useState(gaPage);
-  // Missing on the error page when the root itself failed: measure then.
-  const measure = useRouteLoaderData<typeof loader>("root")?.measure ?? true;
   usePageviews();
   // An app left open loads a newer deploy on its next move to another page.
   useFreshBuild();
@@ -139,7 +175,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     let checked = Date.now();
     const register = () => {
       navigator.serviceWorker
-        .register("/sw.js")
+        .register(swUrl())
         .then((r) => {
           registration = r;
           // After a deploy: the worker saves the new game files if the build
@@ -188,12 +224,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         {/* The status bar's colour, by the same theme. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_COLOR_SCRIPT }} />
+        {/* A guest's progress lasts one visit: cleared before any store
+            reads it (`~/lib/progress/guest-visit.ts`). Before the board
+            marker below, which reads the same key. */}
+        {GUEST_VISIT_SCRIPT && (
+          <script dangerouslySetInnerHTML={{ __html: GUEST_VISIT_SCRIPT }} />
+        )}
         {/* A learner who has started the board course: marked before first
             paint, so the page opens as theirs (`course-label.css`). */}
         <script dangerouslySetInnerHTML={{ __html: BOARD_INIT_SCRIPT }} />
         <Meta />
         {/* After <Meta />, so the landing page view has the page's title. */}
-        {GA_MEASUREMENT_ID && measure && (
+        {GA_MEASUREMENT_ID && (
           <script
             dangerouslySetInnerHTML={{ __html: gaHeadScript(gaLanding) }}
           />
@@ -211,27 +253,93 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
+const NO_SCHOOLS: readonly Sponsor[] = [];
+
+/**
+ * The worker's address tells it where school media lives (Supabase Storage),
+ * so it can keep schools a phone has seen for offline.
+ */
+function swUrl() {
+  const supabase = import.meta.env.VITE_SUPABASE_URL;
+  if (!supabase) return "/sw.js";
+  return `/sw.js?media=${encodeURIComponent(new URL(supabase).origin)}`;
+}
+
+/**
+ * What counts as "a new page" for the page transition: each address,
+ * except inside a dashboard (the console, one school's dashboard, the
+ * tools), which is one page whose layout routes swap only their outlet.
+ */
+export function pageKey(pathname: string) {
+  const dashboard = pathname.match(
+    /^\/(console|tools)(?=\/|$)|^\/school\/[^/]+/,
+  );
+  return dashboard ? dashboard[0] : pathname;
+}
+
+/**
+ * The error page's picture. Its own chunk: the scenes and their sign art are
+ * only needed when something has gone wrong, not on every page.
+ */
+const RoadClosedArt = React.lazy(() =>
+  import("~/components/brand/art/scenes").then(
+    ({ RoadClosedScene, ScenePlate }) => ({
+      default: () => (
+        <ScenePlate>
+          <RoadClosedScene title="A road barrier with a number plate reading KDR 404" />
+        </ScenePlate>
+      ),
+    }),
+  ),
+);
+
 export default function App() {
   const location = useLocation();
-  const firstPath = React.useRef(location.pathname);
-  const navigated = React.useRef(false);
-  if (location.pathname !== firstPath.current) navigated.current = true;
   // Keeps PostHog person properties (signs mastered) in step with the local
-  // progress stores. PostHog itself is initialised in
-  // `entry.client.tsx`, before hydration.
+  // progress stores. PostHog itself is started in `entry.client.tsx`,
+  // alongside the page.
   useLearnerAnalytics();
-  return (
+  const loaderData = useRouteLoaderData<typeof loader>("root");
+  // The board's schools, set before any child renders (server and browser
+  // alike), then kept fresh in a page the installed app has kept for long.
+  primeCatalog((loaderData?.schools ?? NO_SCHOOLS) as readonly Sponsor[]);
+  useCatalogRefresh(loaderData?.schoolsAt ?? null);
+  // Show the message an action left (remix-toast) with the house toaster.
+  useFlashToasts();
+  const shell = (
     <>
-      {/* Keyed so each new page gets a fresh entrance. There's no exit, so a tap
-          never waits on the old page, and the first load isn't animated. */}
-      <div
-        key={location.pathname}
-        className={navigated.current ? "dr-page" : undefined}
+      {/* A View Transition per page (`motion.css`): moving to another page
+          cross-fades the old one out and the new one in, on the compositor.
+          The first load isn't animated (hydration is not a transition), and
+          nothing inside a page animates (`update="none"`): a list's filter or
+          a fresh read just changes. A dashboard is one page for this
+          (`pageKey`): its tabs swap without a fade, inside one frame. */}
+      <ViewTransition
+        key={pageKey(location.pathname)}
+        enter="dr-page-in"
+        exit="dr-page-out"
+        update="none"
+        default="none"
       >
-        <Outlet />
-      </div>
+        <div>
+          <Outlet />
+        </div>
+      </ViewTransition>
       <TabBar />
+      {/* The sign-in sheet, loaded the first time something opens it. */}
+      <AccountShell />
+      {/* Saves a signed-in learner's progress; nudges a guest to sign in. */}
+      <ProgressSync />
+      {/* The board's livery for the learner's school, plan or neither. */}
+      <EntitlementLivery />
     </>
+  );
+  return loaderData?.honeypotInputProps ? (
+    <HoneypotProvider {...loaderData.honeypotInputProps}>
+      {shell}
+    </HoneypotProvider>
+  ) : (
+    shell
   );
 }
 
@@ -244,9 +352,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       loadWhole();
       return;
     }
-    void initAnalytics().then(() => {
-      getPostHog()?.captureException(error);
-    });
+    withPostHog((posthog) => posthog.captureException(error));
   }, [error, reloading]);
 
   if (reloading) {
@@ -273,18 +379,18 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   }
 
   return (
-    <main className="mx-auto grid w-full max-w-xl gap-6 px-5 pb-16 pt-12 text-ink">
+    <main className="mx-auto grid w-full max-w-xl gap-6 px-5 pt-12 pb-16 text-ink">
       {/* Read by the tab and by Google Analytics' page title report. */}
       <title>{`${
         isRouteErrorResponse(error) && error.status === 404
           ? "Page not found"
           : "Something went wrong"
       } · ${SITE.name}`}</title>
-      <ScenePlate>
-        <RoadClosedScene title="A road barrier with a number plate reading KDR 404" />
-      </ScenePlate>
+      <React.Suspense fallback={null}>
+        <RoadClosedArt />
+      </React.Suspense>
       <div className="grid gap-3">
-        <h1 className="m-0 font-display text-[clamp(30px,7vw,48px)] font-semibold leading-[0.95] tracking-tighter">
+        <h1 className="m-0 font-display text-[clamp(30px,7vw,48px)] leading-[0.95] font-semibold tracking-tighter">
           {message}
         </h1>
         <p className="m-0 font-serif text-lg leading-snug text-ink-2">
@@ -295,7 +401,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         </Button>
       </div>
       {stack && (
-        <pre className="w-full overflow-x-auto border border-line bg-paper-3 p-4 text-xs rounded-lg">
+        <pre className="w-full overflow-x-auto rounded-lg border border-line bg-paper-3 p-4 text-xs">
           <code>{stack}</code>
         </pre>
       )}

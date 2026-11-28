@@ -5,34 +5,34 @@
  */
 import { blockById, closedEdges } from "./blocks";
 import { CAR } from "./car";
-import { isFreeDrive, isRouteTask, type BoardChallenge } from "./challenges";
-import { goalBox, startOnBoard, type Box } from "./full-board";
+import { type BoardChallenge, isFreeDrive, isRouteTask } from "./challenges";
+import { type Box, goalBox, startOnBoard } from "./full-board";
 import {
-  ARMS,
   armForTurn,
+  type ArmId,
+  ARMS,
   laneBearing,
   lanePoint,
+  type LaneRule,
   laneRules,
   lanesForTurn,
   rulesFor,
-  type ArmId,
-  type LaneRule,
   type Turn,
 } from "./geometry";
 import {
   distanceNear,
   followFrom,
   laneNode,
+  type Maneuver,
+  type NetEdge,
   network,
+  type Plan,
   planRoute,
   poseAt,
   roundaboutWay,
+  type Route,
   routeOf,
   trimRoute,
-  type Maneuver,
-  type NetEdge,
-  type Plan,
-  type Route,
 } from "./network";
 import { parkingLayout, targetBays } from "./parking-layouts";
 import { accepted, findWays, type Way } from "./ways";
@@ -707,7 +707,7 @@ export function taskGoalBox(challenge: BoardChallenge): Box | null {
   if (!isRouteTask(challenge)) return goalBox(challenge.goal);
   const route = challengeRoute(challenge);
   if (!route) return { x0: -2, x1: 2, z0: -2, z1: 2 };
-  const end = route.points[route.points.length - 1];
+  const end = route.points[route.points.length - 1]!;
   if (taskParks(challenge)) {
     return {
       x0: end.x - 2.4,
@@ -717,7 +717,7 @@ export function taskGoalBox(challenge: BoardChallenge): Box | null {
     };
   }
   const tail = route.points.filter(
-    (_, i) => route.at[i] >= route.length - ROAD_BOX,
+    (_, i) => route.at[i]! >= route.length - ROAD_BOX,
   );
   const xs = tail.map((p) => p.x);
   const zs = tail.map((p) => p.z);

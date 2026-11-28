@@ -1,32 +1,31 @@
 import { useEffect } from "react";
 import { Link } from "react-router";
+
 import { Icon } from "~/components/brand/icon";
 import {
   ArrowLeftIcon,
   SettingsIcon,
   Sign3DIcon,
 } from "~/components/brand/icons";
-
-import type { Route } from "./+types/road-signs-pelican";
-
-import { stagger } from "~/lib/motion";
-import { breadcrumbLd, pageMeta, ROAD_SIGN_KEYWORDS } from "~/lib/site";
-import { ogCardAlt, ogCardPath } from "~/lib/og-cards";
-import type { ImageFocusData } from "~/lib/image-focus";
-import pelicanJson from "~/data/road-signs-pelican.json";
-import { getPracticeRegions, usePelicanStore } from "~/lib/pelican-store";
-import { useTrainerLink } from "~/lib/use-trainer-link";
-
-import { Button } from "~/components/ui/button";
-import { SignCredit } from "~/components/brand/sign-credit";
+import { ImageFocusPlayer } from "~/components/brand/image-focus-player";
+import { PelicanSettingsSheet } from "~/components/brand/pelican-settings-sheet";
 import { Rail } from "~/components/brand/rail";
+import { SignCredit } from "~/components/brand/sign-credit";
 import { SiteFooter } from "~/components/brand/site-footer";
 import { SiteNav } from "~/components/brand/site-nav";
 import { LoadingPanel } from "~/components/brand/traffic-loader";
-import { ImageFocusPlayer } from "~/components/brand/image-focus-player";
-import { PelicanSettingsSheet } from "~/components/brand/pelican-settings-sheet";
 import { TrainerGuide } from "~/components/brand/trainer-guide";
+import { Button } from "~/components/ui/button";
+import pelicanJson from "~/data/road-signs-pelican.json";
+import type { ImageFocusData } from "~/lib/image-focus";
+import { stagger } from "~/lib/motion";
+import { ogCardAlt, ogCardPath } from "~/lib/og-cards";
+import { getPracticeRegions, usePelicanStore } from "~/lib/pelican-store";
 import { SIGN_COUNT } from "~/lib/road-signs";
+import { breadcrumbLd, pageMeta, ROAD_SIGN_KEYWORDS } from "~/lib/site";
+import { useTrainerLink } from "~/lib/use-trainer-link";
+
+import type { Route } from "./+types/road-signs-pelican";
 
 const board = pelicanJson as ImageFocusData;
 
@@ -89,25 +88,24 @@ export default function PelicanSigns() {
       <main className="min-h-screen text-ink">
         <Rail />
 
-        <div className="mx-auto w-full max-w-3xl px-5 pb-20 pt-6 sm:px-9 sm:pt-10">
+        <div className="mx-auto w-full max-w-3xl px-5 pt-6 pb-20 sm:px-9 sm:pt-10">
           <div className="mb-6 flex items-center justify-between gap-3">
             <Link
               to="/road-signs"
-              className="inline-flex items-center gap-2 font-sans text-[11px] uppercase tracking-wider text-ink-3 outline-none hover:text-ink focus-visible:text-ink font-medium"
+              className="inline-flex items-center gap-2 font-sans text-[11px] font-medium tracking-wider text-ink-3 uppercase outline-none hover:text-ink focus-visible:text-ink"
             >
               <Icon icon={ArrowLeftIcon} size={14} />
               All signs
             </Link>
-            <span className="font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
+            <span className="font-sans text-[10.5px] font-medium tracking-wider text-ink-3 uppercase">
               Trainer № 01
             </span>
           </div>
 
           <header className="dr-rise border-b border-line pb-7">
             <SignCredit size="sm" />
-            <h1 className="m-0 mt-3 font-display text-[clamp(40px,7vw,72px)] font-semibold leading-[0.9] tracking-tighter">
-              Pelican road signs{" "}
-              <span className="text-rush">chart</span>
+            <h1 className="m-0 mt-3 font-display text-[clamp(40px,7vw,72px)] leading-[0.9] font-semibold tracking-tighter">
+              Pelican road signs <span className="text-rush">chart</span>
             </h1>
             <p className="mt-4 max-w-2xl font-serif text-[clamp(16px,2.2vw,22px)] leading-tight text-ink-2">
               We zoom into one sign on the chart. Name it before the answer
@@ -116,7 +114,7 @@ export default function PelicanSigns() {
           </header>
 
           {!ready ? (
-            <div className="relative mt-6 aspect-video w-full overflow-hidden border border-line bg-white rounded-lg">
+            <div className="relative mt-6 aspect-video w-full overflow-hidden rounded-lg border border-line bg-white">
               {/* In the server's HTML, so the download starts straight away. */}
               <img
                 src={board.imageSrc}
@@ -130,8 +128,8 @@ export default function PelicanSigns() {
               </div>
             </div>
           ) : practiceCount === 0 ? (
-            <div className="mt-6 flex flex-col items-center gap-4 border border-line bg-paper-3 px-6 py-12 text-center rounded-lg">
-              <span className="font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
+            <div className="mt-6 flex flex-col items-center gap-4 rounded-lg border border-line bg-paper-3 px-6 py-12 text-center">
+              <span className="font-sans text-[11px] font-medium tracking-wider text-ink-3 uppercase">
                 No signs match your category filter
               </span>
               <Button
@@ -150,7 +148,7 @@ export default function PelicanSigns() {
           )}
 
           <div className="mt-8 flex flex-wrap items-center gap-3 border-t border-line pt-5">
-            <span className="font-sans text-[11px] uppercase tracking-wider text-ink-3 font-medium">
+            <span className="font-sans text-[11px] font-medium tracking-wider text-ink-3 uppercase">
               Same signs, in 3D
             </span>
             <Button variant="paper" size="sm" asChild>

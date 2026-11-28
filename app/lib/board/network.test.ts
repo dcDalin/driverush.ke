@@ -4,8 +4,8 @@ import { BOARD_CHALLENGES, isTurnTask } from "./challenges";
 import { BOARD_FEATURES } from "./features";
 import { BOUNDS, goalBox, onTarmac } from "./full-board";
 import {
-  ARMS,
   allowedTurns,
+  ARMS,
   lanePoint,
   lanesForTurn,
   locate,
@@ -13,19 +13,19 @@ import {
 } from "./geometry";
 import {
   APPROACHES,
-  LESSONS,
   challengeRoute,
   laneOptions,
   lessonPlan,
   lessonRoute,
+  LESSONS,
 } from "./lessons";
 import {
   controlAhead,
   laneStart,
   network,
+  type Place,
   planRoute,
   poseAt,
-  type Place,
   type Route,
 } from "./network";
 
@@ -64,8 +64,8 @@ describe("the lane network", () => {
     for (const edge of net.edges) {
       const a = net.nodes.get(edge.from);
       const b = net.nodes.get(edge.to);
-      const first = edge.points[0];
-      const last = edge.points[edge.points.length - 1];
+      const first = edge.points[0]!;
+      const last = edge.points[edge.points.length - 1]!;
       expect(Math.hypot(first.x - a!.x, first.z - a!.z)).toBeLessThan(0.02);
       expect(Math.hypot(last.x - b!.x, last.z - b!.z)).toBeLessThan(0.02);
     }
@@ -169,7 +169,9 @@ describe("parking", () => {
     for (const bay of free) {
       const into = planRoute(laneStart("S", 1), bay.id);
       expect(into.route, `into ${bay.label}`).not.toBeNull();
-      expect(into.rule).toBe(bay.group === "angle_bay" ? "parking" : "shortest");
+      expect(into.rule).toBe(
+        bay.group === "angle_bay" ? "parking" : "shortest",
+      );
       const out = planRoute(
         bay.id,
         place("To the dual carriageway, bottom end, lane 1").id,
@@ -183,9 +185,9 @@ describe("parking", () => {
       place("Angle bay 3, left row").id,
       place("To the two-way road, top end").id,
     );
-    expect(route.steps[0].gear).toBe("reverse");
-    expect(route.steps[0].maneuver).toBe("leave_reverse");
-    expect(route.steps[1].gear).toBe("forward");
+    expect(route.steps[0]!.gear).toBe("reverse");
+    expect(route.steps[0]!.maneuver).toBe("leave_reverse");
+    expect(route.steps[1]!.gear).toBe("forward");
   });
 
   it("only ever enters an angle bay nose first", () => {
@@ -201,7 +203,7 @@ describe("parking", () => {
     expect(into.length).toBe(2);
     expect(into.every((e) => e.gear === "reverse")).toBe(true);
     const route = routeTo(laneStart("S", 4), place("Flush parking bay 1").id);
-    const last = route.steps[route.steps.length - 1];
+    const last = route.steps[route.steps.length - 1]!;
     expect(last.maneuver).toBe("park_reverse");
   });
 
@@ -233,7 +235,7 @@ describe("parking", () => {
         prev = pose;
       }
       const end = poseAt(route, route.length);
-      const node = net.nodes.get(route.edges[route.edges.length - 1].to);
+      const node = net.nodes.get(route.edges[route.edges.length - 1]!.to);
       expect(Math.abs(wrapPi(end.heading - node!.heading))).toBeLessThan(0.15);
     }
   });
@@ -249,8 +251,9 @@ describe("what Learn mode teaches", () => {
         );
         expect(new Set(options.map((o) => o.id)).size).toBe(options.length);
         for (const option of options) {
-          expect(option.route.edges.some((e) => e.maneuver === "lane_change"))
-            .toBe(false);
+          expect(
+            option.route.edges.some((e) => e.maneuver === "lane_change"),
+          ).toBe(false);
           expect(option.route.steps.map((s) => s.maneuver)).toEqual(
             expect.arrayContaining(["hold_lane", "ring", "exit"]),
           );
@@ -336,7 +339,9 @@ describe("what Learn mode teaches", () => {
         challenge.start.along,
       );
       const first = poseAt(route!, 0);
-      expect(Math.hypot(first.x - start.x, first.z - start.z)).toBeLessThan(0.5);
+      expect(Math.hypot(first.x - start.x, first.z - start.z)).toBeLessThan(
+        0.5,
+      );
       const end = poseAt(route!, route!.length);
       const box = goalBox(challenge.goal);
       expect(end.x, challenge.id).toBeGreaterThan(box.x0);

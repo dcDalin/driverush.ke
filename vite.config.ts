@@ -1,10 +1,10 @@
 import mdx from "@mdx-js/rollup";
 import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
-import { defineConfig, type Plugin } from "vite";
 import remarkFrontmatter from "remark-frontmatter";
 import remarkGfm from "remark-gfm";
 import remarkMdxFrontmatter from "remark-mdx-frontmatter";
+import { defineConfig, type Plugin } from "vite";
 
 /**
  * Writes `sw-board.json` into the client build: every file the board game
@@ -88,6 +88,50 @@ const UPLOAD_SOURCEMAPS = Boolean(process.env.POSTHOG_CLI_API_KEY);
 export default defineConfig({
   build: {
     sourcemap: UPLOAD_SOURCEMAPS,
+  },
+  // DriveRush's own port block (573x dev, 574x built previews): 5173 is
+  // Vite's default and other projects on this Mac use it. Supabase's
+  // site_url and redirect list (supabase/config.toml) follow this port.
+  server: { port: 5730, strictPort: true },
+  // Dev server only: pre-bundle what lazily loaded code imports (the sign-in
+  // sheet, the board game, the 3D trainers), so opening one never makes Vite
+  // re-bundle mid-session, which loads a second React and breaks its hooks.
+  optimizeDeps: {
+    include: [
+      "@hookform/resolvers/zod",
+      "@posthog/react",
+      "class-variance-authority",
+      "clsx",
+      "posthog-js",
+      "radix-ui",
+      "remix-toast",
+      "sonner",
+      "tailwind-merge",
+      "three/examples/jsm/environments/RoomEnvironment.js",
+      "three/examples/jsm/geometries/RoundedBoxGeometry.js",
+      "three/examples/jsm/libs/meshopt_decoder.module.js",
+      "three/examples/jsm/loaders/GLTFLoader.js",
+      "three/examples/jsm/loaders/SVGLoader.js",
+      "three/examples/jsm/utils/BufferGeometryUtils.js",
+      "@react-three/drei",
+      "@react-three/fiber",
+      "framer-motion",
+      "matter-js",
+      "nipplejs",
+      "react-day-picker",
+      "three",
+      "three-stdlib",
+      "zustand",
+      "zustand/middleware",
+      "zustand/react/shallow",
+      "@supabase/ssr",
+      "@supabase/supabase-js",
+      "input-otp",
+      "react-hook-form",
+      "remix-hook-form",
+      "remix-utils/honeypot/react",
+      "zod",
+    ],
   },
   plugins: [
     // MDX must run before reactRouter so .mdx files are JSX by the time the

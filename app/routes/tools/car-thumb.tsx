@@ -9,20 +9,23 @@
  *
  * `&school=<id>` paints it in that school's livery with its roof board, and
  * `&heading=&tilt=&dist=` move the camera: the review sheets of the schools'
- * paint are photographed this way too.
+ * paint are photographed this way too. `&roll` turns the wheels and `&steer`
+ * swings the front pair, to check them (`&turned=` and `&lock=` hold them at
+ * an angle in degrees, for a still picture); `&simple` draws it as the board's
+ * lighter picture does.
  *
  * Internal: noindex, outside the tools layout so nothing else is in the shot.
  */
 import * as React from "react";
 import { useSearchParams } from "react-router";
 
-import type { Route } from "./+types/car-thumb";
-
+import type { CarView } from "~/components/board/sponsor-car-canvas";
 import { BOARD_CARS, type BoardCarId } from "~/lib/board/cars";
 import { CAR_COLORS } from "~/lib/board/full-board";
-import { sponsorById } from "~/lib/board/sponsors";
+import { useLiveryPreview } from "~/lib/board/livery-preview";
+import { sponsorById, useCatalog } from "~/lib/board/school-catalog";
 
-import type { CarView } from "~/components/board/sponsor-car-canvas";
+import type { Route } from "./+types/car-thumb";
 
 const SponsorCarCanvas = React.lazy(
   () => import("~/components/board/sponsor-car-canvas"),
@@ -47,7 +50,12 @@ export default function CarThumb() {
   const wanted = params.get("car");
   const car: BoardCarId =
     BOARD_CARS.find((c) => c.id === wanted)?.id ?? BOARD_CARS[0].id;
-  const school = sponsorById(params.get("school"));
+  const preview = useLiveryPreview();
+  const schools = useCatalog();
+  const school =
+    preview.state === "ready"
+      ? preview.sponsor
+      : sponsorById(params.get("school"), schools);
   const number = (name: string, fallback: number) => {
     const n = Number(params.get(name));
     return params.has(name) && Number.isFinite(n) ? n : fallback;
@@ -69,6 +77,11 @@ export default function CarThumb() {
             base={school?.livery?.base ?? CAR_COLORS.player}
             topBoard={school?.topBoard ?? null}
             view={view}
+            roll={params.has("roll")}
+            steer={params.has("steer")}
+            turned={params.has("turned") ? number("turned", 0) : null}
+            lock={params.has("lock") ? number("lock", 0) : null}
+            simple={params.has("simple")}
             bare
           />
         </React.Suspense>

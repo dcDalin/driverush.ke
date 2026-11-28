@@ -1,8 +1,8 @@
+import "./traffic-loader.css";
+
 import * as React from "react";
 
 import { cn } from "~/lib/utils";
-
-import "./traffic-loader.css";
 
 /**
  * Traffic-light loader — the house loading indicator (use this, not a spinner).
@@ -480,4 +480,4 @@ function LoadingPanel({
   );
 }
 
-export { TrafficLoader, TrafficLoaderStatus, LoadingPanel };
+export { LoadingPanel, TrafficLoader, TrafficLoaderStatus };

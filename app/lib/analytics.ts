@@ -1,19 +1,21 @@
 import * as React from "react";
 import { useLocation, useMatches } from "react-router";
-import { gaEvent, gaPageView, type GaLanding } from "./ga";
+
+import { gaEvent, type GaLanding, gaPageView } from "./ga";
 import {
   cleanPath,
   INTERNAL_PATH_RE,
   NOT_FOUND_GROUP,
   pageMeta,
 } from "./page-meta";
-import { getPostHog, initPostHog } from "./posthog";
+import { getPostHog, startPostHog, withPostHog } from "./posthog";
 
 /**
  * Two sinks, one taxonomy.
  *
- * PostHog is the product-analytics system of record: it is initialised in
- * `entry.client.tsx` before hydration and handles pageviews, autocapture,
+ * PostHog is the product-analytics system of record: it is started in
+ * `entry.client.tsx` alongside the page (never blocking it; calls made before
+ * it arrives are queued by `withPostHog`) and handles pageviews, autocapture,
  * replay, heatmaps and exceptions on its own. Everything below adds the
  * *semantic* events autocapture can't infer — was the answer right, did the
  * lesson finish, did the learner hit a locked node.
@@ -29,15 +31,13 @@ import { getPostHog, initPostHog } from "./posthog";
  * call sites can't typo event names or invent ad-hoc params.
  */
 
-/** Make sure PostHog is up. Safe to call repeatedly. */
+/** Make sure PostHog is loading. Safe to call repeatedly. */
 export async function initAnalytics() {
-  if (typeof window === "undefined") return;
-  // Normally already done in `entry.client.tsx`; this covers call sites that
-  // can run before hydration finishes (e.g. the root ErrorBoundary).
-  initPostHog();
+  // Normally already started in `entry.client.tsx`.
+  await startPostHog();
 }
 
-export { getPostHog };
+export { getPostHog, withPostHog };
 
 /**
  * The page being shown, labelled for GA: its cleaned path, content group and
@@ -100,13 +100,12 @@ function emit(name: string, params?: Record<string, unknown>, ga?: GaMapping) {
   // In DEV, mirror the event to the console so we can verify dispatch
   // without digging through the network tab.
   if (import.meta.env.DEV) {
-    // eslint-disable-next-line no-console
     console.log(`[analytics] ${name}`, params ?? {});
   }
-  // PostHog is initialised before hydration, so this is normally a straight
-  // capture; `initPostHog()` is the belt-and-braces path for anything that
-  // fires earlier.
-  (getPostHog() ?? initPostHog())?.capture(name, params);
+  // PostHog loads alongside the page: an event before it arrives waits and
+  // is sent with the time it happened.
+  const at = new Date();
+  withPostHog((posthog) => posthog.capture(name, params, { timestamp: at }));
   if (ga === false) return;
   if (ga) gaEvent(ga.name, ga.params);
   else gaEvent(name, params);
@@ -210,6 +209,17 @@ export const analytics = {
   /** 3D signs run finished. Hands-free runs have no grades to report. */
   signs3dCompleted: (args: RunCompleted) =>
     emit("signs3d_completed", completedProps(args)),
+
+  /**
+   * The 3D sign trainer could not show something, even after asking twice.
+   * `model`: one sign's model (the learner is offered "Try again").
+   * `logo`: the Pelican sticker's picture (the sign shows without it).
+   * `download`: the trainer's own code (the learner is offered "Try again").
+   */
+  signs3dLoadFailed: (args: {
+    reason: "model" | "logo" | "download";
+    model?: string;
+  }) => emit("signs3d_load_failed", args),
 
   /**
    * One "Knew it" or "Missed it" tap. Higher volume than the rest of this file,
@@ -438,7 +448,7 @@ export const analytics = {
     nudged: boolean;
   }) => emit("board_first_move", args, false),
 
-  // ----- driving-school sponsors (see ~/lib/board/sponsors) -----
+  // ----- driving-school sponsors (see ~/lib/board/school-catalog) -----
 
   /**
    * A sponsoring school was on screen in one place, once per place per
@@ -499,9 +509,9 @@ export const analytics = {
    */
   shareLandingViewed: (args: { kind: string; valid: boolean }) => {
     if (args.valid) {
-      (getPostHog() ?? initPostHog())?.register_once({
-        arrived_via_share: args.kind,
-      });
+      withPostHog((posthog) =>
+        posthog.register_once({ arrived_via_share: args.kind }),
+      );
     }
     emit("share_landing_viewed", args);
   },

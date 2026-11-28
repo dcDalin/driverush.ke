@@ -29,7 +29,7 @@ export function kenyaDay(now: number): string {
 /** Whole days from 1 Jan 1970 to `day` (`YYYY-MM-DD`). */
 function dayNumber(day: string): number {
   const [y, m, d] = day.split("-").map(Number);
-  return Math.round(Date.UTC(y, m - 1, d) / 86_400_000);
+  return Math.round(Date.UTC(y!, m! - 1, d) / 86_400_000);
 }
 
 /** A small seeded random, so the order is the same on every phone. */
@@ -53,7 +53,7 @@ export function dailyOrder(tasks: readonly TaskName[] = TASK_NAMES): string[] {
   const random = seeded(20261124);
   for (let i = ids.length - 1; i > 0; i -= 1) {
     const j = Math.floor(random() * (i + 1));
-    [ids[i], ids[j]] = [ids[j], ids[i]];
+    [ids[i], ids[j]] = [ids[j]!, ids[i]!];
   }
   return ids;
 }
@@ -63,7 +63,8 @@ const ORDER = dailyOrder();
 /** The task id for a Kenyan day. */
 export function dailyDriveId(day: string, order: readonly string[] = ORDER) {
   const n = order.length;
-  return order[((dayNumber(day) % n) + n) % n];
+  // the index is always inside the list, which is never empty
+  return order[((dayNumber(day) % n) + n) % n]!;
 }
 
 /** Where today's drive opens. */

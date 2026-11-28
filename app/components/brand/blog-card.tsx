@@ -1,12 +1,11 @@
-import * as React from "react";
+import type * as React from "react";
 import { Link } from "react-router";
-import { Icon } from "~/components/brand/icon";
-import {
-  ArrowRightIcon,
-} from "~/components/brand/icons";
 
-import { cn } from "~/lib/utils";
+import { Icon } from "~/components/brand/icon";
+import { ArrowRightIcon } from "~/components/brand/icons";
 import type { BlogPost } from "~/lib/blog";
+import { linkPrefetch } from "~/lib/ui/link-prefetch";
+import { cn } from "~/lib/utils";
 
 type BlogCardProps = React.ComponentProps<"article"> & {
   post: BlogPost;
@@ -29,14 +28,14 @@ function BlogCard({ post, compact, className, ...props }: BlogCardProps) {
     <article
       data-slot="blog-card"
       className={cn(
-        "group relative flex h-full flex-col border border-line bg-surface transition hover:bg-paper-2 focus-within:bg-paper-2 rounded-lg",
+        "group relative flex h-full flex-col rounded-lg border border-line bg-surface transition focus-within:bg-paper-2 hover:bg-paper-2",
         compact ? "p-5" : "p-6 sm:p-7",
         className,
       )}
       {...props}
     >
-      <div className="mb-4 flex items-center justify-between font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
-        <span className="rounded-full bg-paper-2 px-2.5 py-1 font-semibold normal-case tracking-normal text-ink-2">
+      <div className="mb-4 flex items-center justify-between font-sans text-[10.5px] font-medium tracking-wider text-ink-3 uppercase">
+        <span className="rounded-full bg-paper-2 px-2.5 py-1 font-semibold tracking-normal text-ink-2 normal-case">
           {post.category}
         </span>
         <time dateTime={post.date}>{formatDate(post.date)}</time>
@@ -44,14 +43,15 @@ function BlogCard({ post, compact, className, ...props }: BlogCardProps) {
 
       <h3
         className={cn(
-          "m-0 mb-3 font-display font-bold leading-[1.05] tracking-tight text-ink",
+          "m-0 mb-3 font-display leading-[1.05] font-bold tracking-tight text-ink",
           compact
-            ? "text-lg line-clamp-3"
-            : "text-2xl sm:text-[26px] line-clamp-2",
-          "[&_em]:font-serif [&_em]:font-normal [&_em]:normal-case [&_em]:text-rush",
+            ? "line-clamp-3 text-lg"
+            : "line-clamp-2 text-2xl sm:text-[26px]",
+          "[&_em]:font-serif [&_em]:font-normal [&_em]:text-rush [&_em]:normal-case",
         )}
       >
         <Link
+          prefetch={linkPrefetch()}
           to={`/blogs/${post.slug}`}
           className="outline-none after:absolute after:inset-0 after:content-[''] focus-visible:[&_::after]:outline focus-visible:[&_::after]:outline-2 focus-visible:[&_::after]:outline-rush"
         >
@@ -61,21 +61,18 @@ function BlogCard({ post, compact, className, ...props }: BlogCardProps) {
 
       <p
         className={cn(
-          "m-0 font-serif leading-snug text-ink-2 line-clamp-3",
+          "m-0 line-clamp-3 font-serif leading-snug text-ink-2",
           compact ? "text-sm" : "text-base",
         )}
       >
         {post.lede}
       </p>
 
-      <div className="mt-auto flex items-center justify-between gap-3 border-t border-line pt-4 font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium">
+      <div className="mt-auto flex items-center justify-between gap-3 border-t border-line pt-4 font-sans text-[10.5px] font-medium tracking-wider text-ink-3 uppercase">
         <span>{post.readingMinutes} min read</span>
-        <span className="inline-flex items-center gap-1.5 text-rush group-hover:gap-2 transition-[gap]">
+        <span className="inline-flex items-center gap-1.5 text-rush transition-[gap] group-hover:gap-2">
           Read
-          <Icon
-            icon={ArrowRightIcon}
-            size={12}
-          />
+          <Icon icon={ArrowRightIcon} size={12} />
         </span>
       </div>
     </article>

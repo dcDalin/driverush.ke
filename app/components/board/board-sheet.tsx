@@ -82,7 +82,7 @@ export function BoardSheet({
       >
         <div
           className={cn(
-            "flex shrink-0 items-center justify-between gap-3 px-4 py-2 font-mono text-[10.5px] font-bold uppercase tracking-widest",
+            "flex shrink-0 items-center justify-between gap-3 px-4 py-2 font-mono text-[10.5px] font-bold tracking-widest uppercase",
             STRIP[tone],
           )}
         >
@@ -91,7 +91,7 @@ export function BoardSheet({
         {/* One column that can shrink to the card: a plain `grid` sizes its
             column to the widest child's min-content, so a row of buttons
             that won't wrap would push the text past the card's edge. */}
-        <div className="grid min-h-0 grid-cols-[minmax(0,1fr)] gap-3 overflow-y-auto overflow-x-hidden overscroll-contain p-4">
+        <div className="grid min-h-0 grid-cols-[minmax(0,1fr)] gap-3 overflow-x-hidden overflow-y-auto overscroll-contain p-4">
           {children}
         </div>
       </div>

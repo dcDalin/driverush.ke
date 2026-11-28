@@ -5,7 +5,6 @@
  * blade, and is knocked out in white on the roof (or, where rails cover the
  * roof, on the bonnet).
  */
-import { pathOf } from "../lib.mjs";
 
 export default function sweep({ k, brand }) {
   const { L, box } = k;

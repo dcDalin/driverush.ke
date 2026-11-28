@@ -8,29 +8,22 @@
 import * as React from "react";
 import { Link } from "react-router";
 
-import { analytics } from "~/lib/analytics";
-import { BOARD_PATH } from "~/lib/board-guides";
-import { RULES_SOURCE, laneRule } from "~/lib/board/board-rules";
-import { OPTION_CODES } from "~/lib/board/geometry";
-import { BOARD_FEATURES } from "~/lib/board/features";
-import { RING_R } from "~/lib/board/full-board";
-import { ARMS, type ArmId } from "~/lib/board/geometry";
-import type { Seat } from "~/lib/board/joystick";
 import {
-  APPROACHES,
-  LESSONS,
-  ROUTE_COLOR,
-  ROUTE_RULES,
-  laneOptions,
-  lessonPlan,
-  lessonRoute,
-  type Lesson,
-} from "~/lib/board/lessons";
-import { shuffleParkingLayout } from "~/lib/board/parking-layouts";
-import { cam, fitTable, flyTo, useStage } from "~/lib/board/stage";
-import { useBoardStore } from "~/lib/board-store";
-import { cn } from "~/lib/utils";
-
+  BoardPlayback,
+  routeLines,
+  StepTags,
+  UNSURE_NOTE,
+} from "~/components/board/board-playback";
+import { useParkingLayout } from "~/components/board/use-parking-layout";
+import { Icon } from "~/components/brand/icon";
+import {
+  ArrowRightIcon,
+  CheckIcon,
+  ChevronLeftIcon,
+  CloseIcon,
+  PlayIcon,
+  SettingsIcon,
+} from "~/components/brand/icons";
 import { Button } from "~/components/ui/button";
 import {
   Item,
@@ -42,23 +35,28 @@ import {
 } from "~/components/ui/item";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group";
-
-import { Icon } from "~/components/brand/icon";
+import { analytics } from "~/lib/analytics";
+import { laneRule, RULES_SOURCE } from "~/lib/board/board-rules";
+import { BOARD_FEATURES } from "~/lib/board/features";
+import { RING_R } from "~/lib/board/full-board";
+import { OPTION_CODES } from "~/lib/board/geometry";
+import { type ArmId, ARMS } from "~/lib/board/geometry";
+import type { Seat } from "~/lib/board/joystick";
 import {
-  ArrowRightIcon,
-  CheckIcon,
-  ChevronLeftIcon,
-  CloseIcon,
-  PlayIcon,
-  SettingsIcon,
-} from "~/components/brand/icons";
-import { useParkingLayout } from "~/components/board/use-parking-layout";
-import {
-  BoardPlayback,
-  StepTags,
-  UNSURE_NOTE,
-  routeLines,
-} from "~/components/board/board-playback";
+  APPROACHES,
+  laneOptions,
+  type Lesson,
+  lessonPlan,
+  lessonRoute,
+  LESSONS,
+  ROUTE_COLOR,
+  ROUTE_RULES,
+} from "~/lib/board/lessons";
+import { shuffleParkingLayout } from "~/lib/board/parking-layouts";
+import { cam, fitTable, flyTo, useStage } from "~/lib/board/stage";
+import { BOARD_PATH } from "~/lib/board-guides";
+import { useBoardStore } from "~/lib/board-store";
+import { cn } from "~/lib/utils";
 
 type Tab = "lanes" | "board" | "routes" | "parking";
 
@@ -237,7 +235,7 @@ export function BoardLearn({
             </ItemMedia>
             <ItemContent>
               <ItemTitle>{lesson.title}</ItemTitle>
-              <ItemDescription className="font-mono text-[10px] font-bold uppercase tracking-widest text-white/55">
+              <ItemDescription className="font-mono text-[10px] font-bold tracking-widest text-white/55 uppercase">
                 {lesson.level} · {rule ? `${rule.name} · ` : ""}
                 {line.steps.length} steps
                 {line.steps.some((s) => s.gear === "reverse") && " · reversing"}
@@ -253,10 +251,10 @@ export function BoardLearn({
     <div className="pointer-events-none absolute inset-0 z-20 flex flex-col justify-end sm:flex-row sm:justify-start">
       <section
         aria-label="Learn the board"
-        className="dr-rise pointer-events-auto flex max-h-[54dvh] w-full flex-col border-t-2 border-white/15 bg-[#101114]/95 pb-[env(safe-area-inset-bottom)] text-white sm:h-full sm:max-h-none sm:w-[23.5rem] sm:border-r-2 sm:border-t-0"
+        className="dr-rise pointer-events-auto flex max-h-[54dvh] w-full flex-col border-t-2 border-white/15 bg-[#101114]/95 pb-[env(safe-area-inset-bottom)] text-white sm:h-full sm:max-h-none sm:w-[23.5rem] sm:border-t-0 sm:border-r-2"
       >
         <header className="flex items-center justify-between gap-2 px-3.5 pt-3">
-          <h2 className="m-0 font-display text-[19px] font-extrabold uppercase leading-none tracking-tight">
+          <h2 className="m-0 font-display text-[19px] leading-none font-extrabold tracking-tight uppercase">
             Learn the board
           </h2>
           <div className="flex items-center gap-1.5">
@@ -296,7 +294,7 @@ export function BoardLearn({
                 key={t.id}
                 value={t.id}
                 className={cn(
-                  "rounded-md border-2 px-0 py-2 font-mono text-[11px] font-bold uppercase tracking-widest focus-visible:outline-white",
+                  "rounded-md border-2 px-0 py-2 font-mono text-[11px] font-bold tracking-widest uppercase focus-visible:outline-white",
                   chipOff,
                   "data-[state=active]:border-game-gold data-[state=active]:bg-game-gold data-[state=active]:text-game-gold-foreground data-[state=active]:shadow-none",
                 )}
@@ -315,20 +313,20 @@ export function BoardLearn({
                 <Button
                   variant="game-link"
                   onClick={back}
-                  className="gap-1 self-start pr-4 font-mono text-[12px] font-bold uppercase tracking-widest text-white/80 no-underline focus-visible:underline"
+                  className="gap-1 self-start pr-4 font-mono text-[12px] font-bold tracking-widest text-white/80 uppercase no-underline focus-visible:underline"
                 >
                   <Icon icon={ChevronLeftIcon} size={14} />
                   Back
                 </Button>
                 <div>
-                  <h3 className="m-0 text-[17px] font-bold leading-snug">
+                  <h3 className="m-0 text-[17px] leading-snug font-bold">
                     {showing.title}
                   </h3>
                   <p className="m-0 mt-1 text-[13.5px] leading-snug text-white/75">
                     {showing.ask}
                   </p>
                   {showing.rule && (
-                    <p className="m-0 mt-1.5 text-[13px] font-semibold leading-snug text-kenya-gold">
+                    <p className="m-0 mt-1.5 text-[13px] leading-snug font-semibold text-kenya-gold">
                       {showing.rule}
                     </p>
                   )}
@@ -359,7 +357,7 @@ export function BoardLearn({
                           <ItemContent>
                             <ItemTitle>
                               {s.title}
-                              <span className="ml-1.5 inline-flex gap-1 align-middle font-mono text-[9.5px] font-bold uppercase tracking-widest">
+                              <span className="ml-1.5 inline-flex gap-1 align-middle font-mono text-[9.5px] font-bold tracking-widest uppercase">
                                 <StepTags step={s} />
                               </span>
                             </ItemTitle>
@@ -434,7 +432,7 @@ export function BoardLearn({
                       </ToggleGroupItem>
                     ))}
                   </ToggleGroup>
-                  <p className="m-0 mt-2 text-[14px] font-semibold leading-snug">
+                  <p className="m-0 mt-2 text-[14px] leading-snug font-semibold">
                     {laneRule(ARMS[arm].lanes, lane)}
                   </p>
                   <p className="m-0 mt-1 text-[12.5px] leading-snug text-white/65">
@@ -499,7 +497,7 @@ export function BoardLearn({
               <div className="grid gap-3">
                 {picked ? (
                   <div className="rounded-md border-2 border-[#f6c416] bg-white/5 p-3">
-                    <h3 className="m-0 text-[17px] font-bold leading-snug">
+                    <h3 className="m-0 text-[17px] leading-snug font-bold">
                       {picked.name}
                     </h3>
                     <p className="m-0 mt-1.5 text-[14px] leading-snug text-white/85">
@@ -514,7 +512,7 @@ export function BoardLearn({
                         <Icon icon={ArrowRightIcon} size={13} />
                       </Link>
                     )}
-                    <p className="m-0 mt-2 font-mono text-[10px] uppercase tracking-widest text-white/50">
+                    <p className="m-0 mt-2 font-mono text-[10px] tracking-widest text-white/50 uppercase">
                       {RULES_SOURCE}, Unit 3
                     </p>
                   </div>
@@ -566,7 +564,7 @@ export function BoardLearn({
             <Button
               variant="game-outline"
               asChild
-              className="mt-4 h-auto min-h-12 w-full bg-transparent py-2.5 font-mono text-[11px] font-bold uppercase tracking-widest no-underline hover:bg-white/10"
+              className="mt-4 h-auto min-h-12 w-full bg-transparent py-2.5 font-mono text-[11px] font-bold tracking-widest uppercase no-underline hover:bg-white/10"
             >
               <Link to={BOARD_PATH} replace>
                 Go to the levels

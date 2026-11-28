@@ -5,8 +5,8 @@
  */
 import { Link } from "react-router";
 
-import type { Route } from "./+types/ntsa-questions";
-
+import { GuideLayout } from "~/components/brand/guide-layout";
+import { PRACTICE_QUESTION_COUNT } from "~/components/brand/practice-questions";
 import Body from "~/guides/ntsa-questions.mdx";
 import {
   NTSA_QUESTIONS_CHECKED as CHECKED,
@@ -16,8 +16,7 @@ import {
 } from "~/lib/ntsa-questions-page";
 import { breadcrumbLd, graphLd, guideLd, pageMeta } from "~/lib/site";
 
-import { GuideLayout } from "~/components/brand/guide-layout";
-import { PRACTICE_QUESTION_COUNT } from "~/components/brand/practice-questions";
+import type { Route } from "./+types/ntsa-questions";
 
 export function meta(_: Route.MetaArgs) {
   return [
@@ -63,7 +62,7 @@ export default function NtsaQuestions() {
       lead={
         <nav
           aria-label="Breadcrumb"
-          className="mb-4 flex flex-wrap items-center gap-2 font-sans text-[10.5px] uppercase tracking-wider text-ink-3 font-medium"
+          className="mb-4 flex flex-wrap items-center gap-2 font-sans text-[10.5px] font-medium tracking-wider text-ink-3 uppercase"
         >
           <Link to="/ntsa-test" className="hover:text-ink hover:underline">
             NTSA test
