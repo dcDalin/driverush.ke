@@ -8,8 +8,8 @@ import { InputField } from "~/components/ui/forms/server";
 import { requireStaff } from "~/lib/auth/require.server";
 import { consoleAction } from "~/lib/console/action.server";
 import {
-  consoleSchoolPath,
   useConsoleSchool,
+  useConsoleSchoolPath,
 } from "~/lib/console/use-console-school";
 import { useServerForm } from "~/lib/forms/use-server-form";
 import { SetSponsorshipSchema } from "~/schemas/console";
@@ -22,6 +22,7 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function SchoolSponsorshipNew() {
+  const consoleSchoolPath = useConsoleSchoolPath();
   const { school } = useConsoleSchool();
   const id = school.school.id;
   const here = consoleSchoolPath(id, "sponsorship/new");

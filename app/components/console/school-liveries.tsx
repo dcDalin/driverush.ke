@@ -57,7 +57,7 @@ import {
   uploadLiveryFolder,
   type UploadProgress,
 } from "~/lib/console/livery-upload";
-import { consoleSchoolPath } from "~/lib/console/use-console-school";
+import { useConsoleSchoolPath } from "~/lib/console/use-console-school";
 
 const LIVERY_BADGE = {
   live: "green",
@@ -333,6 +333,7 @@ function LiveryRow({
   first: boolean;
   schoolId: string;
 }) {
+  const consoleSchoolPath = useConsoleSchoolPath();
   // Each change asks first, in a modal route over this list.
   const ask = (verb: "publish" | "retire" | "delete") =>
     consoleSchoolPath(schoolId, `livery/${livery.id}/${verb}`);

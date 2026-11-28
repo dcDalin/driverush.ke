@@ -14,8 +14,8 @@ import { LiveryUploader } from "~/components/console/school-liveries";
 import { requireStaff } from "~/lib/auth/require.server";
 import { consoleAction } from "~/lib/console/action.server";
 import {
-  consoleSchoolPath,
   useConsoleSchool,
+  useConsoleSchoolPath,
 } from "~/lib/console/use-console-school";
 
 import type { Route } from "./+types/school-livery-upload";
@@ -26,6 +26,7 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function SchoolLiveryUpload() {
+  const consoleSchoolPath = useConsoleSchoolPath();
   const { school } = useConsoleSchool();
   const id = school.school.id;
   const closeTo = consoleSchoolPath(id, "livery");

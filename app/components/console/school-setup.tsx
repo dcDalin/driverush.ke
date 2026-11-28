@@ -15,7 +15,7 @@ import {
 } from "~/components/brand/icons";
 import { Button } from "~/components/ui/button";
 import type { ConsoleSchool } from "~/database/console/queries";
-import { consoleSchoolPath } from "~/lib/console/use-console-school";
+import { useConsoleSchoolPath } from "~/lib/console/use-console-school";
 
 const EXPIRED = new Intl.DateTimeFormat("en-KE", {
   timeZone: "Africa/Nairobi",
@@ -63,6 +63,7 @@ function Step({
 }
 
 export function SetupChecklist({ school }: { school: ConsoleSchool }) {
+  const consoleSchoolPath = useConsoleSchoolPath();
   const { setup } = school;
   const id = school.school.id;
   const to = (page: string) => consoleSchoolPath(id, page);

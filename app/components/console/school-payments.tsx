@@ -23,7 +23,7 @@ import {
   CardTitle,
 } from "~/components/ui/card";
 import type { EarningRow, SchoolPassInfo } from "~/database/billing/school";
-import { consoleSchoolPath } from "~/lib/console/use-console-school";
+import { useConsoleSchoolPath } from "~/lib/console/use-console-school";
 
 const WHEN = new Intl.DateTimeFormat("en-KE", {
   timeZone: "Africa/Nairobi",
@@ -44,6 +44,7 @@ export function SchoolPaymentsBlock({
   earnings: EarningRow[];
   paymentsOn: boolean;
 }) {
+  const consoleSchoolPath = useConsoleSchoolPath();
   const to = (page: string) => consoleSchoolPath(schoolId, page);
   const live = Boolean(payments?.ready);
   return (
@@ -122,6 +123,7 @@ function BankReview({
   schoolId: string;
   payments: SchoolPassInfo;
 }) {
+  const consoleSchoolPath = useConsoleSchoolPath();
   const to = (decision: "approve" | "decline") =>
     consoleSchoolPath(schoolId, `payments/review/${decision}`);
   return (

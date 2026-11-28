@@ -130,38 +130,42 @@ export default [
     { id: "console-layout" },
     [
       index("routes/console/overview.tsx"),
+      // The list; over it, as modal routes, "New school" and one school: a
+      // wide modal with tabs that are child routes, every change a smaller
+      // modal stacked over its tab. Static `new` wins over `:schoolId`.
       route("schools", "routes/console/schools.tsx", [
         route("new", "routes/console/school-new.tsx"),
+        route(
+          ":schoolId",
+          "routes/console/school.tsx",
+          { id: "console-school" },
+          [
+            layout("routes/console/school-setup.tsx", [
+              index("routes/console/school-setup-index.tsx"),
+              route("hand-over", "routes/console/school-hand-over.tsx"),
+              route("status", "routes/console/school-status.tsx"),
+            ]),
+            route("livery", "routes/console/school-livery.tsx", [
+              route("upload", "routes/console/school-livery-upload.tsx"),
+              route(
+                ":liveryId/:verb",
+                "routes/console/school-livery-confirm.tsx",
+              ),
+            ]),
+            route("payments", "routes/console/school-payments.tsx", [
+              route(
+                "review/:decision",
+                "routes/console/school-bank-review.tsx",
+              ),
+              route("code", "routes/console/school-code.tsx"),
+              route("bank", "routes/console/school-bank.tsx"),
+            ]),
+            route("sponsorship", "routes/console/school-sponsorship.tsx", [
+              route("new", "routes/console/school-sponsorship-new.tsx"),
+            ]),
+          ],
+        ),
       ]),
-      // One school: a header and tabs that are pages, every change a modal
-      // route over its page. Static tab names win over `:liveryId`.
-      route(
-        "schools/:schoolId",
-        "routes/console/school.tsx",
-        { id: "console-school" },
-        [
-          layout("routes/console/school-setup.tsx", [
-            index("routes/console/school-setup-index.tsx"),
-            route("hand-over", "routes/console/school-hand-over.tsx"),
-            route("status", "routes/console/school-status.tsx"),
-          ]),
-          route("livery", "routes/console/school-livery.tsx", [
-            route("upload", "routes/console/school-livery-upload.tsx"),
-            route(
-              ":liveryId/:verb",
-              "routes/console/school-livery-confirm.tsx",
-            ),
-          ]),
-          route("payments", "routes/console/school-payments.tsx", [
-            route("review/:decision", "routes/console/school-bank-review.tsx"),
-            route("code", "routes/console/school-code.tsx"),
-            route("bank", "routes/console/school-bank.tsx"),
-          ]),
-          route("sponsorship", "routes/console/school-sponsorship.tsx", [
-            route("new", "routes/console/school-sponsorship-new.tsx"),
-          ]),
-        ],
-      ),
       route("payments", "routes/console/payments.tsx"),
       route("staff", "routes/console/staff.tsx", [
         route("grant", "routes/console/staff-grant.tsx"),

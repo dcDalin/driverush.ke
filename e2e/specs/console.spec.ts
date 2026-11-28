@@ -16,13 +16,17 @@ test("DriveRush staff create a school for an owner who has not signed up", async
   await dialog.getByLabel("Short name (for links)").fill(slug);
   await dialog.getByLabel("Owner's email (optional)").fill(`${slug}@e2e.test`);
   await dialog.getByRole("button", { name: "Create school" }).click();
-  // Straight to the school's own page, live, with its owner invited.
+  // Straight to the school, a modal over the list: live, its owner invited.
   await expect(
     page.getByRole("heading", { name: "E2E Driving School" }),
   ).toBeVisible();
-  await expect(page.getByText(`Invited ${slug}@e2e.test`)).toBeVisible();
+  // (The list under the modal names the owner too: look in the school.)
+  await expect(
+    page.getByRole("dialog").getByText(`Invited ${slug}@e2e.test`),
+  ).toBeVisible();
   // And the list finds it by search.
-  await page.getByRole("link", { name: "All schools" }).click();
+  await page.getByRole("button", { name: "Close dialog" }).click();
+  await expect(page).toHaveURL(/\/console\/schools$/);
   await page.getByLabel("Search schools").fill(slug);
   await expect(
     page.getByRole("link", { name: /E2E Driving School/ }),
@@ -43,20 +47,27 @@ test("staff set a school up first, then hand it over", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "E2E Set Up School" }),
   ).toBeVisible();
-  await expect(page.getByText("Setting up").first()).toBeVisible();
-  // Handing over is a modal route over the school's Set-up tab.
+  await expect(
+    page.getByRole("dialog").getByText("Setting up").first(),
+  ).toBeVisible();
+  // Handing over is a smaller modal stacked over the school's Set-up tab.
   // (The header's button and the checklist's Owner step both open it.)
   await page
     .getByRole("link", { name: "Hand over", exact: true })
     .first()
     .click();
   await expect(page).toHaveURL(/\/hand-over$/);
-  const handOver = page.getByRole("dialog");
+  const handOver = page.getByRole("dialog", { name: /Hand over/ });
   await handOver.getByLabel("Owner's email").fill(`${slug}@e2e.test`);
   await handOver.getByRole("button", { name: "Hand over and go live" }).click();
   await expect(page.getByText(/Handed over/)).toBeVisible();
-  await expect(page.getByText(`Invited ${slug}@e2e.test`)).toBeVisible();
-  await expect(page.getByText("Active").first()).toBeVisible();
+  // (The list under the modal names the owner too: look in the school.)
+  await expect(
+    page.getByRole("dialog").getByText(`Invited ${slug}@e2e.test`),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("dialog").getByText("Active").first(),
+  ).toBeVisible();
 });
 
 test("staff who signed in with a reset code, not their password, are asked to sign in again", async ({

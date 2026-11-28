@@ -8,8 +8,8 @@ import { ConfirmModal } from "~/components/console/route-modal";
 import { requireStaff } from "~/lib/auth/require.server";
 import { consoleAction } from "~/lib/console/action.server";
 import {
-  consoleSchoolPath,
   useConsoleSchool,
+  useConsoleSchoolPath,
 } from "~/lib/console/use-console-school";
 
 import type { Route } from "./+types/school-livery-confirm";
@@ -41,6 +41,7 @@ const ASK = {
 } as const;
 
 export default function SchoolLiveryConfirm() {
+  const consoleSchoolPath = useConsoleSchoolPath();
   const { school } = useConsoleSchool();
   const { liveryId = "", verb = "" } = useParams();
   const id = school.school.id;

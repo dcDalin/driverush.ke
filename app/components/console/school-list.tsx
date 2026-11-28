@@ -4,7 +4,7 @@
  * and reloaded, and the database does the searching (`admin_list_schools`).
  * Each row opens the school's own page.
  */
-import { Link, useNavigation } from "react-router";
+import { Link, useLocation, useNavigation } from "react-router";
 
 import { Icon } from "~/components/brand/icon";
 import { ChevronRightIcon } from "~/components/brand/icons";
@@ -80,6 +80,9 @@ function count(n: number, one: string, many = `${one}s`) {
 
 export function SchoolList({ schools }: { schools: ConsoleSchoolRow[] }) {
   const navigation = useNavigation();
+  // Under the school list the row opens a modal over it: keep its filters.
+  const { pathname, search } = useLocation();
+  const keep = pathname.startsWith("/console/schools") ? search : "";
   const loading =
     navigation.state === "loading" &&
     navigation.location?.pathname === "/console/schools";
@@ -107,7 +110,10 @@ export function SchoolList({ schools }: { schools: ConsoleSchoolRow[] }) {
               i > 0 ? "rounded-none border-t border-line" : "rounded-none"
             }
           >
-            <Link to={`/console/schools/${school.id}`}>
+            <Link
+              to={`/console/schools/${school.id}${keep}`}
+              preventScrollReset
+            >
               <ItemContent>
                 <ItemTitle className="flex flex-wrap items-center gap-2">
                   {school.name}

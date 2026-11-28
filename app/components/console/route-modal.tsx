@@ -1,6 +1,8 @@
 /**
  * Route modals (thinkrush `route-modal.tsx`): create, edit and confirm views
- * are child routes drawn as a dialog over the list that owns them. The list
+ * are child routes drawn as a dialog over the list that owns them. So is a
+ * whole record (a school in the console): a wide modal with its own tabs,
+ * its changes stacking as smaller modals over it through its `<Outlet />`. The list
  * keeps rendering underneath through its `<Outlet />`, the address can be
  * shared, and closing (Escape, the backdrop, the X, Cancel) is a navigation
  * back to `closeTo`.
@@ -25,10 +27,19 @@ import {
 import { ServerFormProvider } from "~/components/ui/forms/server";
 import { cn } from "~/lib/utils";
 
+/**
+ * On a phone a big modal is the page: edge to edge, no card, its own scroll.
+ * A small one (a question, a field or two) stays a card over the list.
+ */
+const FILL_ON_PHONE =
+  "max-sm:inset-0 max-sm:top-0 max-sm:left-0 max-sm:h-dvh max-sm:max-h-none max-sm:w-screen max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none max-sm:border-0";
+
 const SIZE = {
   sm: "max-w-md",
-  md: "max-w-xl",
-  lg: "max-w-3xl",
+  md: `max-w-xl ${FILL_ON_PHONE}`,
+  lg: `max-w-3xl ${FILL_ON_PHONE}`,
+  /** A whole record with its own tabs (thinkrush's "full"). */
+  xl: `max-w-5xl ${FILL_ON_PHONE}`,
 } as const;
 
 /** Where a modal under `base` closes to: the list, with its filters kept. */
@@ -41,12 +52,14 @@ export function RouteModal({
   closeTo,
   label,
   size = "sm",
+  className,
   children,
 }: {
   closeTo: string;
   /** The small label in the dialog's title bar. */
   label: string;
   size?: keyof typeof SIZE;
+  className?: string;
   children: React.ReactNode;
 }) {
   const navigate = useNavigate();
@@ -58,7 +71,10 @@ export function RouteModal({
           void navigate(closeTo, { replace: true, preventScrollReset: true });
       }}
     >
-      <DialogContent titlebarLabel={label} className={cn(SIZE[size])}>
+      <DialogContent
+        titlebarLabel={label}
+        className={cn(SIZE[size], className)}
+      >
         {children}
       </DialogContent>
     </Dialog>
@@ -82,7 +98,13 @@ export function RouteModalHeader({
   );
 }
 
-export const RouteModalBody = DialogBody;
+/** The modal's scrolling middle; it takes the spare height when the modal fills a phone. */
+export function RouteModalBody({
+  className,
+  ...props
+}: React.ComponentProps<typeof DialogBody>) {
+  return <DialogBody className={cn("flex-1", className)} {...props} />;
+}
 
 /** The modal's buttons: Cancel (a link back to the list), then the action. */
 export function RouteModalFooter({

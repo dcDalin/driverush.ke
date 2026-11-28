@@ -27,8 +27,8 @@ import type { SchoolStatus } from "~/database/types";
 import { requireStaff } from "~/lib/auth/require.server";
 import { consoleAction } from "~/lib/console/action.server";
 import {
-  consoleSchoolPath,
   useConsoleSchool,
+  useConsoleSchoolPath,
 } from "~/lib/console/use-console-school";
 
 import type { Route } from "./+types/school-status";
@@ -47,6 +47,7 @@ const MEANS: Record<(typeof CHOICES)[number], string> = {
 };
 
 export default function SchoolStatusModal() {
+  const consoleSchoolPath = useConsoleSchoolPath();
   const { school } = useConsoleSchool();
   const { id, status, name } = school.school;
   const here = consoleSchoolPath(id, "status");

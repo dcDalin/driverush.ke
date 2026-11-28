@@ -82,7 +82,7 @@ function DialogTitleBar({
   return (
     <div
       data-slot="dialog-titlebar"
-      className="flex shrink-0 items-center justify-between gap-3 px-6 pt-5 text-[12px] font-medium text-ink-3"
+      className="flex shrink-0 items-center justify-between gap-3 px-4 pt-4 text-[12px] font-medium text-ink-3 sm:px-6 sm:pt-5"
     >
       <span>{label}</span>
       {showClose && (
@@ -107,7 +107,10 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn("flex shrink-0 flex-col gap-2 px-6 pt-6", className)}
+      className={cn(
+        "flex shrink-0 flex-col gap-2 px-4 pt-4 sm:px-6 sm:pt-6",
+        className,
+      )}
       {...props}
     />
   );
@@ -118,7 +121,7 @@ function DialogBody({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="dialog-body"
       className={cn(
-        "min-h-0 overflow-y-auto px-6 pb-3 text-[14px] leading-relaxed text-ink-2",
+        "min-h-0 overflow-y-auto px-4 pb-3 text-[14px] leading-relaxed text-ink-2 sm:px-6",
         className,
       )}
       {...props}
@@ -131,7 +134,7 @@ function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="dialog-footer"
       className={cn(
-        "flex shrink-0 flex-col-reverse gap-2 border-t border-line px-6 py-4",
+        "flex shrink-0 flex-col-reverse gap-2 border-t border-line px-4 py-3 sm:px-6 sm:py-4",
         "sm:flex-row sm:justify-end sm:gap-2.5",
         "[&>button]:w-full sm:[&>button]:w-auto",
         className,

@@ -62,7 +62,7 @@ export function BankRequests({ requests }: { requests: BankRequest[] }) {
             {requests.map((r) => (
               <li key={r.school_id}>
                 <Link
-                  to={`/console/schools/${r.school_id}?tab=payments`}
+                  to={`/console/schools/${r.school_id}/payments`}
                   className="font-semibold underline underline-offset-2"
                 >
                   {r.school_name}
@@ -195,7 +195,7 @@ export function PaymentList({
                 }
               >
                 {r.school_id ? (
-                  <Link to={`/console/schools/${r.school_id}?tab=payments`}>
+                  <Link to={`/console/schools/${r.school_id}/payments`}>
                     <PaymentRowContent row={r} />
                   </Link>
                 ) : (

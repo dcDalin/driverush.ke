@@ -1,8 +1,11 @@
 /**
- * `/console/schools/:schoolId`: one school for DriveRush staff, as a frame
- * around its own pages. The header says which school, its status and owner,
- * and holds the two changes that are about the school itself; the tabs are
- * pages, and every change opens as a modal route over the page it belongs to:
+ * `/console/schools/:schoolId`: one school for DriveRush staff, opened as a
+ * wide modal route over the schools list (thinkrush's detail views: the list
+ * keeps rendering underneath, the address can be shared, and closing goes
+ * back to the list with its filters). The modal's header says which school,
+ * its status and owner, and holds the two changes that are about the school
+ * itself; its tabs are child routes, and every change stacks as a smaller
+ * modal over the tab it belongs to:
  *
  *   (index)       Set-up: what is done and what is left, each step linking
  *                 to where it is done
@@ -17,24 +20,26 @@
  *   sponsorship   when its cars take turns
  *     new         a new sponsorship period
  *
- * This loader reads the school once; the pages under it have none and read
- * it through `useConsoleSchool()`. Changes go through `consoleAction`.
+ * This loader reads the school once; the routes under it have none and read
+ * it through `useConsoleSchool()`. Changes go through `consoleAction`. Every
+ * link inside carries the list's search (`useConsoleSchoolPath`).
  */
-import { data, Link, Outlet } from "react-router";
+import { data, Link, Outlet, useLocation } from "react-router";
 
 import { Icon } from "~/components/brand/icon";
-import { ArrowLeftIcon, ArrowOutIcon } from "~/components/brand/icons";
+import { ArrowOutIcon } from "~/components/brand/icons";
+import { RouteModal } from "~/components/console/route-modal";
 import { STATUS_BADGE, STATUS_LABEL } from "~/components/console/school-status";
-import { PageHeader, RouteTabs } from "~/components/console/shell";
-import { NothingHere } from "~/components/school/signed-out";
+import { RouteTabs } from "~/components/console/shell";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { DialogDescription, DialogTitle } from "~/components/ui/dialog";
 import { listSchoolEarnings } from "~/database/billing/school";
 import { getConsoleSchool } from "~/database/console/queries";
 import { getRequestClient, requireStaff } from "~/lib/auth/require.server";
 import { consoleAction } from "~/lib/console/action.server";
 import { consoleGate, GATED } from "~/lib/console/gate.server";
-import { consoleSchoolPath } from "~/lib/console/use-console-school";
+import { useConsoleSchoolPath } from "~/lib/console/use-console-school";
 import { kenyanBanks } from "~/lib/payments/banks.server";
 import { paymentsEnabled } from "~/lib/payments/env.server";
 import { useLiveRevalidate } from "~/lib/realtime/use-live-revalidate";
@@ -81,22 +86,37 @@ export async function action({ request }: Route.ActionArgs) {
   return consoleAction(staff, await request.formData(), request);
 }
 
+/** The schools list, with the filters it had when the school was opened. */
+function useListTo() {
+  const { search } = useLocation();
+  return `/console/schools${search}`;
+}
+
 export default function ConsoleSchool({ loaderData }: Route.ComponentProps) {
+  const closeTo = useListTo();
   if ("gated" in loaderData) return null;
   if (loaderData.state === "missing") {
     return (
-      <NothingHere
-        title="No such school"
-        body="It may have been removed. Go back to the console's list."
-      />
+      <RouteModal closeTo={closeTo} label="Schools">
+        <div className="flex flex-col gap-2 px-4 pt-4 pb-6 sm:px-6 sm:pt-6 sm:pb-8">
+          <DialogTitle>No such school</DialogTitle>
+          <DialogDescription>
+            It may have been removed. Close this to go back to the list.
+          </DialogDescription>
+        </div>
+      </RouteModal>
     );
   }
-  return <SchoolPage {...loaderData} />;
+  return <SchoolModal {...loaderData} closeTo={closeTo} />;
 }
 
-function SchoolPage({
+function SchoolModal({
   school,
-}: Extract<Route.ComponentProps["loaderData"], { state: "ok" }>) {
+  closeTo,
+}: Extract<Route.ComponentProps["loaderData"], { state: "ok" }> & {
+  closeTo: string;
+}) {
+  const consoleSchoolPath = useConsoleSchoolPath();
   const { id, name, slug, status } = school.school;
   useLiveRevalidate([`school:${id}`]);
   const to = (page = "") => consoleSchoolPath(id, page);
@@ -107,69 +127,71 @@ function SchoolPage({
     </Badge>
   );
   return (
-    <>
-      <Button variant="ghost" size="sm" asChild className="-mb-3 self-start">
-        <Link to="/console/schools">
-          <Icon icon={ArrowLeftIcon} size={16} />
-          All schools
-        </Link>
-      </Button>
-      <PageHeader
-        title={
-          <span className="flex flex-wrap items-center gap-2">
-            {name}
-            <Badge variant={STATUS_BADGE[status]}>{STATUS_LABEL[status]}</Badge>
-          </span>
-        }
-        description={
-          <>
-            /{slug} ·{" "}
-            {school.ownerEmail
-              ? `Owner ${school.ownerEmail}`
-              : school.invitedOwnerEmail
-                ? `Invited ${school.invitedOwnerEmail}`
-                : "No owner yet"}
-          </>
-        }
-        actions={
-          <>
-            <Button asChild variant="ghost">
+    <RouteModal
+      closeTo={closeTo}
+      label="Schools"
+      size="xl"
+      className="sm:h-[calc(100dvh-2rem)]"
+    >
+      <div className="flex shrink-0 flex-col gap-3 px-4 pt-3 sm:gap-4 sm:px-6 sm:pt-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <DialogTitle className="flex flex-wrap items-center gap-2">
+              {name}
+              <Badge variant={STATUS_BADGE[status]}>
+                {STATUS_LABEL[status]}
+              </Badge>
+            </DialogTitle>
+            <DialogDescription className="mt-1">
+              /{slug} ·{" "}
+              {school.ownerEmail
+                ? `Owner ${school.ownerEmail}`
+                : school.invitedOwnerEmail
+                  ? `Invited ${school.invitedOwnerEmail}`
+                  : "No owner yet"}
+            </DialogDescription>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button asChild variant="ghost" size="sm">
               <Link to={`/school/${id}`}>
                 Its dashboard
-                <Icon icon={ArrowOutIcon} size={16} />
+                <Icon icon={ArrowOutIcon} size={14} />
               </Link>
             </Button>
-            <Button asChild variant="paper">
+            <Button asChild variant="paper" size="sm">
               <Link to={to("status")} preventScrollReset>
                 Change status
               </Link>
             </Button>
-            <Button asChild variant={inSetup ? "rush" : "paper"}>
+            <Button asChild variant={inSetup ? "rush" : "paper"} size="sm">
               <Link to={to("hand-over")} preventScrollReset>
                 {inSetup ? "Hand over" : "Change owner"}
               </Link>
             </Button>
-          </>
-        }
-      />
-      <RouteTabs
-        label="This school"
-        tabs={[
-          { label: "Set-up", to: to(), end: true },
-          {
-            label: "Livery",
-            to: to("livery"),
-            badge: school.setup.livery === "draft" ? dot : null,
-          },
-          {
-            label: "Payments",
-            to: to("payments"),
-            badge: school.payments?.pending_bank_label ? dot : null,
-          },
-          { label: "Sponsorship", to: to("sponsorship") },
-        ]}
-      />
-      <Outlet />
-    </>
+          </div>
+        </div>
+        <RouteTabs
+          label="This school"
+          tabs={[
+            { label: "Set-up", to: to(), end: true },
+            {
+              label: "Livery",
+              to: to("livery"),
+              badge: school.setup.livery === "draft" ? dot : null,
+            },
+            {
+              label: "Payments",
+              to: to("payments"),
+              badge: school.payments?.pending_bank_label ? dot : null,
+            },
+            { label: "Sponsorship", to: to("sponsorship") },
+          ]}
+        />
+      </div>
+      {/* The open tab, and over it the modal of a change in progress. */}
+      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 py-4 sm:gap-6 sm:px-6 sm:py-5">
+        <Outlet />
+      </div>
+    </RouteModal>
   );
 }
