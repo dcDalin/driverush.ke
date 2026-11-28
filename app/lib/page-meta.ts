@@ -120,10 +120,75 @@ const ROUTES: Record<string, Entry> = {
     group: "Console",
     path: "/console/schools/new",
   },
-  "routes/console/school": {
+  "console-school": {
     group: "Console",
     template: "/console/schools/:schoolId",
     path: "/console/schools/:schoolId",
+  },
+  "routes/console/school-setup": {
+    group: "Console",
+    template: "/console/schools/:schoolId",
+    path: "/console/schools/:schoolId",
+  },
+  "routes/console/school-setup-index": {
+    group: "Console",
+    template: "/console/schools/:schoolId",
+    path: "/console/schools/:schoolId",
+  },
+  "routes/console/school-hand-over": {
+    group: "Console",
+    template: "/console/schools/:schoolId/hand-over",
+    path: "/console/schools/:schoolId/hand-over",
+  },
+  "routes/console/school-status": {
+    group: "Console",
+    template: "/console/schools/:schoolId/status",
+    path: "/console/schools/:schoolId/status",
+  },
+  "routes/console/school-livery": {
+    group: "Console",
+    template: "/console/schools/:schoolId/livery",
+    path: "/console/schools/:schoolId/livery",
+  },
+  "routes/console/school-livery-upload": {
+    group: "Console",
+    template: "/console/schools/:schoolId/livery/upload",
+    path: "/console/schools/:schoolId/livery/upload",
+  },
+  "routes/console/school-livery-confirm": {
+    group: "Console",
+    template: "/console/schools/:schoolId/livery/:liveryId/:verb",
+    path: "/console/schools/:schoolId/livery/:liveryId/:verb",
+  },
+  "routes/console/school-payments": {
+    group: "Console",
+    template: "/console/schools/:schoolId/payments",
+    path: "/console/schools/:schoolId/payments",
+  },
+  "routes/console/school-bank-review": {
+    group: "Console",
+    template: "/console/schools/:schoolId/payments/review/:decision",
+    path: "/console/schools/:schoolId/payments/review/:decision",
+  },
+  "routes/console/school-code": {
+    group: "Console",
+    template: "/console/schools/:schoolId/payments/code",
+    path: "/console/schools/:schoolId/payments/code",
+  },
+  "routes/console/school-bank": {
+    group: "Console",
+    template: "/console/schools/:schoolId/payments/bank",
+    path: "/console/schools/:schoolId/payments/bank",
+  },
+  "routes/console/school-sponsorship": {
+    group: "Console",
+    template: "/console/schools/:schoolId/sponsorship",
+    path: "/console/schools/:schoolId/sponsorship",
+  },
+  "routes/console/school-sponsorship-new": {
+    group: "Console",
+    template: "/console/schools/:schoolId/sponsorship/new",
+    path: "/console/schools/:schoolId/sponsorship/new",
   },
   "routes/console/payments": { group: "Console", path: "/console/payments" },
   "routes/console/staff": { group: "Console", path: "/console/staff" },

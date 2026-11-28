@@ -23,7 +23,6 @@ import {
   UploadIcon,
   WarningIcon,
 } from "~/components/brand/icons";
-import { Confirm } from "~/components/console/confirm";
 import {
   Alert,
   AlertBody,
@@ -32,13 +31,6 @@ import {
 } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card";
 import { InputField } from "~/components/ui/forms/client";
 import { Input } from "~/components/ui/input";
 import {
@@ -65,7 +57,7 @@ import {
   uploadLiveryFolder,
   type UploadProgress,
 } from "~/lib/console/livery-upload";
-import { useInlineAction } from "~/lib/forms/use-inline-action";
+import { consoleSchoolPath } from "~/lib/console/use-console-school";
 
 const LIVERY_BADGE = {
   live: "green",
@@ -95,7 +87,17 @@ type Stage =
   | { kind: "saving"; uploaded: number; kept: number }
   | { kind: "failed"; message: string };
 
-export function LiveryUploader({ schoolId }: { schoolId: string }) {
+export function LiveryUploader({
+  schoolId,
+  action,
+  onSaved,
+}: {
+  schoolId: string;
+  /** Where the saved draft is posted: the modal's own route. */
+  action: string;
+  /** The draft is saved: the modal closes. */
+  onSaved: () => void;
+}) {
   const [folder, setFolder] = React.useState<PickedFolder | null>(null);
   const [stage, setStage] = React.useState<Stage>({ kind: "idle" });
   const fetcher = useFetcher<{ ok: boolean }>({
@@ -127,8 +129,11 @@ export function LiveryUploader({ schoolId }: { schoolId: string }) {
     if (fetcher.data.ok) {
       setFolder(null);
       if (pickerRef.current) pickerRef.current.value = "";
+      onSaved();
     }
     setStage({ kind: "idle" });
+    // Once per saved draft; `onSaved` is the modal's close.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.state, fetcher.data]);
 
   const upload = methods.handleSubmit(async (meta) => {
@@ -147,7 +152,7 @@ export function LiveryUploader({ schoolId }: { schoolId: string }) {
       if (draftInput.current && draftForm.current) {
         // remix-hook-form's encoding: each value JSON, so the row arrives whole.
         draftInput.current.value = JSON.stringify(row);
-        await fetcher.submit(draftForm.current, { method: "POST" });
+        await fetcher.submit(draftForm.current, { method: "POST", action });
       }
     } catch (error) {
       setStage({
@@ -169,176 +174,168 @@ export function LiveryUploader({ schoolId }: { schoolId: string }) {
         : 0;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Upload a livery</CardTitle>
-        <CardDescription>
-          Choose the school's livery folder (the art pipeline's
-          seed/fixtures/liveries/&lt;slug&gt;). Only files the bucket does not
-          have yet are sent. It is saved as a draft for you to preview.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`livery-folder-${schoolId}`}>Livery folder</Label>
-          <Input
-            ref={pickerRef}
-            id={`livery-folder-${schoolId}`}
-            type="file"
-            multiple
-            disabled={busy}
-            onChange={(e) => void pick(e.target.files)}
-            {...FOLDER_PICKER}
-          />
-        </div>
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor={`livery-folder-${schoolId}`}>Livery folder</Label>
+        <Input
+          ref={pickerRef}
+          id={`livery-folder-${schoolId}`}
+          type="file"
+          multiple
+          disabled={busy}
+          onChange={(e) => void pick(e.target.files)}
+          {...FOLDER_PICKER}
+        />
+      </div>
 
-        {folder && plan ? (
-          plan.missing.length ? (
-            <Alert variant="error" icon={WarningIcon}>
-              <AlertBody>
-                <AlertTitle>This folder is not a whole livery</AlertTitle>
-                <AlertDescription>
-                  Missing: {plan.missing.join(", ")}.
-                </AlertDescription>
-              </AlertBody>
-            </Alert>
-          ) : (
-            <Alert variant="ok" icon={FolderIcon}>
-              <AlertBody>
-                <AlertTitle>{folder.name || "Folder"} is ready</AlertTitle>
-                <AlertDescription>
-                  {plan.counts.cars} cars, roof board, banner, posters and marks
-                  {plan.counts.thumbs
-                    ? `, ${plan.counts.thumbs} car pictures`
-                    : ""}
-                  {plan.counts.stills ? `, ${plan.counts.stills} stills` : ""}.
-                  {plan.hasMeta
-                    ? " Colours read from livery.json."
-                    : " No livery.json: check the colours below."}
-                </AlertDescription>
-              </AlertBody>
-            </Alert>
-          )
-        ) : null}
+      {folder && plan ? (
+        plan.missing.length ? (
+          <Alert variant="error" icon={WarningIcon}>
+            <AlertBody>
+              <AlertTitle>This folder is not a whole livery</AlertTitle>
+              <AlertDescription>
+                Missing: {plan.missing.join(", ")}.
+              </AlertDescription>
+            </AlertBody>
+          </Alert>
+        ) : (
+          <Alert variant="ok" icon={FolderIcon}>
+            <AlertBody>
+              <AlertTitle>{folder.name || "Folder"} is ready</AlertTitle>
+              <AlertDescription>
+                {plan.counts.cars} cars, roof board, banner, posters and marks
+                {plan.counts.thumbs
+                  ? `, ${plan.counts.thumbs} car pictures`
+                  : ""}
+                {plan.counts.stills ? `, ${plan.counts.stills} stills` : ""}.
+                {plan.hasMeta
+                  ? " Colours read from livery.json."
+                  : " No livery.json: check the colours below."}
+              </AlertDescription>
+            </AlertBody>
+          </Alert>
+        )
+      ) : null}
 
-        {folder && plan && !plan.missing.length ? (
-          <FormProvider {...methods}>
-            <form
-              onSubmit={(e) => void upload(e)}
-              noValidate
-              className="grid gap-3 sm:grid-cols-2"
-            >
+      {folder && plan && !plan.missing.length ? (
+        <FormProvider {...methods}>
+          <form
+            onSubmit={(e) => void upload(e)}
+            noValidate
+            className="grid gap-3 sm:grid-cols-2"
+          >
+            <InputField
+              name="label"
+              label="Name"
+              className="sm:col-span-2"
+              disabled={busy}
+              inputProps={{
+                placeholder: "Fitted per vehicle, November 2026",
+              }}
+            />
+            <InputField
+              name="base"
+              label="Body colour"
+              disabled={busy}
+              inputProps={{ placeholder: "#f6f6f3" }}
+            />
+            <InputField
+              name="topBoard.edge"
+              label="Roof board edge"
+              disabled={busy}
+              inputProps={{ placeholder: "#e3271b" }}
+            />
+            <InputField
+              name="rail.gold"
+              label="Classroom rail"
+              disabled={busy}
+              inputProps={{ placeholder: "#f4a20c" }}
+            />
+            <InputField
+              name="rail.red"
+              label="Rail stripes"
+              disabled={busy}
+              inputProps={{ placeholder: "#e3271b" }}
+            />
+            <div className="grid grid-cols-3 gap-3 sm:col-span-2">
               <InputField
-                name="label"
-                label="Name"
-                className="sm:col-span-2"
+                name="topBoard.width"
+                label="Roof board width (m)"
                 disabled={busy}
-                inputProps={{
-                  placeholder: "Fitted per vehicle, November 2026",
-                }}
+                inputProps={{ inputMode: "decimal" }}
               />
               <InputField
-                name="base"
-                label="Body colour"
+                name="topBoard.height"
+                label="Height (m)"
                 disabled={busy}
-                inputProps={{ placeholder: "#f6f6f3" }}
+                inputProps={{ inputMode: "decimal" }}
               />
               <InputField
-                name="topBoard.edge"
-                label="Roof board edge"
+                name="topBoard.cut"
+                label="Corner cut"
                 disabled={busy}
-                inputProps={{ placeholder: "#e3271b" }}
+                inputProps={{ inputMode: "decimal" }}
               />
-              <InputField
-                name="rail.gold"
-                label="Classroom rail"
-                disabled={busy}
-                inputProps={{ placeholder: "#f4a20c" }}
-              />
-              <InputField
-                name="rail.red"
-                label="Rail stripes"
-                disabled={busy}
-                inputProps={{ placeholder: "#e3271b" }}
-              />
-              <div className="grid grid-cols-3 gap-3 sm:col-span-2">
-                <InputField
-                  name="topBoard.width"
-                  label="Roof board width (m)"
-                  disabled={busy}
-                  inputProps={{ inputMode: "decimal" }}
-                />
-                <InputField
-                  name="topBoard.height"
-                  label="Height (m)"
-                  disabled={busy}
-                  inputProps={{ inputMode: "decimal" }}
-                />
-                <InputField
-                  name="topBoard.cut"
-                  label="Corner cut"
-                  disabled={busy}
-                  inputProps={{ inputMode: "decimal" }}
-                />
-              </div>
-              {stage.kind === "uploading" || stage.kind === "saving" ? (
-                <div
-                  className="flex flex-col gap-1.5 sm:col-span-2"
-                  aria-live="polite"
-                >
-                  <Progress value={progress} aria-label="Upload progress" />
-                  <p className="m-0 text-[13px] text-ink-3">
-                    {stage.kind === "saving"
-                      ? `Saving the draft (${stage.uploaded} sent, ${stage.kept} already stored).`
-                      : `${stage.progress.done} of ${stage.progress.total} files: ${stage.progress.uploaded} sent, ${stage.progress.kept} already stored.`}
-                  </p>
-                </div>
-              ) : null}
-              {stage.kind === "failed" ? (
-                <Alert
-                  variant="error"
-                  icon={WarningIcon}
-                  className="sm:col-span-2"
-                >
-                  <AlertBody>
-                    <AlertTitle>Not uploaded</AlertTitle>
-                    <AlertDescription>{stage.message}</AlertDescription>
-                  </AlertBody>
-                </Alert>
-              ) : null}
-              <Button
-                type="submit"
-                variant="rush"
-                className="self-start"
-                isLoading={busy}
+            </div>
+            {stage.kind === "uploading" || stage.kind === "saving" ? (
+              <div
+                className="flex flex-col gap-1.5 sm:col-span-2"
+                aria-live="polite"
               >
-                <Icon icon={UploadIcon} size={18} />
-                Upload as a draft
-              </Button>
-            </form>
-          </FormProvider>
-        ) : null}
+                <Progress value={progress} aria-label="Upload progress" />
+                <p className="m-0 text-[13px] text-ink-3">
+                  {stage.kind === "saving"
+                    ? `Saving the draft (${stage.uploaded} sent, ${stage.kept} already stored).`
+                    : `${stage.progress.done} of ${stage.progress.total} files: ${stage.progress.uploaded} sent, ${stage.progress.kept} already stored.`}
+                </p>
+              </div>
+            ) : null}
+            {stage.kind === "failed" ? (
+              <Alert
+                variant="error"
+                icon={WarningIcon}
+                className="sm:col-span-2"
+              >
+                <AlertBody>
+                  <AlertTitle>Not uploaded</AlertTitle>
+                  <AlertDescription>{stage.message}</AlertDescription>
+                </AlertBody>
+              </Alert>
+            ) : null}
+            <Button
+              type="submit"
+              variant="rush"
+              className="self-start"
+              isLoading={busy}
+            >
+              <Icon icon={UploadIcon} size={18} />
+              Upload as a draft
+            </Button>
+          </form>
+        </FormProvider>
+      ) : null}
 
-        <fetcher.Form ref={draftForm} method="post" hidden>
-          <HoneypotInputs />
-          <input type="hidden" name="intent" value="save-livery-draft" />
-          <input ref={draftInput} type="hidden" name="draft" defaultValue="" />
-        </fetcher.Form>
-      </CardContent>
-    </Card>
+      <fetcher.Form ref={draftForm} method="post" action={action} hidden>
+        <HoneypotInputs />
+        <input type="hidden" name="intent" value="save-livery-draft" />
+        <input ref={draftInput} type="hidden" name="draft" defaultValue="" />
+      </fetcher.Form>
+    </div>
   );
 }
 
 function LiveryRow({
   livery,
   first,
+  schoolId,
 }: {
   livery: ConsoleLivery;
   first: boolean;
+  schoolId: string;
 }) {
-  const action = useInlineAction(`livery:${livery.id}`);
-  const submit = (intent: string) =>
-    action.submit({ intent, liveryId: livery.id });
+  // Each change asks first, in a modal route over this list.
+  const ask = (verb: "publish" | "retire" | "delete") =>
+    consoleSchoolPath(schoolId, `livery/${livery.id}/${verb}`);
   return (
     <Item
       className={first ? "rounded-none" : "rounded-none border-t border-line"}
@@ -366,73 +363,57 @@ function LiveryRow({
           </Link>
         </Button>
         {livery.status !== "live" ? (
-          <Confirm
-            trigger={
-              <Button
-                size="sm"
-                variant="paper"
-                isLoading={action.pending === "publish-livery"}
-              >
-                Publish
-              </Button>
-            }
-            title="Publish this livery?"
-            body="Everyone sees it on the board within a few minutes. The school's current livery is retired."
-            confirm="Publish"
-            onConfirm={() => submit("publish-livery")}
-          />
+          <Button size="sm" variant="paper" asChild>
+            <Link to={ask("publish")} preventScrollReset>
+              Publish
+            </Link>
+          </Button>
         ) : (
-          <Confirm
-            trigger={
-              <Button
-                size="sm"
-                variant="ghost"
-                isLoading={action.pending === "retire-livery"}
-              >
-                Retire
-              </Button>
-            }
-            title="Take this livery off the board?"
-            body="The school's learners see plain cars and it stops taking turns until another livery is published."
-            confirm="Retire"
-            onConfirm={() => submit("retire-livery")}
-          />
+          <Button size="sm" variant="ghost" asChild>
+            <Link to={ask("retire")} preventScrollReset>
+              Retire
+            </Link>
+          </Button>
         )}
         {livery.status !== "live" ? (
-          <Confirm
-            trigger={
-              <Button
-                size="icon-sm"
-                variant="ghost"
-                aria-label={`Delete ${livery.label}`}
-                isLoading={action.pending === "delete-livery"}
-              >
-                <Icon icon={DeleteIcon} size={16} />
-              </Button>
-            }
-            title="Delete this livery?"
-            body="Its row goes; its files stay in storage (other liveries may share them)."
-            confirm="Delete"
-            onConfirm={() => submit("delete-livery")}
-          />
+          <Button size="icon-sm" variant="ghost" asChild>
+            <Link
+              to={ask("delete")}
+              preventScrollReset
+              aria-label={`Delete ${livery.label}`}
+            >
+              <Icon icon={DeleteIcon} size={16} />
+            </Link>
+          </Button>
         ) : null}
       </ItemActions>
     </Item>
   );
 }
 
-export function LiveryList({ liveries }: { liveries: ConsoleLivery[] }) {
+export function LiveryList({
+  liveries,
+  schoolId,
+}: {
+  liveries: ConsoleLivery[];
+  schoolId: string;
+}) {
   if (liveries.length === 0) {
     return (
       <p className="m-0 rounded-lg border border-dashed border-line px-4 py-6 text-center text-[14px] text-ink-3">
-        No livery yet. Upload the school's folder above.
+        No livery yet. Upload the school's folder to start.
       </p>
     );
   }
   return (
     <ItemGroup className="rounded-lg border border-line bg-surface">
       {liveries.map((livery, i) => (
-        <LiveryRow key={livery.id} livery={livery} first={i === 0} />
+        <LiveryRow
+          key={livery.id}
+          livery={livery}
+          first={i === 0}
+          schoolId={schoolId}
+        />
       ))}
     </ItemGroup>
   );

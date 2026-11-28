@@ -3,8 +3,6 @@
  * staff list (su only; "Add staff" is the `staff/grant` modal route). Server forms use `useServerForm`, one-tap changes
  * `useInlineAction`.
  */
-import { HoneypotInputs } from "remix-utils/honeypot/react";
-
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
@@ -14,14 +12,11 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
-import { InputField, ServerFormProvider } from "~/components/ui/forms/server";
 import type {
   ConsoleSponsorship,
   StaffMember,
 } from "~/database/console/queries";
 import { useInlineAction } from "~/lib/forms/use-inline-action";
-import { useServerForm } from "~/lib/forms/use-server-form";
-import { SetSponsorshipSchema } from "~/schemas/console";
 
 function kenyaToday(now = Date.now()) {
   return new Date(now + 3 * 3_600_000).toISOString().slice(0, 10);
@@ -45,103 +40,70 @@ export function Sponsorships({
 }) {
   const current = currentSponsorship(sponsorships);
   const end = useInlineAction(`sponsorship:${current?.id ?? schoolId}`);
-  const form = useServerForm({
-    schema: SetSponsorshipSchema,
-    key: `set-sponsorship:${schoolId}`,
-    resetOnSuccess: true,
-    defaultValues: {
-      intent: "set-sponsorship",
-      schoolId,
-      startsOn: kenyaToday(),
-      endsOn: "",
-      note: "",
-    },
-  });
+  const others = sponsorships.filter((p) => p.id !== current?.id);
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex flex-wrap items-center gap-2">
-          Sponsorship
-          {current ? <Badge variant="blue">sponsoring now</Badge> : null}
-        </CardTitle>
-        <CardDescription>
-          While a sponsorship runs and the school has a live livery, its cars
-          take turns on the board for guests and free learners.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        {current ? (
-          <div className="flex flex-wrap items-center gap-2 text-[13px]">
-            <span>
-              Since {current.starts_on}
-              {current.ends_on ? `, until ${current.ends_on}` : ", no end set"}
-              {current.note ? ` (${current.note})` : ""}
+    <div className="flex flex-col gap-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex flex-wrap items-center gap-2">
+            {current ? "Sponsoring now" : "Not sponsoring"}
+            {current ? <Badge variant="blue">on the board</Badge> : null}
+          </CardTitle>
+          <CardDescription>
+            While a sponsorship runs and the school has a live livery, its cars
+            take turns on the board for guests and free learners.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-center gap-3 text-[14px]">
+          {current ? (
+            <>
+              <span>
+                Since {current.starts_on}
+                {current.ends_on
+                  ? `, until ${current.ends_on}`
+                  : ", no end set"}
+                {current.note ? ` (${current.note})` : ""}
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                variant="paper"
+                isLoading={end.busy}
+                onClick={() =>
+                  end.submit({
+                    intent: "end-sponsorship",
+                    sponsorshipId: current.id,
+                  })
+                }
+              >
+                End today
+              </Button>
+            </>
+          ) : (
+            <span className="text-ink-3">
+              Only its own learners see its cars.
             </span>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              isLoading={end.busy}
-              onClick={() =>
-                end.submit({
-                  intent: "end-sponsorship",
-                  sponsorshipId: current.id,
-                })
-              }
-            >
-              End today
-            </Button>
-          </div>
-        ) : (
-          <p className="m-0 text-[13px] text-ink-3">
-            Not sponsoring: only its own learners see its cars.
-          </p>
-        )}
-        <ServerFormProvider methods={form.methods}>
-          <form.fetcher.Form
-            ref={form.formRef}
-            method="post"
-            onSubmit={form.methods.handleSubmit}
-            noValidate
-            className="flex flex-wrap items-start gap-2"
-          >
-            <HoneypotInputs />
-            <InputField
-              name="startsOn"
-              label="From"
-              className="w-40"
-              disabled={form.busy}
-              inputProps={{ type: "date" }}
-            />
-            <InputField
-              name="endsOn"
-              label="Until (optional)"
-              className="w-40"
-              disabled={form.busy}
-              inputProps={{ type: "date" }}
-            />
-            <InputField
-              name="note"
-              label="Note (optional)"
-              className="min-w-48 flex-1"
-              disabled={form.busy}
-              inputProps={{ placeholder: "Paid for Q1" }}
-            />
-            <Button
-              type="submit"
-              size="sm"
-              variant="paper"
-              className="mt-6"
-              isLoading={form.busy}
-            >
-              Add
-            </Button>
-          </form.fetcher.Form>
-        </ServerFormProvider>
-      </CardContent>
-    </Card>
+          )}
+        </CardContent>
+      </Card>
+      {others.length > 0 ? (
+        <ul className="m-0 flex list-none flex-col divide-y divide-line rounded-lg border border-line bg-surface p-0 text-[14px]">
+          {others.map((p) => (
+            <li key={p.id} className="flex flex-wrap gap-x-3 px-4 py-2.5">
+              <span className="font-semibold">
+                {p.starts_on} to {p.ends_on ?? "no end set"}
+              </span>
+              {p.note ? <span className="text-ink-3">{p.note}</span> : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
   );
 }
+
+/** Today in Kenya, `YYYY-MM-DD`: a new sponsorship's first day. */
+export { kenyaToday };
 
 export function StaffList({ staff, me }: { staff: StaffMember[]; me: string }) {
   return (

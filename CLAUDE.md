@@ -101,7 +101,8 @@ remix-hook-form, shadcn everywhere. Guides: `docs/forms-and-data.md`,
   Create and add forms are modal routes over their list (`schools/new`,
   `staff/grant`; `components/console/route-modal.tsx`), never a dialog kept
   in state. Each page's loader opens with `getRequestClient` then
-  `consoleGate`. One school is `/console/schools/:id`
+  `consoleGate`. One school (`/console/schools/:id`) is a frame of its own:
+  a header, tabs that are pages (set-up, livery, payments, sponsorship; `RouteTabs`) and every change a modal route over its page (`ModalForm`, `ConfirmModal`); its pages read the frame's loader through `useConsoleSchool()`. It holds
   (set-up checklist, hand-over, livery folder upload, sponsorship,
   payments). A school created with no owner is `setup` (hidden everywhere)
   until handed over. The

@@ -320,6 +320,59 @@ function AccountFooter({ roleLabel }: { roleLabel: string }) {
   );
 }
 
+export type RouteTab = {
+  label: string;
+  to: string;
+  /** Only this address, not the ones under it (a section's first tab). */
+  end?: boolean;
+  /** What is waiting on that tab. */
+  badge?: React.ReactNode;
+};
+
+/**
+ * Tabs that are pages: each is a link, so the address says which one is
+ * open, the back button works, and a modal under a tab keeps it lit.
+ */
+export function RouteTabs({
+  label,
+  tabs,
+}: {
+  label: string;
+  tabs: RouteTab[];
+}) {
+  return (
+    <nav
+      aria-label={label}
+      className="-mx-4 overflow-x-auto border-b border-line px-4 [scrollbar-width:none] sm:mx-0 sm:px-0"
+    >
+      <ul className="m-0 flex list-none gap-1 p-0">
+        {tabs.map((tab) => (
+          <li key={tab.to}>
+            <NavLink
+              to={tab.to}
+              end={tab.end}
+              prefetch="intent"
+              preventScrollReset
+              className={({ isActive }) =>
+                cn(
+                  "-mb-px flex h-10 items-center gap-1.5 border-b-2 px-3 text-[14px] whitespace-nowrap outline-none",
+                  "transition-colors duration-100 focus-visible:bg-paper-2",
+                  isActive
+                    ? "border-rush font-semibold text-ink"
+                    : "border-transparent text-ink-2 hover:text-ink",
+                )
+              }
+            >
+              {tab.label}
+              {tab.badge}
+            </NavLink>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
 /** A page's title block: what this page is, and its one main action. */
 export function PageHeader({
   title,

@@ -1,27 +1,18 @@
 /**
- * One school's payments in the console (owner, 2026-11-26):
+ * One school's payments in the console (owner, 2026-11-26), as a page that
+ * shows and links, with each change in its own modal route:
  *
- *   - whether it takes payments, its code and price, and the bank it is paid to;
+ *   - whether it takes payments, its code and price, and the bank it is paid
+ *     to, with "Change code" and "Set the bank yourself";
  *   - a bank its owner sent, waiting: staff call the school, check it against
  *     the bank letter (Paystack cannot check a Kenyan account number), then
- *     approve it (it goes live, the old one is switched off) or turn it down
- *     with a reason the owner reads;
- *   - the code it hands out;
- *   - a bank staff set themselves, already checked, live at once;
+ *     approve it or turn it down with a reason the owner reads;
  *   - what it earned.
  */
-import { HoneypotInputs } from "remix-utils/honeypot/react";
+import { Link } from "react-router";
 
 import { kes } from "~/components/account/pass-offers";
-import { Confirm } from "~/components/console/confirm";
-import { BankFields } from "~/components/school/bank-fields";
 import { EarningsPanel } from "~/components/school/pass-panel";
-import {
-  Alert,
-  AlertBody,
-  AlertDescription,
-  AlertTitle,
-} from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
@@ -31,23 +22,8 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "~/components/ui/collapsible";
-import {
-  InputField,
-  ServerFormProvider,
-  TextareaField,
-} from "~/components/ui/forms/server";
 import type { EarningRow, SchoolPassInfo } from "~/database/billing/school";
-import { useServerForm } from "~/lib/forms/use-server-form";
-import {
-  ReviewBankSchema,
-  SetPassCodeSchema,
-  SetUpPaymentsSchema,
-} from "~/schemas/billing";
+import { consoleSchoolPath } from "~/lib/console/use-console-school";
 
 const WHEN = new Intl.DateTimeFormat("en-KE", {
   timeZone: "Africa/Nairobi",
@@ -59,71 +35,82 @@ const WHEN = new Intl.DateTimeFormat("en-KE", {
 
 export function SchoolPaymentsBlock({
   schoolId,
-  schoolName,
-  suggestedCode,
   payments,
   earnings,
-  banks,
   paymentsOn,
 }: {
   schoolId: string;
-  schoolName: string;
-  suggestedCode: string;
   payments: SchoolPassInfo | null;
   earnings: EarningRow[];
-  banks: { name: string; code: string }[];
   paymentsOn: boolean;
 }) {
+  const to = (page: string) => consoleSchoolPath(schoolId, page);
+  const live = Boolean(payments?.ready);
   return (
     <div className="flex flex-col gap-4">
-      <Status payments={payments} paymentsOn={paymentsOn} />
       {payments?.pending_bank_label ? (
         <BankReview schoolId={schoolId} payments={payments} />
       ) : null}
-      {payments ? <CodeForm schoolId={schoolId} code={payments.code} /> : null}
-      <DirectBank
-        schoolId={schoolId}
-        schoolName={schoolName}
-        code={payments?.code ?? suggestedCode}
-        banks={banks}
-        paymentsOn={paymentsOn}
-        live={Boolean(payments?.ready)}
-      />
-      <EarningsPanel rows={earnings} ready={Boolean(payments?.ready)} />
-    </div>
-  );
-}
-
-function Status({
-  payments,
-  paymentsOn,
-}: {
-  payments: SchoolPassInfo | null;
-  paymentsOn: boolean;
-}) {
-  return (
-    <div className="flex flex-col gap-1">
-      {payments?.ready ? (
-        <p className="m-0 flex flex-wrap items-center gap-2 text-[14px]">
-          <Badge variant="green">taking payments</Badge>
-          Code <span className="font-mono">{payments.code}</span> ·{" "}
-          {kes(payments.price_kes)} · paid to {payments.bank_label}
-          {payments.account_name ? ` (${payments.account_name})` : ""}
-        </p>
-      ) : (
-        <p className="m-0 flex flex-wrap items-center gap-2 text-[14px] text-ink-2">
-          <Badge variant="outline">not taking payments</Badge>
-          {payments?.pending_bank_label
-            ? "Its owner sent a bank: check it below."
-            : "Its owner has not sent a bank yet. Its learners can only buy their own pass."}
-        </p>
-      )}
-      {!paymentsOn ? (
-        <p className="m-0 text-[13px] text-ink-3">
-          Payments are off on this server (no PAYSTACK_SECRET_KEY): banks cannot
-          be made or switched off here.
-        </p>
-      ) : null}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex flex-wrap items-center gap-2">
+            Paying through this school
+            {live ? (
+              <Badge variant="green">taking payments</Badge>
+            ) : (
+              <Badge variant="outline">not taking payments</Badge>
+            )}
+          </CardTitle>
+          <CardDescription>
+            {live
+              ? "Learners pay with the school's code; its share goes to its bank."
+              : payments?.pending_bank_label
+                ? "Its owner sent a bank: check it above."
+                : "Its owner has not sent a bank yet. Its learners can only buy their own pass."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <dl className="m-0 grid gap-x-6 gap-y-1 text-[14px] sm:grid-cols-[auto_1fr]">
+            <dt className="text-ink-3">Code</dt>
+            <dd className="m-0 font-mono font-semibold">
+              {payments?.code ?? "None yet"}
+            </dd>
+            <dt className="text-ink-3">Price</dt>
+            <dd className="m-0">
+              {payments ? kes(payments.price_kes) : "Not set"}
+            </dd>
+            <dt className="text-ink-3">Paid to</dt>
+            <dd className="m-0">
+              {payments?.bank_label
+                ? `${payments.bank_label}${payments.account_name ? ` (${payments.account_name})` : ""}`
+                : "No bank yet"}
+            </dd>
+          </dl>
+          <div className="flex flex-wrap gap-2">
+            {payments ? (
+              <Button asChild size="sm" variant="paper">
+                <Link to={to("payments/code")} preventScrollReset>
+                  Change code
+                </Link>
+              </Button>
+            ) : null}
+            {paymentsOn ? (
+              <Button asChild size="sm" variant="paper">
+                <Link to={to("payments/bank")} preventScrollReset>
+                  {live ? "Change the bank yourself" : "Set the bank yourself"}
+                </Link>
+              </Button>
+            ) : null}
+          </div>
+          {!paymentsOn ? (
+            <p className="m-0 text-[13px] text-ink-3">
+              Payments are off on this server (no PAYSTACK_SECRET_KEY): banks
+              cannot be made or switched off here.
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
+      <EarningsPanel rows={earnings} ready={live} />
     </div>
   );
 }
@@ -135,28 +122,8 @@ function BankReview({
   schoolId: string;
   payments: SchoolPassInfo;
 }) {
-  const approve = useServerForm({
-    schema: ReviewBankSchema,
-    key: `review-bank:approve:${schoolId}`,
-    defaultValues: {
-      intent: "review-bank" as const,
-      schoolId,
-      decision: "approve" as const,
-      note: "",
-    },
-  });
-  const decline = useServerForm({
-    schema: ReviewBankSchema,
-    key: `review-bank:decline:${schoolId}`,
-    resetOnSuccess: true,
-    defaultValues: {
-      intent: "review-bank" as const,
-      schoolId,
-      decision: "decline" as const,
-      note: "",
-    },
-  });
-  const busy = approve.busy || decline.busy;
+  const to = (decision: "approve" | "decline") =>
+    consoleSchoolPath(schoolId, `payments/review/${decision}`);
   return (
     <Card className="border-warning-line">
       <CardHeader>
@@ -170,7 +137,7 @@ function BankReview({
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <dl className="m-0 grid gap-x-4 gap-y-1 text-[14px] sm:grid-cols-[auto_1fr]">
+        <dl className="m-0 grid gap-x-6 gap-y-1 text-[14px] sm:grid-cols-[auto_1fr]">
           <dt className="text-ink-3">Bank</dt>
           <dd className="m-0 font-semibold">{payments.pending_bank_label}</dd>
           <dt className="text-ink-3">Account name</dt>
@@ -190,180 +157,19 @@ function BankReview({
             </>
           ) : null}
         </dl>
-        <ServerFormProvider methods={approve.methods}>
-          <approve.fetcher.Form
-            ref={approve.formRef}
-            method="post"
-            onSubmit={approve.methods.handleSubmit}
-            noValidate
-          >
-            <HoneypotInputs />
-            <Confirm
-              trigger={
-                <Button
-                  type="button"
-                  variant="rush"
-                  isLoading={approve.busy}
-                  disabled={busy}
-                >
-                  Approve this bank
-                </Button>
-              }
-              title="Approve this bank?"
-              body={`From now on, the school's share of every pass bought through it goes to ${payments.pending_bank_label}${payments.bank_label ? `, not ${payments.bank_label}` : ""}.`}
-              confirm="Approve"
-              onConfirm={() => approve.formRef.current?.requestSubmit()}
-            />
-          </approve.fetcher.Form>
-        </ServerFormProvider>
-        <ServerFormProvider methods={decline.methods}>
-          <decline.fetcher.Form
-            ref={decline.formRef}
-            method="post"
-            onSubmit={decline.methods.handleSubmit}
-            noValidate
-            className="flex flex-col gap-2"
-          >
-            <HoneypotInputs />
-            <TextareaField
-              name="note"
-              label="Or turn it down: why?"
-              description="The owner reads this on their dashboard and by email."
-              disabled={busy}
-            />
-            <Button
-              type="submit"
-              variant="paper"
-              className="self-start"
-              isLoading={decline.busy}
-              disabled={busy}
-            >
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="rush">
+            <Link to={to("approve")} preventScrollReset>
+              Approve this bank
+            </Link>
+          </Button>
+          <Button asChild variant="paper">
+            <Link to={to("decline")} preventScrollReset>
               Turn it down
-            </Button>
-          </decline.fetcher.Form>
-        </ServerFormProvider>
+            </Link>
+          </Button>
+        </div>
       </CardContent>
     </Card>
-  );
-}
-
-function CodeForm({ schoolId, code }: { schoolId: string; code: string }) {
-  const form = useServerForm({
-    schema: SetPassCodeSchema,
-    key: `set-pass-code:${schoolId}`,
-    defaultValues: { intent: "set-pass-code" as const, schoolId, code },
-  });
-  return (
-    <ServerFormProvider methods={form.methods}>
-      <form.fetcher.Form
-        ref={form.formRef}
-        method="post"
-        onSubmit={form.methods.handleSubmit}
-        noValidate
-        className="flex flex-col gap-2 sm:flex-row sm:items-start"
-      >
-        <HoneypotInputs />
-        <InputField
-          name="code"
-          label="Pass code"
-          description="What the school hands out (driverush.ke/pass?code=…)."
-          className="sm:w-72"
-          disabled={form.busy}
-          inputProps={{ autoCapitalize: "characters" }}
-        />
-        <Button
-          type="submit"
-          size="sm"
-          variant="paper"
-          className="sm:mt-6"
-          isLoading={form.busy}
-        >
-          Save code
-        </Button>
-      </form.fetcher.Form>
-    </ServerFormProvider>
-  );
-}
-
-function DirectBank({
-  schoolId,
-  schoolName,
-  code,
-  banks,
-  paymentsOn,
-  live,
-}: {
-  schoolId: string;
-  schoolName: string;
-  code: string;
-  banks: { name: string; code: string }[];
-  paymentsOn: boolean;
-  live: boolean;
-}) {
-  const form = useServerForm({
-    schema: SetUpPaymentsSchema,
-    key: `set-up-payments:${schoolId}`,
-    resetOnSuccess: true,
-    defaultValues: {
-      intent: "set-up-payments" as const,
-      schoolId,
-      code,
-      bankCode: "",
-      accountNumber: "",
-      accountName: schoolName,
-    },
-  });
-  if (!paymentsOn) return null;
-  return (
-    <Collapsible>
-      <CollapsibleTrigger asChild>
-        <Button type="button" variant="ghost" size="sm" className="self-start">
-          {live ? "Change the bank yourself" : "Set the bank yourself"}
-        </Button>
-      </CollapsibleTrigger>
-      <CollapsibleContent className="pt-2">
-        {banks.length === 0 ? (
-          <Alert>
-            <AlertBody>
-              <AlertTitle>Paystack's bank list did not load</AlertTitle>
-              <AlertDescription>Reload to try again.</AlertDescription>
-            </AlertBody>
-          </Alert>
-        ) : (
-          <ServerFormProvider methods={form.methods}>
-            <form.fetcher.Form
-              ref={form.formRef}
-              method="post"
-              onSubmit={form.methods.handleSubmit}
-              noValidate
-              className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4"
-            >
-              <HoneypotInputs />
-              <p className="m-0 text-[13px] text-ink-2">
-                Only for a bank you have already checked with the school. It
-                goes live at once, with no review.
-              </p>
-              <InputField
-                name="code"
-                label="Pass code"
-                className="sm:w-72"
-                disabled={form.busy}
-                inputProps={{ autoCapitalize: "characters" }}
-              />
-              <BankFields banks={banks} disabled={form.busy} />
-              <Button
-                type="submit"
-                size="sm"
-                variant="paper"
-                className="self-start"
-                isLoading={form.busy}
-              >
-                {live ? "Change bank" : "Turn on payments"}
-              </Button>
-            </form.fetcher.Form>
-          </ServerFormProvider>
-        )}
-      </CollapsibleContent>
-    </Collapsible>
   );
 }

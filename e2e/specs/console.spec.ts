@@ -44,8 +44,16 @@ test("staff set a school up first, then hand it over", async ({ page }) => {
     page.getByRole("heading", { name: "E2E Set Up School" }),
   ).toBeVisible();
   await expect(page.getByText("Setting up").first()).toBeVisible();
-  await page.getByLabel("Owner's email").fill(`${slug}@e2e.test`);
-  await page.getByRole("button", { name: "Hand over and go live" }).click();
+  // Handing over is a modal route over the school's Set-up tab.
+  // (The header's button and the checklist's Owner step both open it.)
+  await page
+    .getByRole("link", { name: "Hand over", exact: true })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/hand-over$/);
+  const handOver = page.getByRole("dialog");
+  await handOver.getByLabel("Owner's email").fill(`${slug}@e2e.test`);
+  await handOver.getByRole("button", { name: "Hand over and go live" }).click();
   await expect(page.getByText(/Handed over/)).toBeVisible();
   await expect(page.getByText(`Invited ${slug}@e2e.test`)).toBeVisible();
   await expect(page.getByText("Active").first()).toBeVisible();
