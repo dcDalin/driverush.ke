@@ -476,7 +476,7 @@ export function StatTile({
 }) {
   const body = (
     <>
-      <span className="flex items-center justify-between gap-2 text-[11px] font-semibold tracking-[0.08em] text-ink-3 uppercase">
+      <span className="flex items-center justify-between gap-2 text-[11px] font-semibold tracking-[0.04em] text-ink-3 uppercase sm:tracking-[0.08em]">
         <span className="flex items-center gap-1.5">
           {icon ? <Icon icon={icon} size={14} /> : null}
           {label}
@@ -485,7 +485,8 @@ export function StatTile({
           <Icon
             icon={ArrowRightIcon}
             size={14}
-            className="opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+            // A hover hint: a phone has no hover, so it gives the label the room.
+            className="hidden opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 sm:block"
           />
         ) : null}
       </span>
@@ -501,7 +502,7 @@ export function StatTile({
     </>
   );
   const className =
-    "group flex flex-col gap-2 rounded-lg border border-line bg-surface p-4 outline-none";
+    "group flex flex-col gap-2 rounded-lg border border-line bg-surface p-3 outline-none sm:p-4";
   return to ? (
     <Link
       to={to}

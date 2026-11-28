@@ -151,17 +151,17 @@ export default function ConsoleOverview({ loaderData }: Route.ComponentProps) {
             to="/console/schools?status=setup"
           />
           <StatTile
-            label="Sponsoring now"
+            label="Sponsoring"
             icon={StarIcon}
             value={schools.sponsoring}
-            note="Cars take turns on the board"
+            note="Cars on the board"
             to="/console/schools?sponsoring=yes"
           />
           <StatTile
             label="Banks to check"
             icon={WalletIcon}
             value={bankRequests.length}
-            note="Sent by school owners"
+            note="Sent by owners"
             tone={bankRequests.length > 0 ? "warn" : "neutral"}
             to="/console/payments"
           />
