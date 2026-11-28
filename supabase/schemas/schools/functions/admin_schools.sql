@@ -311,6 +311,44 @@ begin
 end;
 $$;
 
+-- The console overview's counts in one read: every school, those still in
+-- set-up, those live, and those sponsoring today. `sponsoring` matches
+-- admin_list_schools' filter of the same name.
+--
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (private.is_staff)
+-- Callers: DriveRush console (session)
+create or replace function private.admin_school_counts()
+returns table (
+  total integer,
+  setup integer,
+  active integer,
+  sponsoring integer
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if not private.is_staff() then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+  return query
+  select
+    count(*)::integer,
+    (count(*) filter (where s.status = 'setup'))::integer,
+    (count(*) filter (where s.status = 'active'))::integer,
+    (count(*) filter (where exists (
+      select 1 from public.school_sponsorships as sp
+       where sp.school_id = s.id
+         and sp.starts_on <= private.kenya_today()
+         and (sp.ends_on is null or sp.ends_on >= private.kenya_today())
+    )))::integer
+  from public.schools as s;
+end;
+$$;
+
 -- Access:  authenticated (DriveRush su or admin)
 -- Guard:   admin (the private body checks private.is_staff)
 -- Callers: DriveRush console (session)
@@ -401,6 +439,33 @@ set search_path = ''
 as $$
   select * from private.admin_list_schools(p_search, p_status, p_livery, p_sponsoring, p_limit, p_offset);
 $$;
+
+-- Access:  authenticated (DriveRush su or admin)
+-- Guard:   admin (the private body checks private.is_staff)
+-- Callers: DriveRush console (session)
+create or replace function public.admin_school_counts()
+returns table (
+  total integer,
+  setup integer,
+  active integer,
+  sponsoring integer
+)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select * from private.admin_school_counts();
+$$;
+
+revoke all on function private.admin_school_counts() from public;
+revoke all on function public.admin_school_counts() from public;
+grant execute on function private.admin_school_counts() to service_role;
+grant execute on function public.admin_school_counts() to service_role;
+comment on function private.admin_school_counts() is
+  'DriveRush staff: how many schools there are, in set-up, live and sponsoring today, for the console overview.';
+comment on function public.admin_school_counts() is
+  'DriveRush staff: how many schools there are, in set-up, live and sponsoring today, for the console overview.';
 
 revoke all on function private.admin_hand_over_school(uuid, text, boolean) from public;
 revoke all on function private.admin_list_schools(text, text, text, text, integer, integer) from public;

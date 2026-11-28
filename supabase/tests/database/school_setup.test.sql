@@ -4,13 +4,14 @@
 -- A school created without an owner starts in `setup`: hidden from
 -- learners, the board and the site, unable to take students. Handing it
 -- over makes the email its owner (added or invited) and puts it live.
--- admin_list_schools pages, searches and filters for the console.
+-- admin_list_schools pages, searches and filters for the console;
+-- admin_school_counts agrees with it.
 --
 -- Everything runs in one rolled-back transaction.
 -- ===================================================
 begin;
 
-select plan(20);
+select plan(22);
 
 create temp table w as select tests.make_world() as j;
 create function pg_temp.w(k text) returns text language sql as $$ select j ->> k from w $$;
@@ -114,6 +115,17 @@ select is(
 select ok(
   tests.value_as(pg_temp.w('staff'), $$select total from public.admin_list_schools(null, 'any', 'any', 'any', 1, 0) limit 1$$)::int >= 4,
   'and every row carries the total for the pager');
+select is(
+  tests.value_as(pg_temp.w('staff'), $$select format('%s/%s/%s', total, setup, active) from public.admin_school_counts()$$),
+  format('%s/%s/%s',
+    (select count(*) from public.schools),
+    (select count(*) from public.schools where status = 'setup'),
+    (select count(*) from public.schools where status = 'active')),
+  'the overview counts every school, those in set-up and those live');
+select is(
+  tests.value_as(pg_temp.w('staff'), $$select sponsoring from public.admin_school_counts()$$),
+  tests.value_as(pg_temp.w('staff'), $$select coalesce(max(total), 0) from public.admin_list_schools(null, 'any', 'any', 'yes', 1, 0)$$),
+  'and its sponsoring count matches the list''s sponsoring filter');
 
 select * from finish();
 rollback;

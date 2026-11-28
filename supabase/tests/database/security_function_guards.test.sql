@@ -9,7 +9,7 @@
 -- ===================================================
 begin;
 
-select plan(76);
+select plan(78);
 
 create temp table w as select tests.make_world() as j;
 create function pg_temp.w(k text) returns text language sql as $$ select j ->> k from w $$;
@@ -29,7 +29,7 @@ insert into probed values
   ('admin_set_sponsorship'), ('admin_end_sponsorship'),
   ('start_pass_checkout'), ('school_pass_info'), ('school_set_pass_price'), ('school_earnings'),
   ('admin_set_school_payments'), ('my_pass_offers'),
-  ('admin_hand_over_school'), ('admin_list_schools'),
+  ('admin_hand_over_school'), ('admin_list_schools'), ('admin_school_counts'),
   ('admin_review_bank'), ('admin_list_bank_requests'), ('admin_list_payments'), ('admin_payment_totals'),
   ('school_resend_student_invite'), ('school_resend_member_invite');
 
@@ -193,6 +193,10 @@ select is(tests.sqlstate_as(pg_temp.w('owner_a'), $$select count(*) from public.
   'a school owner cannot list every payment');
 select is(tests.sqlstate_as(pg_temp.w('learner_a1'), 'select count(*) from public.admin_payment_totals()'), '42501',
   'a learner cannot read DriveRush''s totals');
+select is(tests.sqlstate_as(pg_temp.w('owner_a'), 'select * from public.admin_school_counts()'), '42501',
+  'a school owner cannot count every school');
+select is(tests.sqlstate_as(pg_temp.w('staff'), 'select * from public.admin_school_counts()'), 'ok',
+  'staff count every school');
 select is(tests.sqlstate_as(pg_temp.w('learner_a1'), format('select * from public.school_resend_student_invite(%L)', gen_random_uuid())), '42501',
   'a learner cannot send a school''s invite');
 select is(tests.sqlstate_as(pg_temp.w('learner_a1'), format('select * from public.school_resend_member_invite(%L)', gen_random_uuid())), '42501',

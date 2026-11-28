@@ -29,6 +29,7 @@ import {
 import { Button } from "~/components/ui/button";
 import { getPaymentTotals, listBankRequests } from "~/database/billing/school";
 import {
+  countConsoleSchools,
   listConsoleSchools,
   type SchoolFilters,
 } from "~/database/console/queries";
@@ -53,26 +54,15 @@ export async function loader({ request }: Route.LoaderArgs) {
   const gate = await consoleGate(context);
   const { supabase, headers } = context;
   if (!gate.ok) return data(GATED, { headers });
-  const [all, setup, active, sponsoring, bankRequests, totals] =
-    await Promise.all([
-      listConsoleSchools(supabase, ANY),
-      listConsoleSchools(supabase, { ...ANY, status: "setup" }),
-      listConsoleSchools(supabase, { ...ANY, status: "active" }),
-      listConsoleSchools(supabase, { ...ANY, sponsoring: "yes" }),
-      oncePerRequest(request, "bank-requests", () =>
-        listBankRequests(supabase),
-      ),
-      getPaymentTotals(supabase),
-    ]);
+  const [counts, newest, bankRequests, totals] = await Promise.all([
+    countConsoleSchools(supabase),
+    listConsoleSchools(supabase, ANY),
+    oncePerRequest(request, "bank-requests", () => listBankRequests(supabase)),
+    getPaymentTotals(supabase),
+  ]);
   return data(
     {
-      schools: {
-        total: all.total,
-        setup: setup.total,
-        active: active.total,
-        sponsoring: sponsoring.total,
-        latest: all.schools.slice(0, LATEST),
-      },
+      schools: { ...counts, latest: newest.schools.slice(0, LATEST) },
       bankRequests,
       // Newest month first; the overview shows only this month.
       thisMonth: totals.slice(0, 1),

@@ -55,6 +55,8 @@ insert into tests.function_access (fn, access, guard, guard_detail, callers) val
   ('private.school_resend_member_invite(uuid)', 'authenticated', 'admin', 'private.can_manage_school; owner invites private.is_staff', 'school dashboard, console (session)'),
   ('admin_list_schools(text, text, text, text, integer, integer)', 'authenticated', 'admin', 'private.is_staff', 'DriveRush console (session)'),
   ('private.admin_list_schools(text, text, text, text, integer, integer)', 'authenticated', 'admin', 'private.is_staff', 'DriveRush console (session)'),
+  ('admin_school_counts()', 'authenticated', 'admin', 'private.is_staff', 'DriveRush console (session)'),
+  ('private.admin_school_counts()', 'authenticated', 'admin', 'private.is_staff', 'DriveRush console (session)'),
   ('admin_livery_draft_get(uuid)', 'authenticated', 'admin', 'private.is_staff', 'board ?livery= preview (staff session)'),
   ('private.admin_livery_draft_get(uuid)', 'authenticated', 'admin', 'private.is_staff', 'board ?livery= preview (staff session)'),
   ('admin_publish_livery(uuid)', 'authenticated', 'admin', 'private.is_staff', 'DriveRush console (session); livery:publish --live (staff session)'),

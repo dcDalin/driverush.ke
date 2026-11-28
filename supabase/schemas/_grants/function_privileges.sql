@@ -123,6 +123,8 @@ grant execute on function public.admin_hand_over_school(uuid, text, boolean) to 
 grant execute on function private.admin_hand_over_school(uuid, text, boolean) to authenticated;
 grant execute on function public.admin_list_schools(text, text, text, text, integer, integer) to authenticated;
 grant execute on function private.admin_list_schools(text, text, text, text, integer, integer) to authenticated;
+grant execute on function public.admin_school_counts() to authenticated;
+grant execute on function private.admin_school_counts() to authenticated;
 grant execute on function public.admin_livery_draft_get(uuid) to authenticated;
 grant execute on function private.admin_livery_draft_get(uuid) to authenticated;
 grant execute on function public.admin_publish_livery(uuid) to authenticated;

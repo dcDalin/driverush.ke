@@ -927,6 +927,15 @@ export type Database = {
         Args: { p_approve: boolean; p_note: string; p_school_id: string };
         Returns: string;
       };
+      admin_school_counts: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          active: number;
+          setup: number;
+          sponsoring: number;
+          total: number;
+        }[];
+      };
       admin_set_school_payments: {
         Args: {
           p_account_name: string;

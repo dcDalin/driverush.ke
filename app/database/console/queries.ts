@@ -1,7 +1,8 @@
 /**
  * Reads for the DriveRush console. Staff read every school through
  * `admin_list_schools` (one page at a time, searched and filtered in the
- * database) and one school's details through row level security; a su also
+ * database), the overview's counts through `admin_school_counts`, and one
+ * school's details through row level security; a su also
  * reads every staff role. Reads throw.
  */
 import { orThrow } from "../result";
@@ -55,6 +56,18 @@ export async function listConsoleSchools(
     ),
     total,
     pages: Math.max(1, Math.ceil(total / CONSOLE_PAGE_SIZE)),
+  };
+}
+
+/** How many schools there are, in set-up, live and sponsoring today. */
+export async function countConsoleSchools(supabase: TypedSupabaseClient) {
+  const rows = orThrow(await supabase.rpc("admin_school_counts"));
+  const counts = rows[0];
+  return {
+    total: counts?.total ?? 0,
+    setup: counts?.setup ?? 0,
+    active: counts?.active ?? 0,
+    sponsoring: counts?.sponsoring ?? 0,
   };
 }
 
