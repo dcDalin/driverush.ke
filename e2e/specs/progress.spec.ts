@@ -1,6 +1,11 @@
 import { expect, test } from "@playwright/test";
 
-import { freshEmail, signInWithCode, signOut } from "../support/flows";
+import {
+  freshEmail,
+  signInWithPassword,
+  signOut,
+  signUp,
+} from "../support/flows";
 
 const STREAK = "driverush:streak";
 const SAVED = JSON.stringify({ days: 4, best: 6, lastDay: "2026-11-25" });
@@ -32,7 +37,7 @@ test("a signed-in learner's progress is saved and comes back after signing out",
 }) => {
   const email = freshEmail("progress");
   await page.goto("/guides");
-  await signInWithCode(page, email);
+  await signUp(page, email);
   await page.evaluate(([key, value]) => localStorage.setItem(key, value), [
     STREAK,
     SAVED,
@@ -45,7 +50,7 @@ test("a signed-in learner's progress is saved and comes back after signing out",
     await page.evaluate((key) => localStorage.getItem(key), STREAK),
   ).toBeNull();
 
-  await signInWithCode(page, email);
+  await signInWithPassword(page, email);
   // The same data comes back (the database may reorder an object's keys).
   await expect
     .poll(() =>

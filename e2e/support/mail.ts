@@ -1,6 +1,6 @@
 /**
- * The local stack's mail catcher (Mailpit, port 54724): the newest sign-in
- * code sent to an address. Polls, since the email lands a moment later.
+ * The local stack's mail catcher (Mailpit, port 54724): the newest
+ * 6-digit code sent to an address. Polls, since the email lands a moment later.
  */
 const MAILPIT = process.env.MAILPIT_URL ?? "http://127.0.0.1:54724";
 
@@ -27,5 +27,5 @@ export async function latestCode(
     }
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
-  throw new Error(`No sign-in code reached ${email}`);
+  throw new Error(`No code reached ${email}`);
 }

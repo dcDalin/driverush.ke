@@ -1,16 +1,16 @@
 /**
  * The one sign-in sheet, mounted once in the app shell and opened through
- * `useSignInSheet().show()`. Three ways in:
+ * `useSignInSheet().show()`. Two ways in:
  *
- *   1. Email code (the main way, and how a new account is made): type an
- *      email, get a 6-digit code, type it here.
- *   2. Google, when this build turns it on (`VITE_AUTH_GOOGLE=on`).
- *   3. Email and password, for people who have set one (school and
- *      DriveRush staff need it for their consoles).
+ *   1. Google, the first choice, when this build turns it on
+ *      (`VITE_AUTH_GOOGLE=on`).
+ *   2. Email and password. A new account confirms its email with a 6-digit
+ *      code; a forgotten password is replaced with one. School and DriveRush
+ *      staff need a password session for their consoles.
  *
  * Browser-side forms (the session lives in the browser's client), so plain
  * react-hook-form with the shared zod schemas and the client field kit. A
- * school that added the learner's email links them the moment the code is
+ * school that added the learner's email links them the moment the address is
  * confirmed; that happens in the database, not here.
  */
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,10 +20,11 @@ import { useLocation } from "react-router";
 import { toast } from "sonner";
 
 import { Icon } from "~/components/brand/icon";
-import { ArrowLeftIcon, LockIcon, MailIcon } from "~/components/brand/icons";
+import { ArrowLeftIcon, GoogleIcon } from "~/components/brand/icons";
 import { Button } from "~/components/ui/button";
 import { InputField, OtpField } from "~/components/ui/forms/client";
 import { FieldError } from "~/components/ui/forms/common";
+import { Separator } from "~/components/ui/separator";
 import {
   Sheet,
   SheetBody,
@@ -34,88 +35,137 @@ import {
 } from "~/components/ui/sheet";
 import {
   CODE_LENGTH,
+  EMAIL_NOT_CONFIRMED,
   googleEnabled,
-  sendEmailCode,
+  resendSignUpCode,
+  sendPasswordReset,
+  setPassword,
   signInWithGoogle,
   signInWithPassword,
+  signUpWithPassword,
   verifyEmailCode,
+  verifyResetCode,
 } from "~/lib/auth/sign-in";
 import { useSignInSheet } from "~/lib/auth/sign-in-sheet-store";
 import {
-  EmailCodeRequestSchema,
-  type EmailCodeRequestSchemaTypes,
+  PasswordResetRequestSchema,
+  type PasswordResetRequestSchemaTypes,
+  PasswordResetSchema,
+  type PasswordResetSchemaTypes,
   PasswordSignInSchema,
   type PasswordSignInSchemaTypes,
+  SignUpSchema,
+  type SignUpSchemaTypes,
   VerifyEmailCodeSchema,
   type VerifyEmailCodeSchemaTypes,
 } from "~/schemas/auth";
 
-type Step = "email" | "code" | "password";
+type Step = "sign-in" | "sign-up" | "confirm" | "forgot" | "reset";
 
 const TITLES = {
   account: "Sign in",
   "save-progress": "Save your progress",
 } as const;
 
+const STEP_TITLES: Partial<Record<Step, string>> = {
+  "sign-up": "Create your account",
+  confirm: "Confirm your email",
+  forgot: "Set a new password",
+  reset: "Set a new password",
+};
+
+const PASSWORD_RULE = "At least 8 characters, with letters and numbers.";
+
 export default function SignInSheet() {
   const open = useSignInSheet((s) => s.open);
   const reason = useSignInSheet((s) => s.reason);
   const setOpen = useSignInSheet((s) => s.setOpen);
 
-  const [step, setStep] = React.useState<Step>("email");
+  const [step, setStep] = React.useState<Step>("sign-in");
   const [email, setEmail] = React.useState("");
 
   // Start fresh each time the sheet opens.
   React.useEffect(() => {
-    if (open) setStep("email");
+    if (open) setStep("sign-in");
   }, [open]);
 
-  const done = () => {
+  const done = (message = "You are signed in.") => {
     setOpen(false);
-    toast.success("You are signed in.");
+    toast.success(message);
   };
 
-  const description =
-    step === "code"
-      ? `We sent a ${CODE_LENGTH}-digit code to ${email}. It can take a minute; check spam too.`
-      : step === "password"
-        ? "For accounts that have a password."
-        : reason === "save-progress"
-          ? "Sign in with your email and your progress stays with you on any phone. No password needed."
-          : "We email you a code. No password needed.";
+  const sentTo = `We sent a ${CODE_LENGTH}-digit code to ${email}. It can take a minute; check spam too.`;
+  const withGoogle = googleEnabled();
+  const description: Record<Step, string> = {
+    "sign-in":
+      reason === "save-progress"
+        ? "Sign in and your progress stays with you on any phone."
+        : withGoogle
+          ? "Use your Google account, or your email and password."
+          : "Use your email and password.",
+    "sign-up": "Your progress stays with you on any phone.",
+    confirm: sentTo,
+    forgot: "Type your email and we send you a code to set a new password.",
+    reset: `${sentTo} If none comes, that email has no account yet.`,
+  };
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetContent side="right" className="w-full max-w-md p-0">
         <SheetHeader>
-          <SheetTitle>{TITLES[reason]}</SheetTitle>
+          <SheetTitle>{STEP_TITLES[step] ?? TITLES[reason]}</SheetTitle>
         </SheetHeader>
         <SheetBody className="flex flex-col gap-5">
           <SheetDescription className="text-[14px] text-ink-2">
-            {description}
+            {description[step]}
           </SheetDescription>
-          {step === "email" && (
-            <EmailStep
+          {step === "sign-in" && (
+            <SignInStep
+              withGoogle={withGoogle}
               defaultEmail={email}
-              onSent={(sentTo) => {
-                setEmail(sentTo);
-                setStep("code");
+              onDone={() => done()}
+              onUnconfirmed={(address) => {
+                setEmail(address);
+                setStep("confirm");
               }}
-              onPassword={() => setStep("password")}
+              onSignUp={() => setStep("sign-up")}
+              onForgot={() => setStep("forgot")}
             />
           )}
-          {step === "code" && (
-            <CodeStep
-              email={email}
-              onDone={done}
-              onBack={() => setStep("email")}
-            />
-          )}
-          {step === "password" && (
-            <PasswordStep
+          {step === "sign-up" && (
+            <SignUpStep
               defaultEmail={email}
-              onDone={done}
-              onBack={() => setStep("email")}
+              onSent={(address) => {
+                setEmail(address);
+                setStep("confirm");
+              }}
+              onBack={() => setStep("sign-in")}
+            />
+          )}
+          {step === "confirm" && (
+            <ConfirmStep
+              email={email}
+              onDone={() => done()}
+              onBack={() => setStep("sign-up")}
+            />
+          )}
+          {step === "forgot" && (
+            <ForgotStep
+              defaultEmail={email}
+              onSent={(address) => {
+                setEmail(address);
+                setStep("reset");
+              }}
+              onBack={() => setStep("sign-in")}
+            />
+          )}
+          {step === "reset" && (
+            <ResetStep
+              email={email}
+              onDone={() =>
+                done("Your new password is set. You are signed in.")
+              }
+              onBack={() => setStep("forgot")}
             />
           )}
         </SheetBody>
@@ -124,35 +174,95 @@ export default function SignInSheet() {
   );
 }
 
-function EmailStep({
-  defaultEmail,
-  onSent,
-  onPassword,
+function BackButton({
+  onClick,
+  children,
 }: {
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      className="self-start"
+      onClick={onClick}
+    >
+      <Icon icon={ArrowLeftIcon} size={14} />
+      {children}
+    </Button>
+  );
+}
+
+function SignInStep({
+  withGoogle,
+  defaultEmail,
+  onDone,
+  onUnconfirmed,
+  onSignUp,
+  onForgot,
+}: {
+  withGoogle: boolean;
   defaultEmail: string;
-  onSent: (email: string) => void;
-  onPassword: () => void;
+  onDone: () => void;
+  onUnconfirmed: (email: string) => void;
+  onSignUp: () => void;
+  onForgot: () => void;
 }) {
   const { pathname } = useLocation();
   const [failure, setFailure] = React.useState<string | null>(null);
   const [googleBusy, setGoogleBusy] = React.useState(false);
-  const methods = useForm<EmailCodeRequestSchemaTypes>({
-    resolver: zodResolver(EmailCodeRequestSchema),
-    defaultValues: { email: defaultEmail },
+  const methods = useForm<PasswordSignInSchemaTypes>({
+    resolver: zodResolver(PasswordSignInSchema),
+    defaultValues: { email: defaultEmail, password: "" },
     mode: "onSubmit",
     reValidateMode: "onChange",
   });
   const busy = methods.formState.isSubmitting;
 
-  const onSubmit = methods.handleSubmit(async ({ email }) => {
+  const onSubmit = methods.handleSubmit(async ({ email, password }) => {
     setFailure(null);
-    const { error } = await sendEmailCode(email);
-    if (error) setFailure(error);
-    else onSent(email);
+    const { error } = await signInWithPassword(email, password);
+    if (!error) return onDone();
+    if (error === EMAIL_NOT_CONFIRMED) {
+      // The account was made but its code never typed: send a new one.
+      await resendSignUpCode(email);
+      return onUnconfirmed(email);
+    }
+    setFailure(error);
   });
 
   return (
     <>
+      {withGoogle && (
+        <>
+          <Button
+            type="button"
+            variant="rush"
+            isLoading={googleBusy}
+            disabled={busy}
+            onClick={async () => {
+              setGoogleBusy(true);
+              setFailure(null);
+              const { error } = await signInWithGoogle(pathname);
+              // On success the browser is already leaving for Google.
+              if (error) {
+                setGoogleBusy(false);
+                setFailure(error);
+              }
+            }}
+          >
+            {!googleBusy && <Icon icon={GoogleIcon} size={16} />}
+            Continue with Google
+          </Button>
+          <div className="flex items-center gap-3 text-[12.5px] text-ink-3">
+            <Separator className="flex-1" />
+            or use your email
+            <Separator className="flex-1" />
+          </div>
+        </>
+      )}
       <FormProvider {...methods}>
         <form onSubmit={onSubmit} className="flex flex-col gap-3" noValidate>
           <InputField
@@ -164,50 +274,109 @@ function EmailStep({
               inputMode: "email",
               autoComplete: "email",
               placeholder: "name@gmail.com",
-              autoFocus: true,
+              // With Google first, the keyboard stays down until it is asked for.
+              autoFocus: !withGoogle,
             }}
           />
-          <Button type="submit" variant="rush" isLoading={busy}>
-            {!busy && <Icon icon={MailIcon} size={16} />}
-            Email me a code
+          <InputField
+            name="password"
+            label="Password"
+            disabled={busy}
+            inputProps={{ type: "password", autoComplete: "current-password" }}
+          />
+          <Button
+            type="submit"
+            variant={withGoogle ? "paper" : "rush"}
+            isLoading={busy}
+            disabled={googleBusy}
+          >
+            Sign in
           </Button>
         </form>
       </FormProvider>
-      {googleEnabled() && (
+      {failure && <FieldError>{failure}</FieldError>}
+      <div className="flex flex-wrap gap-x-5 gap-y-1">
         <Button
           type="button"
-          variant="paper"
-          isLoading={googleBusy}
-          onClick={async () => {
-            setGoogleBusy(true);
-            setFailure(null);
-            const { error } = await signInWithGoogle(pathname);
-            // On success the browser is already leaving for Google.
-            if (error) {
-              setGoogleBusy(false);
-              setFailure(error);
-            }
-          }}
+          variant="quiet-rush"
+          size="sm"
+          className="px-0"
+          onClick={onSignUp}
         >
-          Continue with Google
+          Create an account
         </Button>
-      )}
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="self-start"
-        onClick={onPassword}
-      >
-        <Icon icon={LockIcon} size={14} />
-        Sign in with a password
-      </Button>
-      {failure && <FieldError>{failure}</FieldError>}
+        <Button
+          type="button"
+          variant="quiet"
+          size="sm"
+          className="px-0"
+          onClick={onForgot}
+        >
+          Forgot your password?
+        </Button>
+      </div>
     </>
   );
 }
 
-function CodeStep({
+function SignUpStep({
+  defaultEmail,
+  onSent,
+  onBack,
+}: {
+  defaultEmail: string;
+  onSent: (email: string) => void;
+  onBack: () => void;
+}) {
+  const [failure, setFailure] = React.useState<string | null>(null);
+  const methods = useForm<SignUpSchemaTypes>({
+    resolver: zodResolver(SignUpSchema),
+    defaultValues: { email: defaultEmail, password: "" },
+    mode: "onSubmit",
+    reValidateMode: "onChange",
+  });
+  const busy = methods.formState.isSubmitting;
+
+  const onSubmit = methods.handleSubmit(async ({ email, password }) => {
+    setFailure(null);
+    const { error } = await signUpWithPassword(email, password);
+    if (error) setFailure(error);
+    else onSent(email);
+  });
+
+  return (
+    <FormProvider {...methods}>
+      <form onSubmit={onSubmit} className="flex flex-col gap-3" noValidate>
+        <InputField
+          name="email"
+          label="Email"
+          disabled={busy}
+          inputProps={{
+            type: "email",
+            inputMode: "email",
+            autoComplete: "email",
+            placeholder: "name@gmail.com",
+            autoFocus: true,
+          }}
+        />
+        <InputField
+          name="password"
+          label="Password"
+          description={PASSWORD_RULE}
+          disabled={busy}
+          inputProps={{ type: "password", autoComplete: "new-password" }}
+        />
+        <Button type="submit" variant="rush" isLoading={busy}>
+          Create account
+        </Button>
+        {failure && <FieldError>{failure}</FieldError>}
+        <BackButton onClick={onBack}>Back to sign in</BackButton>
+      </form>
+    </FormProvider>
+  );
+}
+
+function ConfirmStep({
   email,
   onDone,
   onBack,
@@ -243,14 +412,11 @@ function CodeStep({
           autoFocus
         />
         <Button type="submit" variant="rush" isLoading={busy}>
-          Sign in
+          Confirm and sign in
         </Button>
         {failure && <FieldError>{failure}</FieldError>}
         <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="ghost" size="sm" onClick={onBack}>
-            <Icon icon={ArrowLeftIcon} size={14} />
-            Use a different email
-          </Button>
+          <BackButton onClick={onBack}>Use a different email</BackButton>
           <Button
             type="button"
             variant="ghost"
@@ -259,7 +425,7 @@ function CodeStep({
             disabled={busy}
             onClick={async () => {
               setResending(true);
-              const { error } = await sendEmailCode(email);
+              const { error } = await resendSignUpCode(email);
               setResending(false);
               if (error) setFailure(error);
               else toast("A new code is on its way.");
@@ -273,29 +439,29 @@ function CodeStep({
   );
 }
 
-function PasswordStep({
+function ForgotStep({
   defaultEmail,
-  onDone,
+  onSent,
   onBack,
 }: {
   defaultEmail: string;
-  onDone: () => void;
+  onSent: (email: string) => void;
   onBack: () => void;
 }) {
   const [failure, setFailure] = React.useState<string | null>(null);
-  const methods = useForm<PasswordSignInSchemaTypes>({
-    resolver: zodResolver(PasswordSignInSchema),
-    defaultValues: { email: defaultEmail, password: "" },
+  const methods = useForm<PasswordResetRequestSchemaTypes>({
+    resolver: zodResolver(PasswordResetRequestSchema),
+    defaultValues: { email: defaultEmail },
     mode: "onSubmit",
     reValidateMode: "onChange",
   });
   const busy = methods.formState.isSubmitting;
 
-  const onSubmit = methods.handleSubmit(async ({ email, password }) => {
+  const onSubmit = methods.handleSubmit(async ({ email }) => {
     setFailure(null);
-    const { error } = await signInWithPassword(email, password);
+    const { error } = await sendPasswordReset(email);
     if (error) setFailure(error);
-    else onDone();
+    else onSent(email);
   });
 
   return (
@@ -309,29 +475,75 @@ function PasswordStep({
             type: "email",
             inputMode: "email",
             autoComplete: "email",
+            placeholder: "name@gmail.com",
             autoFocus: true,
           }}
         />
-        <InputField
-          name="password"
-          label="Password"
-          disabled={busy}
-          inputProps={{ type: "password", autoComplete: "current-password" }}
-        />
         <Button type="submit" variant="rush" isLoading={busy}>
-          Sign in
+          Email me a code
         </Button>
         {failure && <FieldError>{failure}</FieldError>}
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="self-start"
-          onClick={onBack}
-        >
-          <Icon icon={ArrowLeftIcon} size={14} />
-          Use an email code instead
+        <BackButton onClick={onBack}>Back to sign in</BackButton>
+      </form>
+    </FormProvider>
+  );
+}
+
+function ResetStep({
+  email,
+  onDone,
+  onBack,
+}: {
+  email: string;
+  onDone: () => void;
+  onBack: () => void;
+}) {
+  const [failure, setFailure] = React.useState<string | null>(null);
+  // A code works once. If the password is then refused, the next try keeps
+  // the session the code opened and only sets the password.
+  const verified = React.useRef(false);
+  const methods = useForm<PasswordResetSchemaTypes>({
+    resolver: zodResolver(PasswordResetSchema),
+    defaultValues: { code: "", password: "" },
+    mode: "onSubmit",
+    reValidateMode: "onChange",
+  });
+  const busy = methods.formState.isSubmitting;
+
+  const onSubmit = methods.handleSubmit(async ({ code, password }) => {
+    setFailure(null);
+    if (!verified.current) {
+      const { error } = await verifyResetCode(email, code);
+      if (error) return setFailure(error);
+      verified.current = true;
+    }
+    const { error } = await setPassword(password);
+    if (error) setFailure(error);
+    else onDone();
+  });
+
+  return (
+    <FormProvider {...methods}>
+      <form onSubmit={onSubmit} className="flex flex-col gap-3" noValidate>
+        <OtpField
+          name="code"
+          label="Code"
+          length={CODE_LENGTH}
+          disabled={busy}
+          autoFocus
+        />
+        <InputField
+          name="password"
+          label="New password"
+          description={PASSWORD_RULE}
+          disabled={busy}
+          inputProps={{ type: "password", autoComplete: "new-password" }}
+        />
+        <Button type="submit" variant="rush" isLoading={busy}>
+          Set password and sign in
         </Button>
+        {failure && <FieldError>{failure}</FieldError>}
+        <BackButton onClick={onBack}>Use a different email</BackButton>
       </form>
     </FormProvider>
   );

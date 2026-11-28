@@ -18,6 +18,16 @@ export const OtpCodeSchema = z
 
 export const PasswordSchema = z.string().min(1, "Type your password.");
 
+/** A password being chosen: the rule the auth server enforces (config.toml). */
+export const NewPasswordSchema = z
+  .string()
+  .min(8, "Use at least 8 characters, with letters and numbers.")
+  .max(72, "At most 72 characters.")
+  .regex(
+    /^(?=.*[A-Za-z])(?=.*\d)/,
+    "Use at least 8 characters, with letters and numbers.",
+  );
+
 export const IdSchema = z.uuid("Something is missing. Reload and try again.");
 
 export const BranchIdsSchema = z

@@ -48,7 +48,7 @@ export default function AuthCallback() {
           Sign-in did not finish
         </h1>
         <p className="text-ink-2">
-          Try again, or sign in with an email code instead.
+          Try again, or sign in with your email and password instead.
         </p>
         <Button asChild variant="rush">
           <Link to={next}>Go back</Link>

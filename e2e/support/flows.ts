@@ -35,14 +35,25 @@ async function openSheet(page: Page) {
   ).toBeVisible();
 }
 
-export async function signInWithCode(page: Page, email: string) {
+function sheetButton(page: Page, name: string) {
+  return page.getByRole("dialog").getByRole("button", { name, exact: true });
+}
+
+/** A new account: email and password, then the code emailed to confirm it. */
+export async function signUp(
+  page: Page,
+  email: string,
+  password = DEMO_PASSWORD,
+) {
   await openSheet(page);
+  await sheetButton(page, "Create an account").click();
   await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password", { exact: true }).fill(password);
   const sent = Date.now();
-  await page.getByRole("button", { name: "Email me a code" }).click();
+  await sheetButton(page, "Create account").click();
   const code = await latestCode(email, sent);
   await page.getByLabel("Code").fill(code);
-  await sheetSubmit(page).click();
+  await sheetButton(page, "Confirm and sign in").click();
   await expect(accountButton(page, "Your account")).toBeVisible();
 }
 
@@ -52,10 +63,30 @@ export async function signInWithPassword(
   password = DEMO_PASSWORD,
 ) {
   await openSheet(page);
-  await page.getByRole("button", { name: "Sign in with a password" }).click();
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(password);
+  await page.getByLabel("Password", { exact: true }).fill(password);
   await sheetSubmit(page).click();
+  await expect(accountButton(page, "Your account")).toBeVisible();
+}
+
+/**
+ * Sets a password with an emailed code, which also signs in (on a code
+ * session, not a password one). The same password again is accepted.
+ */
+export async function resetPassword(
+  page: Page,
+  email: string,
+  password = DEMO_PASSWORD,
+) {
+  await openSheet(page);
+  await sheetButton(page, "Forgot your password?").click();
+  await page.getByLabel("Email").fill(email);
+  const sent = Date.now();
+  await sheetButton(page, "Email me a code").click();
+  const code = await latestCode(email, sent);
+  await page.getByLabel("Code").fill(code);
+  await page.getByRole("textbox", { name: "New password" }).fill(password);
+  await sheetButton(page, "Set password and sign in").click();
   await expect(accountButton(page, "Your account")).toBeVisible();
 }
 

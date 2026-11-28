@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { EmailCodeRequestSchema, VerifyEmailCodeSchema } from "./auth";
+import {
+  PasswordResetRequestSchema,
+  SignUpSchema,
+  VerifyEmailCodeSchema,
+} from "./auth";
 import { CreateSchoolSchema } from "./console";
 import { AddAdminSchema, StudentActionSchema } from "./school";
 
@@ -9,9 +13,9 @@ const ID = "8a8d6f0e-6d3b-4a7e-9a55-1f0f1c2b3d4e";
 describe("form schemas", () => {
   it("normalise an email and explain a bad one", () => {
     expect(
-      EmailCodeRequestSchema.parse({ email: "  Wanjiru@Mail.COM " }).email,
+      PasswordResetRequestSchema.parse({ email: "  Wanjiru@Mail.COM " }).email,
     ).toBe("wanjiru@mail.com");
-    const bad = EmailCodeRequestSchema.safeParse({ email: "wanjiru" });
+    const bad = PasswordResetRequestSchema.safeParse({ email: "wanjiru" });
     expect(bad.success).toBe(false);
     expect(bad.error?.issues[0]?.message).toMatch(/full email address/);
   });
@@ -23,6 +27,16 @@ describe("form schemas", () => {
     expect(VerifyEmailCodeSchema.safeParse({ code: "12345" }).success).toBe(
       false,
     );
+  });
+
+  it("ask a new password for 8 characters with letters and numbers", () => {
+    const email = "wanjiru@mail.com";
+    expect(
+      SignUpSchema.safeParse({ email, password: "rafiki2026" }).success,
+    ).toBe(true);
+    for (const password of ["rafiki1", "rafikirafiki", "12345678"]) {
+      expect(SignUpSchema.safeParse({ email, password }).success).toBe(false);
+    }
   });
 
   it("need a branch for an admin", () => {
@@ -71,7 +85,7 @@ describe("form schemas", () => {
 
   it("never explain with an em dash", () => {
     const issues =
-      EmailCodeRequestSchema.safeParse({ email: "x" }).error?.issues ?? [];
+      PasswordResetRequestSchema.safeParse({ email: "x" }).error?.issues ?? [];
     for (const issue of issues) expect(issue.message).not.toContain("—");
   });
 });

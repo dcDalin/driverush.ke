@@ -102,7 +102,7 @@ export default function ConsoleSchool({ loaderData }: Route.ComponentProps) {
         ) : loaderData.state === "not-staff" ? (
           <NothingHere
             title="Staff only"
-            body="This account has no DriveRush staff role, or signed in with a code. Staff sign in with a password."
+            body="This account has no DriveRush staff role, or did not sign in with its password. Staff sign in with a password."
           />
         ) : loaderData.state === "missing" ? (
           <NothingHere

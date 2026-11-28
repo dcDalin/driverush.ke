@@ -195,10 +195,11 @@ token_verifications = 60
 web3 = 30
 
 [auth.email]
-# Learners and schools sign in with a 6-digit email code, Google, or an email
-# and password. DriveRush su/admin console roles count only on a password
-# session (private.signed_in_with_password). Confirmations stay on: a school
-# links a learner by email, so a link only ever matches a confirmed address.
+# Learners and schools sign in with Google (the first choice) or an email and
+# password. DriveRush su/admin console roles count only on a password session
+# (private.signed_in_with_password). Confirmations stay on: a school links a
+# learner by email, so a link only ever matches a confirmed address. A new
+# password account confirms its email with a 6-digit code.
 enable_signup = true
 double_confirm_changes = true
 enable_confirmations = true
@@ -207,17 +208,22 @@ max_frequency = "1s"
 otp_length = 6
 otp_expiry = 3600
 
-# The emails carry the 6-digit code ({{ .Token }}), which the app's sign-in
-# sheet asks for. A new account gets `confirmation`, a returning one
-# `magic_link`. The hosted project needs the same templates (Dashboard >
+# The emails carry a 6-digit code ({{ .Token }}), typed into the app's sign-in
+# sheet: `confirmation` for a new password account, `recovery` to set a new
+# password. `magic_link` is for a code sign-in through the API (the sheet no
+# longer offers one). The hosted project needs the same templates (Dashboard >
 # Authentication > Emails).
+[auth.email.template.confirmation]
+subject = "Confirm your email for DriveRush"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Your DriveRush password code"
+content_path = "./supabase/templates/recovery.html"
+
 [auth.email.template.magic_link]
 subject = "Your DriveRush code"
 content_path = "./supabase/templates/magic_link.html"
-
-[auth.email.template.confirmation]
-subject = "Your DriveRush code"
-content_path = "./supabase/templates/confirmation.html"
 
 [auth.sms]
 enable_signup = false
@@ -239,8 +245,13 @@ verify_enabled = false
 enroll_enabled = false
 verify_enabled = false
 
-# Google sign-in. Set both variables in supabase/.env to try it locally;
-# without them the provider stays off.
+# Google sign-in, the sheet's first choice. Both variables live in
+# supabase/.env (gitignored): the "DriveRush (dev)" OAuth client in the Google
+# Cloud project `driverush`, whose redirect URI is this stack's
+# http://127.0.0.1:54721/auth/v1/callback. Without them the provider stays
+# off. The hosted project takes the "DriveRush (prod)" client's keys in its
+# dashboard (Authentication > Sign In / Providers > Google), and that client
+# needs https://<project-ref>.supabase.co/auth/v1/callback as a redirect URI.
 [auth.external.google]
 enabled = true
 client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"

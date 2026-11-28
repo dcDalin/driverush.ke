@@ -3,9 +3,9 @@ import { expect, test } from "@playwright/test";
 import {
   accountButton,
   freshEmail,
-  signInWithCode,
   signInWithPassword,
   signOut,
+  signUp,
 } from "../support/flows";
 
 test("the owner adds a student; a branch admin sees only their branch", async ({
@@ -47,7 +47,7 @@ test("a learner added by a school wears its livery once they sign up", async ({
   await expect(page.getByText("Student added.")).toBeVisible();
   await signOut(page);
 
-  await signInWithCode(page, email);
+  await signUp(page, email);
   await accountButton(page, "Your account").click();
   await expect(
     page.getByText(/With Heltz Driving Academy until/),

@@ -59,7 +59,7 @@ export function ownerEmail({
       `DriveRush has made you the owner of ${school}.`,
       "From your school's dashboard you add branches and admins, add your students, set your pass price and see what you earn.",
       result === "invited"
-        ? "Sign in with this email address (we send you a code, no password needed) and the school is yours."
+        ? "Sign in with this email address, with Google or by creating an account, and the school is yours."
         : "Sign in with this email address to open it.",
     ],
     button: { label: "Open your school", href: `${origin}/school` },
@@ -85,7 +85,7 @@ export function adminEmail({
       `${school} added you as an admin${where}.`,
       "You can add students to your branches and follow their progress on the Model Town Board course.",
       result === "invited"
-        ? "Sign in with this email address (we send you a code, no password needed) to start."
+        ? "Sign in with this email address, with Google or by creating an account, to start."
         : "Sign in with this email address to open the school's dashboard.",
     ],
     button: { label: "Open the dashboard", href: `${origin}/school` },
@@ -111,7 +111,7 @@ export function studentEmail({
       `${school}${at} added you as a student on DriveRush, the Model Town Board course.`,
       started
         ? "You are with them now: your school sees your progress and its cars are on your board."
-        : "Sign in with this email address (we send you a code, no password needed), open your account and choose Join.",
+        : "Sign in with this email address, with Google or by creating an account, then open your account and choose Join.",
     ],
     button: {
       label: started ? "Start practising" : "Sign in and join",

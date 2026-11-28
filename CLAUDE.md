@@ -68,9 +68,12 @@ remix-hook-form, shadcn everywhere. Guides: `docs/forms-and-data.md`,
 
 ## Accounts, progress, schools
 
-- Accounts are optional. Sign-in: emailed 6-digit code (also how accounts are
-  made), email and password, or Google (`VITE_AUTH_GOOGLE=on`). Code emails
-  are `supabase/templates/`; the hosted project needs the same templates.
+- Accounts are optional. Sign-in: Google first (`VITE_AUTH_GOOGLE=on`; dev
+  keys in `supabase/.env`, see `config.toml`), then email and password. A new
+  password account confirms its email with a 6-digit code, and a forgotten
+  password is replaced with one; there is no code sign-in in the sheet (owner,
+  2026-11-28). Code emails are `supabase/templates/`; the hosted project needs
+  the same templates.
 - Pages render as a guest on the server; the session is read in the browser
   (`app/lib/auth/session.ts`, Supabase client loaded lazily). A build without
   the `VITE_SUPABASE_*` settings has accounts off.

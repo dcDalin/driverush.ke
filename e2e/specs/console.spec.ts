@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { signInWithCode, signInWithPassword } from "../support/flows";
+import { resetPassword, signInWithPassword } from "../support/flows";
 
 test("DriveRush staff create a school for an owner who has not signed up", async ({
   page,
@@ -49,11 +49,11 @@ test("staff set a school up first, then hand it over", async ({ page }) => {
   await expect(page.getByText("Active").first()).toBeVisible();
 });
 
-test("staff on an emailed-code session see the staff-only page", async ({
+test("staff who signed in with a reset code, not their password, see the staff-only page", async ({
   page,
 }) => {
   await page.goto("/guides");
-  await signInWithCode(page, "admin@driverush.test");
+  await resetPassword(page, "admin@driverush.test");
   await page.goto("/console");
   await expect(page.getByRole("heading", { name: "Staff only" })).toBeVisible();
 });
