@@ -87,7 +87,8 @@ export function SchoolPaymentsBlock({
                 : "No bank yet"}
             </dd>
           </dl>
-          <div className="flex flex-wrap gap-2">
+          {/* No empty row (and its gap) when there is nothing to press. */}
+          <div className="flex flex-wrap gap-2 empty:hidden">
             {payments ? (
               <Button asChild size="sm" variant="paper">
                 <Link to={to("payments/code")} preventScrollReset>

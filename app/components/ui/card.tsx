@@ -1,6 +1,8 @@
 /**
  * shadcn's card, in the house look: a surface panel with a hairline border
  * and a soft corner. `asChild` puts the card's look on its child (a link).
+ * The card holds its own bottom padding, so it ends evenly whatever comes
+ * last: header, content or footer.
  */
 import { Slot } from "radix-ui";
 import type * as React from "react";
@@ -17,7 +19,7 @@ function Card({
     <Comp
       data-slot="card"
       className={cn(
-        "flex flex-col gap-4 rounded-lg border border-line bg-surface text-ink",
+        "flex flex-col gap-4 rounded-lg border border-line bg-surface pb-5 text-ink",
         className,
       )}
       {...props}
@@ -62,7 +64,8 @@ function CardContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-content"
-      className={cn("px-5", className)}
+      // Empty (nothing to show yet), it takes no room or gap.
+      className={cn("px-5 empty:hidden", className)}
       {...props}
     />
   );
@@ -72,7 +75,7 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-footer"
-      className={cn("flex items-center gap-2 px-5 pb-5", className)}
+      className={cn("flex items-center gap-2 px-5", className)}
       {...props}
     />
   );
